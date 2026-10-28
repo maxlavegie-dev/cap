@@ -1,6 +1,6 @@
 # Repository Guidelines
 
-Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le cahier des charges complet est `PROMPT_CAP.txt` : le relire, avec le fichier d'explications et le journal de bord, au début de chaque session. État actuel : aucun code, rien n'est encore construit.
+Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le cahier des charges complet est `PROMPT_CAP.txt` : le relire, avec le fichier d'explications et le journal de bord, au début de chaque session. État actuel : semaine 1 construite (écran d'accueil, liste de tâches, dictée, installation PWA) et en ligne ; voir `JOURNAL_DE_BORD.md`.
 
 ## Communication avec Max
 - Max n'est pas développeur et dicte à la voix. Lui parler en français, en le tutoyant, simplement, sans jargon. Une seule question à la fois, réponses courtes, toujours la vérité.
@@ -29,6 +29,9 @@ Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le
 - PWA : `manifest.webmanifest`, `service-worker.js` (réseau d'abord, cache en secours ; ajouter chaque nouveau fichier à `FICHIERS_PRECACHE`), `installation.js`. Icônes régénérées par `python outils\fabriquer_icones.py`.
 - Tests : `python app\test_cap.py`. Il lance Microsoft Edge sans fenêtre ; Node n'est pas installé.
 - Construire le DOM avec `textContent`, jamais `innerHTML` avec des données.
+- Déploiement : dépôt public `maxlavegie-dev/cap`, GitHub Pages servi depuis la racine de `main`. L'appli est en ligne sur https://maxlavegie-dev.github.io/cap/app/, et chaque `git push` sur `main` la met à jour. Le dépôt est public : `PROMPT_CAP.txt` et tout secret doivent rester dans `.gitignore`.
+- Commits : messages courts en français. Ne jamais faire de commit ni de push sans l'accord de Max.
+- Le shell cmd gère mal les guillemets : passer les messages de commit par un fichier (`git commit -F`).
 
 ## Style de code
 - Scripts simples, un seul but chacun. Commentaires en français.

@@ -21,15 +21,22 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 - 28/10/2026 : dictée à la voix fabriquée (jours 5 et 6). La tâche dictée est ajoutée tout de suite, mot pour mot, dans une catégorie « À trier », avec un bouton « Annuler » (8 secondes) qui l'abandonne (zéro perte). Le classement automatique viendra avec l'intelligence artificielle. Écrite par un subagent, relue par le modèle principal : 36 vérifications automatiques réussies (avec un micro simulé).
 - 28/10/2026 : Max a un compte GitHub.
 - 28/10/2026 : Cap est rendu installable sur Android : carte d'identité (manifest), icônes aux bonnes tailles, copie hors connexion (lecture de la dernière version). 46 vérifications automatiques réussies. Pas encore essayé sur un vrai téléphone.
+- 28/10/2026 : Max accepte que le code soit public sur GitHub. Le cahier des charges (`PROMPT_CAP.txt`) est exclu de la publication car il contient des informations personnelles.
+- 28/10/2026 : Cap est en ligne : https://maxlavegie-dev.github.io/cap/app/ (dépôt https://github.com/maxlavegie-dev/cap, compte GitHub `maxlavegie-dev`).
+- 28/10/2026 : Max a installé Cap sur son téléphone Android : l'installation fonctionne. L'ajout avec le bouton + fonctionne.
+- 28/10/2026 : PROBLÈME : sur le téléphone, le micro affiche « La dictée n'est pas disponible dans ce navigateur ». Le navigateur utilisé ne fournit pas la reconnaissance vocale (piste : pas Chrome). Cause trouvée : Cap avait été installé depuis le navigateur Qwant, qui n'a pas de reconnaissance vocale. Solution : réinstaller Cap depuis Chrome. À savoir : chaque navigateur garde sa propre liste, la liste de la version Qwant ne passe pas dans Chrome (ce sera réglé en semaine 2 avec Google Sheets).
+- 28/10/2026 : Cap réinstallé depuis Chrome : la dictée avec le vrai micro fonctionne sur le téléphone de Max.
+- 28/10/2026 : essai en mode avion réussi : Cap s'ouvre, la liste est consultable, et la dictée marche même sans internet (le téléphone de Max reconnaît la voix sur place).
+- 28/10/2026 : premier bilan de la semaine 1 : Max est satisfait, rien ne le gêne ni ne lui manque pour l'instant. Semaine 1 terminée.
 
 ### En cours
-- Préparer l'essai sur le téléphone (jour 7) : il faut mettre l'appli en ligne à une adresse sécurisée (https), sinon le téléphone refuse le micro et l'installation.
+- Préparation de la semaine 2 : connexion à Google (Sheets, Agenda, Gmail) et briefing du matin.
 
 ### À faire (semaine 1)
 - Jours 1 et 2 : dessiner l'icône et l'écran d'accueil. FAIT.
-- Jours 3 et 4 : la liste de tâches (ajouter, cocher, supprimer). FAIT, en attente de l'avis de Max.
-- Jours 5 et 6 : la dictée à la voix pour ajouter une tâche toute seule. FAIT, reste à essayer avec un vrai micro.
-- Jour 7 : essai sur le téléphone de Max, corrections, premier bilan.
+- Jours 3 et 4 : la liste de tâches (ajouter, cocher, supprimer). FAIT, validé par Max.
+- Jours 5 et 6 : la dictée à la voix pour ajouter une tâche toute seule. FAIT, essayée avec le vrai micro.
+- Jour 7 : essai sur le téléphone de Max. FAIT (installation, liste, dictée, mode avion). Premier bilan FAIT.
 
 ---
 
@@ -53,7 +60,6 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 ---
 
 ## Questions en attente
-- Max accepte-t-il que le CODE de Cap soit public sur GitHub (c'est la condition pour la mise en ligne gratuite) ? Aucune donnée personnelle n'est dans le code : seulement des tâches fictives.
 - Clé API créée chez le fournisseur, avec un plafond de dépense mensuel (pas nécessaire avant la semaine 2).
 
 ---

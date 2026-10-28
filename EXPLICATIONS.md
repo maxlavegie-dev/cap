@@ -38,10 +38,17 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 - On touche le gros micro, on parle, et la tâche est ajoutée tout de suite dans la catégorie « À trier », mot pour mot, sans aucune reformulation.
 - Pendant 8 secondes, un bouton « Annuler » permet d'abandonner la tâche (elle reste gardée dans les abandonnées).
 - Si la sauvegarde échoue, le texte dicté reste affiché pour pouvoir le recopier.
-- À savoir : la reconnaissance vocale du navigateur passe par internet, et le son est traité par Google ou Microsoft selon le navigateur.
+- Cap doit être installé depuis **Chrome** : certains navigateurs (par exemple Qwant) n'ont pas de reconnaissance vocale, et le micro affiche alors « La dictée n'est pas disponible ».
+- À savoir : selon le téléphone, la reconnaissance vocale passe par internet (le son est alors traité par Google) ou se fait directement sur le téléphone. Sur le téléphone de Max, elle marche aussi en mode avion.
 
 ## Ce que contient une tâche
 Identifiant, intitulé, catégorie, sous-catégorie, fait ou pas fait, date d'entrée, échéance, date de réalisation, priorité, tâche parente, note, « avant le », « abandonnée le », origine, fictif.
+
+## Où se trouve Cap en ligne
+- L'appli : https://maxlavegie-dev.github.io/cap/app/ (à ouvrir avec Chrome sur le téléphone pour l'installer).
+- Le code est public sur https://github.com/maxlavegie-dev/cap. Il ne contient aucune donnée personnelle : la liste de Max reste dans son téléphone.
+- `PROMPT_CAP.txt` n'est jamais publié (il est exclu par le fichier `.gitignore`).
+- Pour publier une nouvelle version, on envoie les changements sur GitHub, et l'adresse se met à jour toute seule en une à deux minutes.
 
 ## Comment voir l'application sur l'ordinateur
 Double-cliquer sur `app/index.html`.
