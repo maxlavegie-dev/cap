@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#4F87B5">
+  <title>Cap</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="48x48" href="icones/favicon.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icones/icone-192.png">
+</head>
+<body>
+  <div class="ecran">
+    <header class="horloge" aria-label="Date et heure actuelles">
+      <time id="date"></time>
+      <time id="heure"></time>
+    </header>
+    <main class="taches" aria-label="Tes tâches" tabindex="0">
+      <p id="info-chargement" role="status" hidden></p>
+      <h1 class="visuellement-cache">Tes tâches</h1>
+      <div id="liste-taches"></div>
+      <button id="basculer-archive" class="lien" type="button" aria-expanded="false" aria-controls="archive-taches">Voir les tâches abandonnées (0)</button>
+      <section id="archive-taches" aria-labelledby="titre-archive" hidden>
+        <h2 id="titre-archive">Tâches abandonnées</h2>
+        <ul id="liste-archive" class="liste-groupe"></ul>
+      </section>
+    </main>
+  </div>
+  <footer class="dictee">
+    <p id="statut" role="status" aria-live="polite" aria-atomic="true"></p>
+    <div class="commandes">
+      <button id="ajouter" type="button" aria-label="Ajouter une tâche">+</button>
+      <button id="microphone" type="button" aria-label="Dicter une tâche" aria-pressed="false">
+        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <rect x="12" y="4" width="8" height="15" rx="4" />
+          <path d="M8 15v1a8 8 0 0 0 16 0v-1M16 24v5M12 29h8" />
+        </svg>
+      </button>
+    </div>
+  </footer>
+  <dialog id="menu-tache" aria-labelledby="titre-menu">
+    <h2 id="titre-menu">Actions sur la tâche</h2>
+    <p id="intitule-menu" class="intitule-dialogue"></p>
+    <div class="actions-menu">
+      <button id="ajouter-etape" type="button">Ajouter une étape</button>
+      <button id="abandonner-tache" type="button">Abandonner</button>
+      <button type="button" data-fermer>Annuler</button>
+    </div>
+  </dialog>
+  <dialog id="confirmation" aria-labelledby="titre-confirmation">
+    <h2 id="titre-confirmation">Abandonner cette tâche ?</h2>
+    <p id="intitule-confirmation" class="intitule-dialogue"></p>
+    <p>Elle restera disponible dans les tâches abandonnées. Ses étapes ne seront pas abandonnées.</p>
+    <p class="erreur" role="alert" hidden></p>
+    <div class="actions-dialogue">
+      <button type="button" data-fermer>Annuler</button>
+      <button id="confirmer-abandon" type="button">Abandonner</button>
+    </div>
+  </dialog>
+  <dialog id="ajout-tache" aria-labelledby="titre-ajout">
+    <h2 id="titre-ajout">Ajouter une tâche</h2>
+    <p id="contexte-etape" class="intitule-dialogue" hidden></p>
+    <form id="formulaire-ajout">
+      <label for="intitule">Intitulé (obligatoire)</label>
+      <input id="intitule" name="intitule" type="text" required autocomplete="off">
+      <fieldset id="champs-tache">
+        <legend>Précisions facultatives</legend>
+        <label for="categorie">Catégorie</label>
+        <input id="categorie" name="categorie" type="text" list="categories" autocomplete="off">
+        <datalist id="categories"></datalist>
+        <label for="sous-categorie">Sous-catégorie</label>
+        <input id="sous-categorie" name="sous_categorie" type="text" list="sous-categories" autocomplete="off">
+        <datalist id="sous-categories"></datalist>
+        <label for="modele">Étapes par défaut</label>
+        <select id="modele" name="modele"><option value="">Aucune</option></select>
+        <div class="dates-formulaire">
+          <div><label for="echeance">Échéance</label><input id="echeance" name="echeance" type="date"></div>
+          <div><label for="avant-le">Avant le</label><input id="avant-le" name="avant_le" type="date"></div>
+        </div>
+        <label for="priorite">Priorité</label>
+        <select id="priorite" name="priorite">
+          <option value="normale">Normale</option>
+          <option value="haute">Haute</option>
+          <option value="basse">Basse</option>
+        </select>
+        <label for="note">Note</label>
+        <textarea id="note" name="note" rows="3"></textarea>
+      </fieldset>
+      <p class="erreur" role="alert" hidden></p>
+      <div class="actions-dialogue">
+        <button type="button" data-fermer>Annuler</button>
+        <button type="submit">Ajouter</button>
+      </div>
+    </form>
+  </dialog>
+  <script src="donnees_fictives.js"></script>
+  <script src="etapes_par_defaut.js"></script>
+  <script src="stockage.js"></script>
+  <script src="taches.js"></script>
+  <script src="dictee.js"></script>
+  <script src="app.js"></script>
+  <script src="installation.js"></script>
+</body>
+</html>
