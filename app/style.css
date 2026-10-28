@@ -828,6 +828,172 @@ dialog button:hover {
   overflow-wrap: anywhere;
 }
 
+#fiche-rendez-vous {
+  width: min(calc(100% - 24px), 520px);
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(165deg, #FDE6C3, #f6f7ec 35%, #e2f3ee);
+}
+
+#fiche-rendez-vous[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+#fiche-rendez-vous .entete-fiche-rdv {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid rgb(32 62 73 / 15%);
+  background: #FDE6C3;
+}
+
+#retour-fiche-rdv {
+  flex: none;
+}
+
+#titre-fiche-rendez-vous {
+  min-width: 0;
+  margin: 0;
+  font-size: 19.8px;
+  overflow-wrap: anywhere;
+}
+
+#contenu-fiche-rdv {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #547a83 transparent;
+  overflow-wrap: anywhere;
+}
+
+#fiche-rendez-vous .carte-rdv {
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid rgb(32 62 73 / 20%);
+  border-radius: 12px;
+  background: #fffef7;
+}
+
+#fiche-rendez-vous .carte-rdv h3,
+#fiche-rendez-vous .carte-rdv h4 {
+  margin: 0 0 10px;
+  font-size: 18.7px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+#fiche-rendez-vous .carte-rdv h4 {
+  margin-top: 14px;
+  font-size: 17.6px;
+}
+
+#fiche-rendez-vous .carte-rdv p {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+#fiche-rendez-vous .carte-rdv > :last-child {
+  margin-bottom: 0;
+}
+
+#fiche-rendez-vous button,
+#fiche-rendez-vous a,
+.ouvrir-rdv {
+  max-width: 100%;
+  min-height: 48px;
+  font: inherit;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+#fiche-rendez-vous a {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 0;
+  color: #315c68;
+  text-underline-offset: 4px;
+}
+
+#fiche-rendez-vous .action-principale-rdv {
+  border-color: #315c68;
+  background: #b3ede3;
+  font-weight: 600;
+}
+
+#fiche-rendez-vous .action-principale-rdv:hover,
+#fiche-rendez-vous .action-principale-rdv:active {
+  background: #9adbd0;
+}
+
+.ouvrir-rdv {
+  display: block;
+  width: 100%;
+  padding: 12px 10px;
+  border: 1px solid #8a9d9c;
+  border-radius: 10px;
+  color: var(--encre);
+  background: #fffef7;
+  text-align: left;
+}
+
+.ouvrir-rdv:hover,
+.ouvrir-rdv:active {
+  background: #e2f3ee;
+}
+
+#fiche-rendez-vous input,
+#fiche-rendez-vous select,
+#fiche-rendez-vous textarea {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 48px;
+  font: inherit;
+}
+
+#fiche-rendez-vous textarea {
+  resize: vertical;
+}
+
+#rappels-rdv label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  margin: 0;
+  padding: 10px 0;
+  cursor: pointer;
+}
+
+#fiche-rendez-vous #rappels-rdv input[type="checkbox"] {
+  flex: none;
+  width: 23px;
+  height: 23px;
+  min-height: 23px;
+  margin: 0;
+  padding: 0;
+  accent-color: #315c68;
+  cursor: pointer;
+}
+
+#fiche-rendez-vous .info-rappel-rdv {
+  color: var(--secondaire);
+  font-size: 14.3px;
+}
+
 #clavier {
   inset: auto 0 0;
   box-sizing: border-box;

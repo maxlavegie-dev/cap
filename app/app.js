@@ -82,12 +82,12 @@
     surlignerResultat(ligne);
   }
 
-  function ouvrirResultatRendezVous(rendezVous) {
-    remplirRendezVous(googleAgenda.lireCache() || []);
-    changerVue(true);
-    const ligne = Array.from(parId('liste-rendez-vous').children)
-      .find(noeud => noeud.dataset.rendezVous === identiteRendezVous(rendezVous));
-    surlignerResultat(ligne || parId('rendez-vous'));
+  function ouvrirResultatRendezVous(rendezVous, origine) {
+    ficheRendezVous.ouvrir(rendezVous, origine, () => {
+      erreurAgenda = '';
+      remplirRendezVous(googleAgenda.lireCache() || []);
+      afficherRecherche();
+    });
   }
 
   function afficherRecherche() {
@@ -103,9 +103,14 @@
       const ligne = element('li');
       const bouton = element('button', 'resultat-recherche', agenda ? texteRendezVous(resultat) : resultat.intitule);
       bouton.type = 'button';
+      if (agenda) {
+        bouton.dataset.rdvFocus = `recherche-${resultat.id || identiteRendezVous(resultat)}`;
+        bouton.setAttribute('aria-haspopup', 'dialog');
+        bouton.setAttribute('aria-controls', 'fiche-rendez-vous');
+      }
       if (!agenda && resultat.fait) bouton.append(element('span', 'etat-resultat', 'fait'));
       bouton.addEventListener('click', () => {
-        if (agenda) ouvrirResultatRendezVous(resultat);
+        if (agenda) ouvrirResultatRendezVous(resultat, bouton);
         else ouvrirResultatTache(resultat);
       });
       ligne.append(bouton);
@@ -813,7 +818,8 @@
   surface.addEventListener('touchend', event => {
     const debut = debutGlissement;
     debutGlissement = null;
-    if (!debut || event.changedTouches.length !== 1 || event.touches.length) return;
+    if (!debut || document.querySelector('dialog[open]')
+      || event.changedTouches.length !== 1 || event.touches.length) return;
     const touche = event.changedTouches[0];
     const vertical = touche.clientY - debut.y;
     if (Math.abs(vertical) <= 60 || Math.abs(vertical) <= Math.abs(touche.clientX - debut.x)) return;
@@ -824,8 +830,15 @@
 
   function remplirRendezVous(rendezVous) {
     parId('liste-rendez-vous').replaceChildren(...rendezVous.map(rendezVous => {
-      const ligne = element('li', '', texteRendezVous(rendezVous));
+      const ligne = element('li');
       ligne.dataset.rendezVous = identiteRendezVous(rendezVous);
+      const bouton = element('button', 'ouvrir-rdv', texteRendezVous(rendezVous));
+      bouton.type = 'button';
+      bouton.dataset.rdvFocus = `liste-${rendezVous.id || identiteRendezVous(rendezVous)}`;
+      bouton.setAttribute('aria-haspopup', 'dialog');
+      bouton.setAttribute('aria-controls', 'fiche-rendez-vous');
+      bouton.addEventListener('click', () => ouvrirResultatRendezVous(rendezVous, bouton));
+      ligne.append(bouton);
       return ligne;
     }));
     parId('rendez-vous').hidden = rendezVous.length === 0;

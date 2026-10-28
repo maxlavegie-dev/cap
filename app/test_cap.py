@@ -11,7 +11,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "demandes.js", "recherche.js", "journal_actions.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "app.js"]
+if (APP / "fiche_rendezvous.js").is_file():
+    SOURCES.insert(SOURCES.index("app.js"), "fiche_rendezvous.js")
 
 TESTS_JS = r"""
 (async () => {
@@ -1072,7 +1074,8 @@ TESTS_JS = r"""
       stockage: contexte.stockage, setInterval: contexte.setInterval, Date: contexte.Date
     });
     contexte.agenda = () => objetIsole(SOURCE_GOOGLE_AGENDA, 'googleAgenda', {
-      localStorage: contexte.localStorage, googleConnexion: contexte.googleConnexion, REGLAGES_GOOGLE
+      localStorage: contexte.localStorage, googleConnexion: contexte.googleConnexion, REGLAGES_GOOGLE,
+      navigator: contexte.navigator
     });
     return contexte;
   }
@@ -1095,7 +1098,11 @@ TESTS_JS = r"""
       contexte = contexteGoogle();
       await fonction(contexte);
       for (const requete of contexte.requetes) {
-        attendre(['GET', 'POST'].includes(requete.methode), 'opération destructive interdite');
+        const patchAgendaFictif = requete.methode === 'PATCH' && contexte.agendaModifiable
+          && requete.url.origin === 'https://www.googleapis.com'
+          && requete.url.pathname === `/calendar/v3/calendars/${encodeURIComponent(contexte.agendaModifiable)}/events/rdv-fictif`
+          && contexte.agendaModifiable !== 'primary';
+        attendre(['GET', 'POST'].includes(requete.methode) || patchAgendaFictif, 'opération destructive interdite');
         attendre(!/:clear(?:\?|$)|:batchClear(?:\?|$)/.test(requete.url.href), 'effacement interdit');
         attendre(!requete.corps?.requests?.some(action => Object.keys(action).some(cle => /delete|cutPaste/i.test(cle))),
           'suppression de lignes ou de feuilles interdite');
@@ -1426,7 +1433,8 @@ TESTS_JS = r"""
       }
       throw new Error(`Requête inattendue : ${r.url}`);
     };
-    attendreEgal(await c.agenda().prochainsRendezVous(5), [
+    attendreEgal((await c.agenda().prochainsRendezVous(5)).map(({ titre, date, heure, journee_entiere }) =>
+      ({ titre, date, heure, journee_entiere })), [
       { titre: 'Horaire FICTIF', date: '2030-01-10', heure: '10:15', journee_entiere: false },
       { titre: 'Journée FICTIF', date: '2030-01-11', heure: '14:30', journee_entiere: true },
       { titre: 'Autre FICTIF', date: '2030-01-12', heure: '09:05', journee_entiere: true },
@@ -1497,6 +1505,315 @@ TESTS_JS = r"""
     attendreEgal(rendezVous.map(rendezVous => rendezVous.heure),
       ['14:30', '14:00', '14:30', '09:05', '', '', '', ''], 'formats exacts et heures invalides');
   });
+
+  function preparerFicheRendezVous(c, changements = {}) {
+    const evenement = {
+      id: 'rdv-fictif', etag: '"version-fictive"', summary: 'Consultation FICTIF',
+      location: '12 rue Fictive',
+      description: 'Préparation FICTIF\nTéléphone : 01 00 00 00 00\nMail : cabinet.fictif@example.com',
+      start: { dateTime: '2030-01-10T09:15:00Z' },
+      end: { dateTime: '2030-01-10T10:00:00Z' },
+      reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 60 }, { method: 'email', minutes: 10 }] },
+      ...changements
+    };
+    c.agendaModifiable = 'agenda-fictif';
+    c.localStorage.setItem('cap_google_agenda_v1', c.agendaModifiable);
+    c.repondre = async r => {
+      const base = `/calendar/v3/calendars/${encodeURIComponent(c.agendaModifiable)}`;
+      if (r.methode === 'GET' && r.url.pathname === base) {
+        return reponseGoogle({ id: c.agendaModifiable, summary: REGLAGES_GOOGLE.nom_agenda, primary: false });
+      }
+      if (r.methode === 'GET' && r.url.pathname === `${base}/events`) return reponseGoogle({ items: [evenement] });
+      if (r.methode === 'GET' && r.url.pathname === `${base}/events/${evenement.id}`) return reponseGoogle(evenement);
+      if (r.methode === 'PATCH' && r.url.pathname === `${base}/events/${evenement.id}`) {
+        const resultat = { ...evenement, ...r.corps };
+        for (const champ of ['start', 'end']) {
+          if (r.corps[champ]?.dateTime) resultat[champ] = { ...r.corps[champ],
+            dateTime: r.corps[champ].dateTime + (r.corps[champ].dateTime.startsWith('2030-07-') ? '+02:00' : '+01:00') };
+        }
+        return reponseGoogle(resultat);
+      }
+      throw new Error(`Requête de fiche inattendue : ${r.methode} ${r.url}`);
+    };
+    return evenement;
+  }
+
+  function ancienRendezVous(evenement) {
+    return Object.fromEntries(['summary', 'location', 'description', 'start', 'end', 'reminders']
+      .map(champ => [champ, evenement[champ] ?? null]));
+  }
+
+  await testAsync('Google Agenda fiche : description canonique aller-retour sans perte', async c => {
+    const agenda = c.agenda();
+    const informations = { heure_journee: '09:05', notes: 'Notes FICTIF <b>libres</b>\nDeuxième ligne\n',
+      telephone: '01 00 00 00 00', mail: 'contact.fictif@example.com' };
+    const texte = '09h05 – Notes FICTIF <b>libres</b>\nDeuxième ligne\n\nTéléphone : 01 00 00 00 00\nMail : contact.fictif@example.com';
+    attendreEgal(agenda.ecrireDescription(informations), texte, 'description canonique');
+    attendreEgal(agenda.lireDescription(texte), informations, 'champs extraits');
+    attendreEgal(agenda.ecrireDescription(agenda.lireDescription(texte)), texte, 'second aller-retour');
+    attendreEgal(c.requetes.length, 0, 'conversion locale');
+  });
+
+  for (const libelle of ['Téléphone', 'TELEPHONE', 'tÉlÉpHoNe']) {
+    await testAsync(`Google Agenda fiche : extraction accent et casse ${libelle}`, async c => {
+      attendreEgal(c.agenda().lireDescription(`Notes FICTIF\n${libelle} : 01 00 00 00 00\nmAiL : fictif@example.com`),
+        { heure_journee: '', notes: 'Notes FICTIF', telephone: '01 00 00 00 00', mail: 'fictif@example.com' }, 'coordonnées extraites');
+    });
+  }
+
+  await testAsync('Google Agenda fiche : notes libres et anciennes coordonnées doublonnées conservées', async c => {
+    const agenda = c.agenda();
+    const notes = 'Texte FICTIF à 14h\nTéléphone : ancien FICTIF\nMail : ancien.fictif@example.com\n\nTéléphone :\nMail :\nFin <b>FICTIF</b>';
+    const texte = `${notes}\nTéléphone : 01 00 00 00 00\nMail : nouveau.fictif@example.com`;
+    const informations = agenda.lireDescription(texte);
+    attendreEgal(informations, { heure_journee: '', notes, telephone: '01 00 00 00 00', mail: 'nouveau.fictif@example.com' }, 'doublons gardés dans les notes');
+    attendreEgal(agenda.ecrireDescription(informations), texte, 'texte complet conservé');
+    attendreEgal(agenda.lireDescription('Notes FICTIF\n  espaces conservés  '),
+      { heure_journee: '', notes: 'Notes FICTIF\n  espaces conservés  ', telephone: '', mail: '' }, 'notes libres intactes');
+  });
+
+  await testAsync('Google Agenda fiche : heure de journée entière extraite et réécrite', async c => {
+    const agenda = c.agenda();
+    for (const texte of ['9h05 – Notes FICTIF', '09:05 — Notes FICTIF', '9h05 - Notes FICTIF']) {
+      const informations = agenda.lireDescription(texte);
+      attendreEgal(informations, { heure_journee: '09:05', notes: 'Notes FICTIF', telephone: '', mail: '' }, 'heure et notes');
+      attendreEgal(agenda.ecrireDescription(informations), '09h05 – Notes FICTIF', 'heure canonique');
+    }
+    attendreEgal(agenda.lireDescription('14h – Notes FICTIF').heure_journee, '14:00', 'heure sans minutes');
+    attendreEgal(agenda.lireDescription('25h30 – Notes FICTIF').notes, '25h30 – Notes FICTIF', 'heure invalide conservée');
+  });
+
+  await testAsync('Google Agenda fiche : prochains rendez-vous enrichis et cache identique', async c => {
+    const evenement = preparerFicheRendezVous(c);
+    const agenda = c.agenda();
+    const attendu = { id: evenement.id, titre: evenement.summary, date: '2030-01-10', heure: '10:15', heure_fin: '11:00',
+      journee_entiere: false, lieu: evenement.location, notes: 'Préparation FICTIF', telephone: '01 00 00 00 00',
+      mail: 'cabinet.fictif@example.com', rappels: [60], description: evenement.description };
+    attendreEgal(await agenda.prochainsRendezVous(), [attendu], 'tous les champs de la fiche');
+    attendreEgal(agenda.lireCache(), [attendu], 'lecture du cache enrichi');
+    const cache = c.localStorage.getItem('cap_google_rendezvous_v1');
+    attendreEgal(JSON.parse(cache).rendezvous, [attendu], 'cache persistant');
+    c.googleConnexion.connecte = () => false;
+    const nombre = c.requetes.length;
+    attendreEgal(await agenda.prochainsRendezVous(), [attendu], 'secours hors connexion enrichi');
+    attendreEgal(c.requetes.length, nombre, 'aucune requête déconnectée');
+    attendreEgal(c.localStorage.getItem('cap_google_rendezvous_v1'), cache, 'cache non réécrit');
+  });
+
+  await testAsync('Google Agenda fiche : PATCH limité après identité, GET événement et historique complet', async c => {
+    const evenement = preparerFicheRendezVous(c);
+    const operations = [];
+    const enregistrer = c.localStorage.setItem;
+    c.localStorage.setItem = (cle, valeur) => {
+      if (cle === 'cap_rdv_historique_v1') operations.push('historique');
+      return enregistrer(cle, valeur);
+    };
+    const repondre = c.repondre;
+    c.repondre = async r => {
+      operations.push(`${r.methode} ${r.url.pathname}`);
+      if (r.methode === 'PATCH') {
+        const historique = JSON.parse(c.localStorage.getItem('cap_rdv_historique_v1'));
+        attendreEgal(historique[0].ancien, ancienRendezVous(evenement), 'sauvegarde déjà écrite avant PATCH');
+        attendreEgal(r.corps, { summary: 'Nouveau titre FICTIF' }, 'uniquement le champ demandé');
+        attendreEgal(r.options.headers['If-Match'], evenement.etag, 'version concurrente protégée');
+      }
+      return repondre(r);
+    };
+    const avant = Date.now();
+    const agenda = c.agenda();
+    const resultat = await agenda.modifierRendezVous(evenement.id, { titre: 'Nouveau titre FICTIF' });
+    attendreEgal(operations[0], 'GET /calendar/v3/calendars/agenda-fictif', 'identité agenda avant événement');
+    attendreEgal(operations.filter(operation => operation !== 'GET /calendar/v3/calendars/agenda-fictif'),
+      ['GET /calendar/v3/calendars/agenda-fictif/events/rdv-fictif', 'historique',
+        'PATCH /calendar/v3/calendars/agenda-fictif/events/rdv-fictif'], 'GET événement puis sauvegarde puis PATCH');
+    const historique = agenda.lireHistorique();
+    attendreEgal(historique.length, 1, 'une ancienne version');
+    attendreEgal(historique[0].id, evenement.id, 'identifiant sauvegardé');
+    attendre(Date.parse(historique[0].enregistre_le) >= avant && Date.parse(historique[0].enregistre_le) <= Date.now(), 'date réelle de sauvegarde');
+    attendreEgal(historique[0].ancien, ancienRendezVous(evenement), 'tous les champs anciens');
+    attendreEgal(resultat, { id: evenement.id, titre: 'Nouveau titre FICTIF', date: '2030-01-10', heure: '10:15', heure_fin: '11:00',
+      journee_entiere: false, lieu: evenement.location, notes: 'Préparation FICTIF', telephone: '01 00 00 00 00',
+      mail: 'cabinet.fictif@example.com', rappels: [60], description: evenement.description }, 'objet de retour enrichi');
+    attendreEgal(agenda.lireCache(), [resultat], 'fiche modifiée mise en cache');
+    attendre(c.requetes.every(r => !r.url.pathname.includes('/calendars/primary') && r.methode !== 'DELETE'), 'jamais primary ni DELETE');
+  });
+
+  await testAsync('Google Agenda fiche : agenda découvert par trouverOuCreer utilisé pour le PATCH', async c => {
+    const evenement = preparerFicheRendezVous(c);
+    c.localStorage.setItem('cap_google_agenda_v1', 'primary');
+    c.agendaModifiable = 'agenda-decouvert-fictif';
+    const repondre = c.repondre;
+    c.repondre = async r => r.url.pathname === '/calendar/v3/users/me/calendarList'
+      ? reponseGoogle({ items: [{ id: 'primary', summary: REGLAGES_GOOGLE.nom_agenda, primary: true },
+        { id: c.agendaModifiable, summary: REGLAGES_GOOGLE.nom_agenda, primary: false }] }) : repondre(r);
+    await c.agenda().modifierRendezVous(evenement.id, { lieu: 'Autre lieu FICTIF' });
+    attendreEgal(c.localStorage.getItem('cap_google_agenda_v1'), c.agendaModifiable, 'identifiant découvert mémorisé');
+    attendreEgal(c.requetes.filter(r => r.methode === 'PATCH').map(r => r.url.pathname),
+      ['/calendar/v3/calendars/agenda-decouvert-fictif/events/rdv-fictif'], 'PATCH seulement sur l’agenda trouvé');
+    attendre(c.requetes.every(r => !r.url.pathname.includes('/calendars/primary') && r.methode !== 'DELETE'), 'principal et suppression interdits');
+  });
+
+  await testAsync('Google Agenda fiche : historique limité à 100, plus récent en premier', async c => {
+    const evenement = preparerFicheRendezVous(c);
+    const precedents = Array.from({ length: 100 }, (_, i) => ({ id: `ancien-fictif-${i}`, enregistre_le: '2029-01-01T00:00:00Z', ancien: {} }));
+    c.localStorage.setItem('cap_rdv_historique_v1', JSON.stringify(precedents));
+    const agenda = c.agenda();
+    await agenda.modifierRendezVous(evenement.id, { lieu: 'Lieu modifié FICTIF' });
+    const historique = agenda.lireHistorique();
+    attendreEgal(historique.length, 100, 'plafond de versions');
+    attendreEgal(historique[0].ancien, ancienRendezVous(evenement), 'nouvelle sauvegarde première');
+    attendreEgal(historique[0].id, evenement.id, 'nouvelle sauvegarde identifiée');
+    attendreEgal(historique.slice(1), precedents.slice(0, 99), 'ordre ancien conservé, plus ancien écarté');
+  });
+
+  for (const panne of ['écriture refusée', 'JSON illisible', 'objet au lieu de liste']) {
+    await testAsync(`Google Agenda fiche : historique ${panne} bloque le PATCH`, async c => {
+      const evenement = preparerFicheRendezVous(c);
+      const brut = panne === 'JSON illisible' ? '{illisible FICTIF' : panne === 'objet au lieu de liste' ? '{}' : '[]';
+      c.localStorage.setItem('cap_rdv_historique_v1', brut);
+      const cache = JSON.stringify({ rendezvous: [{ id: evenement.id, titre: 'Cache FICTIF', date: '2030-01-10' }] });
+      c.localStorage.setItem('cap_google_rendezvous_v1', cache);
+      const enregistrer = c.localStorage.setItem;
+      if (panne === 'écriture refusée') c.localStorage.setItem = (cle, valeur) => {
+        if (cle === 'cap_rdv_historique_v1') throw new Error('Quota FICTIF');
+        return enregistrer(cle, valeur);
+      };
+      await attendreRejet(() => c.agenda().modifierRendezVous(evenement.id, { titre: 'Refusé FICTIF' }),
+        'Impossible de sauvegarder l’ancienne version sur ce téléphone. Le rendez-vous n’a pas été modifié.');
+      attendre(c.requetes.some(r => r.methode === 'GET' && r.url.pathname.endsWith('/events/rdv-fictif')), 'ancienne version relue');
+      attendre(!c.requetes.some(r => r.methode === 'PATCH'), 'aucun PATCH sans sauvegarde');
+      attendreEgal(c.localStorage.getItem('cap_rdv_historique_v1'), brut, 'historique original intact');
+      attendreEgal(c.localStorage.getItem('cap_google_rendezvous_v1'), cache, 'cache intact');
+    });
+  }
+
+  for (const identite of [{ summary: 'Autre agenda FICTIF', primary: false },
+    { summary: REGLAGES_GOOGLE.nom_agenda, primary: true }]) {
+    await testAsync(`Google Agenda fiche : identité agenda refusée ${identite.primary ? 'principal' : 'mauvais nom'}`, async c => {
+      const evenement = preparerFicheRendezVous(c);
+      c.repondre = async r => {
+        attendreEgal(r.methode, 'GET', 'lecture seulement');
+        attendreEgal(r.url.pathname, '/calendar/v3/calendars/agenda-fictif', 'aucun accès événement avant identité');
+        return reponseGoogle({ id: c.agendaModifiable, ...identite });
+      };
+      await attendreRejet(() => c.agenda().modifierRendezVous(evenement.id, { titre: 'Refusé FICTIF' }), 'FICTIF');
+      attendre(c.requetes.length > 0 && c.requetes.every(r => !r.url.pathname.includes('/events')), 'refus avant GET événement');
+      attendreEgal(c.localStorage.getItem('cap_rdv_historique_v1'), null, 'aucun historique créé');
+    });
+  }
+
+  await testAsync('Google Agenda fiche : PATCH horaire Europe Paris, description et rappels popup', async c => {
+    const evenement = preparerFicheRendezVous(c);
+    const changements = { titre: 'Titre modifié FICTIF', date: '2030-07-12', heure: '14:30', heure_fin: '15:45',
+      lieu: 'Studio FICTIF', notes: 'Nouvelles notes FICTIF\nDeuxième ligne', telephone: '02 00 00 00 00',
+      mail: 'nouveau.fictif@example.com', rappels: [0, 60, 1440, 10080, 40320] };
+    const description = 'Nouvelles notes FICTIF\nDeuxième ligne\nTéléphone : 02 00 00 00 00\nMail : nouveau.fictif@example.com';
+    const resultat = await c.agenda().modifierRendezVous(evenement.id, changements);
+    attendreEgal(c.requetes.find(r => r.methode === 'PATCH').corps, {
+      summary: changements.titre, location: changements.lieu, description,
+      start: { dateTime: '2030-07-12T14:30:00', timeZone: 'Europe/Paris' },
+      end: { dateTime: '2030-07-12T15:45:00', timeZone: 'Europe/Paris' },
+      reminders: { useDefault: false, overrides: changements.rappels.map(minutes => ({ method: 'popup', minutes })) }
+    }, 'corps exact sans champs supplémentaires');
+    attendreEgal(resultat, { id: evenement.id, titre: changements.titre, date: changements.date, heure: changements.heure,
+      heure_fin: changements.heure_fin, journee_entiere: false, lieu: changements.lieu, notes: changements.notes,
+      telephone: changements.telephone, mail: changements.mail, rappels: changements.rappels, description }, 'retour complet après PATCH');
+  });
+
+  await testAsync('Google Agenda fiche : suppression des coordonnées et des rappels sans DELETE', async c => {
+    const evenement = preparerFicheRendezVous(c);
+    const resultat = await c.agenda().modifierRendezVous(evenement.id, { telephone: '', mail: '', rappels: [] });
+    attendreEgal(c.requetes.find(r => r.methode === 'PATCH').corps,
+      { description: 'Préparation FICTIF', reminders: { useDefault: false, overrides: [] } }, 'vidage limité aux champs');
+    attendreEgal([resultat.telephone, resultat.mail, resultat.rappels], ['', '', []], 'coordonnées et rappels vides');
+  });
+
+  await testAsync('Google Agenda fiche : heure seule de journée entière ne change aucune date', async c => {
+    const evenement = preparerFicheRendezVous(c, { start: { date: '2030-01-10' }, end: { date: '2030-01-13' },
+      description: '09h05 – Notes FICTIF\nTéléphone : 01 00 00 00 00\nMail : fictif@example.com' });
+    const resultat = await c.agenda().modifierRendezVous(evenement.id, { heure: '14:30' });
+    const description = '14h30 – Notes FICTIF\nTéléphone : 01 00 00 00 00\nMail : fictif@example.com';
+    attendreEgal(c.requetes.find(r => r.methode === 'PATCH').corps, { description }, 'uniquement la description');
+    attendreEgal(resultat, { id: evenement.id, titre: evenement.summary, date: '2030-01-10', heure: '14:30', heure_fin: '',
+      journee_entiere: true, lieu: evenement.location, notes: 'Notes FICTIF', telephone: '01 00 00 00 00',
+      mail: 'fictif@example.com', rappels: [60], description }, 'journée entière toujours entière');
+  });
+
+  await testAsync('Google Agenda fiche : déplacement journée entière préserve durée multijour', async c => {
+    const evenement = preparerFicheRendezVous(c, { start: { date: '2030-01-10' }, end: { date: '2030-01-13' },
+      description: '09h05 – Notes FICTIF' });
+    const resultat = await c.agenda().modifierRendezVous(evenement.id, { date: '2030-03-30' });
+    attendreEgal(c.requetes.find(r => r.methode === 'PATCH').corps,
+      { start: { date: '2030-03-30' }, end: { date: '2030-04-02' } }, 'trois jours civils, fin exclusive');
+    attendreEgal([resultat.date, resultat.heure, resultat.journee_entiere], ['2030-03-30', '09:05', true], 'horaire descriptif conservé');
+  });
+
+  for (const etat of ['hors ligne', 'déconnecté']) {
+    await testAsync(`Google Agenda fiche : ${etat} refuse sans requête`, async c => {
+      preparerFicheRendezVous(c);
+      if (etat === 'hors ligne') c.navigator.onLine = false;
+      else c.googleConnexion.connecte = () => false;
+      await attendreRejet(() => c.agenda().modifierRendezVous('rdv-fictif', { titre: 'Refusé FICTIF' }), 'connecté à Google');
+      attendreEgal(c.requetes.length, 0, 'aucune requête');
+      attendreEgal(c.localStorage.getItem('cap_rdv_historique_v1'), null, 'aucune sauvegarde inutile');
+    });
+  }
+
+  const modificationsRdvInvalides = [
+    ['titre vide', { titre: '' }, 'titre'], ['titre blanc', { titre: '   ' }, 'titre'],
+    ['date impossible', { date: '2030-02-30' }, 'date'], ['date mois invalide', { date: '2030-13-01' }, 'date'],
+    ['date format court', { date: '2030-1-01' }, 'date'], ['date vide', { date: '' }, 'date'],
+    ['mail invalide', { mail: 'adresse-fictive' }, 'mail'],
+    ['mail multiligne', { mail: 'fictif@example.com\nCopie : autre.fictif@example.com' }, 'mail'],
+    ['téléphone multiligne', { telephone: '01 00 00 00 00\nMail : fictif@example.com' }, 'ligne'],
+    ['heure invalide', { heure: '24:00' }, 'heure'], ['minutes invalides', { heure: '12:60' }, 'heure'],
+    ['heure format court', { heure: '9:05' }, 'heure'], ['fin invalide', { heure_fin: '25:00' }, 'heure'],
+    ['rappels négatifs', { rappels: [-1] }, 'rappels'], ['rappels au-delà limite', { rappels: [40321] }, 'rappels'],
+    ['rappels décimaux', { rappels: [0.5] }, 'rappels'], ['rappels texte', { rappels: ['60'] }, 'rappels'],
+    ['rappels pas liste', { rappels: 60 }, 'rappels'], ['six rappels', { rappels: [0, 1, 2, 3, 4, 5] }, 'rappels'],
+    ['champ interdit', { summary: 'FICTIF' }, 'autorisée'], ['titre non texte', { titre: 42 }, 'invalide']
+  ];
+  for (const [nom, changements, message] of modificationsRdvInvalides) {
+    await testAsync(`Google Agenda fiche : validation ${nom} sans requête`, async c => {
+      preparerFicheRendezVous(c);
+      await attendreRejet(() => c.agenda().modifierRendezVous('rdv-fictif', changements), message);
+      attendreEgal(c.requetes.length, 0, 'validation avant tout accès Google');
+      attendreEgal(c.localStorage.getItem('cap_rdv_historique_v1'), null, 'aucune sauvegarde de modification invalide');
+    });
+  }
+
+  for (const changements of [{ heure: '' }, { heure_fin: '' }, { heure: '11:00', heure_fin: '11:00' },
+    { heure: '12:00', heure_fin: '11:00' }]) {
+    await testAsync(`Google Agenda fiche : plage horaire incohérente ${JSON.stringify(changements)}`, async c => {
+      preparerFicheRendezVous(c);
+      await attendreRejet(() => c.agenda().modifierRendezVous('rdv-fictif', changements), 'heure');
+      attendre(c.requetes.every(r => r.methode === 'GET'), 'aucune écriture avec plage invalide');
+      attendreEgal(c.localStorage.getItem('cap_rdv_historique_v1'), null, 'pas de sauvegarde inutile');
+    });
+  }
+
+  await testAsync('Google Agenda fiche : heure de fin interdite pour une journée entière', async c => {
+    preparerFicheRendezVous(c, { start: { date: '2030-01-10' }, end: { date: '2030-01-11' } });
+    await attendreRejet(() => c.agenda().modifierRendezVous('rdv-fictif', { heure_fin: '15:00' }), 'journée entière');
+    attendre(c.requetes.every(r => r.methode === 'GET'), 'aucun PATCH');
+    attendreEgal(c.localStorage.getItem('cap_rdv_historique_v1'), null, 'historique inchangé');
+  });
+
+  for (const statut of [412, 500]) {
+    await testAsync(`Google Agenda fiche : erreur PATCH ${statut} garde ancienne version et cache intact`, async c => {
+      const evenement = preparerFicheRendezVous(c);
+      const agenda = c.agenda();
+      await agenda.prochainsRendezVous();
+      const cache = c.localStorage.getItem('cap_google_rendezvous_v1');
+      const repondre = c.repondre;
+      c.repondre = async r => r.methode === 'PATCH' ? reponseGoogle({ erreur: 'Échec FICTIF' }, statut) : repondre(r);
+      await attendreRejet(() => agenda.modifierRendezVous(evenement.id, { titre: 'Échec FICTIF' }), String(statut));
+      attendreEgal(agenda.lireHistorique().length, 1, 'ancienne version toujours disponible');
+      attendreEgal(agenda.lireHistorique()[0].ancien, ancienRendezVous(evenement), 'sauvegarde complète après erreur');
+      attendreEgal(c.localStorage.getItem('cap_google_rendezvous_v1'), cache, 'cache strictement inchangé');
+      attendreEgal(c.requetes.filter(r => r.methode === 'PATCH').length, 1, 'pas de répétition de modification');
+    });
+  }
 
   await testAsync('Google et service worker : aucune interception ni cache hors origine', async c => {
     const rappels = new Map();
@@ -2344,8 +2661,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v5['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v5")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v6['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v6")
 
 
 def verifier_precache_fichiers_existent():

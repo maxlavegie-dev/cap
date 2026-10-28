@@ -163,6 +163,60 @@
       </div>
     </form>
   </dialog>
+  <dialog id="fiche-rendez-vous" aria-labelledby="titre-fiche-rendez-vous">
+    <header class="entete-fiche-rdv">
+      <button id="retour-fiche-rdv" type="button">Retour</button>
+      <h2 id="titre-fiche-rendez-vous">Ton rendez-vous</h2>
+    </header>
+    <div id="contenu-fiche-rdv">
+      <p id="erreur-fiche-rdv" class="erreur" role="alert" hidden></p>
+      <p id="statut-fiche-rdv" role="status" aria-live="polite" hidden></p>
+      <section id="consultation-rdv" aria-label="Détails du rendez-vous">
+        <div id="cartes-rdv"></div>
+        <button id="modifier-rdv" class="action-principale-rdv" type="button">Modifier</button>
+      </section>
+      <form id="formulaire-rdv" hidden novalidate>
+        <label for="rdv-titre">Titre (obligatoire)</label>
+        <input id="rdv-titre" name="titre" required autocomplete="off">
+        <label for="rdv-date">Date</label>
+        <input id="rdv-date" name="date" type="date" required>
+        <div id="horaires-rdv" class="dates-formulaire">
+          <div><label for="rdv-heure">Heure</label><input id="rdv-heure" name="heure" type="time" required></div>
+          <div><label for="rdv-heure-fin">Heure de fin</label><input id="rdv-heure-fin" name="heure_fin" type="time" required></div>
+        </div>
+        <label for="rdv-lieu">Adresse</label>
+        <textarea id="rdv-lieu" name="lieu" rows="2"></textarea>
+        <label for="rdv-telephone">Téléphone</label>
+        <input id="rdv-telephone" name="telephone" type="tel" autocomplete="off">
+        <label for="rdv-mail">Mail</label>
+        <input id="rdv-mail" name="mail" type="email" autocomplete="off">
+        <label for="rdv-notes">Notes</label>
+        <textarea id="rdv-notes" name="notes" rows="4"></textarea>
+        <fieldset id="rappels-rdv">
+          <legend>Rappels avant le rendez-vous</legend>
+          <label><input type="checkbox" name="rappels" value="10">10 minutes</label>
+          <label><input type="checkbox" name="rappels" value="30">30 minutes</label>
+          <label><input type="checkbox" name="rappels" value="60">1 heure</label>
+          <label><input type="checkbox" name="rappels" value="1440">1 jour</label>
+          <label><input type="checkbox" name="rappels" value="2880">2 jours</label>
+          <p id="autres-rappels-rdv" hidden></p>
+        </fieldset>
+        <p class="info-rappel-rdv">La notification sera envoyée par Google Agenda sur ton téléphone, si ses notifications sont activées.</p>
+        <div class="actions-dialogue">
+          <button id="annuler-edition-rdv" type="button">Annuler</button>
+          <button id="enregistrer-rdv" class="action-principale-rdv" type="submit">Enregistrer</button>
+        </div>
+      </form>
+      <section id="recapitulatif-rdv" aria-labelledby="titre-recapitulatif-rdv" hidden>
+        <h3 id="titre-recapitulatif-rdv" tabindex="-1">Ce qui va changer</h3>
+        <div id="changements-rdv"></div>
+        <div class="actions-dialogue">
+          <button id="revenir-rdv" type="button">Revenir</button>
+          <button id="confirmer-rdv" class="action-principale-rdv" type="button">Confirmer</button>
+        </div>
+      </section>
+    </div>
+  </dialog>
   <script src="donnees_fictives.js"></script>
   <script src="etapes_par_defaut.js"></script>
   <script src="stockage.js"></script>
@@ -178,6 +232,7 @@
   <script src="demandes.js"></script>
   <script src="recherche.js"></script>
   <script src="journal_actions.js"></script>
+  <script src="fiche_rendezvous.js"></script>
   <script src="app.js"></script>
   <script src="installation.js"></script>
 </body>
