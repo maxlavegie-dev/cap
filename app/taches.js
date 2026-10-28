@@ -36,6 +36,19 @@ function enregistrerModification(modifier) {
     const precedentes = new Map(avant.map(tache => [tache.id, JSON.stringify(tache)]));
     const ids = TACHES.filter(tache => precedentes.get(tache.id) !== JSON.stringify(tache)).map(tache => tache.id);
     if (typeof synchronisation !== 'undefined') synchronisation.signaler(ids);
+    if (typeof journalActions !== 'undefined') {
+      const anciennes = new Map(avant.map(tache => [tache.id, tache]));
+      for (const tache of TACHES) {
+        const ancienne = anciennes.get(tache.id);
+        if (!ancienne) journalActions.noter('ajout', tache.intitule);
+        else {
+          if (ancienne.fait !== tache.fait) journalActions.noter(tache.fait ? 'fait' : 'remise à faire', tache.intitule);
+          if (ancienne.abandonnee_le !== tache.abandonnee_le) {
+            journalActions.noter(tache.abandonnee_le ? 'abandon' : 'remise', tache.intitule);
+          }
+        }
+      }
+    }
     return resultat;
   } catch (erreur) {
     TACHES.splice(0, TACHES.length, ...avant);

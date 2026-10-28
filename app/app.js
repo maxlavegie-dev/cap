@@ -15,6 +15,12 @@
   const clavier = parId('clavier');
   const saisieDemande = parId('saisie-demande');
   const reponseSilencieuse = parId('reponse-silencieuse');
+  const zoneRecherche = parId('zone-recherche');
+  const sourceRecherche = parId('source-recherche');
+  const saisieRecherche = parId('saisie-recherche');
+  const resultatsRecherche = parId('resultats-recherche');
+  let cibleRecherche = null;
+  let delaiSurbrillance;
   let phraseSelectionnee = null;
   const formatDate = new Intl.DateTimeFormat('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
@@ -38,6 +44,119 @@
     if (texte !== undefined) noeud.textContent = texte;
     return noeud;
   }
+
+  function surlignerResultat(cible) {
+    if (!cible) return;
+    clearTimeout(delaiSurbrillance);
+    cibleRecherche?.classList.remove('surbrillance-recherche');
+    cibleRecherche = cible;
+    cible.tabIndex = -1;
+    cible.focus({ preventScroll: true });
+    cible.scrollIntoView({ block: 'center' });
+    cible.classList.add('surbrillance-recherche');
+    delaiSurbrillance = setTimeout(() => {
+      cible.classList.remove('surbrillance-recherche');
+      cibleRecherche = null;
+    }, 2000);
+  }
+
+  function identiteRendezVous(rendezVous) {
+    return JSON.stringify([rendezVous.date, rendezVous.heure, rendezVous.titre]);
+  }
+
+  function texteRendezVous(rendezVous) {
+    const valeur = new Date(`${rendezVous.date}T12:00:00`);
+    const date = Number.isNaN(valeur.getTime()) ? rendezVous.date : formatRendezVous.format(valeur);
+    return [date, rendezVous.heure, rendezVous.titre].filter(Boolean).join(' – ');
+  }
+
+  function ouvrirResultatTache(tache) {
+    if (tache.abandonnee_le) {
+      archiveOuverte = true;
+      afficher();
+    }
+    changerVue(true);
+    const liste = tache.abandonnee_le ? listeArchiveElement : listeElement;
+    const ligne = Array.from(liste.querySelectorAll('[data-tache]'))
+      .find(noeud => noeud.dataset.tache === String(tache.id));
+    surlignerResultat(ligne);
+  }
+
+  function ouvrirResultatRendezVous(rendezVous) {
+    remplirRendezVous(googleAgenda.lireCache() || []);
+    changerVue(true);
+    const ligne = Array.from(parId('liste-rendez-vous').children)
+      .find(noeud => noeud.dataset.rendezVous === identiteRendezVous(rendezVous));
+    surlignerResultat(ligne || parId('rendez-vous'));
+  }
+
+  function afficherRecherche() {
+    const texte = saisieRecherche.value.trim();
+    resultatsRecherche.replaceChildren();
+    resultatsRecherche.hidden = true;
+    if (!texte) return;
+    const agenda = sourceRecherche.value === 'rendez-vous';
+    const resultats = agenda
+      ? recherche.chercherRendezVous(googleAgenda.lireCache() || [], texte)
+      : recherche.chercherTaches(TACHES, texte);
+    for (const resultat of resultats.slice(0, 30)) {
+      const ligne = element('li');
+      const bouton = element('button', 'resultat-recherche', agenda ? texteRendezVous(resultat) : resultat.intitule);
+      bouton.type = 'button';
+      if (!agenda && resultat.fait) bouton.append(element('span', 'etat-resultat', 'fait'));
+      bouton.addEventListener('click', () => {
+        if (agenda) ouvrirResultatRendezVous(resultat);
+        else ouvrirResultatTache(resultat);
+      });
+      ligne.append(bouton);
+      resultatsRecherche.append(ligne);
+    }
+    if (resultats.length > 30) {
+      resultatsRecherche.append(element('li', 'autres-resultats', `et ${resultats.length - 30} autres…`));
+    }
+    if (resultats.length === 0) {
+      const message = element('li', 'message-recherche', agenda ? 'Rien trouvé dans Rendez-vous' : 'Rien trouvé dans Tâches');
+      message.setAttribute('role', 'status');
+      resultatsRecherche.append(message);
+    }
+    resultatsRecherche.hidden = false;
+  }
+
+  function afficherJournal() {
+    const libelles = {
+      ajout: 'Ajouté', fait: 'Fait', 'remise à faire': 'Remis à faire',
+      abandon: 'Abandonné', remise: 'Remis'
+    };
+    const actions = journalActions.lire().slice(0, 5);
+    const maintenant = new Date();
+    const hier = new Date(maintenant);
+    hier.setDate(hier.getDate() - 1);
+    parId('liste-actions').replaceChildren(...actions.map(action => {
+      const ligne = element('li');
+      const date = new Date(action.heure);
+      if (!Number.isNaN(date.getTime())) {
+        const prefixe = date.toDateString() === maintenant.toDateString() ? ''
+          : date.toDateString() === hier.toDateString() ? 'hier '
+            : `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')} `;
+        const heure = element('time', 'heure-action', `${prefixe}${formatHeure.format(date)}`);
+        heure.dateTime = date.toISOString();
+        ligne.append(heure, document.createTextNode(' · '));
+      }
+      ligne.append(element('span', '', `${libelles[action.type]} : ${action.texte}`));
+      return ligne;
+    }));
+    parId('dernieres-actions').hidden = actions.length === 0;
+  }
+
+  saisieRecherche.addEventListener('input', afficherRecherche);
+  saisieRecherche.addEventListener('search', afficherRecherche);
+  sourceRecherche.addEventListener('change', afficherRecherche);
+  saisieRecherche.addEventListener('keydown', event => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    afficherRecherche();
+    saisieRecherche.blur();
+  });
 
   function annoncer(message, temporaire = false) {
     clearTimeout(delaiStatut);
@@ -139,6 +258,7 @@
 
   function creerLigne(tache, contexte = false, estArchive = false) {
     const ligne = element('li', tache.parente ? 'tache etape' : 'tache');
+    ligne.dataset.tache = tache.id;
     const texte = element('span', estArchive ? 'texte-tache texte-archive' : 'texte-tache');
     details(tache, texte, contexte || estArchive);
     if (estArchive) {
@@ -258,6 +378,8 @@
       }
     }
     if (repere) restaurerFocus(repere);
+    afficherJournal();
+    afficherRecherche();
   }
 
   function suggestions() {
@@ -645,7 +767,7 @@
     if (apparait) {
       try { navigator.vibrate?.(200); } catch (erreur) {}
     }
-    if (!connecte) parId('rendez-vous').hidden = true;
+    if (!connecte) remplirRendezVous(googleAgenda.lireCache() || []);
     clearTimeout(minuteurExpiration);
     const delai = googleConnexion.expiration() - Date.now() - 60000;
     if (connecte && delai > 0) minuteurExpiration = setTimeout(afficherEtatGoogle, Math.min(delai + 1, 2147483647));
@@ -669,6 +791,8 @@
     ecranComplet.inert = !complete;
     accueil.hidden = complete;
     accueil.inert = complete;
+    zoneRecherche.hidden = complete;
+    zoneRecherche.inert = complete;
     basculerVue.textContent = complete ? 'Revenir à l’accueil' : 'Afficher tout';
     basculerVue.setAttribute('aria-expanded', String(complete));
     if (complete) ecranComplet.focus({ preventScroll: true });
@@ -681,7 +805,7 @@
   surface.addEventListener('touchstart', event => {
     debutGlissement = null;
     if (event.touches.length !== 1 || document.querySelector('dialog[open]')
-      || event.target.closest('button, input, textarea, select, a, #alerte-google')) return;
+      || event.target.closest('button, input, textarea, select, a, #alerte-google, #zone-recherche')) return;
     const touche = event.touches[0];
     debutGlissement = { x: touche.clientX, y: touche.clientY,
       complete: !ecranComplet.hidden, enHaut: ecranComplet.scrollTop === 0 };
@@ -698,20 +822,26 @@
   }, { passive: true });
   surface.addEventListener('touchcancel', () => { debutGlissement = null; }, { passive: true });
 
+  function remplirRendezVous(rendezVous) {
+    parId('liste-rendez-vous').replaceChildren(...rendezVous.map(rendezVous => {
+      const ligne = element('li', '', texteRendezVous(rendezVous));
+      ligne.dataset.rendezVous = identiteRendezVous(rendezVous);
+      return ligne;
+    }));
+    parId('rendez-vous').hidden = rendezVous.length === 0;
+  }
+
   async function afficherRendezVous() {
+    remplirRendezVous(googleAgenda.lireCache() || []);
     if (!googleConnexion.connecte()) return;
     try {
       const rendezVous = await googleAgenda.prochainsRendezVous();
-      if (!googleConnexion.connecte()) return;
-      parId('liste-rendez-vous').replaceChildren(...rendezVous.map(rendezVous => {
-        const date = formatRendezVous.format(new Date(`${rendezVous.date}T12:00:00`));
-        return element('li', '', [date, rendezVous.heure, rendezVous.titre].filter(Boolean).join(' – '));
-      }));
-      parId('rendez-vous').hidden = rendezVous.length === 0;
+      remplirRendezVous(googleConnexion.connecte() ? rendezVous : googleAgenda.lireCache() || []);
       erreurAgenda = '';
     } catch (erreur) {
       erreurAgenda = 'Les rendez-vous ne sont pas disponibles pour le moment.';
     }
+    afficherRecherche();
     afficherEtatGoogle();
   }
 

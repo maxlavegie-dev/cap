@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "demandes.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "demandes.js", "recherche.js", "journal_actions.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1563,7 +1563,9 @@ TESTS_JS = r"""
       document: doc, window: c.window, navigator: c.navigator, Date: c.Date,
       setInterval: c.setInterval, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout,
       googleConnexion: c.googleConnexion, synchronisation: c.synchronisation,
-      googleAgenda: { prochainsRendezVous: async () => [] },
+      recherche,
+      journalActions: objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', { localStorage: c.localStorage }),
+      googleAgenda: { prochainsRendezVous: async () => [], lireCache: () => c.agenda().lireCache() },
       TACHES: c.TACHES, INFO_CHARGEMENT: '', ETAPES_PAR_DEFAUT,
       avancementTache: () => ({ faites: 0, total: 0 }), avancementSousCategorie: () => 0,
       joursRestants, dateDuJour, ajouterEtape, abandonner, remettre, cocher,
@@ -1939,6 +1941,268 @@ TESTS_JS = r"""
     });
   }
 
+  test('Recherche : normalisation des accents et de la casse', () => {
+    attendreEgal(recherche.normaliser('Été À ÇÔTÉ e\u0301'), 'ete a cote e', 'normalisation');
+    attendreEgal(recherche.normaliser(null), '', 'champ absent');
+  });
+
+  test('Recherche : tous les champs des tâches, faites incluses et abandonnées exclues', () => {
+    const liste = [
+      { intitule: 'FICTIF Café', categorie: 'Maison', sous_categorie: 'Étage', note: 'Réparer', fait: true },
+      { intitule: 'FICTIF Café abandonné', abandonnee_le: '2030-01-01' }
+    ];
+    for (const texte of ['CAFE', 'maison', 'etage', 'reparer']) {
+      attendreEgal(recherche.chercherTaches(liste, texte), [liste[0]], texte);
+    }
+    attendreEgal(recherche.chercherTaches(liste, ' '), [], 'requête vide');
+    attendreEgal(recherche.chercherTaches(liste, 'absent'), [], 'absent');
+  });
+
+  test('Recherche : rendez-vous par titre, lieu et description sans mutation', () => {
+    const liste = [{ titre: 'FICTIF Répétition', lieu: 'Théâtre', description: 'Éclairage', date: '2030-01-01', heure: '14:32' }];
+    const avant = JSON.stringify(liste);
+    for (const texte of ['repetition', 'THEATRE', 'eclairage']) {
+      attendreEgal(recherche.chercherRendezVous(liste, texte), liste, texte);
+    }
+    attendreEgal(recherche.chercherRendezVous(liste, ''), [], 'vide');
+    attendreEgal(JSON.stringify(liste), avant, 'données modifiées');
+  });
+
+  test('Journal : trente entrées, ordre et intitulé exact', () => {
+    const memoire = espaceMemoire();
+    const journal = objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', { localStorage: memoire });
+    for (let i = 0; i < 35; i++) journal.noter('ajout', `FICTIF ${i} <b>Été</b>  `);
+    const entrees = journal.lire();
+    attendreEgal(entrees.length, 30, 'limite');
+    attendreEgal(entrees[0].texte, 'FICTIF 34 <b>Été</b>  ', 'plus récente');
+    attendreEgal(entrees[29].texte, 'FICTIF 5 <b>Été</b>  ', 'plus ancienne');
+    attendre(entrees.every(entree => Number.isFinite(Date.parse(entree.heure))), 'heure ISO');
+    attendreEgal(Object.keys(entrees[0]), ['heure', 'type', 'texte'], 'structure');
+  });
+
+  test('Journal : JSON cassé et structures invalides', () => {
+    const memoire = espaceMemoire();
+    const journal = objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', { localStorage: memoire });
+    for (const brut of ['{cassé', 'null', '{}', '[null,{},42]']) {
+      memoire.setItem('cap_journal_actions_v1', brut);
+      attendreEgal(journal.lire(), [], 'lecture robuste');
+      journal.noter('ajout', 'FICTIF après corruption');
+      attendreEgal(journal.lire().length, 1, 'écriture après corruption');
+    }
+  });
+
+  test('Journal : stockage refusé en lecture et écriture sans erreur', () => {
+    const journal = objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', {
+      localStorage: { getItem() { throw new Error('refus'); }, setItem() { throw new Error('refus'); } }
+    });
+    attendreEgal(journal.lire(), [], 'lecture refusée');
+    journal.noter('ajout', 'FICTIF refus');
+  });
+
+  test('Journal : toutes les actions réussies et aucune après échec', () => {
+    localStorage.removeItem('cap_journal_actions_v1');
+    const texte = '  FICTIF <b>Été</b> exact  ';
+    const tache = creerTache({ intitule: texte });
+    cocher(tache.id, true);
+    cocher(tache.id, false);
+    abandonner(tache.id);
+    remettre(tache.id);
+    attendreEgal(journalActions.lire().map(entree => entree.type),
+      ['remise', 'abandon', 'remise à faire', 'fait', 'ajout'], 'actions');
+    attendre(journalActions.lire().every(entree => entree.texte === texte), 'intitulé reformulé');
+    const avant = JSON.stringify(journalActions.lire());
+    const original = stockage.enregistrer;
+    stockage.enregistrer = () => { throw new Error('FICTIF refus'); };
+    try {
+      attendreErreur(() => creerTache({ intitule: 'FICTIF échec' }), 'refus');
+      attendreErreur(() => cocher(tache.id, true), 'refus');
+      attendreErreur(() => abandonner(tache.id), 'refus');
+    } finally {
+      stockage.enregistrer = original;
+    }
+    attendreEgal(JSON.stringify(journalActions.lire()), avant, 'action échouée journalisée');
+  });
+
+  test('Journal : ajout clavier libre et dictée par la porte commune', () => {
+    localStorage.removeItem('cap_journal_actions_v1');
+    for (const source of ['micro', 'clavier', 'saisie']) {
+      traiterDemande({ texte: `FICTIF journal ${source}`, source });
+      attendreEgal(journalActions.lire()[0].texte, `FICTIF journal ${source}`, source);
+    }
+    attendreEgal(journalActions.lire().length, 3, 'doublon journal');
+  });
+
+  test('Dernières actions : affichage immédiat après ajout et coche', () => {
+    localStorage.removeItem('cap_journal_actions_v1');
+    document.getElementById('ajouter').click();
+    document.getElementById('intitule').value = 'FICTIF journal interface';
+    document.getElementById('formulaire-ajout').requestSubmit();
+    const zone = document.getElementById('dernieres-actions');
+    attendre(!zone.hidden, 'zone cachée après ajout');
+    attendre(zone.textContent.includes('Ajouté : FICTIF journal interface'), 'ajout absent');
+    const tache = TACHES.find(tache => tache.intitule === 'FICTIF journal interface');
+    const caseTache = document.getElementById(`tache-${tache.id}`);
+    caseTache.checked = true;
+    caseTache.dispatchEvent(new Event('change'));
+    attendre(document.getElementById('liste-actions').firstElementChild.textContent.includes('Fait : FICTIF journal interface'), 'coche absente');
+    attendre(document.getElementById(`tache-${tache.id}`).closest('.categorie'), 'tâche déplacée');
+  });
+
+  await testAsync('Dernières actions : zone cachée si vide', async c => {
+    const ui = preparerInterface(c);
+    attendre(ui.parId('dernieres-actions').hidden, 'zone vide visible');
+  });
+
+  await testAsync('Dernières actions : cinq lignes, heure, hier et date courte', async c => {
+    const aujourdHui = new Date();
+    const hier = new Date();
+    hier.setDate(hier.getDate() - 1);
+    const ancien = new Date();
+    ancien.setDate(ancien.getDate() - 3);
+    const dates = [aujourdHui, hier, ancien, aujourdHui, aujourdHui, aujourdHui];
+    c.localStorage.setItem('cap_journal_actions_v1', JSON.stringify(dates.map((date, index) => ({
+      heure: date.toISOString(), type: 'ajout', texte: `FICTIF ${index}`
+    }))));
+    const ui = preparerInterface(c);
+    const lignes = [...ui.parId('liste-actions').children];
+    attendreEgal(lignes.length, 5, 'limite affichage');
+    attendre(/\d{2}:\d{2} · Ajouté : FICTIF 0/.test(lignes[0].textContent), 'heure locale');
+    attendre(lignes[1].textContent.includes('hier'), 'hier absent');
+    attendre(lignes[2].textContent.includes(new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' }).format(ancien)), 'date courte absente');
+  });
+
+  await testAsync('Recherche accueil : options futures grisées et inaccessibles', async c => {
+    const ui = preparerInterface(c);
+    const select = ui.parId('source-recherche');
+    attendreEgal([...select.options].map(option => option.textContent),
+      ['Tâches', 'Rendez-vous', 'Gmail (plus tard)', 'Drive (plus tard)', 'Archives perso (plus tard)', 'Mémoire perso (plus tard)'], 'options');
+    attendreEgal(select.selectedIndex, 0, 'choix initial');
+    attendre([...select.options].slice(2).every(option => option.disabled), 'option future accessible');
+    const style = ui.cadre.contentWindow.getComputedStyle(select.options[2]);
+    attendre(style.color !== ui.cadre.contentWindow.getComputedStyle(select.options[0]).color, 'options non grisées');
+    const champ = ui.parId('saisie-recherche');
+    attendreEgal([champ.type, champ.getAttribute('enterkeyhint'), champ.autocomplete], ['search', 'search', 'off'], 'champ mobile');
+    attendre(Boolean(champ.getAttribute('aria-label')), 'étiquette absente');
+  });
+
+  await testAsync('Recherche accueil : résultats à chaque input, vide et message exact', async c => {
+    const ui = preparerInterface(c);
+    const champ = ui.parId('saisie-recherche');
+    const liste = ui.parId('resultats-recherche');
+    attendreEgal(liste.textContent, '', 'texte à vide');
+    champ.value = 'FICTIF zz introuvable';
+    champ.dispatchEvent(new Event('input'));
+    attendreEgal(liste.textContent.trim(), 'Rien trouvé dans Tâches', 'message exact');
+    champ.value = c.TACHES[0].intitule;
+    champ.dispatchEvent(new Event('input'));
+    attendre(liste.querySelector('button'), 'résultat sans validation absent');
+    champ.value = '';
+    champ.dispatchEvent(new Event('input'));
+    attendreEgal(liste.textContent, '', 'effacement');
+    ui.parId('source-recherche').value = ui.parId('source-recherche').options[1].value;
+    champ.value = 'introuvable';
+    ui.parId('source-recherche').dispatchEvent(new Event('change'));
+    attendreEgal(liste.textContent.trim(), 'Rien trouvé dans Rendez-vous', 'changement source');
+  });
+
+  await testAsync('Recherche accueil : trente résultats, autres et tâches faites', async c => {
+    c.TACHES.splice(0, c.TACHES.length, ...Array.from({ length: 36 }, (_, index) => ({
+      ...TACHES_FICTIVES[0], id: `FICTIF-${index}`, intitule: `FICTIF résultat ${index}`, fait: index === 0, abandonnee_le: ''
+    })));
+    const ui = preparerInterface(c);
+    ui.parId('saisie-recherche').value = 'resultat';
+    ui.parId('saisie-recherche').dispatchEvent(new Event('input'));
+    attendreEgal(ui.parId('resultats-recherche').querySelectorAll('button').length, 30, 'limite');
+    attendre(ui.parId('resultats-recherche').textContent.includes('et 6 autres…'), 'compteur');
+    attendre(ui.parId('resultats-recherche').querySelector('button').textContent.toLowerCase().includes('fait'), 'statut fait');
+  });
+
+  await testAsync('Recherche accueil : toucher tâche ouvre, défile et surligne deux secondes', async c => {
+    const ui = preparerInterface(c);
+    const champ = ui.parId('saisie-recherche');
+    champ.value = c.TACHES[0].intitule;
+    champ.dispatchEvent(new Event('input'));
+    const ligne = ui.doc.getElementById(`tache-${c.TACHES[0].id}`).closest('li');
+    let defile = false;
+    ligne.scrollIntoView = () => { defile = true; };
+    ui.parId('resultats-recherche').querySelector('button').click();
+    attendre(!ui.parId('ecran-complet').hidden, 'vue complète fermée');
+    attendre(defile, 'pas de défilement');
+    attendre(ligne.classList.contains('surbrillance-recherche'), 'surbrillance absente');
+    const delai = [...c.delais.values()].find(delai => delai.delai === 2000);
+    attendre(delai, 'durée incorrecte');
+    delai.rappel();
+    attendre(!ligne.classList.contains('surbrillance-recherche'), 'surbrillance persistante');
+  });
+
+  await testAsync('Recherche accueil : rendez-vous locaux, date et heure, accès sans réseau', async c => {
+    c.localStorage.setItem('cap_google_rendezvous_v1', JSON.stringify({ rendezvous: [
+      { titre: 'FICTIF Répétition', lieu: 'Théâtre', description: 'Éclairage', date: '2030-01-10', heure: '14:32' }
+    ] }));
+    const ui = preparerInterface(c);
+    ui.parId('source-recherche').selectedIndex = 1;
+    ui.parId('saisie-recherche').value = 'theatre';
+    ui.parId('saisie-recherche').dispatchEvent(new Event('input'));
+    const resultat = ui.parId('resultats-recherche').querySelector('button');
+    attendre(resultat && resultat.textContent.includes('14:32') && resultat.textContent.includes('10'), 'date et heure absentes');
+    resultat.click();
+    attendre(!ui.parId('ecran-complet').hidden, 'vue non ouverte');
+    attendre(!ui.parId('rendez-vous').hidden, 'bloc rendez-vous caché');
+    attendre(ui.parId('liste-rendez-vous').textContent.includes('FICTIF Répétition'), 'rendez-vous non montré');
+    attendre(ui.doc.querySelector('#rendez-vous .surbrillance-recherche, #rendez-vous.surbrillance-recherche'), 'surbrillance rendez-vous absente');
+    attendreEgal(c.requetes.length, 0, 'recherche déclenche du réseau');
+  });
+
+  await testAsync('Recherche accueil : glissements ignorés depuis barre et liste', async c => {
+    const ui = preparerInterface(c);
+    ui.parId('saisie-recherche').value = 'introuvable';
+    ui.parId('saisie-recherche').dispatchEvent(new Event('input'));
+    for (const cible of [ui.parId('zone-recherche'), ui.parId('saisie-recherche'), ui.parId('resultats-recherche'), ui.parId('resultats-recherche').firstElementChild]) {
+      glisser(ui, cible, 100, 300, 100, 180);
+      attendre(ui.parId('ecran-complet').hidden, 'geste ouvre depuis la recherche');
+    }
+  });
+
+  await testAsync('Recherche accueil : texte bloque reconnexion silencieuse', async c => {
+    c.localStorage.setItem('cap_google_deja_connecte_v1', 'oui');
+    const ui = preparerInterface(c, { avant(ui) { ui.parId('saisie-recherche').value = 'FICTIF en cours'; } });
+    attendreEgal(c.redirections.length, 0, 'redirection pendant recherche');
+    ui.visibilite(false);
+    attendreEgal(c.redirections.length, 0, 'redirection au retour');
+    ui.parId('saisie-recherche').value = '';
+    ui.visibilite(false);
+    attendreEgal(c.redirections.length, 1, 'reconnexion non rétablie après effacement');
+  });
+
+  await testAsync('Recherche accueil : aucun débordement avec résultats à 360 × 560', async c => {
+    c.TACHES.splice(0, c.TACHES.length, ...Array.from({ length: 35 }, (_, index) => ({
+      ...TACHES_FICTIVES[0], id: `FICTIF-${index}`, intitule: `FICTIF ${'long'.repeat(80)} ${index}`, abandonnee_le: ''
+    })));
+    const ui = preparerInterface(c, { largeur: 360, hauteur: 560 });
+    ui.parId('saisie-recherche').value = 'fictif';
+    ui.parId('saisie-recherche').dispatchEvent(new Event('input'));
+    attendre(ui.doc.documentElement.scrollWidth <= 360 && ui.doc.body.scrollWidth <= 360, 'débordement horizontal');
+    attendre(ui.doc.documentElement.scrollHeight <= 560 && ui.doc.body.scrollHeight <= 560, 'débordement vertical');
+    const liste = ui.parId('resultats-recherche');
+    attendre(liste.scrollHeight > liste.clientHeight && liste.clientHeight > 0, 'résultats non défilables');
+    attendre(liste.getBoundingClientRect().bottom <= 560, 'résultats hors écran');
+    for (const id of ['microphone', 'ouvrir-clavier', 'ajouter', 'saisie-recherche', 'source-recherche']) {
+      const rect = ui.parId(id).getBoundingClientRect();
+      attendre(rect.top >= 0 && rect.bottom <= 560 && rect.height >= 48, `${id} hors écran ou trop petit`);
+    }
+  });
+
+  await testAsync('Google Agenda : copie locale conserve lieu et description pour la recherche', async c => {
+    c.localStorage.setItem('cap_google_agenda_v1', 'agenda-fictif');
+    c.repondre = async r => reponseGoogle(r.url.pathname.endsWith('/events') ? { items: [
+      { summary: 'FICTIF rendez-vous', location: 'Théâtre FICTIF', description: 'Éclairage FICTIF', start: { date: '2030-01-10' } }
+    ] } : { id: 'agenda-fictif' });
+    const agenda = c.agenda();
+    await agenda.prochainsRendezVous();
+    attendreEgal(recherche.chercherRendezVous(agenda.lireCache(), 'theatre').length, 1, 'lieu perdu');
+    attendreEgal(recherche.chercherRendezVous(agenda.lireCache(), 'eclairage').length, 1, 'description perdue');
+  });
+
   const erreursPage = window.erreursPage || [];
   const reussis = resultats.filter(r => r.ok).length;
   document.getElementById('resultat-tests').textContent = JSON.stringify({
@@ -2080,8 +2344,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v4['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v4")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v5['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v5")
 
 
 def verifier_precache_fichiers_existent():
@@ -2154,6 +2418,7 @@ def construire_page():
         "SOURCE_SYNCHRONISATION": "synchronisation.js",
         "SOURCE_SERVICE_WORKER": "service-worker.js",
         "SOURCE_APP": "app.js",
+        "SOURCE_JOURNAL_ACTIONS": "journal_actions.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }

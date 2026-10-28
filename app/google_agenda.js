@@ -191,7 +191,8 @@ const googleAgenda = (() => {
     if (!brut) return null;
     try {
       const donnees = JSON.parse(brut);
-      return Array.isArray(donnees.rendezvous) ? donnees.rendezvous : null;
+      return Array.isArray(donnees?.rendezvous) ? donnees.rendezvous.filter(rendezVous =>
+        rendezVous && typeof rendezVous.titre === 'string' && typeof rendezVous.date === 'string') : null;
     } catch (erreur) {
       return null;
     }
@@ -204,10 +205,15 @@ const googleAgenda = (() => {
       const id = await trouverOuCreer();
       const url = `${racine}/calendars/${encodeURIComponent(id)}/events?timeMin=${encodeURIComponent(new Date().toISOString())}&singleEvents=true&orderBy=startTime&maxResults=${nombre}`;
       const donnees = await (await requete(url)).json();
-      const liste = (donnees.items || [])
-        .filter(evenement => evenement.status !== 'cancelled' && evenement.start && (evenement.start.date || evenement.start.dateTime))
-        .map(versRendezVous);
-      ecrireStockage(cleCache, JSON.stringify({ enregistre_le: new Date().toISOString(), rendezvous: liste }));
+      const evenements = (donnees.items || [])
+        .filter(evenement => evenement.status !== 'cancelled' && evenement.start && (evenement.start.date || evenement.start.dateTime));
+      const liste = evenements.map(versRendezVous);
+      const cache = liste.map((rendezVous, index) => ({
+        ...rendezVous,
+        lieu: evenements[index].location || '',
+        description: evenements[index].description || ''
+      }));
+      ecrireStockage(cleCache, JSON.stringify({ enregistre_le: new Date().toISOString(), rendezvous: cache }));
       return liste;
     } catch (erreur) {
       const cache = lireCache();
@@ -216,5 +222,5 @@ const googleAgenda = (() => {
     }
   }
 
-  return { trouverOuCreer, prochainsRendezVous };
+  return { trouverOuCreer, prochainsRendezVous, lireCache };
 })();

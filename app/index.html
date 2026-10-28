@@ -20,10 +20,27 @@
       <p id="texte-alerte-google"></p>
       <button id="redonner-acces-google" type="button">Redonner l’accès à Google</button>
     </div>
-    <div id="zone-recherche"></div>
+    <section id="zone-recherche" aria-label="Recherche">
+      <div class="barre-recherche">
+        <select id="source-recherche" aria-label="Chercher dans">
+          <option value="taches">Tâches</option>
+          <option value="rendez-vous">Rendez-vous</option>
+          <option disabled>Gmail (plus tard)</option>
+          <option disabled>Drive (plus tard)</option>
+          <option disabled>Archives perso (plus tard)</option>
+          <option disabled>Mémoire perso (plus tard)</option>
+        </select>
+        <input id="saisie-recherche" type="search" enterkeyhint="search" autocomplete="off" aria-label="Rechercher" aria-controls="resultats-recherche" placeholder="Rechercher…">
+      </div>
+      <ul id="resultats-recherche" aria-label="Résultats de recherche" hidden></ul>
+    </section>
     <button id="basculer-vue" class="visuellement-cache" type="button" aria-expanded="false" aria-controls="ecran-complet">Afficher tout</button>
     <div id="accueil"></div>
     <main id="ecran-complet" class="taches" aria-label="Tes tâches" tabindex="0" hidden inert>
+      <section id="dernieres-actions" aria-labelledby="titre-actions" hidden>
+        <h2 id="titre-actions">Dernières actions</h2>
+        <ul id="liste-actions"></ul>
+      </section>
       <div id="etat-synchro">
         <span id="texte-etat-google" role="status">non connecté</span>
         <p id="dernier-envoi"></p>
@@ -159,6 +176,8 @@
   <script src="phrases_clavier.js"></script>
   <script src="preferences_clavier.js"></script>
   <script src="demandes.js"></script>
+  <script src="recherche.js"></script>
+  <script src="journal_actions.js"></script>
   <script src="app.js"></script>
   <script src="installation.js"></script>
 </body>

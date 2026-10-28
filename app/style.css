@@ -72,8 +72,144 @@ body.vue-complete #accueil {
 }
 
 #zone-recherche {
+  display: flex;
+  flex-direction: column;
+  flex: 0 1 auto;
+  min-height: 48px;
+  margin: 0 22px;
+}
+
+body.vue-complete #zone-recherche {
+  display: none;
+}
+
+.barre-recherche {
+  display: flex;
   flex: none;
+  gap: 8px;
+}
+
+#source-recherche,
+#saisie-recherche {
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px;
+  border: 1px solid #547a83;
+  border-radius: 10px;
+  color: var(--encre);
+  background: #fffef7;
+}
+
+#source-recherche {
+  width: 45%;
+  max-width: 180px;
+}
+
+#source-recherche option:disabled {
+  color: #626b70;
+  background: #e5e7e6;
+}
+
+#saisie-recherche {
+  flex: 1;
+  width: 0;
+}
+
+#resultats-recherche {
+  flex: 0 1 auto;
   min-height: 0;
+  max-height: 32vh;
+  max-height: 32dvh;
+  margin: 10px 0 0;
+  padding: 0 4px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  list-style: none;
+  border-radius: 10px;
+  background: rgb(255 254 247 / 75%);
+}
+
+#resultats-recherche li + li {
+  border-top: 1px solid rgb(32 62 73 / 15%);
+}
+
+.resultat-recherche {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.resultat-recherche:hover,
+.resultat-recherche:active {
+  background: #e2f3ee;
+}
+
+.resultat-recherche:focus-visible {
+  outline-offset: -3px;
+}
+
+.etat-resultat {
+  display: block;
+  color: var(--termine);
+  font-size: 14.3px;
+  font-weight: 600;
+}
+
+.message-recherche,
+.autres-resultats {
+  margin: 0;
+  padding: 10px;
+  color: var(--secondaire);
+  font-size: 15.4px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#dernieres-actions {
+  margin: 0 6px 24px;
+}
+
+#titre-actions {
+  margin: 0 0 12px;
+  font-size: 19.8px;
+  font-weight: 600;
+}
+
+#liste-actions {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#liste-actions li {
+  padding: 8px 0;
+  border-bottom: 1px solid rgb(32 62 73 / 15%);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.heure-action {
+  display: inline;
+  color: var(--secondaire);
+  font-size: 14.3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.surbrillance-recherche {
+  background: #fff4dc;
+  outline: 2px solid #547a83;
+  outline-offset: -2px;
+  border-radius: 6px;
 }
 
 #alerte-google {
