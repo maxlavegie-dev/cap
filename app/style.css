@@ -264,10 +264,10 @@ button {
   display: flex;
   align-items: center;
   gap: 20px;
-  padding-right: 76px;
 }
 
-#ajouter {
+#ajouter,
+#ouvrir-clavier {
   width: 56px;
   height: 56px;
   padding: 0;
@@ -279,8 +279,23 @@ button {
   pointer-events: auto;
 }
 
-#ajouter:active {
+#ouvrir-clavier {
+  display: grid;
+  place-items: center;
+}
+
+#ajouter:active,
+#ouvrir-clavier:active {
   background: #e2f3ee;
+}
+
+#ouvrir-clavier:active {
+  transform: scale(0.96);
+}
+
+#ouvrir-clavier:focus-visible {
+  outline: 3px solid #173f5a;
+  outline-offset: 5px;
 }
 
 .categorie {
@@ -530,6 +545,167 @@ dialog button:hover {
   border-radius: 7px;
   color: #81321f;
   background: #fff0e9;
+  overflow-wrap: anywhere;
+}
+
+#clavier {
+  inset: auto 0 0;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  max-height: 85vh;
+  max-height: 85dvh;
+  margin: 0;
+  padding: 24px max(20px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  border-bottom: 0;
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(165deg, #FDE6C3, #f6f7ec 35%, #e2f3ee);
+  scroll-padding-block: 20px;
+}
+
+.entete-clavier {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-block: 8px;
+  background: #FDE6C3;
+}
+
+#titre-clavier {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+#clavier button {
+  min-width: 56px;
+  min-height: 56px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#clavier button:active {
+  background: #b3ede3;
+  border-color: #315c68;
+}
+
+#clavier button:focus-visible,
+#saisie-demande:focus-visible {
+  outline: 3px solid #173f5a;
+  outline-offset: 3px;
+}
+
+#reponse-silencieuse {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  text-align: left;
+}
+
+.indicateur-silencieux {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  width: 46px;
+  height: 28px;
+  padding: 3px;
+  border: 1px solid #43575c;
+  border-radius: 20px;
+  background: #e0e6e3;
+}
+
+.indicateur-silencieux::before {
+  content: "";
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #43575c;
+}
+
+#reponse-silencieuse[aria-checked="true"] .indicateur-silencieux {
+  justify-content: flex-end;
+  border-color: #173f5a;
+  background: #b3ede3;
+}
+
+#reponse-silencieuse[aria-checked="true"] .indicateur-silencieux::before {
+  background: #173f5a;
+}
+
+#formulaire-demande {
+  margin-top: 16px;
+}
+
+#phrase-selectionnee {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #8a9d9c;
+  border-radius: 12px;
+  background: #b3ede3;
+}
+
+#debut-phrase {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+#saisie-demande {
+  min-height: 56px;
+  font-size: 16px;
+}
+
+#formulaire-demande button[type="submit"] {
+  width: 100%;
+  margin-top: 12px;
+  border-color: #315c68;
+  background: #b3ede3;
+  font-weight: 600;
+}
+
+#formulaire-demande button[type="submit"]:active {
+  background: #9adbd0;
+}
+
+#clavier section {
+  margin-top: 28px;
+}
+
+#clavier h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.liste-phrases {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.phrase-clavier,
+.demande-historique {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 56px;
+  padding: 14px 16px;
+  text-align: left;
+  white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 

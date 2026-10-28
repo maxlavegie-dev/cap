@@ -37,8 +37,43 @@
           <path d="M8 15v1a8 8 0 0 0 16 0v-1M16 24v5M12 29h8" />
         </svg>
       </button>
+      <button id="ouvrir-clavier" type="button" aria-label="Écrire une demande" aria-haspopup="dialog" aria-controls="clavier">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <rect x="3" y="7" width="26" height="18" rx="3" />
+          <path d="M8 12h1m6 0h2m6 0h1M8 17h1m6 0h2m6 0h1M10 21h12" />
+        </svg>
+      </button>
     </div>
   </footer>
+  <dialog id="clavier" aria-labelledby="titre-clavier">
+    <header class="entete-clavier">
+      <h2 id="titre-clavier">Écrire à Cap</h2>
+      <button type="button" data-fermer>Fermer</button>
+    </header>
+    <button id="reponse-silencieuse" type="button" role="switch" aria-checked="false" aria-label="Réponse silencieuse">
+      <span>Réponse silencieuse</span>
+      <span class="indicateur-silencieux" aria-hidden="true"></span>
+    </button>
+    <form id="formulaire-demande">
+      <div id="phrase-selectionnee" hidden>
+        <span id="debut-phrase"></span>
+        <button id="enlever-phrase" type="button" aria-label="Enlever le début de phrase">Enlever</button>
+      </div>
+      <label for="saisie-demande">Ta demande</label>
+      <input id="saisie-demande" name="demande" type="text" autocomplete="off">
+      <button type="submit">Envoyer</button>
+    </form>
+    <p class="erreur" role="alert" hidden></p>
+    <section id="section-plus-utilisees" aria-labelledby="titre-plus-utilisees" hidden>
+      <h3 id="titre-plus-utilisees">Les plus utilisées</h3>
+      <div id="plus-utilisees" class="liste-phrases"></div>
+    </section>
+    <div id="categories-clavier"></div>
+    <section id="section-historique" aria-labelledby="titre-historique" hidden>
+      <h3 id="titre-historique">Dernières demandes</h3>
+      <div id="historique-demandes" class="liste-phrases"></div>
+    </section>
+  </dialog>
   <dialog id="menu-tache" aria-labelledby="titre-menu">
     <h2 id="titre-menu">Actions sur la tâche</h2>
     <p id="intitule-menu" class="intitule-dialogue"></p>
@@ -99,6 +134,9 @@
   <script src="stockage.js"></script>
   <script src="taches.js"></script>
   <script src="dictee.js"></script>
+  <script src="phrases_clavier.js"></script>
+  <script src="preferences_clavier.js"></script>
+  <script src="demandes.js"></script>
   <script src="app.js"></script>
   <script src="installation.js"></script>
 </body>

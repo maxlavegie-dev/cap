@@ -21,12 +21,15 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `stockage.js` | Garde la liste sur le téléphone. Il sera remplacé par Google Sheets en semaine 2. |
 | `taches.js` | Les règles de la liste : ajouter, cocher, abandonner, remettre, calculer l'avancement et les jours restants. |
 | `dictee.js` | Écoute ce que Max dit, avec la reconnaissance vocale du navigateur, et transmet le texte entendu. |
+| `phrases_clavier.js` | Les réglages des débuts de phrases du clavier. Ils iront dans le Drive en semaine 2. |
+| `preferences_clavier.js` | Retient sur le téléphone les phrases les plus utilisées, les dernières demandes et l'interrupteur « Réponse silencieuse ». |
+| `demandes.js` | La porte d'entrée unique de toutes les demandes (micro et clavier). C'est là qu'on branchera l'intelligence artificielle. |
 | `app.js` | L'affichage à l'écran et ce qui se passe quand on touche un bouton. |
 | `manifest.webmanifest` | La carte d'identité de l'appli pour le téléphone : nom, couleurs, icônes. Elle permet de l'installer sur l'écran d'accueil. |
 | `service-worker.js` | Garde une copie de l'appli sur le téléphone pour qu'elle s'ouvre même sans internet. |
 | `installation.js` | Active cette copie hors connexion. |
 | `icones/` | L'icône aux différentes tailles demandées par Android. Elles sont fabriquées par `outils/fabriquer_icones.py` à partir de l'icône validée. |
-| `test_cap.py` | Des vérifications automatiques des règles, de la dictée et de l'installation (46 essais). |
+| `test_cap.py` | Des vérifications automatiques des règles, de la dictée et de l'installation (67 essais). |
 
 ## Les règles programmées pour la liste
 - **Zéro perte** : il n'existe aucun moyen d'effacer une tâche. « Abandonner » la retire de la vue normale, avec la date, mais elle reste gardée et on peut la remettre.
@@ -40,6 +43,15 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 - Si la sauvegarde échoue, le texte dicté reste affiché pour pouvoir le recopier.
 - Cap doit être installé depuis **Chrome** : certains navigateurs (par exemple Qwant) n'ont pas de reconnaissance vocale, et le micro affiche alors « La dictée n'est pas disponible ».
 - À savoir : selon le téléphone, la reconnaissance vocale passe par internet (le son est alors traité par Google) ou se fait directement sur le téléphone. Sur le téléphone de Max, elle marche aussi en mode avion.
+
+## Le clavier de phrases (ajout de Max du 28/10/2026)
+Pour utiliser Cap sans parler (détail dans `PROMPT_COMPLEMENT_CLAVIER.txt`).
+- Le bouton clavier, à droite du micro, ouvre un panneau qui monte du bas de l'écran.
+- On touche un début de phrase (« Retrouve-moi... »), on écrit la fin, puis « Envoyer ». On peut aussi écrire n'importe quoi dans le champ, sans phrase.
+- « Les plus utilisées » remontent toutes seules ; « Dernières demandes » permet de relancer une demande telle quelle.
+- L'interrupteur « Réponse silencieuse » est allumé par défaut. Pour l'instant Cap ne parle jamais : il servira quand Cap saura répondre à voix haute.
+- Le micro et le clavier passent par la même porte d'entrée (`demandes.js`). Tant que l'intelligence artificielle n'est pas branchée, tout ce qui est écrit va dans « À trier », mot pour mot. « Ajoute à ma to-do... » ne garde que la fin de la phrase. « Continue. » et « Annule. » attendront l'intelligence artificielle.
+- Un bouton ne fait que remplir une phrase : il ne peut jamais envoyer un mail.
 
 ## Ce que contient une tâche
 Identifiant, intitulé, catégorie, sous-catégorie, fait ou pas fait, date d'entrée, échéance, date de réalisation, priorité, tâche parente, note, « avant le », « abandonnée le », origine, fictif.

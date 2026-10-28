@@ -11,12 +11,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "dictee.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "demandes.js", "app.js"]
 
 TESTS_JS = r"""
 (() => {
   const CLE = 'cap_taches_v1';
   const PREFIXE_SAUVEGARDE = CLE + '_illisible_';
+  const CLE_USAGE = 'cap_usage_phrases_v1';
+  const CLE_HISTORIQUE = 'cap_historique_demandes_v1';
+  const CLE_SILENCE = 'cap_reponse_silencieuse_v1';
   const resultats = [];
   const MESSAGE_ILLISIBLE = 'La liste enregistrée était illisible. Une copie complète a été conservée sur ce téléphone ; les tâches fictives sont affichées.';
 
@@ -32,6 +35,7 @@ TESTS_JS = r"""
     for (const cle of Object.keys(localStorage)) {
       if (cle.startsWith(CLE)) localStorage.removeItem(cle);
     }
+    for (const cle of [CLE_USAGE, CLE_HISTORIQUE, CLE_SILENCE]) localStorage.removeItem(cle);
     const chargement = stockage.charger();
     TACHES.splice(0, TACHES.length, ...chargement.taches);
   }
@@ -681,6 +685,321 @@ TESTS_JS = r"""
     }
   });
 
+  test('catalogue : 11 phrases, 4 catégories, actions exactes', () => {
+    attendreEgal(PHRASES_CLAVIER.map(p => p.id),
+      ['retrouver', 'dictionnaire', 'dernier-mail', 'agenda', 'ajouter-tache', 'rappel', 'resumer-mails', 'brouillon', 'reformuler', 'continuer', 'annuler'], 'identifiants');
+    attendreEgal(PHRASES_CLAVIER.map(p => p.debut),
+      ['Retrouve-moi...', 'Cherche dans mon dictionnaire...', 'Retrouve le dernier mail de...', "Qu'est-ce que j'ai le...", 'Ajoute à ma to-do...', 'Rappelle-moi de...', 'Résume mes mails de...', 'Prépare un brouillon de réponse à...', 'Reformule en plus...', 'Continue.', 'Annule.'], 'débuts');
+    attendreEgal([...new Set(PHRASES_CLAVIER.map(p => p.categorie))], ['Retrouver', 'Agenda et to-do', 'Mails', 'Général'], 'catégories');
+    attendreEgal(PHRASES_CLAVIER.filter(p => p.action !== '').map(p => [p.id, p.action]), [['ajouter-tache', 'ajouter_tache']], 'actions');
+    attendreEgal(PHRASES_CLAVIER.filter(p => !p.a_completer).map(p => p.id), ['continuer', 'annuler'], 'phrases sans complément');
+  });
+
+  test('composerTexte : … ou ... retirés, complément garde ses caractères', () => {
+    attendreEgal(composerTexte(PHRASES_CLAVIER.find(p => p.id === 'brouillon'), '  Marc Dupont  '),
+      'Prépare un brouillon de réponse à Marc Dupont', 'points ASCII');
+    attendreEgal(composerTexte({ debut: 'Retrouve-moi…' }, '  le pain  '), 'Retrouve-moi le pain', 'points Unicode');
+    attendreEgal(composerTexte({ debut: 'Cherche  …' }, ''), 'Cherche', 'complément vide');
+    attendreEgal(composerTexte({ debut: 'Reformule en plus...' }, ' Ça & "é" <b>x</b> ’ '),
+      'Reformule en plus Ça & "é" <b>x</b> ’', 'complément exact');
+  });
+
+  test('ajouter-tache : complément dans À trier, origine et fictif exacts', () => {
+    const clavier = traiterDemande({ texte: 'Ajoute à ma to-do... acheter du pain', source: 'clavier', id_phrase: 'ajouter-tache', complement: '  acheter du pain  ' });
+    attendreEgal([clavier.tache.intitule, clavier.tache.categorie, clavier.tache.sous_categorie, clavier.tache.origine, clavier.tache.fictif],
+      ['acheter du pain', 'À trier', '', 'ajout à la main', false], 'tâche clavier');
+    attendreEgal(clavier.message, 'Ajoutée dans À trier : « acheter du pain »', 'message');
+    const micro = traiterDemande({ texte: 'Ajoute à ma to-do... lait', source: 'micro', id_phrase: 'ajouter-tache', complement: 'lait' });
+    attendreEgal([micro.tache.intitule, micro.tache.origine, micro.tache.fictif], ['lait', 'dictée', false], 'tâche micro');
+  });
+
+  test('saisie libre : intitulé mot pour mot, HTML non interprété, historique exact', () => {
+    const texte = '  Note <i>vite</i> & "ça" ’  ';
+    const resultat = traiterDemande({ texte, source: 'saisie' });
+    attendreEgal([resultat.type, resultat.tache.intitule, resultat.tache.origine, resultat.tache.fictif],
+      ['tache', 'Note <i>vite</i> & "ça" ’', 'ajout à la main', false], 'tâche');
+    attendreEgal(resultat.message, 'Ajoutée dans À trier : « Note <i>vite</i> & "ça" ’ »', 'message');
+    const historique = preferencesClavier.historique();
+    attendreEgal(historique.length, 1, 'nombre d’entrées');
+    attendreEgal([historique[0].texte, historique[0].id_phrase, historique[0].complement, historique[0].source],
+      [texte, '', '', 'saisie'], 'champs historique');
+    attendre(!Number.isNaN(Date.parse(historique[0].date)), 'date d’historique invalide');
+  });
+
+  test('Continuer et Annuler : pas de tâche, historique et usage enregistrés', () => {
+    const avant = TACHES.length;
+    const continuer = traiterDemande({ texte: 'Continue.', source: 'clavier', id_phrase: 'continuer' });
+    attendreEgal([continuer.type, continuer.message],
+      ['attente_cerveau', '« Continue. » marchera quand le cerveau de Cap sera branché.'], 'Continuer');
+    const annuler = traiterDemande({ texte: 'Annule.', source: 'micro', id_phrase: 'annuler' });
+    attendreEgal([annuler.type, annuler.message],
+      ['attente_cerveau', '« Annule. » marchera quand le cerveau de Cap sera branché.'], 'Annuler');
+    attendreEgal(TACHES.length, avant, 'tâche créée');
+    attendreEgal(preferencesClavier.plusUtilisees(5).map(p => p.id), ['continuer', 'annuler'], 'usages');
+    attendreEgal(preferencesClavier.historique().map(e => [e.id_phrase, e.source, e.texte]),
+      [['annuler', 'micro', 'Annule.'], ['continuer', 'clavier', 'Continue.']], 'historique');
+  });
+
+  test('demande vide : message exact, rien dans historique ni usage', () => {
+    const avant = TACHES.length;
+    attendreEgal(traiterDemande({ texte: '   ', source: 'micro' }), { type: 'vide', message: "Je n'ai rien entendu, réessaie." }, 'micro vide');
+    attendreEgal(traiterDemande({ texte: ' ', source: 'saisie' }), { type: 'vide', message: "Je n'ai rien reçu, réessaie." }, 'saisie vide');
+    attendreEgal(traiterDemande({ texte: 'Ajoute à ma to-do...', source: 'micro', id_phrase: 'ajouter-tache', complement: '   ' }),
+      { type: 'vide', message: "Je n'ai rien entendu, réessaie." }, 'complément vide');
+    attendreEgal(TACHES.length, avant, 'tâche créée');
+    attendreEgal(preferencesClavier.historique(), [], 'historique');
+    attendreEgal(preferencesClavier.plusUtilisees(5), [], 'usages');
+  });
+
+  test('compteurs : ordre décroissant, égalité dans l’ordre du catalogue, phrases utilisées seulement', () => {
+    preferencesClavier.compterUtilisation('rappel');
+    preferencesClavier.compterUtilisation('brouillon');
+    preferencesClavier.compterUtilisation('retrouver');
+    preferencesClavier.compterUtilisation('brouillon');
+    preferencesClavier.compterUtilisation('retrouver');
+    preferencesClavier.compterUtilisation('inconnue');
+    attendreEgal(preferencesClavier.plusUtilisees(10).map(p => p.id), ['retrouver', 'brouillon', 'rappel'], 'ordre');
+    attendreEgal(preferencesClavier.plusUtilisees(2).map(p => p.id), ['retrouver', 'brouillon'], 'limite');
+    attendreEgal(preferencesClavier.plusUtilisees(0), [], 'limite nulle');
+    attendreEgal(preferencesClavier.plusUtilisees(-3), [], 'limite négative');
+    attendreEgal(JSON.parse(localStorage.getItem(CLE_USAGE)), { rappel: 1, brouillon: 2, retrouver: 2 }, 'stockage');
+  });
+
+  test('historique : 20 entrées maximum, plus récente en premier, champs exacts', () => {
+    for (let i = 0; i <= 20; i++) {
+      traiterDemande({ texte: `Demande ${i}`, source: 'saisie', id_phrase: 'rappel', complement: `c${i}` });
+    }
+    const historique = preferencesClavier.historique();
+    attendreEgal(historique.length, 20, 'longueur');
+    attendreEgal(historique[0].texte, 'Demande 20', 'plus récente');
+    attendreEgal(historique[19].texte, 'Demande 1', 'plus ancienne conservée');
+    attendreEgal(Object.keys(historique[0]).sort(), ['complement', 'date', 'id_phrase', 'source', 'texte'], 'champs');
+    attendreEgal([historique[0].id_phrase, historique[0].complement, historique[0].source], ['rappel', 'c20', 'saisie'], 'valeurs');
+    attendre(historique.every(e => Number.isFinite(Date.parse(e.date))), 'date invalide');
+    attendreEgal(JSON.parse(localStorage.getItem(CLE_USAGE)).rappel, 21, 'usage');
+  });
+
+  test('réponse silencieuse : vrai par défaut, faux stocké et relu', () => {
+    attendreEgal(preferencesClavier.silencieux(), true, 'défaut');
+    preferencesClavier.definirSilencieux('non');
+    attendreEgal(preferencesClavier.silencieux(), true, 'valeur non booléenne');
+    attendreEgal(localStorage.getItem(CLE_SILENCE), null, 'rien stocké');
+    preferencesClavier.definirSilencieux(false);
+    attendreEgal(localStorage.getItem(CLE_SILENCE), 'false', 'stockage');
+    attendreEgal(preferencesClavier.silencieux(), false, 'relecture');
+  });
+
+  test('préférences vides : valeurs par défaut', () => {
+    attendreEgal([preferencesClavier.plusUtilisees(5), preferencesClavier.historique(), preferencesClavier.silencieux()],
+      [[], [], true], 'valeurs par défaut');
+  });
+
+  test('données invalides : JSON cassé ou structure fausse, valeurs vides, tâches intactes', () => {
+    const taches = JSON.stringify(TACHES);
+    for (const brut of ['{pas json', '[1]', 'null', '{"rappel":-1}', '{"rappel":1.5}', '{"rappel":"2"}']) {
+      localStorage.setItem(CLE_USAGE, brut);
+      attendreEgal(preferencesClavier.plusUtilisees(5), [], `usages : ${brut}`);
+    }
+    for (const brut of ['{pas json', 'null', '[{"texte":"a"}]',
+      '[{"texte":"a","id_phrase":"","complement":"","source":"autre","date":"2026-10-28T00:00:00.000Z"}]',
+      '[{"texte":"a","id_phrase":"","complement":"","source":"saisie","date":"pas une date"}]']) {
+      localStorage.setItem(CLE_HISTORIQUE, brut);
+      attendreEgal(preferencesClavier.historique(), [], `historique : ${brut}`);
+    }
+    for (const brut of ['pas json', '"non"', '1', 'null']) {
+      localStorage.setItem(CLE_SILENCE, brut);
+      attendreEgal(preferencesClavier.silencieux(), true, `silencieux : ${brut}`);
+    }
+    attendreEgal(JSON.stringify(TACHES), taches, 'tâches modifiées');
+  });
+
+  test('localStorage refusé : lecture et écriture sans erreur, méthodes restaurées', () => {
+    const getItemOriginal = Storage.prototype.getItem;
+    const setItemOriginal = Storage.prototype.setItem;
+    let lecture;
+    Storage.prototype.getItem = function () { throw new Error('refus'); };
+    try {
+      lecture = [preferencesClavier.plusUtilisees(5), preferencesClavier.historique(), preferencesClavier.silencieux()];
+    } finally {
+      Storage.prototype.getItem = getItemOriginal;
+    }
+    attendreEgal(lecture, [[], [], true], 'lecture refusée');
+    Storage.prototype.setItem = function () { throw new Error('refus'); };
+    try {
+      preferencesClavier.compterUtilisation('rappel');
+      preferencesClavier.ajouterHistorique({ texte: 'Test', source: 'saisie' });
+      preferencesClavier.definirSilencieux(false);
+    } finally {
+      Storage.prototype.setItem = setItemOriginal;
+    }
+    attendreEgal([localStorage.getItem(CLE_USAGE), localStorage.getItem(CLE_HISTORIQUE), localStorage.getItem(CLE_SILENCE)],
+      [null, null, null], 'rien écrit');
+  });
+
+  test('demande : erreur de création propagée, ni historique ni usage', () => {
+    const avant = TACHES.length;
+    const original = stockage.enregistrer;
+    stockage.enregistrer = () => { throw new Error('Simulation'); };
+    try {
+      attendreErreur(() => traiterDemande({ texte: 'Retrouve-moi la facture', source: 'clavier', id_phrase: 'retrouver', complement: 'la facture' }), 'Simulation');
+    } finally {
+      stockage.enregistrer = original;
+    }
+    attendreEgal(TACHES.length, avant, 'tâche restée');
+    attendreEgal(preferencesClavier.historique(), [], 'historique');
+    attendreEgal(preferencesClavier.plusUtilisees(5), [], 'usages');
+  });
+
+  function avecClavier(fonction) {
+    const panneau = document.getElementById('clavier');
+    document.getElementById('ouvrir-clavier').click();
+    try {
+      attendre(panneau.open, 'panneau non ouvert');
+      document.getElementById('enlever-phrase').click();
+      document.getElementById('saisie-demande').value = '';
+      fonction(panneau, document.getElementById('saisie-demande'));
+    } finally {
+      panneau.close();
+    }
+  }
+
+  function choisirDebut(debut) {
+    const bouton = Array.from(document.querySelectorAll('#categories-clavier button'))
+      .find(b => b.textContent === debut);
+    attendre(bouton, `phrase absente : ${debut}`);
+    bouton.click();
+  }
+
+  test('clavier : ouverture, catégories, grandes touches et silence mémorisé', () => {
+    avecClavier(panneau => {
+      attendreEgal(Array.from(panneau.querySelectorAll('#categories-clavier h3')).map(n => n.textContent),
+        ['Retrouver', 'Agenda et to-do', 'Mails', 'Général'], 'catégories');
+      attendreEgal(panneau.querySelectorAll('#categories-clavier button').length, 11, 'touches');
+      attendreEgal(document.getElementById('section-plus-utilisees').hidden, true, 'favoris masqués');
+      attendreEgal(document.getElementById('section-historique').hidden, true, 'historique masqué');
+      for (const bouton of panneau.querySelectorAll('button')) {
+        attendre(parseFloat(getComputedStyle(bouton).minHeight) >= 56, 'touche trop petite');
+      }
+      const interrupteur = document.getElementById('reponse-silencieuse');
+      attendreEgal(interrupteur.getAttribute('aria-checked'), 'true', 'silence par défaut');
+      interrupteur.click();
+      attendreEgal(preferencesClavier.silencieux(), false, 'silence changé');
+      panneau.close();
+      document.getElementById('ouvrir-clavier').click();
+      attendreEgal(interrupteur.getAttribute('aria-checked'), 'false', 'silence relu');
+    });
+  });
+
+  test('clavier : compléter, envoyer, fermer et afficher la tâche avec Annuler', () => {
+    avecClavier((panneau, saisie) => {
+      choisirDebut('Ajoute à ma to-do...');
+      attendre(document.activeElement === saisie, 'focus champ');
+      attendreEgal(document.getElementById('debut-phrase').textContent, 'Ajoute à ma to-do...', 'début choisi');
+      saisie.value = 'acheter du pain';
+      document.getElementById('formulaire-demande').requestSubmit();
+      attendre(!panneau.open, 'panneau encore ouvert');
+      attendreEgal(saisie.value, '', 'champ non vidé');
+      attendre(document.getElementById('phrase-selectionnee').hidden, 'phrase non vidée');
+      attendre(Array.from(document.querySelectorAll('#liste-taches .intitule')).some(n => n.textContent === 'acheter du pain'), 'tâche non visible');
+      attendreEgal(texteStatut(), 'Ajoutée dans À trier : « acheter du pain »', 'annonce');
+      const bouton = document.querySelector('#statut .annuler-dictee');
+      attendre(bouton, 'Annuler absent');
+      bouton.click();
+      attendreEgal(TACHES.find(t => t.intitule === 'acheter du pain').abandonnee_le, dateDuJour(), 'abandon sans perte');
+    });
+  });
+
+  test('clavier : phrase composée et saisie libre affichées sans HTML interprété', () => {
+    avecClavier((panneau, saisie) => {
+      choisirDebut('Retrouve-moi...');
+      saisie.value = 'le mail <b>FICTIF</b>';
+      document.getElementById('formulaire-demande').requestSubmit();
+      attendreEgal(preferencesClavier.historique()[0].texte, 'Retrouve-moi le mail <b>FICTIF</b>', 'composition');
+      document.getElementById('ouvrir-clavier').click();
+      saisie.value = '<i>FICTIF</i> & texte libre';
+      document.getElementById('formulaire-demande').requestSubmit();
+      attendreEgal(TACHES.at(-1).intitule, '<i>FICTIF</i> & texte libre', 'texte libre');
+      attendreEgal(preferencesClavier.historique()[0].source, 'saisie', 'origine libre');
+      attendre(!document.querySelector('#liste-taches b, #liste-taches i'), 'HTML interprété');
+    });
+  });
+
+  test('clavier : historique relancé à l’identique, favoris et limites affichées', () => {
+    for (let i = 0; i < 12; i++) {
+      preferencesClavier.ajouterHistorique({ texte: `Retrouve-moi FICTIF ${i}`, source: 'clavier', id_phrase: 'retrouver', complement: `FICTIF ${i}` });
+    }
+    for (const phrase of PHRASES_CLAVIER.slice(0, 6)) preferencesClavier.compterUtilisation(phrase.id);
+    avecClavier(panneau => {
+      attendreEgal(document.querySelectorAll('#plus-utilisees button').length, 4, '4 favoris maximum');
+      attendreEgal(document.querySelectorAll('#historique-demandes button').length, 10, '10 demandes maximum');
+      const avant = preferencesClavier.historique()[0];
+      const bouton = document.querySelector('#historique-demandes button');
+      attendreEgal(bouton.textContent, avant.texte, 'texte affiché');
+      bouton.click();
+      attendre(!panneau.open, 'panneau encore ouvert');
+      const apres = preferencesClavier.historique()[0];
+      for (const champ of ['texte', 'source', 'id_phrase', 'complement']) attendreEgal(apres[champ], avant[champ], champ);
+      attendreEgal(TACHES.at(-1).intitule, avant.texte, 'tâche relancée');
+    });
+  });
+
+  test('clavier : Continue envoyé immédiatement sans tâche', () => {
+    avecClavier(panneau => {
+      const avant = TACHES.length;
+      choisirDebut('Continue.');
+      attendre(!panneau.open, 'panneau non fermé');
+      attendreEgal(TACHES.length, avant, 'tâche créée');
+      attendreEgal(texteStatut(), '« Continue. » marchera quand le cerveau de Cap sera branché.', 'message');
+      attendre(!document.querySelector('#statut .annuler-dictee'), 'Annuler inapproprié');
+    });
+  });
+
+  test('clavier : erreur conserve panneau, complément et phrase sélectionnée', () => {
+    avecClavier((panneau, saisie) => {
+      choisirDebut('Ajoute à ma to-do...');
+      saisie.value = 'FICTIF à conserver';
+      const original = stockage.enregistrer;
+      stockage.enregistrer = () => { throw new Error('Simulation clavier'); };
+      try {
+        document.getElementById('formulaire-demande').requestSubmit();
+        attendre(panneau.open, 'panneau fermé malgré erreur');
+        attendreEgal(saisie.value, 'FICTIF à conserver', 'texte perdu');
+        attendre(!document.getElementById('phrase-selectionnee').hidden, 'phrase perdue');
+        const erreur = panneau.querySelector('.erreur');
+        attendre(!erreur.hidden && erreur.textContent.includes('Simulation clavier'), 'erreur absente');
+        attendreEgal(preferencesClavier.historique(), [], 'historique après erreur');
+      } finally {
+        stockage.enregistrer = original;
+      }
+    });
+  });
+
+  test('clavier : demande vide et complément manquant gardent le panneau', () => {
+    avecClavier((panneau, saisie) => {
+      const avant = TACHES.length;
+      saisie.value = '  ';
+      document.getElementById('formulaire-demande').requestSubmit();
+      attendre(panneau.open, 'panneau fermé sur vide');
+      choisirDebut('Retrouve-moi...');
+      document.getElementById('formulaire-demande').requestSubmit();
+      attendre(panneau.open, 'panneau fermé sans complément');
+      attendreEgal(TACHES.length, avant, 'tâche vide créée');
+      attendreEgal(preferencesClavier.historique(), [], 'historique vide');
+      document.getElementById('enlever-phrase').click();
+      attendre(document.getElementById('phrase-selectionnee').hidden, 'phrase non enlevée');
+    });
+  });
+
+  test('micro : porte d’entrée commune alimente l’historique sans phrase', () => {
+    sessionMicro(fake => {
+      cliquerMicro();
+      fake.instances[0].onresult({ resultIndex: 0, results: [segment('FICTIF micro commun', true)] });
+      const entree = preferencesClavier.historique()[0];
+      attendreEgal([entree.texte, entree.source, entree.id_phrase, entree.complement],
+        ['FICTIF micro commun', 'micro', '', ''], 'historique micro');
+    });
+  });
+
   const erreursPage = window.erreursPage || [];
   const reussis = resultats.filter(r => r.ok).length;
   document.getElementById('resultat-tests').textContent = JSON.stringify({
@@ -822,8 +1141,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-[^'\"]+['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir un nom de cache Cap versionné")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v2['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v2")
 
 
 def verifier_precache_fichiers_existent():
@@ -847,8 +1166,8 @@ def verifier_installation_en_dernier():
     if not (APP / "installation.js").is_file():
         return
     scripts = re.findall(r'<script\b[^>]*\bsrc="([^"]*)"', lire_html())
-    attendre(bool(scripts) and normaliser(scripts[-1]) == "installation.js",
-             "installation.js doit être le dernier script chargé dans index.html")
+    attendre([normaliser(script) for script in scripts] == SOURCES + ["installation.js"],
+             "les scripts du clavier doivent suivre dictee.js, avant app.js et installation.js")
 
 
 TESTS_PWA = [

@@ -1,4 +1,5 @@
 PROMPT_CAP.txt
+PROMPT_COMPLEMENT_*.txt
 __pycache__/
 *.pyc
 .env

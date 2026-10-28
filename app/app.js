@@ -12,6 +12,10 @@
   const confirmation = parId('confirmation');
   const ajout = parId('ajout-tache');
   const formulaire = parId('formulaire-ajout');
+  const clavier = parId('clavier');
+  const saisieDemande = parId('saisie-demande');
+  const reponseSilencieuse = parId('reponse-silencieuse');
+  let phraseSelectionnee = null;
   const formatDate = new Intl.DateTimeFormat('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
   });
@@ -81,7 +85,7 @@
     cible.focus({ preventScroll: true });
   }
 
-  for (const dialogue of [menu, confirmation, ajout]) {
+  for (const dialogue of [menu, confirmation, ajout, clavier]) {
     dialogue.querySelectorAll('[data-fermer]').forEach(bouton => {
       bouton.addEventListener('click', () => dialogue.close());
     });
@@ -364,42 +368,170 @@
     archiveOuverte = !archiveOuverte;
     afficher();
   });
-  function ajouterDictee(texte) {
-    const intitule = texte.trim();
-    if (!intitule) {
-      annoncer("Je n'ai rien entendu, réessaie.");
-      return;
-    }
-    let tache;
-    try {
-      tache = creerTache({
-        intitule, categorie: 'À trier', sous_categorie: '', origine: 'dictée', fictif: false
-      });
-    } catch (erreur) {
-      const message = erreur instanceof Error ? erreur.message : 'L’action n’a pas pu être enregistrée.';
-      annoncer(`${message} Texte dicté à recopier : « ${intitule} »`);
-      return;
-    }
-    afficher();
-    annoncer(`Ajoutée dans À trier : « ${intitule} »`);
+  function afficherResultatDemande(resultat, origine) {
+    if (resultat.type === 'tache') afficher();
+    annoncer(resultat.message);
+    if (resultat.type !== 'tache') return;
     const annuler = element('button', 'annuler-dictee', 'Annuler');
     annuler.type = 'button';
     annuler.addEventListener('click', () => {
       try {
-        abandonner(tache.id);
+        abandonner(resultat.tache.id);
       } catch (erreur) {
+        const rendreFocus = document.activeElement === annuler;
         signalerErreur(erreur);
+        if (rendreFocus) origine.focus({ preventScroll: true });
         return;
       }
       afficher();
-      if (document.activeElement === annuler) parId('microphone').focus({ preventScroll: true });
+      if (document.activeElement === annuler) origine.focus({ preventScroll: true });
       annoncer('Tâche abandonnée : tu la retrouves dans les tâches abandonnées.');
     });
     statutElement.append(annuler);
     delaiStatut = setTimeout(() => {
-      if (document.activeElement === annuler) parId('microphone').focus({ preventScroll: true });
+      if (document.activeElement === annuler) origine.focus({ preventScroll: true });
       annuler.remove();
     }, 8000);
+  }
+
+  function selectionnerPhrase(phrase) {
+    phraseSelectionnee = phrase;
+    parId('debut-phrase').textContent = phrase ? phrase.debut : '';
+    parId('phrase-selectionnee').hidden = !phrase;
+    if (phrase) saisieDemande.setAttribute('aria-describedby', 'debut-phrase');
+    else saisieDemande.removeAttribute('aria-describedby');
+    saisieDemande.focus();
+  }
+
+  function envoyerDemandeClavier(demande) {
+    const erreur = clavier.querySelector('.erreur');
+    erreur.hidden = true;
+    erreur.textContent = '';
+    let resultat;
+    try {
+      resultat = traiterDemande(demande);
+    } catch (erreur) {
+      signalerErreur(erreur, clavier);
+      return;
+    }
+    if (resultat.type === 'vide') {
+      signalerErreur(new Error(resultat.message), clavier);
+      return;
+    }
+    saisieDemande.value = '';
+    phraseSelectionnee = null;
+    parId('debut-phrase').textContent = '';
+    parId('phrase-selectionnee').hidden = true;
+    saisieDemande.removeAttribute('aria-describedby');
+    clavier.close();
+    afficherResultatDemande(resultat, parId('ouvrir-clavier'));
+  }
+
+  function choisirPhrase(phrase) {
+    if (phrase.a_completer) {
+      selectionnerPhrase(phrase);
+      return;
+    }
+    try {
+      envoyerDemandeClavier({
+        texte: composerTexte(phrase, ''), source: 'clavier', id_phrase: phrase.id, complement: ''
+      });
+    } catch (erreur) {
+      signalerErreur(erreur, clavier);
+    }
+  }
+
+  function boutonPhrase(phrase) {
+    const bouton = element('button', 'phrase-clavier', phrase.debut);
+    bouton.type = 'button';
+    bouton.addEventListener('click', () => choisirPhrase(phrase));
+    return bouton;
+  }
+
+  function reconstruireClavier() {
+    reponseSilencieuse.setAttribute('aria-checked', String(preferencesClavier.silencieux()));
+    const plusUtilisees = preferencesClavier.plusUtilisees(4).slice(0, 4);
+    parId('plus-utilisees').replaceChildren(...plusUtilisees.map(boutonPhrase));
+    parId('section-plus-utilisees').hidden = plusUtilisees.length === 0;
+    const categories = new Map();
+    for (const phrase of PHRASES_CLAVIER) {
+      if (!categories.has(phrase.categorie)) categories.set(phrase.categorie, []);
+      categories.get(phrase.categorie).push(phrase);
+    }
+    const sections = [];
+    for (const [categorie, phrases] of categories) {
+      const section = element('section', 'categorie-clavier');
+      const titre = element('h3', '', categorie);
+      const liste = element('div', 'liste-phrases');
+      liste.append(...phrases.map(boutonPhrase));
+      section.append(titre, liste);
+      sections.push(section);
+    }
+    parId('categories-clavier').replaceChildren(...sections);
+    const historique = preferencesClavier.historique().slice(0, 10);
+    parId('historique-demandes').replaceChildren(...historique.map(demande => {
+      const bouton = element('button', 'demande-historique', demande.texte);
+      bouton.type = 'button';
+      bouton.addEventListener('click', () => envoyerDemandeClavier({
+        texte: demande.texte,
+        source: demande.source,
+        id_phrase: demande.id_phrase,
+        complement: demande.complement
+      }));
+      return bouton;
+    }));
+    parId('section-historique').hidden = historique.length === 0;
+  }
+
+  parId('ouvrir-clavier').addEventListener('click', event => {
+    ouvrir(clavier, clavier.querySelector('[data-fermer]'), event.currentTarget);
+    try {
+      reconstruireClavier();
+    } catch (erreur) {
+      signalerErreur(erreur, clavier);
+    }
+  });
+
+  parId('enlever-phrase').addEventListener('click', () => selectionnerPhrase(null));
+
+  reponseSilencieuse.addEventListener('click', () => {
+    try {
+      preferencesClavier.definirSilencieux(!preferencesClavier.silencieux());
+      reponseSilencieuse.setAttribute('aria-checked', String(preferencesClavier.silencieux()));
+    } catch (erreur) {
+      signalerErreur(erreur, clavier);
+    }
+  });
+
+  parId('formulaire-demande').addEventListener('submit', event => {
+    event.preventDefault();
+    const complement = saisieDemande.value;
+    try {
+      if (phraseSelectionnee?.a_completer && !complement.trim()) {
+        signalerErreur(new Error('Complète la phrase pour continuer.'), clavier);
+        saisieDemande.focus();
+        return;
+      }
+      envoyerDemandeClavier({
+        texte: phraseSelectionnee ? composerTexte(phraseSelectionnee, complement) : complement,
+        source: phraseSelectionnee ? 'clavier' : 'saisie',
+        id_phrase: phraseSelectionnee ? phraseSelectionnee.id : '',
+        complement: phraseSelectionnee ? complement : ''
+      });
+    } catch (erreur) {
+      signalerErreur(erreur, clavier);
+    }
+  });
+
+  function ajouterDictee(texte) {
+    const intitule = texte.trim();
+    try {
+      const resultat = traiterDemande({ texte: intitule, source: 'micro' });
+      afficherResultatDemande(resultat, parId('microphone'));
+    } catch (erreur) {
+      const message = erreur instanceof Error ? erreur.message : 'L’action n’a pas pu être enregistrée.';
+      annoncer(`${message} Texte dicté à recopier : « ${intitule} »`);
+    }
   }
 
   parId('microphone').addEventListener('click', () => {

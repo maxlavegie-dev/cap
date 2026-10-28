@@ -28,6 +28,8 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 - 28/10/2026 : Cap réinstallé depuis Chrome : la dictée avec le vrai micro fonctionne sur le téléphone de Max.
 - 28/10/2026 : essai en mode avion réussi : Cap s'ouvre, la liste est consultable, et la dictée marche même sans internet (le téléphone de Max reconnaît la voix sur place).
 - 28/10/2026 : premier bilan de la semaine 1 : Max est satisfait, rien ne le gêne ni ne lui manque pour l'instant. Semaine 1 terminée.
+- 28/10/2026 : Max valide le plan d'intégration du clavier de phrases, à construire avant la connexion à Google.
+- 28/10/2026 : clavier de phrases construit (bouton clavier à droite du micro, panneau qui monte du bas) : 11 débuts de phrases en 4 catégories, saisie libre, « Les plus utilisées », « Dernières demandes » à relancer, interrupteur « Réponse silencieuse » (allumé par défaut ; Cap ne parle pas encore). Micro et clavier passent par la même porte d'entrée. Sans cerveau, tout va dans « À trier » mot pour mot ; « Ajoute à ma to-do... » ne garde que la fin de la phrase ; « Continue. » et « Annule. » attendront le cerveau. Écrit par un subagent, relu par le modèle principal : 67 vérifications automatiques réussies. Pas encore publié ni essayé sur le téléphone.
 
 ### En cours
 - Préparation de la semaine 2 : connexion à Google (Sheets, Agenda, Gmail) et briefing du matin.
@@ -65,4 +67,4 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 ---
 
 ## Ajouts de Max en cours de route
-(aucun pour l'instant)
+- 28/10/2026 : CLAVIER DE PHRASES (texte complet : `PROMPT_COMPLEMENT_CLAVIER.txt`). Pour utiliser Cap sans parler : des débuts de phrases tout prêts (« Retrouve-moi... ») à compléter, une saisie libre, un interrupteur « réponse silencieuse », un historique des demandes à relancer, de gros boutons. Les phrases sont rangées dans le Drive de Max, modifiables sans code, et les plus utilisées remontent toutes seules. Plan validé par Max et construit le 28/10/2026. Reste pour plus tard : phrases dans le Drive (semaine 2), placement définitif, phrases pour les personnes fréquentes, et les deux idées à tester (mode « je ne peux pas parler », phrases selon le moment de la journée).

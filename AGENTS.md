@@ -25,7 +25,7 @@ Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le
 - **Honnêteté** : ne jamais inventer une date, un montant, un nom ou un document. Dire « je ne suis pas sûr ».
 
 ## Code et tests
-- `app/` contient du HTML/CSS/JS pur : pas de framework, pas de build, pas de ressource externe. Scripts classiques chargés dans cet ordre : `donnees_fictives.js`, `etapes_par_defaut.js`, `stockage.js` (localStorage, à remplacer par Google Sheets), `taches.js` (règles métier, sans DOM), `dictee.js` (reconnaissance vocale du navigateur, sans DOM), `app.js` (affichage).
+- `app/` contient du HTML/CSS/JS pur : pas de framework, pas de build, pas de ressource externe. Scripts classiques chargés dans cet ordre : `donnees_fictives.js`, `etapes_par_defaut.js`, `stockage.js` (localStorage, à remplacer par Google Sheets), `taches.js` (règles métier, sans DOM), `dictee.js` (reconnaissance vocale du navigateur, sans DOM), `phrases_clavier.js` (réglages du clavier de phrases), `preferences_clavier.js` (usage, historique, réponse silencieuse), `demandes.js` (porte d'entrée unique micro + clavier, où brancher l'IA), `app.js` (affichage).
 - PWA : `manifest.webmanifest`, `service-worker.js` (réseau d'abord, cache en secours ; ajouter chaque nouveau fichier à `FICHIERS_PRECACHE`), `installation.js`. Icônes régénérées par `python outils\fabriquer_icones.py`.
 - Tests : `python app\test_cap.py`. Il lance Microsoft Edge sans fenêtre ; Node n'est pas installé.
 - Construire le DOM avec `textContent`, jamais `innerHTML` avec des données.
