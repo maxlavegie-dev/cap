@@ -102,5 +102,5 @@ const stockage = (() => {
     }
   }
 
-  return { charger, enregistrer };
+  return { charger, enregistrer, verifier };
 })();

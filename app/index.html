@@ -17,6 +17,14 @@
       <time id="heure"></time>
     </header>
     <main class="taches" aria-label="Tes tâches" tabindex="0">
+      <div id="etat-google">
+        <span id="texte-etat-google" role="status">non connecté</span>
+        <button id="connexion-google" type="button">Se connecter à Google</button>
+      </div>
+      <section id="rendez-vous" aria-labelledby="titre-rendez-vous" hidden>
+        <h2 id="titre-rendez-vous">Prochains rendez-vous</h2>
+        <ul id="liste-rendez-vous"></ul>
+      </section>
       <p id="info-chargement" role="status" hidden></p>
       <h1 class="visuellement-cache">Tes tâches</h1>
       <div id="liste-taches"></div>
@@ -133,6 +141,11 @@
   <script src="etapes_par_defaut.js"></script>
   <script src="stockage.js"></script>
   <script src="taches.js"></script>
+  <script src="reglages_google.js"></script>
+  <script src="google_connexion.js"></script>
+  <script src="google_sheets.js"></script>
+  <script src="google_agenda.js"></script>
+  <script src="synchronisation.js"></script>
   <script src="dictee.js"></script>
   <script src="phrases_clavier.js"></script>
   <script src="preferences_clavier.js"></script>

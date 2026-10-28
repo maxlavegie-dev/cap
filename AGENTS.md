@@ -5,6 +5,7 @@ Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le
 ## Communication avec Max
 - Max n'est pas développeur et dicte à la voix. Lui parler en français, en le tutoyant, simplement, sans jargon. Une seule question à la fois, réponses courtes, toujours la vérité.
 - Aucune action importante sans son accord. Ne jamais lui demander d'écrire du code.
+- Pour chaque nouvelle étape : présenter d'abord le plan, puis attendre son accord avant d'agir.
 - Accueillir ses ajouts en cours de route : les reformuler, puis les noter dans le journal de bord et le fichier d'explications.
 
 ## Délégation (économie de quota, environ 1300 unités LLM par jour)
@@ -25,12 +26,12 @@ Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le
 - **Honnêteté** : ne jamais inventer une date, un montant, un nom ou un document. Dire « je ne suis pas sûr ».
 
 ## Code et tests
-- `app/` contient du HTML/CSS/JS pur : pas de framework, pas de build, pas de ressource externe. Scripts classiques chargés dans cet ordre : `donnees_fictives.js`, `etapes_par_defaut.js`, `stockage.js` (localStorage, à remplacer par Google Sheets), `taches.js` (règles métier, sans DOM), `dictee.js` (reconnaissance vocale du navigateur, sans DOM), `phrases_clavier.js` (réglages du clavier de phrases), `preferences_clavier.js` (usage, historique, réponse silencieuse), `demandes.js` (porte d'entrée unique micro + clavier, où brancher l'IA), `app.js` (affichage).
+- `app/` contient du HTML/CSS/JS pur : pas de framework, pas de build, pas de ressource externe. Scripts classiques chargés dans cet ordre : `donnees_fictives.js`, `etapes_par_defaut.js`, `stockage.js` (localStorage, à remplacer par Google Sheets), `taches.js` (règles métier, sans DOM ; signale chaque modification à `synchronisation`), `reglages_google.js` (ID client public, noms FICTIF ; jamais de secret client), `google_connexion.js` (OAuth implicite par redirection, jeton ~1 h), `google_sheets.js`, `google_agenda.js` (agenda secondaire uniquement, jamais `primary`), `synchronisation.js` (file d'attente hors ligne, fusion ; aucun appel de suppression ou d'effacement côté Google), `dictee.js` (reconnaissance vocale du navigateur, sans DOM), `phrases_clavier.js` (réglages du clavier de phrases), `preferences_clavier.js` (usage, historique, réponse silencieuse), `demandes.js` (porte d'entrée unique micro + clavier, où brancher l'IA), `app.js` (affichage).
 - PWA : `manifest.webmanifest`, `service-worker.js` (réseau d'abord, cache en secours ; ajouter chaque nouveau fichier à `FICHIERS_PRECACHE`), `installation.js`. Icônes régénérées par `python outils\fabriquer_icones.py`.
 - Tests : `python app\test_cap.py`. Il lance Microsoft Edge sans fenêtre ; Node n'est pas installé.
 - Construire le DOM avec `textContent`, jamais `innerHTML` avec des données.
 - Déploiement : dépôt public `maxlavegie-dev/cap`, GitHub Pages servi depuis la racine de `main`. L'appli est en ligne sur https://maxlavegie-dev.github.io/cap/app/, et chaque `git push` sur `main` la met à jour. Le dépôt est public : `PROMPT_CAP.txt` et tout secret doivent rester dans `.gitignore`.
-- Commits : messages courts en français. Ne jamais faire de commit ni de push sans l'accord de Max.
+- Commits : messages courts en français. Ne jamais faire de commit ni de push sans l'accord de Max : lui présenter d'abord ce qui sera publié, puis lui dire clairement quand il doit essayer sur son téléphone.
 - Le shell cmd gère mal les guillemets : passer les messages de commit par un fichier (`git commit -F`).
 
 ## Style de code

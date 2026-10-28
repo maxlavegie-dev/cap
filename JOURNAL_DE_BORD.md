@@ -30,9 +30,14 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 - 28/10/2026 : premier bilan de la semaine 1 : Max est satisfait, rien ne le gêne ni ne lui manque pour l'instant. Semaine 1 terminée.
 - 28/10/2026 : Max valide le plan d'intégration du clavier de phrases, à construire avant la connexion à Google.
 - 28/10/2026 : clavier de phrases construit (bouton clavier à droite du micro, panneau qui monte du bas) : 11 débuts de phrases en 4 catégories, saisie libre, « Les plus utilisées », « Dernières demandes » à relancer, interrupteur « Réponse silencieuse » (allumé par défaut ; Cap ne parle pas encore). Micro et clavier passent par la même porte d'entrée. Sans cerveau, tout va dans « À trier » mot pour mot ; « Ajoute à ma to-do... » ne garde que la fin de la phrase ; « Continue. » et « Annule. » attendront le cerveau. Écrit par un subagent, relu par le modèle principal : 67 vérifications automatiques réussies. Pas encore publié ni essayé sur le téléphone.
+- 28/10/2026 : clavier de phrases publié, essayé sur le téléphone et validé par Max.
+- 28/10/2026 : Max a créé dans Google Cloud le « Projet Cap » : Sheets, Drive et Agenda activés, écran de consentement en mode test (non publié), Max seul utilisateur testeur, client OAuth web créé. Le fichier JSON du client est gardé par Max hors du projet. Le code secret du client n'est PAS utilisé par Cap (appli sans serveur) : il ne doit jamais aller dans le projet ni dans une conversation. Origine à autoriser : https://maxlavegie-dev.github.io ; adresse de redirection : https://maxlavegie-dev.github.io/cap/app/
+- 28/10/2026 : Max a donné l'identifiant client (public, ce n'est pas un secret). Il est rangé dans `app/reglages_google.js`, avec les noms du fichier et de l'agenda FICTIF. Ce fichier n'est pas encore utilisé par l'appli.
+- 28/10/2026 : connexion Google construite (pas encore publiée ni essayée avec le vrai compte). Un bouton « Se connecter à Google » est placé en haut de la liste (le haut de l'écran reste date et heure). Cap crée le tableau « Cap – FICTIF – Tâches » (onglets Tâches, Étapes par défaut, Phrases du clavier) et l'agenda séparé « Cap – FICTIF » avec 4 faux rendez-vous. La liste suit le tableau ; hors connexion, les changements attendent et partent au retour. Aucune ligne n'est jamais effacée ; une ligne du tableau illisible est laissée intacte et signalée. Les prochains rendez-vous s'affichent au-dessus de la liste. Pour l'instant, les onglets Étapes par défaut et Phrases du clavier sont seulement écrits : l'appli ne les relit pas encore. Écrit par un subagent, relu par le modèle principal : 86 vérifications automatiques réussies (Google simulé).
 
 ### En cours
-- Préparation de la semaine 2 : connexion à Google (Sheets, Agenda, Gmail) et briefing du matin.
+- Semaine 2, étape 1 : autorisation Google de Cap. FAIT.
+- Semaine 2, étape 2 : connexion Google construite. Reste : accord de Max pour publier, puis essai sur son téléphone.
 
 ### À faire (semaine 1)
 - Jours 1 et 2 : dessiner l'icône et l'écran d'accueil. FAIT.
@@ -43,6 +48,8 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 ---
 
 ## Décisions prises
+- 28/10/2026 : plan de la semaine 2 validé par Max : liste dans un Google Sheets « Cap – FICTIF – Tâches » (accès limité aux seuls fichiers créés par Cap), agenda séparé « Cap – FICTIF » (Cap ne lit pas le vrai agenda), copie sur le téléphone et file d'attente hors connexion, aucune ligne jamais effacée. Briefing (besoin de la clé API) et Gmail repoussés à l'étape suivante.
+- 28/10/2026 : RÈGLE DE TRAVAIL de Max : pour chaque nouvelle étape, présenter d'abord le plan et attendre son accord avant d'agir.
 - 27/10/2026 : Max valide le plan de la semaine 1 tel qu'il est écrit dans le cahier des charges.
 - 27/10/2026 : Max accepte la tenue de ce journal de bord.
 - 27/10/2026 : la semaine 1 n'utilise pas encore de clé d'intelligence artificielle. La dictée passe d'abord par la reconnaissance vocale gratuite du téléphone.

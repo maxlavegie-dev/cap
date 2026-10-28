@@ -604,6 +604,53 @@
     dernierJour = dateTexte;
   }
 
+  let erreurAgenda = '';
+  const formatRendezVous = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'short', day: 'numeric', month: 'short'
+  });
+
+  function afficherEtatGoogle() {
+    const connecte = googleConnexion.connecte();
+    parId('texte-etat-google').textContent = [googleConnexion.message(), synchronisation.etat(), erreurAgenda]
+      .filter(Boolean).join(' — ');
+    const bouton = parId('connexion-google');
+    bouton.hidden = connecte;
+    bouton.textContent = googleConnexion.reconnexion() ? 'Se reconnecter' : 'Se connecter à Google';
+    if (!connecte) parId('rendez-vous').hidden = true;
+  }
+
+  async function afficherRendezVous() {
+    if (!googleConnexion.connecte()) return;
+    try {
+      const rendezVous = await googleAgenda.prochainsRendezVous();
+      if (!googleConnexion.connecte()) return;
+      parId('liste-rendez-vous').replaceChildren(...rendezVous.map(rendezVous => {
+        const date = formatRendezVous.format(new Date(`${rendezVous.date}T12:00:00`));
+        return element('li', '', [date, rendezVous.heure, rendezVous.titre].filter(Boolean).join(' – '));
+      }));
+      parId('rendez-vous').hidden = rendezVous.length === 0;
+      erreurAgenda = '';
+    } catch (erreur) {
+      erreurAgenda = 'Les rendez-vous ne sont pas disponibles pour le moment.';
+    }
+    afficherEtatGoogle();
+  }
+
+  parId('connexion-google').addEventListener('click', () => {
+    try { googleConnexion.seConnecter(); } catch (erreur) { signalerErreur(erreur); }
+  });
+  window.addEventListener('cap-google-etat', afficherEtatGoogle);
+  window.addEventListener('cap-google-deconnecte', afficherEtatGoogle);
+  window.addEventListener('cap-google-fusion', afficher);
+  window.addEventListener('online', () => { void afficherRendezVous(); });
+  afficherEtatGoogle();
+  if (googleConnexion.connecte()) {
+    void synchronisation.demarrer().then(() => {
+      afficher();
+      return afficherRendezVous();
+    }).catch(erreur => signalerErreur(erreur));
+  }
+  setInterval(afficherEtatGoogle, 30000);
   actualiserHorloge();
   setInterval(actualiserHorloge, 1000);
   try {

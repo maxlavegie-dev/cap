@@ -20,6 +20,11 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `etapes_par_defaut.js` | Les réglages des étapes créées automatiquement (ex. pour un titre d'album : réenregistrer les voix, mixer, masteriser). On peut les modifier sans toucher au reste. |
 | `stockage.js` | Garde la liste sur le téléphone. Il sera remplacé par Google Sheets en semaine 2. |
 | `taches.js` | Les règles de la liste : ajouter, cocher, abandonner, remettre, calculer l'avancement et les jours restants. |
+| `reglages_google.js` | Les réglages Google : l'identifiant client (public, ce n'est pas un secret), l'adresse de retour, les noms du tableau et de l'agenda FICTIF. |
+| `google_connexion.js` | Le bouton « Se connecter à Google » : demande l'accord de Max à Google et garde l'autorisation environ une heure. |
+| `google_sheets.js` | Trouve ou crée le tableau « Cap – FICTIF – Tâches » et y écrit les tâches. Ne supprime jamais une ligne. |
+| `google_agenda.js` | Trouve ou crée l'agenda séparé « Cap – FICTIF » et lit les prochains rendez-vous. Ne touche jamais au vrai agenda. |
+| `synchronisation.js` | Met d'accord le téléphone et le tableau. Hors connexion, les changements attendent dans une file et partent au retour. |
 | `dictee.js` | Écoute ce que Max dit, avec la reconnaissance vocale du navigateur, et transmet le texte entendu. |
 | `phrases_clavier.js` | Les réglages des débuts de phrases du clavier. Ils iront dans le Drive en semaine 2. |
 | `preferences_clavier.js` | Retient sur le téléphone les phrases les plus utilisées, les dernières demandes et l'interrupteur « Réponse silencieuse ». |
@@ -29,7 +34,14 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `service-worker.js` | Garde une copie de l'appli sur le téléphone pour qu'elle s'ouvre même sans internet. |
 | `installation.js` | Active cette copie hors connexion. |
 | `icones/` | L'icône aux différentes tailles demandées par Android. Elles sont fabriquées par `outils/fabriquer_icones.py` à partir de l'icône validée. |
-| `test_cap.py` | Des vérifications automatiques des règles, de la dictée et de l'installation (67 essais). |
+| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée) et de l'installation (86 essais). |
+
+## La connexion à Google (semaine 2)
+- Cap n'a accès qu'aux fichiers qu'il a créés lui-même, et seulement à son agenda « Cap – FICTIF ». Il ne voit ni le reste du Drive ni le vrai agenda.
+- Google affiche « application non vérifiée » : c'est normal, elle est en mode test et Max est le seul utilisateur autorisé.
+- L'autorisation dure environ une heure. Ensuite, un bouton « Se reconnecter » apparaît. Aucun secret n'est rangé dans l'appli.
+- Qui gagne en cas de différence : le tableau, sauf si le téléphone a un changement pas encore envoyé (le téléphone gagne alors). Rien n'est jamais retiré.
+- Si une ligne du tableau est mal remplie (par exemple une date tapée à la main que Google transforme), Cap la laisse telle quelle et le signale.
 
 ## Les règles programmées pour la liste
 - **Zéro perte** : il n'existe aucun moyen d'effacer une tâche. « Abandonner » la retire de la vue normale, avec la date, mais elle reste gardée et on peut la remettre.

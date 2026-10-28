@@ -11,10 +11,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "demandes.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "demandes.js", "app.js"]
 
 TESTS_JS = r"""
-(() => {
+(async () => {
   const CLE = 'cap_taches_v1';
   const PREFIXE_SAUVEGARDE = CLE + '_illisible_';
   const CLE_USAGE = 'cap_usage_phrases_v1';
@@ -35,7 +35,7 @@ TESTS_JS = r"""
     for (const cle of Object.keys(localStorage)) {
       if (cle.startsWith(CLE)) localStorage.removeItem(cle);
     }
-    for (const cle of [CLE_USAGE, CLE_HISTORIQUE, CLE_SILENCE]) localStorage.removeItem(cle);
+    for (const cle of [CLE_USAGE, CLE_HISTORIQUE, CLE_SILENCE, 'cap_google_file_v1']) localStorage.removeItem(cle);
     const chargement = stockage.charger();
     TACHES.splice(0, TACHES.length, ...chargement.taches);
   }
@@ -1000,6 +1000,513 @@ TESTS_JS = r"""
     });
   });
 
+  function nettoyerGoogle() {
+    for (const espace of [localStorage, sessionStorage]) {
+      for (const cle of Object.keys(espace)) {
+        if (cle.startsWith('cap_google_')) espace.removeItem(cle);
+      }
+    }
+  }
+
+  function espaceMemoire() {
+    const valeurs = new Map();
+    return {
+      getItem: cle => valeurs.has(cle) ? valeurs.get(cle) : null,
+      setItem: (cle, valeur) => valeurs.set(cle, String(valeur)),
+      removeItem: cle => valeurs.delete(cle)
+    };
+  }
+
+  function objetIsole(source, nom, parametres) {
+    return new Function(...Object.keys(parametres), source + `\nreturn ${nom};`)(...Object.values(parametres));
+  }
+
+  function contexteGoogle() {
+    const contexte = {
+      localStorage: espaceMemoire(), sessionStorage: espaceMemoire(), window: new EventTarget(),
+      navigator: { onLine: true }, requetes: [], redirections: [], historiques: [],
+      location: { hash: '', pathname: '/tests.html', search: '?fictif=1' }
+    };
+    contexte.location.assign = adresse => contexte.redirections.push(new URL(adresse));
+    contexte.history = { replaceState: (...argumentsAppel) => {
+      contexte.historiques.push(argumentsAppel);
+      contexte.location.hash = '';
+    } };
+    contexte.repondre = async () => { throw new Error('Requête simulée non prévue'); };
+    contexte.fetch = async (adresse, options = {}) => {
+      const requete = { url: new URL(adresse), methode: options.method || 'GET', options,
+        corps: options.body ? JSON.parse(options.body) : null };
+      contexte.requetes.push(requete);
+      return contexte.repondre(requete);
+    };
+    contexte.googleConnexion = { connecte: () => true, appeler: contexte.fetch };
+    contexte.stockage = objetIsole(SOURCE_STOCKAGE, 'stockage', {
+      localStorage: contexte.localStorage, TACHES_FICTIVES
+    });
+    contexte.stockage.charger();
+    contexte.TACHES = TACHES_FICTIVES.filter(tache => !tache.parente).slice(0, 3).map(tache => ({ ...tache }));
+    contexte.stockage.enregistrer(contexte.TACHES);
+    contexte.connexion = () => objetIsole(SOURCE_GOOGLE_CONNEXION, 'googleConnexion', {
+      localStorage: contexte.localStorage, sessionStorage: contexte.sessionStorage,
+      window: contexte.window, location: contexte.location, history: contexte.history,
+      fetch: contexte.fetch, REGLAGES_GOOGLE, crypto
+    });
+    contexte.sheets = () => objetIsole(SOURCE_GOOGLE_SHEETS, 'googleSheets', {
+      localStorage: contexte.localStorage, googleConnexion: contexte.googleConnexion,
+      REGLAGES_GOOGLE, TACHES: contexte.TACHES, stockage: contexte.stockage,
+      ETAPES_PAR_DEFAUT, PHRASES_CLAVIER
+    });
+    contexte.sync = googleSheets => objetIsole(SOURCE_SYNCHRONISATION, 'synchronisation', {
+      localStorage: contexte.localStorage, window: contexte.window, navigator: contexte.navigator,
+      googleConnexion: contexte.googleConnexion, googleSheets, TACHES: contexte.TACHES,
+      stockage: contexte.stockage
+    });
+    contexte.agenda = () => objetIsole(SOURCE_GOOGLE_AGENDA, 'googleAgenda', {
+      localStorage: contexte.localStorage, googleConnexion: contexte.googleConnexion, REGLAGES_GOOGLE
+    });
+    return contexte;
+  }
+
+  function reponseGoogle(contenu, statut = 200) {
+    return new Response(JSON.stringify(contenu), { status: statut, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  async function attendreRejet(fonction, fragment) {
+    let message = '';
+    try { await fonction(); } catch (erreur) { message = String(erreur.message || erreur); }
+    attendre(message.includes(fragment), `rejet attendu contenant « ${fragment} », reçu : ${message}`);
+  }
+
+  async function testAsync(nom, fonction) {
+    try {
+      nettoyerGoogle();
+      reinitialiser();
+      const contexte = contexteGoogle();
+      await fonction(contexte);
+      for (const requete of contexte.requetes) {
+        attendre(['GET', 'POST'].includes(requete.methode), 'opération destructive interdite');
+        attendre(!/:clear(?:\?|$)|:batchClear(?:\?|$)/.test(requete.url.href), 'effacement interdit');
+        attendre(!requete.corps?.requests?.some(action => Object.keys(action).some(cle => /delete|cutPaste/i.test(cle))),
+          'suppression de lignes ou de feuilles interdite');
+      }
+      resultats.push({ nom, ok: true, erreur: '' });
+    } catch (erreur) {
+      resultats.push({ nom, ok: false, erreur: String(erreur.message || erreur) });
+    } finally {
+      nettoyerGoogle();
+    }
+  }
+
+  const CHAMPS_GOOGLE = ['id', 'intitule', 'categorie', 'sous_categorie', 'fait', 'date_entree',
+    'echeance', 'date_realisation', 'priorite', 'parente', 'note', 'avant_le', 'abandonnee_le', 'origine', 'fictif'];
+  const ENTETES_GOOGLE = ['Identifiant', 'Intitulé', 'Catégorie', 'Sous-catégorie', 'Fait', "Date d'entrée",
+    'Échéance', 'Date de réalisation', 'Priorité', 'Tâche parente', 'Note', 'Avant le', 'Abandonnée le', 'Origine', 'Fictif'];
+  const ligneGoogle = tache => CHAMPS_GOOGLE.map(champ => tache[champ]);
+  const lireFileGoogle = contexte => JSON.parse(contexte.localStorage.getItem('cap_google_file_v1') || '[]');
+
+  for (const espace of ['sessionStorage', 'localStorage']) {
+    await testAsync(`Google OAuth : retour valide avec état en ${espace}`, async c => {
+      c[espace].setItem('cap_google_etat_v1', 'etat-fictif');
+      c.location.hash = '#access_token=jeton-fictif&expires_in=3600&token_type=Bearer&state=etat-fictif';
+      const connexion = c.connexion();
+      attendre(connexion.connecte(), 'connexion refusée');
+      attendreEgal(connexion.jeton(), 'jeton-fictif', 'jeton');
+      attendreEgal(c.location.hash, '', 'fragment effacé');
+      attendreEgal(c.historiques, [[null, '', '/tests.html?fictif=1']], 'URL nettoyée sans navigation');
+      for (const stockageEtat of [c.localStorage, c.sessionStorage]) {
+        attendreEgal(stockageEtat.getItem('cap_google_etat_v1'), null, 'état consommé');
+      }
+      attendreEgal(c.requetes.length, 0, 'aucun réseau au retour OAuth');
+    });
+  }
+
+  await testAsync('Google OAuth : mauvais état refusé et fragment effacé', async c => {
+    c.sessionStorage.setItem('cap_google_etat_v1', 'attendu-fictif');
+    c.localStorage.setItem('cap_google_jeton_v1', JSON.stringify({ jeton: 'ancien-fictif', expiration: Date.now() + 3600000 }));
+    c.location.hash = '#access_token=intrus-fictif&expires_in=3600&token_type=Bearer&state=incorrect-fictif';
+    const connexion = c.connexion();
+    attendre(!connexion.connecte(), 'mauvais état accepté');
+    attendre(connexion.message().includes('sécurité'), 'erreur de sécurité absente');
+    attendreEgal(c.localStorage.getItem('cap_google_jeton_v1'), null, 'ancien jeton retiré');
+    attendreEgal(c.sessionStorage.getItem('cap_google_etat_v1'), null, 'état retiré');
+    attendreEgal(c.location.hash, '', 'fragment retiré même en erreur');
+    attendreEgal(c.historiques.length, 1, 'nettoyage du fragment');
+  });
+
+  await testAsync('Google OAuth : redirection et nouvel état aléatoire', async c => {
+    const connexion = c.connexion();
+    connexion.seConnecter();
+    connexion.seConnecter();
+    attendreEgal(c.redirections.length, 2, 'redirections simulées');
+    const [premiere, seconde] = c.redirections;
+    attendreEgal(seconde.origin + seconde.pathname, 'https://accounts.google.com/o/oauth2/v2/auth', 'destination OAuth');
+    const parametres = seconde.searchParams;
+    for (const [cle, valeur] of Object.entries({ client_id: REGLAGES_GOOGLE.id_client,
+      redirect_uri: REGLAGES_GOOGLE.adresse_retour, response_type: 'token',
+      scope: REGLAGES_GOOGLE.autorisations.join(' '), include_granted_scopes: 'true' })) {
+      attendreEgal(parametres.get(cle), valeur, `paramètre ${cle}`);
+    }
+    attendre(/^[a-f0-9]{64}$/.test(parametres.get('state')), 'état insuffisant');
+    attendre(premiere.searchParams.get('state') !== parametres.get('state'), 'état réutilisé');
+    for (const espace of [c.localStorage, c.sessionStorage]) {
+      attendreEgal(espace.getItem('cap_google_etat_v1'), parametres.get('state'), 'état enregistré');
+    }
+    attendre(!parametres.has('client_secret'), 'secret dans la redirection');
+    attendreEgal(c.requetes.length, 0, 'aucun fetch de connexion');
+  });
+
+  await testAsync('Google connexion : Response, statut HTTP et destinations autorisées', async c => {
+    c.localStorage.setItem('cap_google_jeton_v1', JSON.stringify({ jeton: 'jeton-fictif', expiration: Date.now() + 3600000 }));
+    const connexion = c.connexion();
+    c.repondre = async () => reponseGoogle({ fictif: true });
+    const reponse = await connexion.appeler('https://www.googleapis.com/drive/v3/files');
+    attendre(reponse instanceof Response, 'Response non renvoyée');
+    attendreEgal(await reponse.json(), { fictif: true }, 'contenu réponse');
+    attendreEgal(c.requetes[0].options.headers.get('Authorization'), 'Bearer jeton-fictif', 'autorisation');
+    attendreEgal(c.requetes[0].options.cache, 'no-store', 'jeton hors cache');
+    attendreEgal(c.requetes[0].options.redirect, 'error', 'redirections interdites');
+    c.repondre = async () => reponseGoogle({}, 403);
+    let statut;
+    try { await connexion.appeler('https://sheets.googleapis.com/v4/spreadsheets'); }
+    catch (erreur) { statut = erreur.statut; }
+    attendreEgal(statut, 403, 'statut HTTP conservé');
+    const nombre = c.requetes.length;
+    await attendreRejet(() => connexion.appeler('http://www.googleapis.com/drive/v3/files'), 'non autorisée');
+    await attendreRejet(() => connexion.appeler('https://accounts.google.com/o/oauth2/v2/auth'), 'non autorisée');
+    attendreEgal(c.requetes.length, nombre, 'destinations interdites jamais appelées');
+  });
+
+  await testAsync('Google Sheets : création RAW, entêtes, trois onglets et cases booléennes', async c => {
+    c.repondre = async r => {
+      if (r.methode === 'GET' && r.url.pathname === '/drive/v3/files') return reponseGoogle({ files: [] });
+      if (r.methode === 'POST' && r.url.pathname === '/v4/spreadsheets') return reponseGoogle({ spreadsheetId: 'tableau-fictif' });
+      if (r.methode === 'POST' && ['/v4/spreadsheets/tableau-fictif/values:batchUpdate', '/v4/spreadsheets/tableau-fictif:batchUpdate'].includes(r.url.pathname)) return reponseGoogle({});
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const sheets = c.sheets();
+    attendreEgal(await sheets.trouverOuCreer(), { id: 'tableau-fictif', cree: true }, 'tableau créé');
+    const creation = c.requetes.find(r => r.url.pathname === '/v4/spreadsheets').corps;
+    attendreEgal(creation.properties.title, REGLAGES_GOOGLE.nom_fichier_taches, 'nom fictif');
+    attendreEgal(creation.sheets.map(onglet => onglet.properties.title), Object.values(REGLAGES_GOOGLE.onglets), 'trois onglets');
+    attendre(creation.sheets.every(onglet => onglet.properties.gridProperties.frozenRowCount === 1), 'entêtes non figées');
+    const remplissage = c.requetes.find(r => r.url.pathname.endsWith('/values:batchUpdate')).corps;
+    attendreEgal(remplissage.valueInputOption, 'RAW', 'écriture brute');
+    attendreEgal(remplissage.data.length, 3, 'trois onglets remplis');
+    attendreEgal(remplissage.data[0].values, [ENTETES_GOOGLE, ...c.TACHES.map(ligneGoogle)], 'entêtes et tâches exactes');
+    attendreEgal(remplissage.data[1].values, [['Modèle', 'Étape'], ...Object.entries(ETAPES_PAR_DEFAUT).flatMap(([modele, etapes]) => etapes.map(etape => [modele, etape]))], 'modèles');
+    attendreEgal(remplissage.data[2].values, [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'], ...PHRASES_CLAVIER.map(p => [p.id, p.categorie, p.debut, p.a_completer, p.action])], 'phrases');
+    const validations = c.requetes.find(r => r.url.pathname.endsWith('tableau-fictif:batchUpdate')).corps.requests;
+    attendreEgal(validations.map(r => r.setDataValidation.range.startColumnIndex), [4, 14], 'colonnes booléennes');
+    attendre(validations.every(r => r.setDataValidation.rule.condition.type === 'BOOLEAN' && r.setDataValidation.rule.strict), 'validation booléenne');
+    attendreEgal(c.localStorage.getItem('cap_google_fichier_v1'), 'tableau-fictif', 'identifiant conservé');
+  });
+
+  async function sheetsExistant(c, lignes) {
+    c.localStorage.setItem('cap_google_fichier_v1', 'tableau-fictif');
+    c.repondre = async r => {
+      if (r.methode === 'GET' && r.url.pathname === '/drive/v3/files/tableau-fictif') return reponseGoogle({ id: 'tableau-fictif', trashed: false });
+      if (r.methode === 'GET' && r.url.pathname.startsWith('/v4/spreadsheets/tableau-fictif/values/')) {
+        attendreEgal(r.url.searchParams.get('valueRenderOption'), 'UNFORMATTED_VALUE', 'lecture sans formatage');
+        return reponseGoogle({ values: [ENTETES_GOOGLE, ...lignes] });
+      }
+      if (r.methode === 'POST' && (r.url.pathname.endsWith('/values:batchUpdate') || r.url.pathname.endsWith(':append'))) return reponseGoogle({});
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const sheets = c.sheets();
+    attendreEgal(await sheets.trouverOuCreer(), { id: 'tableau-fictif', cree: false }, 'tableau retrouvé');
+    return sheets;
+  }
+
+  await testAsync('Google Sheets : mise à jour ligne existante et append sans effacement', async c => {
+    const [existante, nouvelle] = c.TACHES;
+    const sheets = await sheetsExistant(c, [[], ligneGoogle(existante)]);
+    const modifiee = { ...existante, intitule: '=FICTIF <b>texte exact</b>' };
+    attendreEgal(await sheets.ecrireTaches([modifiee, nouvelle]), [existante.id, nouvelle.id], 'identifiants écrits');
+    const misesAJour = c.requetes.filter(r => r.methode === 'POST');
+    attendreEgal(misesAJour.length, 2, 'update et append seulement');
+    attendreEgal(misesAJour[0].corps, { valueInputOption: 'RAW', data: [{ range: "'Tâches'!A3:O3", values: [ligneGoogle(modifiee)] }] }, 'ligne exacte mise à jour');
+    attendreEgal(misesAJour[1].url.searchParams.get('valueInputOption'), 'RAW', 'append brut');
+    attendreEgal(misesAJour[1].url.searchParams.get('insertDataOption'), 'INSERT_ROWS', 'ajout sans écraser');
+    attendreEgal(misesAJour[1].corps.values, [ligneGoogle(nouvelle)], 'nouvelle tâche exacte');
+  });
+
+  await testAsync('Google Sheets : lignes illisibles, doublons et parents protégés', async c => {
+    const [parent, doublon, invalide] = c.TACHES;
+    const enfant = { ...parent, id: 'enfant-fictif', intitule: 'Étape FICTIF', parente: parent.id };
+    const orpheline = { ...parent, id: 'orpheline-fictive', parente: 'parent-inconnu-fictif' };
+    const lignes = [ligneGoogle(parent), ligneGoogle(doublon), ligneGoogle(doublon),
+      ligneGoogle({ ...invalide, fait: 'illisible' }), ligneGoogle(enfant), ligneGoogle(orpheline)];
+    const sheets = await sheetsExistant(c, lignes);
+    const lecture = await sheets.lireTaches();
+    attendreEgal(lecture.taches.map(t => t.id), [parent.id, enfant.id], 'seules les lignes valides admises');
+    attendreEgal([...lecture.lignes], [[parent.id, 2], [enfant.id, 6]], 'numéros de lignes');
+    attendreEgal(lecture.illisibles.map(l => l.ligne).sort((a, b) => a - b), [3, 4, 5, 7], 'lignes protégées');
+    attendreEgal(await sheets.ecrireTaches([parent, doublon, invalide, orpheline]), [parent.id], 'seule la tâche saine écrite');
+    const ecritures = c.requetes.filter(r => r.methode === 'POST');
+    attendreEgal(ecritures.length, 1, 'aucun append des identifiants protégés');
+    attendreEgal(ecritures[0].corps.data.map(d => d.range), ["'Tâches'!A2:O2"], 'aucune ligne illisible touchée');
+  });
+
+  await testAsync('Google Sheets : entêtes illisibles bloquent toute écriture', async c => {
+    const sheets = await sheetsExistant(c, []);
+    c.repondre = async () => reponseGoogle({ values: [['Entêtes FICTIF incorrectes']] });
+    await attendreRejet(() => sheets.ecrireTaches(c.TACHES), 'colonnes');
+    attendreEgal(c.requetes.filter(r => r.methode !== 'GET').length, 0, 'aucune écriture');
+  });
+
+  function fauxSheetsSync(c, distantes, illisibles = []) {
+    const envois = [];
+    return {
+      envois,
+      trouverOuCreer: async () => ({ id: 'tableau-fictif', cree: false }),
+      lireTaches: async () => ({ taches: distantes.map(t => ({ ...t })), illisibles,
+        lignes: new Map(distantes.map((t, indice) => [t.id, indice + 2])) }),
+      ecrireTaches: async taches => { envois.push(taches.map(t => ({ ...t }))); return taches.map(t => t.id); }
+    };
+  }
+
+  await testAsync('Google sync : fusion remote hors file, local en file et zéro perte', async c => {
+    const [horsFile, enFile, absente] = c.TACHES;
+    const inconnue = { ...horsFile, id: 'distante-fictive', intitule: 'Inconnue locale FICTIF' };
+    const protege = { ...horsFile, id: 'protegee-fictive' };
+    c.TACHES.push(protege);
+    c.stockage.enregistrer(c.TACHES);
+    c.localStorage.setItem('cap_google_file_v1', JSON.stringify([enFile.id]));
+    const sheets = fauxSheetsSync(c, [{ ...horsFile, note: 'Google FICTIF' },
+      { ...enFile, note: 'Ancienne version Google FICTIF' }, inconnue], [{ id: protege.id, ligne: 9 }]);
+    const sync = c.sync(sheets);
+    await sync.demarrer();
+    attendreEgal(c.TACHES.find(t => t.id === horsFile.id).note, 'Google FICTIF', 'Google gagne hors file');
+    attendreEgal(c.TACHES.find(t => t.id === enFile.id), enFile, 'local gagne en file');
+    attendreEgal(c.TACHES.find(t => t.id === inconnue.id), inconnue, 'inconnue importée');
+    attendreEgal(c.TACHES.find(t => t.id === absente.id), absente, 'absente conservée');
+    attendreEgal(c.TACHES.find(t => t.id === protege.id), protege, 'illisible distante ne retire pas le local');
+    attendreEgal(c.TACHES.length, 5, 'aucune tâche perdue');
+    attendreEgal(sheets.envois.flat().map(t => t.id).sort(), [enFile.id, absente.id].sort(), 'absente et file envoyées, protégée ignorée');
+    attendreEgal(lireFileGoogle(c), [], 'file acquittée');
+    attendreEgal(JSON.parse(c.localStorage.getItem(CLE)), c.TACHES, 'fusion sauvegardée');
+    attendre(sync.etat().includes('illisibles'), 'avertissement des lignes illisibles');
+  });
+
+  await testAsync('Google sync : échec de validation, mémoire et sauvegarde intactes', async c => {
+    const avant = JSON.stringify(c.TACHES);
+    const sauvegarde = c.localStorage.getItem(CLE);
+    c.localStorage.setItem('cap_google_file_v1', JSON.stringify([c.TACHES[1].id]));
+    const queue = c.localStorage.getItem('cap_google_file_v1');
+    const sheets = fauxSheetsSync(c, [{ ...c.TACHES[0], parente: 'parent-absent-fictif' }]);
+    const sync = c.sync(sheets);
+    await sync.demarrer();
+    attendreEgal(JSON.stringify(c.TACHES), avant, 'mémoire inchangée');
+    attendreEgal(c.localStorage.getItem(CLE), sauvegarde, 'sauvegarde inchangée');
+    attendreEgal(c.localStorage.getItem('cap_google_file_v1'), queue, 'file inchangée');
+    attendreEgal(sheets.envois.length, 0, 'aucun envoi après validation refusée');
+    attendre(sync.etat().includes('interrompue'), 'erreur visible');
+  });
+
+  await testAsync('Google sync : panne réseau garde la file puis reprise sans perte', async c => {
+    const sheets = fauxSheetsSync(c, c.TACHES);
+    const sync = c.sync(sheets);
+    await sync.demarrer();
+    const envoyer = sheets.ecrireTaches;
+    sheets.ecrireTaches = async () => { throw new TypeError('Réseau FICTIF indisponible'); };
+    c.navigator.onLine = false;
+    sync.signaler([c.TACHES[0].id, c.TACHES[0].id]);
+    attendreEgal(lireFileGoogle(c), [c.TACHES[0].id], 'file dédupliquée hors connexion');
+    c.navigator.onLine = true;
+    await sync.envoyer();
+    attendreEgal(lireFileGoogle(c), [c.TACHES[0].id], 'file conservée après panne');
+    attendre(sync.etat().includes('attente'), 'panne annoncée');
+    sheets.ecrireTaches = envoyer;
+    await sync.envoyer();
+    attendreEgal(lireFileGoogle(c), [], 'file vidée après succès');
+    attendreEgal(sheets.envois.flat().map(t => t.id), [c.TACHES[0].id], 'tâche envoyée une fois avec succès');
+    attendreEgal(sync.etat(), 'synchronisé', 'reprise terminée');
+  });
+
+  await testAsync('Google sync : fetch échoue, file persistante puis retour en ligne', async c => {
+    c.localStorage.setItem('cap_google_jeton_v1', JSON.stringify({ jeton: 'jeton-fictif', expiration: Date.now() + 3600000 }));
+    c.googleConnexion = c.connexion();
+    const sheets = await sheetsExistant(c, c.TACHES.map(ligneGoogle));
+    const repondre = c.repondre;
+    const sync = c.sync(sheets);
+    await sync.demarrer();
+    c.navigator.onLine = false;
+    sync.signaler([c.TACHES[0].id]);
+    c.repondre = async () => { throw new TypeError('Fetch FICTIF interrompu'); };
+    c.navigator.onLine = true;
+    await sync.envoyer();
+    attendreEgal(lireFileGoogle(c), [c.TACHES[0].id], 'file persistante après fetch refusé');
+    const nouvelleSession = c.sync(c.sheets());
+    c.repondre = repondre;
+    c.window.dispatchEvent(new Event('online'));
+    await nouvelleSession.demarrer();
+    await sync.envoyer();
+    attendreEgal(lireFileGoogle(c), [], 'file reprise et acquittée');
+    attendre(c.requetes.some(r => r.methode === 'POST' && r.url.pathname.endsWith('/values:batchUpdate')), 'écriture Google simulée absente');
+  });
+
+  await testAsync('Google sync : verrou et nouvelle version pendant un envoi', async c => {
+    const sheets = fauxSheetsSync(c, c.TACHES);
+    const sync = c.sync(sheets);
+    await sync.demarrer();
+    c.navigator.onLine = false;
+    sync.signaler([c.TACHES[0].id]);
+    let terminer;
+    const appels = [];
+    sheets.ecrireTaches = async taches => {
+      appels.push(taches.map(tache => ({ ...tache })));
+      if (appels.length === 1) await new Promise(resolve => { terminer = resolve; });
+      return taches.map(tache => tache.id);
+    };
+    c.navigator.onLine = true;
+    const premier = sync.envoyer();
+    const second = sync.envoyer();
+    attendre(premier === second, 'deux envois concurrents');
+    await Promise.resolve();
+    c.TACHES[0].note = 'Nouvelle note FICTIF pendant l’envoi';
+    c.stockage.enregistrer(c.TACHES);
+    sync.signaler([c.TACHES[0].id]);
+    terminer();
+    await premier;
+    attendreEgal(appels.length, 2, 'la nouvelle version doit être envoyée séparément');
+    attendreEgal(appels[1][0].note, c.TACHES[0].note, 'dernière version conservée');
+    attendreEgal(lireFileGoogle(c), [], 'seule la dernière version réussie acquittée');
+  });
+
+  await testAsync('Google sync : 401 retire le jeton mais conserve la file', async c => {
+    c.localStorage.setItem('cap_google_jeton_v1', JSON.stringify({ jeton: 'jeton-fictif', expiration: Date.now() + 3600000 }));
+    c.googleConnexion = c.connexion();
+    const sheets = fauxSheetsSync(c, c.TACHES);
+    const sync = c.sync(sheets);
+    await sync.demarrer();
+    c.navigator.onLine = false;
+    sync.signaler([c.TACHES[0].id]);
+    c.navigator.onLine = true;
+    let deconnexions = 0;
+    c.window.addEventListener('cap-google-deconnecte', () => deconnexions++);
+    c.repondre = async () => reponseGoogle({}, 401);
+    sheets.ecrireTaches = async () => c.googleConnexion.appeler('https://sheets.googleapis.com/v4/spreadsheets/tableau-fictif');
+    const avant = JSON.stringify(c.TACHES);
+    await sync.envoyer();
+    attendreEgal(deconnexions, 1, 'déconnexion signalée');
+    attendre(!c.googleConnexion.connecte(), 'jeton invalide conservé');
+    attendreEgal(lireFileGoogle(c), [c.TACHES[0].id], 'file conservée après 401');
+    attendreEgal(JSON.stringify(c.TACHES), avant, 'aucune tâche modifiée');
+    await sync.envoyer();
+    attendreEgal(c.requetes.length, 1, 'pas de nouvel appel sans connexion');
+  });
+
+  await testAsync('Google Agenda : heures Paris et horaires de journées entières', async c => {
+    c.localStorage.setItem('cap_google_agenda_v1', 'agenda-fictif');
+    c.repondre = async r => {
+      if (r.methode === 'GET' && r.url.pathname === '/calendar/v3/calendars/agenda-fictif') return reponseGoogle({ id: 'agenda-fictif' });
+      if (r.methode === 'GET' && r.url.pathname === '/calendar/v3/calendars/agenda-fictif/events') {
+        attendreEgal(r.url.searchParams.get('singleEvents'), 'true', 'récurrences dépliées');
+        attendreEgal(r.url.searchParams.get('orderBy'), 'startTime', 'tri chronologique');
+        attendreEgal(r.url.searchParams.get('maxResults'), '5', 'limite');
+        return reponseGoogle({ items: [
+          { summary: 'Horaire FICTIF', start: { dateTime: '2030-01-10T09:15:00Z' } },
+          { summary: 'Journée FICTIF', start: { date: '2030-01-11' }, description: '14h30 – lieu FICTIF' },
+          { summary: 'Autre FICTIF', start: { date: '2030-01-12' }, description: '9:05 – lieu FICTIF' },
+          { summary: 'Sans heure FICTIF', start: { date: '2030-01-13' }, description: 'Toute la journée' },
+          { summary: 'Annulé FICTIF', status: 'cancelled', start: { date: '2030-01-14' } }
+        ] });
+      }
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    attendreEgal(await c.agenda().prochainsRendezVous(5), [
+      { titre: 'Horaire FICTIF', date: '2030-01-10', heure: '10:15', journee_entiere: false },
+      { titre: 'Journée FICTIF', date: '2030-01-11', heure: '14:30', journee_entiere: true },
+      { titre: 'Autre FICTIF', date: '2030-01-12', heure: '09:05', journee_entiere: true },
+      { titre: 'Sans heure FICTIF', date: '2030-01-13', heure: '', journee_entiere: true }
+    ], 'rendez-vous normalisés');
+    attendre(c.requetes.every(r => r.methode === 'GET'), 'lecture seule de l’agenda existant');
+  });
+
+  await testAsync('Google Agenda : agenda secondaire, quatre FICTIF, jamais le principal', async c => {
+    c.localStorage.setItem('cap_google_agenda_v1', 'primary');
+    c.repondre = async r => {
+      if (r.methode === 'GET' && r.url.pathname === '/calendar/v3/users/me/calendarList') {
+        return reponseGoogle({ items: [{ id: 'primary', summary: REGLAGES_GOOGLE.nom_agenda, primary: true }] });
+      }
+      if (r.methode === 'POST' && r.url.pathname === '/calendar/v3/calendars') {
+        attendreEgal(r.corps.summary, REGLAGES_GOOGLE.nom_agenda, 'nom de l’agenda secondaire');
+        return reponseGoogle({ id: 'agenda-secondaire-fictif' });
+      }
+      if (r.methode === 'POST' && r.url.pathname === '/calendar/v3/calendars/agenda-secondaire-fictif/events') return reponseGoogle({ id: 'evenement-fictif' });
+      if (r.methode === 'GET' && r.url.pathname === '/calendar/v3/calendars/agenda-secondaire-fictif') return reponseGoogle({ id: 'agenda-secondaire-fictif' });
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const agenda = c.agenda();
+    attendreEgal(await agenda.trouverOuCreer(), 'agenda-secondaire-fictif', 'agenda secondaire créé');
+    const evenements = c.requetes.filter(r => r.methode === 'POST' && r.url.pathname.endsWith('/events'));
+    attendreEgal(evenements.length, 4, 'quatre rendez-vous fictifs');
+    attendre(evenements.every(r => r.corps.summary.startsWith('FICTIF – ')), 'rendez-vous non marqué fictif');
+    attendreEgal(c.requetes.find(r => r.methode === 'POST' && r.url.pathname === '/calendar/v3/calendars').corps.timeZone,
+      'Europe/Paris', 'fuseau de l’agenda');
+    const aujourdHuiParis = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris' }).format(new Date());
+    for (const evenement of evenements) {
+      const date = (evenement.corps.start.date || evenement.corps.start.dateTime).slice(0, 10);
+      const jours = (new Date(`${date}T12:00:00Z`) - new Date(`${aujourdHuiParis}T12:00:00Z`)) / 86400000;
+      attendre(jours >= 1 && jours <= 7, 'rendez-vous hors des sept prochains jours');
+    }
+    attendreEgal(evenements.filter(r => r.corps.start.date).length, 1, 'une journée entière');
+    attendreEgal(evenements.filter(r => r.corps.start.dateTime).length, 3, 'trois rendez-vous horaires');
+    attendre(evenements.every(r => r.corps.end.date || r.corps.end.dateTime), 'fin manquante');
+    attendreEgal(await agenda.trouverOuCreer(), 'agenda-secondaire-fictif', 'agenda réutilisé');
+    attendreEgal(c.requetes.filter(r => r.methode === 'POST').length, 5, 'aucune seconde création');
+    attendre(c.requetes.every(r => !r.url.pathname.includes('/calendars/primary')), 'agenda principal touché');
+  });
+
+  await testAsync('Google Agenda : accès liste refusé et formats d’heures en description', async c => {
+    let cree = false;
+    const descriptions = ['14h30 – FICTIF', '14h – FICTIF', '14:30 – FICTIF', '9h05 – FICTIF',
+      '25h30 – FICTIF', '14h99 – FICTIF', '14h300 – FICTIF', 'FICTIF à 14h'];
+    c.repondre = async r => {
+      if (r.url.pathname.endsWith('/users/me/calendarList')) {
+        const erreur = new Error('Accès refusé FICTIF');
+        erreur.statut = 403;
+        throw erreur;
+      }
+      if (r.methode === 'POST' && r.url.pathname === '/calendar/v3/calendars') {
+        cree = true;
+        return reponseGoogle({ id: 'agenda-secondaire-fictif' });
+      }
+      if (r.methode === 'POST' && r.url.pathname.endsWith('/events')) return reponseGoogle({});
+      if (r.methode === 'GET' && r.url.pathname.endsWith('/events')) {
+        return reponseGoogle({ items: descriptions.map(description => ({
+          summary: 'Heure FICTIF', start: { date: '2030-01-11' }, description
+        })) });
+      }
+      throw new Error('Requête inattendue FICTIF');
+    };
+    const rendezVous = await c.agenda().prochainsRendezVous(8);
+    attendre(cree, '403 ne doit pas empêcher la création de l’agenda secondaire');
+    attendreEgal(rendezVous.map(rendezVous => rendezVous.heure),
+      ['14:30', '14:00', '14:30', '09:05', '', '', '', ''], 'formats exacts et heures invalides');
+  });
+
+  await testAsync('Google et service worker : aucune interception ni cache hors origine', async c => {
+    const rappels = new Map();
+    const origine = location.origin;
+    const fauxSelf = { registration: { scope: `${origine}/src/` }, location: { origin: origine },
+      addEventListener: (nom, rappel) => rappels.set(nom, rappel) };
+    let cachesOuverts = 0;
+    objetIsole(SOURCE_SERVICE_WORKER, 'undefined', { self: fauxSelf,
+      caches: { open: async () => { cachesOuverts++; throw new Error('Cache inattendu'); } }, fetch: c.fetch });
+    const intercepter = rappels.get('fetch');
+    attendre(typeof intercepter === 'function', 'gestionnaire fetch absent');
+    let interceptions = 0;
+    for (const url of ['https://www.googleapis.com/calendar/v3/calendars',
+      'https://sheets.googleapis.com/v4/spreadsheets', `${origine}/hors-precache-fictif`]) {
+      intercepter({ request: new Request(url), respondWith: () => interceptions++ });
+    }
+    intercepter({ request: new Request(`${origine}/src/app.js`, { method: 'POST', body: 'FICTIF' }), respondWith: () => interceptions++ });
+    attendreEgal(interceptions, 0, 'requêtes Google ou non précachées ignorées');
+    attendreEgal(cachesOuverts, 0, 'cache non ouvert');
+    attendreEgal(c.requetes.length, 0, 'aucun fetch du service worker');
+  });
+
   const erreursPage = window.erreursPage || [];
   const reussis = resultats.filter(r => r.ok).length;
   document.getElementById('resultat-tests').textContent = JSON.stringify({
@@ -1141,8 +1648,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v2['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v2")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v3['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v3")
 
 
 def verifier_precache_fichiers_existent():
@@ -1208,6 +1715,18 @@ def construire_page():
     source_json = json.dumps(source_stockage).replace("</", "<\\/")
     source_dictee = (APP / "dictee.js").read_text(encoding="utf-8")
     source_dictee_json = json.dumps(source_dictee).replace("</", "<\\/")
+    sources_google = {
+        "SOURCE_GOOGLE_CONNEXION": "google_connexion.js",
+        "SOURCE_GOOGLE_SHEETS": "google_sheets.js",
+        "SOURCE_GOOGLE_AGENDA": "google_agenda.js",
+        "SOURCE_SYNCHRONISATION": "synchronisation.js",
+        "SOURCE_SERVICE_WORKER": "service-worker.js",
+    }
+    scripts_sources_google = []
+    for constante, nom in sources_google.items():
+        source_google_json = json.dumps(lire_texte(nom)).replace("</", "<\\/")
+        scripts_sources_google.append(f"<script>const {constante} = {source_google_json};</script>")
+    scripts_sources_google = "\n".join(scripts_sources_google)
     source_style = (APP / "style.css").read_text(encoding="utf-8")
     corps_index = (APP / "index.html").read_text(encoding="utf-8")
     corps_body = re.search(r"<body>(.*?)</body>", corps_index, re.S).group(1)
@@ -1217,11 +1736,26 @@ def construire_page():
 <head><meta charset="utf-8"><title>Tests Cap</title><style>{source_style}</style></head>
 <body>
 <pre id="resultat-tests"></pre>
-<script>window.erreursPage = []; window.addEventListener('error', e => window.erreursPage.push(String(e.message)));</script>
+<script>
+window.erreursPage = [];
+window.addEventListener('error', e => window.erreursPage.push(String(e.message)));
+window.addEventListener('unhandledrejection', e => window.erreursPage.push(String(e.reason)));
+window.fetch = async () => {{
+  const message = 'Vrai fetch interdit dans les tests';
+  window.erreursPage.push(message);
+  throw new Error(message);
+}};
+for (const espace of [localStorage, sessionStorage]) {{
+  for (const cle of Object.keys(espace)) {{
+    if (cle.startsWith('cap_google_')) espace.removeItem(cle);
+  }}
+}}
+</script>
 {corps_body}
 {scripts}
 <script>const SOURCE_STOCKAGE = {source_json};</script>
 <script>const SOURCE_DICTEE = {source_dictee_json};</script>
+{scripts_sources_google}
 <script>{TESTS_JS}</script>
 </body>
 </html>

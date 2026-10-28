@@ -64,6 +64,47 @@ body {
   scroll-padding-bottom: calc(200px + env(safe-area-inset-bottom, 0px));
 }
 
+#etat-google {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 6px 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#connexion-google {
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #547a83;
+  border-radius: 10px;
+  background: #f6f7ec;
+}
+
+#rendez-vous {
+  margin: 0 6px 24px;
+}
+
+#titre-rendez-vous {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+#liste-rendez-vous {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+#liste-rendez-vous li {
+  padding: 10px 0;
+  border-bottom: 1px solid rgb(32 62 73 / 15%);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 #liste-taches {
   margin: 0;
   padding: 0;

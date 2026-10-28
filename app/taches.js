@@ -33,6 +33,9 @@ function enregistrerModification(modifier) {
   try {
     const resultat = modifier();
     stockage.enregistrer(TACHES);
+    const precedentes = new Map(avant.map(tache => [tache.id, JSON.stringify(tache)]));
+    const ids = TACHES.filter(tache => precedentes.get(tache.id) !== JSON.stringify(tache)).map(tache => tache.id);
+    if (typeof synchronisation !== 'undefined') synchronisation.signaler(ids);
     return resultat;
   } catch (erreur) {
     TACHES.splice(0, TACHES.length, ...avant);
