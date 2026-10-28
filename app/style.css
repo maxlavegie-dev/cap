@@ -1,6 +1,7 @@
 :root {
   color-scheme: light;
   font-family: system-ui, sans-serif;
+  font-size: 17.6px;
   color: #203e49;
   background: #4F87B5;
   font-synthesis: none;
@@ -13,7 +14,14 @@
   box-sizing: border-box;
 }
 
+html,
 body {
+  overscroll-behavior-y: none;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
   margin: 0;
   height: 100vh;
   height: 100dvh;
@@ -24,8 +32,9 @@ body {
 .ecran {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
   width: min(100%, 520px);
-  height: 100%;
   margin-inline: auto;
   padding-top: env(safe-area-inset-top, 0px);
 }
@@ -37,7 +46,7 @@ body {
 
 #date {
   display: block;
-  font-size: 15px;
+  font-size: 16.5px;
   font-weight: 500;
   line-height: 1.5;
   letter-spacing: 0.015em;
@@ -53,6 +62,64 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+#accueil {
+  flex: 1;
+  min-height: 0;
+}
+
+body.vue-complete #accueil {
+  display: none;
+}
+
+#zone-recherche {
+  flex: none;
+  min-height: 0;
+}
+
+#alerte-google {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 35vh;
+  max-height: 35dvh;
+  margin: 0 22px 16px;
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 2px solid #8a704f;
+  border-left: 6px solid #a34a36;
+  border-radius: 12px;
+  color: var(--encre);
+  background: #fff4dc;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#texte-alerte-google {
+  margin: 0 0 12px;
+  white-space: pre-wrap;
+}
+
+#redonner-acces-google {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px;
+  border: 1px solid #547a83;
+  border-radius: 8px;
+  background: #fffef7;
+  font-weight: 600;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#redonner-acces-google:hover,
+#redonner-acces-google:active,
+#synchroniser-maintenant:hover,
+#synchroniser-maintenant:active,
+#connexion-google:hover,
+#connexion-google:active {
+  background: #e2f3ee;
+}
+
 .taches {
   flex: 1;
   min-height: 0;
@@ -60,24 +127,42 @@ body {
   overscroll-behavior-y: contain;
   scrollbar-width: thin;
   scrollbar-color: #547a83 transparent;
-  padding: 0 22px calc(200px + env(safe-area-inset-bottom, 0px));
-  scroll-padding-bottom: calc(200px + env(safe-area-inset-bottom, 0px));
+  padding: 0 22px 24px;
+  scroll-padding-bottom: 24px;
 }
 
-#etat-google {
+#etat-synchro {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 12px;
   margin: 0 6px 18px;
-  font-size: 13px;
+  font-size: 14.3px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
-#connexion-google {
+#texte-etat-google,
+#dernier-envoi {
+  flex-basis: 100%;
+  min-width: 0;
+}
+
+#dernier-envoi {
+  margin: 0;
+}
+
+#dernier-envoi:empty {
+  display: none;
+}
+
+#connexion-google,
+#synchroniser-maintenant {
+  max-width: 100%;
   min-height: 48px;
   padding: 10px 14px;
+  white-space: normal;
+  overflow-wrap: anywhere;
   border: 1px solid #547a83;
   border-radius: 10px;
   background: #f6f7ec;
@@ -88,7 +173,7 @@ body {
 }
 
 #titre-rendez-vous {
-  font-size: 18px;
+  font-size: 19.8px;
   font-weight: 600;
 }
 
@@ -146,7 +231,7 @@ body {
 
 .intitule {
   display: block;
-  font-size: 17px;
+  font-size: 18.7px;
   font-weight: 500;
   line-height: 1.45;
   overflow-wrap: anywhere;
@@ -156,7 +241,7 @@ body {
   display: block;
   margin-top: 5px;
   color: var(--secondaire);
-  font-size: 12px;
+  font-size: 13.2px;
   font-weight: 450;
   line-height: 1.5;
 }
@@ -168,8 +253,8 @@ body {
 }
 
 .dictee {
-  position: fixed;
-  inset: auto 0 0;
+  position: relative;
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -210,7 +295,7 @@ body {
   border-radius: 12px;
   color: var(--encre);
   background: #f5f6eb;
-  font-size: 14px;
+  font-size: 15.4px;
   line-height: 20px;
   text-align: center;
   opacity: 1;
@@ -316,7 +401,7 @@ button {
   border-radius: 50%;
   background: #f6f7ec;
   box-shadow: 0 4px 18px rgb(24 59 84 / 15%);
-  font-size: 32px;
+  font-size: 35.2px;
   pointer-events: auto;
 }
 
@@ -345,7 +430,7 @@ button {
 
 .categorie h2 {
   margin: 0 6px 16px;
-  font-size: 21px;
+  font-size: 23.1px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
@@ -358,14 +443,14 @@ button {
   margin: 18px 6px 0;
   padding-bottom: 8px;
   border-bottom: 1px solid rgb(32 62 73 / 25%);
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 
 .pourcentage {
   flex: none;
-  font-size: 12px;
+  font-size: 13.2px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -393,7 +478,7 @@ button {
 }
 
 .etape .intitule {
-  font-size: 15px;
+  font-size: 16.5px;
 }
 
 .details-tache,
@@ -401,7 +486,7 @@ button {
   display: block;
   margin-top: 5px;
   color: var(--secondaire);
-  font-size: 12px;
+  font-size: 13.2px;
   line-height: 1.5;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -420,7 +505,7 @@ button {
 
 .options-tache {
   flex: none;
-  font-size: 24px;
+  font-size: 26.4px;
 }
 
 .options-tache:hover,
@@ -432,7 +517,7 @@ button {
   display: block;
   margin: 24px auto 0;
   padding: 10px 6px;
-  font-size: 14px;
+  font-size: 15.4px;
   text-decoration: underline;
   text-underline-offset: 4px;
 }
@@ -449,13 +534,31 @@ button {
   border: 0;
 }
 
+#basculer-vue:focus {
+  position: fixed;
+  inset: max(12px, env(safe-area-inset-top, 0px)) 12px auto auto;
+  z-index: 2;
+  width: auto;
+  max-width: calc(100% - 24px);
+  height: auto;
+  min-height: 48px;
+  margin: 0;
+  padding: 10px 16px;
+  overflow: visible;
+  clip-path: none;
+  white-space: normal;
+  border: 1px solid #547a83;
+  border-radius: 8px;
+  background: #fffef7;
+}
+
 #archive-taches {
   margin-top: 24px;
 }
 
 #titre-archive {
   margin: 0 6px 20px;
-  font-size: 22px;
+  font-size: 24.2px;
 }
 
 .etat-vide,
@@ -470,7 +573,7 @@ button {
   border-radius: 8px;
   background: rgb(255 255 255 / 35%);
   padding: 8px;
-  font-size: 13px;
+  font-size: 14.3px;
 }
 
 .texte-archive {
@@ -499,7 +602,7 @@ dialog::backdrop {
 
 dialog h2 {
   margin: 0 0 16px;
-  font-size: 22px;
+  font-size: 24.2px;
 }
 
 dialog p {
@@ -522,13 +625,13 @@ fieldset {
 legend {
   margin-bottom: 4px;
   color: var(--secondaire);
-  font-size: 13px;
+  font-size: 14.3px;
 }
 
 form label {
   display: block;
   margin: 14px 0 6px;
-  font-size: 14px;
+  font-size: 15.4px;
   font-weight: 500;
 }
 
@@ -706,7 +809,7 @@ dialog button:hover {
 
 #saisie-demande {
   min-height: 56px;
-  font-size: 16px;
+  font-size: 17.6px;
 }
 
 #formulaire-demande button[type="submit"] {
@@ -727,7 +830,7 @@ dialog button:hover {
 
 #clavier h3 {
   margin: 0 0 12px;
-  font-size: 18px;
+  font-size: 19.8px;
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -777,10 +880,6 @@ dialog button:hover {
     height: 64px;
   }
 
-  .taches {
-    padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
-    scroll-padding-bottom: calc(160px + env(safe-area-inset-bottom, 0px));
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

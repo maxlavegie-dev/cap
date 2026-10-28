@@ -520,6 +520,7 @@ TESTS_JS = r"""
   }
 
   function sessionMicro(fonction) {
+    if (document.getElementById('ecran-complet').hidden) document.getElementById('basculer-vue').click();
     const fake = fauxConstructeur();
     avecConstructeurs(fake.classe, undefined, () => {
       try {
@@ -1025,8 +1026,17 @@ TESTS_JS = r"""
     const contexte = {
       localStorage: espaceMemoire(), sessionStorage: espaceMemoire(), window: new EventTarget(),
       navigator: { onLine: true }, requetes: [], redirections: [], historiques: [],
+      intervalles: [], delais: new Map(), cadres: [], maintenant: Date.now(),
       location: { hash: '', pathname: '/tests.html', search: '?fictif=1' }
     };
+    contexte.Date = class extends Date { static now() { return contexte.maintenant; } };
+    contexte.setInterval = (rappel, delai) => contexte.intervalles.push({ rappel, delai });
+    let prochainDelai = 0;
+    contexte.setTimeout = (rappel, delai) => {
+      contexte.delais.set(++prochainDelai, { rappel, delai });
+      return prochainDelai;
+    };
+    contexte.clearTimeout = id => contexte.delais.delete(id);
     contexte.location.assign = adresse => contexte.redirections.push(new URL(adresse));
     contexte.history = { replaceState: (...argumentsAppel) => {
       contexte.historiques.push(argumentsAppel);
@@ -1049,17 +1059,17 @@ TESTS_JS = r"""
     contexte.connexion = () => objetIsole(SOURCE_GOOGLE_CONNEXION, 'googleConnexion', {
       localStorage: contexte.localStorage, sessionStorage: contexte.sessionStorage,
       window: contexte.window, location: contexte.location, history: contexte.history,
-      fetch: contexte.fetch, REGLAGES_GOOGLE, crypto
+      fetch: contexte.fetch, REGLAGES_GOOGLE, crypto, navigator: contexte.navigator, Date: contexte.Date
     });
     contexte.sheets = () => objetIsole(SOURCE_GOOGLE_SHEETS, 'googleSheets', {
       localStorage: contexte.localStorage, googleConnexion: contexte.googleConnexion,
       REGLAGES_GOOGLE, TACHES: contexte.TACHES, stockage: contexte.stockage,
-      ETAPES_PAR_DEFAUT, PHRASES_CLAVIER
+      ETAPES_PAR_DEFAUT, PHRASES_CLAVIER, window: contexte.window
     });
     contexte.sync = googleSheets => objetIsole(SOURCE_SYNCHRONISATION, 'synchronisation', {
       localStorage: contexte.localStorage, window: contexte.window, navigator: contexte.navigator,
       googleConnexion: contexte.googleConnexion, googleSheets, TACHES: contexte.TACHES,
-      stockage: contexte.stockage
+      stockage: contexte.stockage, setInterval: contexte.setInterval, Date: contexte.Date
     });
     contexte.agenda = () => objetIsole(SOURCE_GOOGLE_AGENDA, 'googleAgenda', {
       localStorage: contexte.localStorage, googleConnexion: contexte.googleConnexion, REGLAGES_GOOGLE
@@ -1078,10 +1088,11 @@ TESTS_JS = r"""
   }
 
   async function testAsync(nom, fonction) {
+    let contexte;
     try {
       nettoyerGoogle();
       reinitialiser();
-      const contexte = contexteGoogle();
+      contexte = contexteGoogle();
       await fonction(contexte);
       for (const requete of contexte.requetes) {
         attendre(['GET', 'POST'].includes(requete.methode), 'opération destructive interdite');
@@ -1093,6 +1104,7 @@ TESTS_JS = r"""
     } catch (erreur) {
       resultats.push({ nom, ok: false, erreur: String(erreur.message || erreur) });
     } finally {
+      for (const cadre of contexte?.cadres || []) cadre.remove();
       nettoyerGoogle();
     }
   }
@@ -1507,6 +1519,426 @@ TESTS_JS = r"""
     attendreEgal(c.requetes.length, 0, 'aucun fetch du service worker');
   });
 
+  async function viderMicrotaches() {
+    for (let i = 0; i < 40; i++) await Promise.resolve();
+  }
+
+  function preparerConnexion(c, duree = 3600000) {
+    c.localStorage.setItem('cap_google_deja_connecte_v1', 'oui');
+    c.localStorage.setItem('cap_google_jeton_v1', JSON.stringify({
+      jeton: 'jeton-fictif', expiration: c.maintenant + duree
+    }));
+    c.googleConnexion = c.connexion();
+  }
+
+  function interfaceIsolee(c, { largeur = 1024, hauteur = 768, avant = () => {} } = {}) {
+    const cadre = document.createElement('iframe');
+    cadre.style.cssText = `position:fixed;left:0;top:0;width:${largeur}px;height:${hauteur}px;border:0;`;
+    document.body.append(cadre);
+    c.cadres.push(cadre);
+    const doc = cadre.contentDocument;
+    const modele = new DOMParser().parseFromString(SOURCE_HTML, 'text/html');
+    modele.querySelectorAll('script').forEach(script => script.remove());
+    doc.documentElement.lang = 'fr';
+    doc.body.replaceChildren(...Array.from(modele.body.childNodes, noeud => doc.importNode(noeud, true)));
+    const style = doc.createElement('style');
+    style.textContent = SOURCE_STYLE;
+    doc.head.append(style);
+    const vibrations = [];
+    c.navigator.vibrate = duree => { vibrations.push(duree); return true; };
+    let cache = false;
+    Object.defineProperty(doc, 'hidden', { configurable: true, get: () => cache });
+    const dicteeSimulee = { disponible: () => false, enCours: () => false };
+    const ui = {
+      doc, cadre, vibrations, dictee: dicteeSimulee,
+      parId: id => doc.getElementById(id),
+      visibilite(masque) {
+        cache = masque;
+        doc.dispatchEvent(new Event('visibilitychange'));
+      },
+      actualiser: () => c.window.dispatchEvent(new Event('cap-google-etat'))
+    };
+    avant(ui);
+    objetIsole(SOURCE_APP, 'undefined', {
+      document: doc, window: c.window, navigator: c.navigator, Date: c.Date,
+      setInterval: c.setInterval, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout,
+      googleConnexion: c.googleConnexion, synchronisation: c.synchronisation,
+      googleAgenda: { prochainsRendezVous: async () => [] },
+      TACHES: c.TACHES, INFO_CHARGEMENT: '', ETAPES_PAR_DEFAUT,
+      avancementTache: () => ({ faites: 0, total: 0 }), avancementSousCategorie: () => 0,
+      joursRestants, dateDuJour, ajouterEtape, abandonner, remettre, cocher,
+      creerAvecEtapesParDefaut, creerTache, traiterDemande, composerTexte,
+      preferencesClavier, PHRASES_CLAVIER, dictee: dicteeSimulee
+    });
+    return ui;
+  }
+
+  function preparerInterface(c, options) {
+    c.googleConnexion = c.connexion();
+    c.synchronisation = c.sync(fauxSheetsSync(c, c.TACHES));
+    return interfaceIsolee(c, options);
+  }
+
+  function glisser(ui, cible, x, y, finX, finY) {
+    for (const [type, touches, changedTouches] of [
+      ['touchstart', [{ clientX: x, clientY: y }], []],
+      ['touchend', [], [{ clientX: finX, clientY: finY }]]
+    ]) {
+      const evenement = new Event(type, { bubbles: true });
+      Object.defineProperties(evenement, { touches: { value: touches }, changedTouches: { value: changedTouches } });
+      cible.dispatchEvent(evenement);
+    }
+  }
+
+  for (const code of ['interaction_required', 'login_required', 'consent_required', 'account_selection_required']) {
+    await testAsync(`Google silencieux : ${code} demande un geste et affiche l’alerte`, async c => {
+      c.localStorage.setItem('cap_google_deja_connecte_v1', 'oui');
+      const connexion = c.connexion();
+      attendre(connexion.tenterSilencieux(true), 'tentative silencieuse absente');
+      const etat = c.redirections[0].searchParams.get('state');
+      attendreEgal(c.localStorage.getItem('cap_google_etat_silencieux_v1'), etat, 'marqueur lié au state');
+      c.location.hash = `#error=${code}&state=${etat}`;
+      const ui = preparerInterface(c);
+      attendre(c.googleConnexion.besoinGeste(), 'accord non demandé');
+      attendreEgal(c.localStorage.getItem('cap_google_besoin_geste_v1'), 'oui', 'geste persistant');
+      attendre(!ui.parId('alerte-google').hidden, 'alerte cachée');
+      attendre(ui.parId('texte-alerte-google').textContent.includes('Google demande ton accord'), 'message d’accord absent');
+      attendreEgal(c.localStorage.getItem('cap_google_etat_silencieux_v1'), null, 'marqueur consommé');
+      attendreEgal(c.redirections.length, 1, 'aucune boucle silencieuse');
+      c.maintenant += 700000;
+      attendre(!c.googleConnexion.tenterSilencieux(true), 'nouvelle tentative malgré le geste requis');
+      const recharge = c.connexion();
+      attendre(recharge.besoinGeste(), 'geste perdu au rechargement');
+    });
+  }
+
+  await testAsync('Google silencieux : access_denied reste un refus sans boucle', async c => {
+    c.localStorage.setItem('cap_google_deja_connecte_v1', 'oui');
+    c.connexion().seConnecter({ silencieux: true });
+    const etat = c.redirections[0].searchParams.get('state');
+    c.location.hash = `#error=access_denied&state=${etat}`;
+    const ui = preparerInterface(c);
+    attendre(!c.googleConnexion.connecte(), 'refus accepté');
+    attendre(!c.googleConnexion.besoinGeste(), 'refus confondu avec interaction requise');
+    attendre(c.googleConnexion.message().includes('pas été autorisée'), 'message de refus absent');
+    attendre(!ui.parId('alerte-google').hidden, 'refus non affiché');
+    attendre(!c.googleConnexion.tenterSilencieux(true), 'boucle après refus');
+    attendreEgal(c.localStorage.getItem('cap_google_jeton_v1'), null, 'jeton après refus');
+  });
+
+  await testAsync('Google silencieux : marqueur seul et mauvais state ne contournent pas la sécurité', async c => {
+    c.localStorage.setItem('cap_google_etat_v1', 'attendu-fictif');
+    c.localStorage.setItem('cap_google_etat_silencieux_v1', 'intrus-fictif');
+    c.location.hash = '#error=interaction_required&state=intrus-fictif';
+    const ui = preparerInterface(c);
+    attendre(c.googleConnexion.message().includes('sécurité'), 'mauvais state accepté');
+    attendre(!c.googleConnexion.besoinGeste(), 'erreur de sécurité transformée en demande d’accord');
+    attendre(!c.googleConnexion.connecte(), 'connexion acceptée');
+    attendre(!ui.parId('alerte-google').hidden, 'erreur non affichée');
+    attendreEgal(c.location.hash, '', 'fragment nettoyé');
+    attendreEgal(c.redirections.length, 0, 'aucune redirection après erreur');
+  });
+
+  await testAsync('Google silencieux : erreur interactive non liée au marqueur reste un refus', async c => {
+    c.localStorage.setItem('cap_google_etat_v1', 'attendu-fictif');
+    c.localStorage.setItem('cap_google_etat_silencieux_v1', 'autre-fictif');
+    c.location.hash = '#error=consent_required&state=attendu-fictif';
+    const connexion = c.connexion();
+    attendre(!connexion.besoinGeste(), 'marqueur sans rapport accepté');
+    attendre(connexion.message().includes('pas été autorisée'), 'refus absent');
+  });
+
+  await testAsync('Google silencieux : throttle dix minutes, prompt none et horodatage', async c => {
+    c.localStorage.setItem('cap_google_deja_connecte_v1', 'oui');
+    const connexion = c.connexion();
+    attendre(connexion.tenterSilencieux(true), 'première tentative absente');
+    attendreEgal(c.redirections[0].searchParams.get('prompt'), 'none', 'prompt silencieux');
+    attendreEgal(Number(c.localStorage.getItem('cap_google_silencieux_v1')), c.maintenant, 'date de tentative');
+    attendre(!connexion.tenterSilencieux(true), 'tentative immédiate répétée');
+    c.maintenant += 600000;
+    attendre(!connexion.tenterSilencieux(true), 'tentative à dix minutes exactement');
+    c.maintenant++;
+    attendre(connexion.tenterSilencieux(true), 'pas de reprise après dix minutes');
+    attendreEgal(c.redirections.length, 2, 'nombre de redirections');
+    attendre(c.redirections[0].searchParams.get('state') !== c.redirections[1].searchParams.get('state'), 'state réutilisé');
+  });
+
+  for (const cas of ['jamais connecté', 'hors ligne', 'jeton supérieur à cinq minutes', 'conditions refusées']) {
+    await testAsync(`Google silencieux : aucune tentative si ${cas}`, async c => {
+      if (cas !== 'jamais connecté') c.localStorage.setItem('cap_google_deja_connecte_v1', 'oui');
+      if (cas === 'hors ligne') c.navigator.onLine = false;
+      if (cas === 'jeton supérieur à cinq minutes') preparerConnexion(c, 300001);
+      const connexion = c.connexion();
+      attendre(!connexion.tenterSilencieux(cas !== 'conditions refusées'), 'tentative indésirable');
+      attendreEgal(c.redirections.length, 0, 'redirection indésirable');
+      attendreEgal(c.localStorage.getItem('cap_google_silencieux_v1'), null, 'throttle consommé sans tentative');
+    });
+  }
+
+  for (const cas of ['dialogue', 'dictée', 'texte', 'page cachée']) {
+    await testAsync(`Interface Google : aucune reconnexion silencieuse pendant ${cas}`, async c => {
+      c.localStorage.setItem('cap_google_deja_connecte_v1', 'oui');
+      const ui = preparerInterface(c, { avant(ui) {
+        if (cas === 'dialogue') ui.parId('clavier').showModal();
+        if (cas === 'dictée') ui.dictee.enCours = () => true;
+        if (cas === 'texte') ui.parId('saisie-demande').value = 'Demande FICTIF en cours';
+        if (cas === 'page cachée') ui.visibilite(true);
+      } });
+      attendreEgal(c.redirections.length, 0, 'redirection au démarrage');
+      if (cas !== 'page cachée') ui.visibilite(false);
+      attendreEgal(c.redirections.length, 0, 'redirection au retour visible');
+      if (cas === 'dialogue') ui.parId('clavier').close();
+      if (cas === 'dictée') ui.dictee.enCours = () => false;
+      if (cas === 'texte') ui.parId('saisie-demande').value = '';
+      ui.visibilite(false);
+      attendreEgal(c.redirections.length, 1, 'reprise une fois l’interface libre');
+      attendreEgal(c.redirections[0].searchParams.get('prompt'), 'none', 'reprise silencieuse');
+    });
+  }
+
+  await testAsync('Interface Google : expiration, nombre en attente et une seule vibration', async c => {
+    preparerConnexion(c, 120000);
+    c.localStorage.setItem('cap_google_silencieux_v1', String(c.maintenant));
+    const sheets = fauxSheetsSync(c, c.TACHES);
+    c.synchronisation = c.sync(sheets);
+    const ui = interfaceIsolee(c);
+    await viderMicrotaches();
+    attendre(ui.parId('alerte-google').hidden, 'alerte avant expiration');
+    c.navigator.onLine = false;
+    c.synchronisation.signaler(c.TACHES.slice(0, 2).map(t => t.id));
+    const expiration = c.googleConnexion.expiration();
+    attendreEgal(expiration, c.maintenant + 120000, 'expiration exposée');
+    const minuterie = Array.from(c.delais.values()).find(delai => delai.delai === 60001);
+    attendre(minuterie, 'minuteur d’expiration absent');
+    c.maintenant = expiration - 59999;
+    minuterie.rappel();
+    attendre(!ui.parId('alerte-google').hidden, 'alerte après expiration');
+    attendre(ui.parId('texte-alerte-google').textContent.includes('2 tâches attendent'), 'mauvais nombre dans l’alerte');
+    attendre(ui.parId('texte-etat-google').textContent.includes('2 en attente'), 'nombre hors ligne absent');
+    ui.actualiser();
+    ui.visibilite(false);
+    attendreEgal(ui.vibrations, [200], 'vibration répétée');
+    attendreEgal(lireFileGoogle(c).length, 2, 'file perdue à l’expiration');
+    ui.parId('redonner-acces-google').click();
+    attendreEgal(c.redirections.length, 1, 'bouton sans redirection');
+    attendre(!c.redirections[0].searchParams.has('prompt'), 'bouton encore silencieux');
+    attendreEgal(c.localStorage.getItem('cap_google_etat_silencieux_v1'), null, 'marqueur silencieux après clic');
+  });
+
+  await testAsync('Interface Google : retour OAuth valide démarre et envoie automatiquement la file', async c => {
+    c.localStorage.setItem('cap_google_etat_v1', 'retour-fictif');
+    c.localStorage.setItem('cap_google_etat_silencieux_v1', 'retour-fictif');
+    c.localStorage.setItem('cap_google_besoin_geste_v1', 'oui');
+    c.localStorage.setItem('cap_google_file_v1', JSON.stringify([c.TACHES[0].id]));
+    c.location.hash = '#access_token=jeton-fictif&expires_in=3600&token_type=Bearer&state=retour-fictif';
+    c.googleConnexion = c.connexion();
+    const sheets = fauxSheetsSync(c, c.TACHES);
+    c.synchronisation = c.sync(sheets);
+    const ui = interfaceIsolee(c);
+    attendre(ui.parId('synchroniser-maintenant').disabled, 'bouton actif pendant le démarrage');
+    await viderMicrotaches();
+    attendreEgal(sheets.envois.flat().map(t => t.id), [c.TACHES[0].id], 'file non envoyée par le démarrage de l’app');
+    attendreEgal(lireFileGoogle(c), [], 'file non acquittée');
+    attendre(!c.googleConnexion.besoinGeste(), 'geste non réinitialisé');
+    attendre(ui.parId('alerte-google').hidden, 'alerte après retour valide');
+    attendreEgal(c.redirections.length, 0, 'redirection supplémentaire');
+    attendreEgal(c.localStorage.getItem('cap_google_etat_silencieux_v1'), null, 'marqueur non consommé');
+  });
+
+  await testAsync('Interface Google : 403 retire le jeton, affiche l’alerte et garde la file', async c => {
+    preparerConnexion(c);
+    const sheets = fauxSheetsSync(c, c.TACHES);
+    c.synchronisation = c.sync(sheets);
+    const ui = interfaceIsolee(c);
+    await viderMicrotaches();
+    c.navigator.onLine = false;
+    c.synchronisation.signaler([c.TACHES[0].id, c.TACHES[1].id]);
+    c.navigator.onLine = true;
+    c.repondre = async () => reponseGoogle({}, 403);
+    sheets.ecrireTaches = async () => c.googleConnexion.appeler('https://sheets.googleapis.com/v4/spreadsheets/tableau-fictif');
+    let evenements = 0;
+    c.window.addEventListener('cap-google-deconnecte', () => evenements++);
+    ui.parId('basculer-vue').click();
+    ui.parId('synchroniser-maintenant').click();
+    await viderMicrotaches();
+    attendreEgal(evenements, 1, 'événement de déconnexion absent');
+    attendreEgal(c.localStorage.getItem('cap_google_jeton_v1'), null, 'jeton non retiré');
+    attendreEgal(lireFileGoogle(c), c.TACHES.slice(0, 2).map(t => t.id), 'file modifiée après 403');
+    attendre(!ui.parId('alerte-google').hidden, 'alerte absente');
+    attendre(ui.parId('texte-alerte-google').textContent.includes('403'), 'raison 403 absente');
+    attendre(ui.parId('texte-alerte-google').textContent.includes('2 tâches attendent'), 'nombre incorrect');
+    attendre(!c.synchronisation.informations().pret, 'sync encore prête après déconnexion');
+    attendreEgal(c.localStorage.getItem('cap_google_dernier_envoi_v1'), null, 'succès inventé après 403');
+    attendreEgal(ui.vibrations, [200], 'vibration de déconnexion');
+  });
+
+  await testAsync('Interface Google : synchronisation manuelle, verrou, heure du dernier succès', async c => {
+    preparerConnexion(c);
+    const sheets = fauxSheetsSync(c, c.TACHES);
+    c.synchronisation = c.sync(sheets);
+    const ui = interfaceIsolee(c);
+    await viderMicrotaches();
+    attendreEgal(c.synchronisation.informations(), {
+      nombre: 0, pret: true, enCours: false, dernierEnvoi: 0, erreur: '', illisibles: 0
+    }, 'informations au repos');
+    c.navigator.onLine = false;
+    c.synchronisation.signaler([c.TACHES[0].id]);
+    c.navigator.onLine = true;
+    let terminer;
+    sheets.ecrireTaches = taches => new Promise(resolve => {
+      terminer = () => resolve(taches.map(t => t.id));
+    });
+    ui.parId('basculer-vue').click();
+    const bouton = ui.parId('synchroniser-maintenant');
+    bouton.click();
+    attendre(c.synchronisation.informations().enCours, 'verrou absent');
+    attendre(bouton.disabled && bouton.textContent === 'Envoi…', 'bouton non désactivé');
+    await viderMicrotaches();
+    attendre(typeof terminer === 'function', 'envoi non lancé');
+    attendreEgal(c.localStorage.getItem('cap_google_dernier_envoi_v1'), null, 'succès avant réponse');
+    c.maintenant += 45000;
+    terminer();
+    await viderMicrotaches();
+    attendreEgal(Number(c.localStorage.getItem('cap_google_dernier_envoi_v1')), c.maintenant, 'heure de succès non sauvegardée');
+    attendreEgal(c.synchronisation.informations().dernierEnvoi, c.maintenant, 'heure non exposée');
+    const heure = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(c.maintenant));
+    attendreEgal(ui.parId('dernier-envoi').textContent, `Dernier envoi réussi : ${heure}`, 'heure affichée');
+    attendre(!bouton.disabled, 'bouton bloqué après succès');
+    attendreEgal(ui.parId('texte-etat-google').textContent, 'Tout est envoyé', 'état final');
+  });
+
+  await testAsync('Google sync : reprise périodique à soixante secondes, sans réseau hors ligne', async c => {
+    preparerConnexion(c);
+    const sheets = fauxSheetsSync(c, c.TACHES);
+    const sync = c.sync(sheets);
+    await sync.demarrer();
+    c.navigator.onLine = false;
+    sync.signaler([c.TACHES[0].id]);
+    const rappels = c.intervalles.filter(intervalle => intervalle.delai === 60000);
+    attendreEgal(rappels.length, 1, 'intervalle de reprise');
+    rappels[0].rappel();
+    await viderMicrotaches();
+    attendreEgal(sheets.envois.length, 0, 'envoi hors ligne');
+    c.navigator.onLine = true;
+    rappels[0].rappel();
+    await viderMicrotaches();
+    attendreEgal(sheets.envois.flat().map(t => t.id), [c.TACHES[0].id], 'reprise périodique absente');
+    attendreEgal(lireFileGoogle(c), [], 'file non acquittée');
+  });
+
+  await testAsync('Interface Google : reprise de la file au retour visible seulement', async c => {
+    preparerConnexion(c);
+    const sheets = fauxSheetsSync(c, c.TACHES);
+    c.synchronisation = c.sync(sheets);
+    const ui = interfaceIsolee(c);
+    await viderMicrotaches();
+    c.navigator.onLine = false;
+    c.synchronisation.signaler([c.TACHES[0].id]);
+    c.navigator.onLine = true;
+    ui.visibilite(true);
+    await viderMicrotaches();
+    attendreEgal(sheets.envois.length, 0, 'reprise lors du masquage');
+    ui.visibilite(false);
+    await viderMicrotaches();
+    attendreEgal(sheets.envois.flat().map(t => t.id), [c.TACHES[0].id], 'reprise au retour visible absente');
+    attendreEgal(lireFileGoogle(c), [], 'file non acquittée');
+  });
+
+  await testAsync('Interface Google : première connexion, alerte vide et aucun renouvellement par minuteur', async c => {
+    const ui = preparerInterface(c);
+    attendre(ui.parId('alerte-google').hidden, 'alerte avant toute connexion');
+    attendre(!ui.parId('connexion-google').hidden, 'première connexion indisponible');
+    c.googleConnexion.deconnecter();
+    ui.actualiser();
+    attendre(!ui.parId('alerte-google').hidden, 'alerte sans jeton absente');
+    attendre(ui.parId('texte-alerte-google').textContent.includes('Rien n’est perdu.'), 'message pour file vide absent');
+    attendre(ui.parId('connexion-google').hidden, 'première connexion encore affichée');
+    attendre(ui.parId('synchroniser-maintenant').hidden, 'envoi proposé sans accès');
+    const surveillance = c.intervalles.find(intervalle => intervalle.delai === 30000);
+    attendre(surveillance, 'surveillance toutes les trente secondes absente');
+    c.maintenant += 700000;
+    surveillance.rappel();
+    surveillance.rappel();
+    attendreEgal(c.redirections.length, 0, 'renouvellement déclenché par un minuteur');
+    attendreEgal(ui.vibrations, [200], 'vibration répétée avec une file vide');
+    attendre(c.connexion().reconnexion(), 'connexion passée oubliée au rechargement');
+  });
+
+  await testAsync('Accueil : liste cachée et inerte, horloge et commandes visibles', async c => {
+    const ui = preparerInterface(c);
+    attendre(ui.parId('ecran-complet').hidden && ui.parId('ecran-complet').inert, 'liste initialement accessible');
+    attendre(!ui.parId('accueil').hidden, 'accueil caché');
+    attendreEgal(ui.parId('basculer-vue').getAttribute('aria-expanded'), 'false', 'état du bouton');
+    for (const cible of [ui.doc.querySelector('header.horloge'), ui.doc.querySelector('footer.dictee'), ui.parId('microphone')]) {
+      const rectangle = cible.getBoundingClientRect();
+      attendre(rectangle.width > 0 && rectangle.height > 0, 'horloge ou commandes invisibles');
+      attendre(rectangle.top >= 0 && rectangle.bottom <= ui.cadre.clientHeight + 1, 'horloge ou commandes hors écran');
+    }
+    attendre(ui.parId('heure').textContent.length > 0 && ui.parId('date').textContent.length > 0, 'horloge vide');
+    ui.parId('basculer-vue').click();
+    attendre(!ui.parId('ecran-complet').hidden && !ui.parId('ecran-complet').inert, 'vue complète non ouverte');
+    attendre(ui.parId('accueil').hidden, 'accueil encore visible');
+    attendreEgal(ui.parId('basculer-vue').getAttribute('aria-expanded'), 'true', 'état ouvert');
+    ui.parId('basculer-vue').click();
+    attendre(ui.parId('ecran-complet').hidden, 'retour accueil impossible');
+  });
+
+  await testAsync('Accueil : gestes haut, bas en haut et liste déjà défilée', async c => {
+    const ui = preparerInterface(c);
+    const ecran = ui.parId('ecran-complet');
+    glisser(ui, ui.parId('accueil'), 100, 300, 100, 180);
+    attendre(!ecran.hidden, 'geste haut sans ouverture');
+    attendre(ecran.scrollHeight > ecran.clientHeight, 'liste non défilable pour le test');
+    ecran.scrollTop = 80;
+    glisser(ui, ecran, 100, 180, 100, 300);
+    attendre(!ecran.hidden, 'geste bas ferme une liste défilée');
+    ecran.scrollTop = 0;
+    glisser(ui, ecran, 100, 180, 100, 300);
+    attendre(ecran.hidden, 'geste bas en haut sans retour accueil');
+  });
+
+  await testAsync('Accueil : gestes horizontaux, courts et sur boutons ignorés', async c => {
+    const ui = preparerInterface(c);
+    const ecran = ui.parId('ecran-complet');
+    glisser(ui, ui.parId('accueil'), 100, 300, 250, 220);
+    attendre(ecran.hidden, 'geste horizontal ouvre la liste');
+    glisser(ui, ui.parId('accueil'), 100, 300, 100, 250);
+    attendre(ecran.hidden, 'geste trop court ouvre la liste');
+    glisser(ui, ui.parId('basculer-vue'), 100, 300, 100, 180);
+    attendre(ecran.hidden, 'geste sur bouton ouvre la liste');
+    ui.parId('clavier').showModal();
+    glisser(ui, ui.parId('accueil'), 100, 300, 100, 180);
+    attendre(ecran.hidden, 'geste pendant dialogue ouvre la liste');
+    ui.parId('clavier').close();
+  });
+
+  for (const [largeur, hauteur, tailleHeure] of [[1024, 768, 80], [360, 560, 58]]) {
+    await testAsync(`Présentation : tailles calculées et aucun débordement à ${largeur} × ${hauteur}`, async c => {
+      const ui = preparerInterface(c, { largeur, hauteur });
+      const style = noeud => ui.cadre.contentWindow.getComputedStyle(noeud);
+      attendreEgal(parseFloat(style(ui.parId('heure')).fontSize), tailleHeure, 'taille de l’horloge modifiée');
+      ui.parId('basculer-vue').click();
+      const intitule = ui.doc.querySelector('#liste-taches .intitule');
+      attendreEgal(parseFloat(style(intitule).fontSize), 18.7, 'taille de la liste');
+      attendre(parseFloat(style(intitule).fontSize) > 17, 'liste non agrandie');
+      attendre(ui.doc.documentElement.scrollWidth <= largeur, 'débordement horizontal du document');
+      attendre(ui.doc.body.scrollWidth <= largeur, 'débordement horizontal du corps');
+      const liste = ui.parId('ecran-complet');
+      attendre(liste.scrollWidth <= liste.clientWidth, 'débordement horizontal de la liste');
+      c.localStorage.setItem('cap_google_deja_connecte_v1', 'oui');
+      c.googleConnexion.deconnecter();
+      c.localStorage.setItem('cap_google_file_v1', JSON.stringify(c.TACHES.map(t => t.id)));
+      ui.actualiser();
+      const alerte = ui.parId('alerte-google');
+      attendre(!alerte.hidden, 'alerte non affichée pour contrôle de largeur');
+      attendre(alerte.scrollWidth <= alerte.clientWidth, 'débordement de l’alerte');
+      for (const cible of [alerte, ui.doc.querySelector('footer.dictee')]) {
+        const rectangle = cible.getBoundingClientRect();
+        attendre(rectangle.left >= 0 && rectangle.right <= largeur + 1, 'élément hors largeur disponible');
+      }
+    });
+  }
+
   const erreursPage = window.erreursPage || [];
   const reussis = resultats.filter(r => r.ok).length;
   document.getElementById('resultat-tests').textContent = JSON.stringify({
@@ -1648,8 +2080,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v3['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v3")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v4['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v4")
 
 
 def verifier_precache_fichiers_existent():
@@ -1721,6 +2153,9 @@ def construire_page():
         "SOURCE_GOOGLE_AGENDA": "google_agenda.js",
         "SOURCE_SYNCHRONISATION": "synchronisation.js",
         "SOURCE_SERVICE_WORKER": "service-worker.js",
+        "SOURCE_APP": "app.js",
+        "SOURCE_HTML": "index.html",
+        "SOURCE_STYLE": "style.css",
     }
     scripts_sources_google = []
     for constante, nom in sources_google.items():

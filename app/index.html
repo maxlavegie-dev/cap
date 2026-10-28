@@ -16,9 +16,18 @@
       <time id="date"></time>
       <time id="heure"></time>
     </header>
-    <main class="taches" aria-label="Tes tâches" tabindex="0">
-      <div id="etat-google">
+    <div id="alerte-google" role="alert" hidden>
+      <p id="texte-alerte-google"></p>
+      <button id="redonner-acces-google" type="button">Redonner l’accès à Google</button>
+    </div>
+    <div id="zone-recherche"></div>
+    <button id="basculer-vue" class="visuellement-cache" type="button" aria-expanded="false" aria-controls="ecran-complet">Afficher tout</button>
+    <div id="accueil"></div>
+    <main id="ecran-complet" class="taches" aria-label="Tes tâches" tabindex="0" hidden inert>
+      <div id="etat-synchro">
         <span id="texte-etat-google" role="status">non connecté</span>
+        <p id="dernier-envoi"></p>
+        <button id="synchroniser-maintenant" type="button">Synchroniser maintenant</button>
         <button id="connexion-google" type="button">Se connecter à Google</button>
       </div>
       <section id="rendez-vous" aria-labelledby="titre-rendez-vous" hidden>

@@ -17,9 +17,14 @@ const googleSheets = (() => {
   }
   async function lire(url) { return (await googleConnexion.appeler(url)).json(); }
   async function poster(url, contenu) {
-    return (await googleConnexion.appeler(url, {
+    const resultat = await (await googleConnexion.appeler(url, {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(contenu)
     })).json();
+    if (url.includes('/values')) {
+      try { localStorage.setItem('cap_google_dernier_envoi_v1', String(Date.now())); } catch (erreur) {}
+      window.dispatchEvent(new Event('cap-google-etat'));
+    }
+    return resultat;
   }
   function valeurs(tache) { return champs.map(champ => tache[champ]); }
 

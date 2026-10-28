@@ -69,7 +69,7 @@
       cible = Array.from(document.querySelectorAll('#liste-taches [data-focus], #liste-archive [data-focus]'))
         .find(noeud => noeud.dataset.focus === repere.cle);
     }
-    if (!cible?.isConnected) cible = archiveElement;
+    if (!cible?.isConnected || cible.closest('[hidden], [inert]')) cible = parId('basculer-vue');
     cible.focus({ preventScroll: true });
   }
 
@@ -609,15 +609,94 @@
     weekday: 'short', day: 'numeric', month: 'short'
   });
 
+  let minuteurExpiration;
+
   function afficherEtatGoogle() {
     const connecte = googleConnexion.connecte();
-    parId('texte-etat-google').textContent = [googleConnexion.message(), synchronisation.etat(), erreurAgenda]
+    const info = synchronisation.informations();
+    const nombre = info.nombre;
+    const resume = nombre === null ? 'Nombre de modifications en attente inconnu'
+      : !navigator.onLine ? `Hors connexion : ${nombre} en attente`
+        : nombre ? `${nombre} modifications en attente`
+          : !connecte ? 'Non connecté à Google' : !info.pret ? 'Préparation de l’envoi…' : 'Tout est envoyé';
+    parId('texte-etat-google').textContent = [resume, info.erreur, erreurAgenda,
+      info.illisibles ? `${info.illisibles} lignes du tableau sont illisibles, je n’y touche pas` : '']
       .filter(Boolean).join(' — ');
-    const bouton = parId('connexion-google');
-    bouton.hidden = connecte;
-    bouton.textContent = googleConnexion.reconnexion() ? 'Se reconnecter' : 'Se connecter à Google';
+    const dernier = parId('dernier-envoi');
+    dernier.textContent = info.dernierEnvoi
+      ? `Dernier envoi réussi : ${formatHeure.format(new Date(info.dernierEnvoi))}` : 'Aucun envoi réussi pour le moment';
+    const synchroniser = parId('synchroniser-maintenant');
+    synchroniser.hidden = !connecte;
+    synchroniser.disabled = info.enCours;
+    synchroniser.textContent = info.enCours ? 'Envoi…' : 'Synchroniser maintenant';
+    parId('connexion-google').hidden = connecte || googleConnexion.reconnexion();
+    const alerte = parId('alerte-google');
+    const visible = (googleConnexion.reconnexion() && !connecte)
+      || googleConnexion.besoinGeste() || Boolean(googleConnexion.message());
+    const apparait = alerte.hidden && visible;
+    alerte.hidden = !visible;
+    if (visible) {
+      const attente = nombre === null ? 'Les tâches sont gardées sur ton téléphone ; la file est illisible.'
+        : nombre ? `${nombre} tâches attendent : elles sont gardées sur ton téléphone.` : 'Rien n’est perdu.';
+      parId('texte-alerte-google').textContent = [googleConnexion.besoinGeste()
+        ? 'Google demande ton accord pour continuer.' : 'Google a coupé l’accès.', attente,
+      googleConnexion.besoinGeste() ? '' : googleConnexion.message()].filter(Boolean).join(' ');
+    }
+    if (apparait) {
+      try { navigator.vibrate?.(200); } catch (erreur) {}
+    }
     if (!connecte) parId('rendez-vous').hidden = true;
+    clearTimeout(minuteurExpiration);
+    const delai = googleConnexion.expiration() - Date.now() - 60000;
+    if (connecte && delai > 0) minuteurExpiration = setTimeout(afficherEtatGoogle, Math.min(delai + 1, 2147483647));
   }
+
+  function tenterReconnexionSilencieuse() {
+    const texteSaisi = Array.from(document.querySelectorAll('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]), textarea, [contenteditable="true"]'))
+      .some(champ => (champ.value ?? champ.textContent).trim());
+    const conditionsOk = !document.hidden && !document.querySelector('dialog[open]')
+      && !dictee.enCours() && !texteSaisi;
+    try { googleConnexion.tenterSilencieux(conditionsOk); } catch (erreur) { signalerErreur(erreur); }
+  }
+
+  const ecranComplet = parId('ecran-complet');
+  const accueil = parId('accueil');
+  const basculerVue = parId('basculer-vue');
+
+  function changerVue(complete) {
+    document.body.classList.toggle('vue-complete', complete);
+    ecranComplet.hidden = !complete;
+    ecranComplet.inert = !complete;
+    accueil.hidden = complete;
+    accueil.inert = complete;
+    basculerVue.textContent = complete ? 'Revenir à l’accueil' : 'Afficher tout';
+    basculerVue.setAttribute('aria-expanded', String(complete));
+    if (complete) ecranComplet.focus({ preventScroll: true });
+    else parId('ajouter').focus({ preventScroll: true });
+  }
+
+  basculerVue.addEventListener('click', () => changerVue(ecranComplet.hidden));
+  let debutGlissement = null;
+  const surface = document.querySelector('.ecran');
+  surface.addEventListener('touchstart', event => {
+    debutGlissement = null;
+    if (event.touches.length !== 1 || document.querySelector('dialog[open]')
+      || event.target.closest('button, input, textarea, select, a, #alerte-google')) return;
+    const touche = event.touches[0];
+    debutGlissement = { x: touche.clientX, y: touche.clientY,
+      complete: !ecranComplet.hidden, enHaut: ecranComplet.scrollTop === 0 };
+  }, { passive: true });
+  surface.addEventListener('touchend', event => {
+    const debut = debutGlissement;
+    debutGlissement = null;
+    if (!debut || event.changedTouches.length !== 1 || event.touches.length) return;
+    const touche = event.changedTouches[0];
+    const vertical = touche.clientY - debut.y;
+    if (Math.abs(vertical) <= 60 || Math.abs(vertical) <= Math.abs(touche.clientX - debut.x)) return;
+    if (!debut.complete && vertical < 0) changerVue(true);
+    else if (debut.complete && vertical > 0 && debut.enHaut && ecranComplet.scrollTop === 0) changerVue(false);
+  }, { passive: true });
+  surface.addEventListener('touchcancel', () => { debutGlissement = null; }, { passive: true });
 
   async function afficherRendezVous() {
     if (!googleConnexion.connecte()) return;
@@ -636,14 +715,26 @@
     afficherEtatGoogle();
   }
 
-  parId('connexion-google').addEventListener('click', () => {
-    try { googleConnexion.seConnecter(); } catch (erreur) { signalerErreur(erreur); }
+  for (const id of ['connexion-google', 'redonner-acces-google']) {
+    parId(id).addEventListener('click', () => {
+      try { googleConnexion.seConnecter(); } catch (erreur) { signalerErreur(erreur); }
+    });
+  }
+  parId('synchroniser-maintenant').addEventListener('click', () => {
+    void (synchronisation.informations().pret ? synchronisation.envoyer() : synchronisation.demarrer());
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    afficherEtatGoogle();
+    tenterReconnexionSilencieuse();
+    synchronisation.reprendre();
   });
   window.addEventListener('cap-google-etat', afficherEtatGoogle);
   window.addEventListener('cap-google-deconnecte', afficherEtatGoogle);
   window.addEventListener('cap-google-fusion', afficher);
   window.addEventListener('online', () => { void afficherRendezVous(); });
   afficherEtatGoogle();
+  tenterReconnexionSilencieuse();
   if (googleConnexion.connecte()) {
     void synchronisation.demarrer().then(() => {
       afficher();

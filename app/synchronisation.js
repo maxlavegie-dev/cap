@@ -46,6 +46,9 @@ const synchronisation = (() => {
   }
 
   function acquitter(ids, copies) {
+    if (ids.length) {
+      try { localStorage.setItem('cap_google_dernier_envoi_v1', String(Date.now())); } catch (erreur) {}
+    }
     const ecrits = new Set(ids.filter(id => {
       const actuelle = TACHES.find(tache => tache.id === id);
       return actuelle && JSON.stringify(actuelle) === copies.get(id);
@@ -84,6 +87,7 @@ const synchronisation = (() => {
       envoi = null;
       publier();
     }).then(() => etat());
+    publier();
     return envoi;
   }
 
@@ -123,11 +127,29 @@ const synchronisation = (() => {
       demarrage = null;
       publier();
     }).then(() => envoyer());
+    publier();
     return demarrage;
   }
 
+  function informations() {
+    let nombre = null;
+    let erreurFile = '';
+    try { nombre = file().length; } catch (erreur) { erreurFile = erreur.message; }
+    let dernierEnvoi = 0;
+    try { dernierEnvoi = Number(localStorage.getItem('cap_google_dernier_envoi_v1')) || 0; } catch (erreur) {}
+    return { nombre, pret, enCours: Boolean(envoi || demarrage), dernierEnvoi,
+      erreur: erreurFile || erreurEtat, illisibles: nombreIllisibles };
+  }
+
+  function reprendre() {
+    if (!googleConnexion.connecte() || !navigator.onLine) return;
+    try { if (file().length) void (pret ? envoyer() : demarrer()); }
+    catch (erreur) { publier(); }
+  }
+
+  setInterval(reprendre, 60000);
   window.addEventListener('online', () => { if (pret) void envoyer(); else void demarrer(); });
   window.addEventListener('offline', publier);
   window.addEventListener('cap-google-deconnecte', () => { pret = false; publier(); });
-  return { signaler, envoyer, demarrer, etat };
+  return { signaler, envoyer, demarrer, reprendre, etat, informations };
 })();

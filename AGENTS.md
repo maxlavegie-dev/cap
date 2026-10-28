@@ -4,8 +4,9 @@ Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le
 
 ## Communication avec Max
 - Max n'est pas développeur et dicte à la voix. Lui parler en français, en le tutoyant, simplement, sans jargon. Une seule question à la fois, réponses courtes, toujours la vérité.
-- Aucune action importante sans son accord. Ne jamais lui demander d'écrire du code.
-- Pour chaque nouvelle étape : présenter d'abord le plan, puis attendre son accord avant d'agir.
+- Ne jamais lui demander d'écrire du code.
+- Règle de travail (Complément 4, 28/10/2026) : tant que tout reste fictif, avancer seul (coder, tester) sans demander. S'ARRÊTER et demander l'accord explicite de Max avant : toute nouvelle autorisation Google ou tout élargissement ; tout accès à ses vraies données (vrai Gmail, vrai agenda, vrai Drive) ; tout envoi de mail ; toute publication (push).
+- À chaque étape terminée : compte rendu court (ce qui a été fait, ce que Max doit tester). Avant chaque grosse modification : sauvegarde de l'état actuel (tag git local `sauvegarde-...`).
 - Accueillir ses ajouts en cours de route : les reformuler, puis les noter dans le journal de bord et le fichier d'explications.
 
 ## Délégation (économie de quota, environ 1300 unités LLM par jour)
@@ -31,7 +32,7 @@ Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le
 - Tests : `python app\test_cap.py`. Il lance Microsoft Edge sans fenêtre ; Node n'est pas installé.
 - Construire le DOM avec `textContent`, jamais `innerHTML` avec des données.
 - Déploiement : dépôt public `maxlavegie-dev/cap`, GitHub Pages servi depuis la racine de `main`. L'appli est en ligne sur https://maxlavegie-dev.github.io/cap/app/, et chaque `git push` sur `main` la met à jour. Le dépôt est public : `PROMPT_CAP.txt` et tout secret doivent rester dans `.gitignore`.
-- Commits : messages courts en français. Ne jamais faire de commit ni de push sans l'accord de Max : lui présenter d'abord ce qui sera publié, puis lui dire clairement quand il doit essayer sur son téléphone.
+- Commits : messages courts en français. Les commits locaux servent de sauvegarde et sont permis sur le fictif ; ne jamais faire de push sans l'accord de Max : lui présenter d'abord ce qui sera publié, puis lui dire clairement quand il doit essayer sur son téléphone.
 - Le shell cmd gère mal les guillemets : passer les messages de commit par un fichier (`git commit -F`).
 
 ## Style de code

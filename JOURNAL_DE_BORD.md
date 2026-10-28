@@ -37,7 +37,7 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 
 ### En cours
 - Semaine 2, étape 1 : autorisation Google de Cap. FAIT.
-- Semaine 2, étape 2 : connexion Google construite. Reste : accord de Max pour publier, puis essai sur son téléphone.
+- Semaine 2, étape 2 : connexion Google construite, publiée et essayée par Max le 28/10/2026 : « synchronisé », faux rendez-vous affichés, tableau créé, ajouts et coches arrivés en 2 à 3 minutes. PROBLÈME : plusieurs tâches (dont « sushis », dictée avec internet, et « Terminator », dictée en mode avion) ne sont jamais arrivées dans le tableau. Piste principale : l'autorisation Google expire au bout d'environ une heure ; ensuite Cap garde les tâches en attente sans le dire assez clairement. Plan de correction présenté à Max, en attente de son accord.
 
 ### À faire (semaine 1)
 - Jours 1 et 2 : dessiner l'icône et l'écran d'accueil. FAIT.
@@ -49,7 +49,10 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 
 ## Décisions prises
 - 28/10/2026 : plan de la semaine 2 validé par Max : liste dans un Google Sheets « Cap – FICTIF – Tâches » (accès limité aux seuls fichiers créés par Cap), agenda séparé « Cap – FICTIF » (Cap ne lit pas le vrai agenda), copie sur le téléphone et file d'attente hors connexion, aucune ligne jamais effacée. Briefing (besoin de la clé API) et Gmail repoussés à l'étape suivante.
-- 28/10/2026 : RÈGLE DE TRAVAIL de Max : pour chaque nouvelle étape, présenter d'abord le plan et attendre son accord avant d'agir.
+- 28/10/2026 : NOUVELLE RÈGLE DE TRAVAIL (Complément 4, remplace la précédente) : tant que tout est fictif, l'assistant avance seul et fait un compte rendu court à chaque étape (fait + à tester). Il s'arrête et demande l'accord de Max avant : toute autorisation Google nouvelle ou élargie, tout accès aux vraies données, tout envoi de mail, toute publication. Sauvegarde avant chaque grosse modification.
+- 28/10/2026 : plan « accueil, recherche, rendez-vous » validé par Max, avec deux choix : rappel par Google Agenda (uniquement sur l'agenda FICTIF tant que Max n'a pas donné son accord) ; zone « Dernières actions » en haut au lieu de déplacer les tâches (les tâches cochées restent dans leur catégorie).
+- 28/10/2026 : PRIORITÉ N° 1 (Complément 4) : ne plus jamais rester silencieux quand Google refuse ou que la connexion expire : alerte visible, fenêtre Google en un geste, envoi automatique des tâches en attente une fois l'autorisation revenue.
+- 28/10/2026 : ancienne règle (remplacée) : présenter le plan et attendre l'accord avant d'agir.
 - 27/10/2026 : Max valide le plan de la semaine 1 tel qu'il est écrit dans le cahier des charges.
 - 27/10/2026 : Max accepte la tenue de ce journal de bord.
 - 27/10/2026 : la semaine 1 n'utilise pas encore de clé d'intelligence artificielle. La dictée passe d'abord par la reconnaissance vocale gratuite du téléphone.
@@ -74,4 +77,6 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 ---
 
 ## Ajouts de Max en cours de route
+- 28/10/2026 : COMPLÉMENT 4 (texte complet : `PROMPT_COMPLEMENT_4.txt`) : mode conversation continue (appui long d'environ 2 s sur le micro, vibration et son doux grave à l'entrée et à la sortie, micro allumé bien visible, sortie par un appui ou seule après 3 minutes de silence, test batterie) ; conversation en arrière-plan pendant l'usage d'autres applis ; alerte quand Google refuse ou expire (priorité n° 1) ; nouvelle règle de travail ; compte rendu à chaque étape ; sauvegarde avant les grosses modifications.
+- 28/10/2026 : après l'essai Google (texte complet : `PROMPT_COMPLEMENT_ACCUEIL_RDV.txt`) : écran d'accueil épuré (jour, heure, barre de recherche, boutons du bas ; un glissement vers le haut montre l'écran complet) ; texte un peu plus gros sauf l'heure ; recherche tapée sans IA (tâches et rendez-vous, autres sources grisées) ; dernières actions avec l'heure ; fiche de rendez-vous cliquable et modifiable (adresse, téléphone « Appeler », mail « Écrire », « Itinéraire », notes, rappel affiché ET vraie notification) ; indicateur des envois en attente et bouton « Synchroniser maintenant » ; animations douces gardées pour la toute fin.
 - 28/10/2026 : CLAVIER DE PHRASES (texte complet : `PROMPT_COMPLEMENT_CLAVIER.txt`). Pour utiliser Cap sans parler : des débuts de phrases tout prêts (« Retrouve-moi... ») à compléter, une saisie libre, un interrupteur « réponse silencieuse », un historique des demandes à relancer, de gros boutons. Les phrases sont rangées dans le Drive de Max, modifiables sans code, et les plus utilisées remontent toutes seules. Plan validé par Max et construit le 28/10/2026. Reste pour plus tard : phrases dans le Drive (semaine 2), placement définitif, phrases pour les personnes fréquentes, et les deux idées à tester (mode « je ne peux pas parler », phrases selon le moment de la journée).
