@@ -23,7 +23,7 @@ Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le
 ## Verrous techniques obligatoires (à coder, pas seulement à écrire en consigne)
 - **Mails** : jamais d'envoi sans un « oui » explicite de Max.
 - **Mémoire personnelle** : Cap peut la consulter, mais rien n'en sort, même si Max le demande. Le module qui prépare les brouillons n'y a pas accès.
-- **Zéro perte** : aucune tâche n'est supprimée ni reformulée. Une tâche cochée reste en place avec sa date. En cas de doute, ne rien fermer.
+- **Zéro perte** : aucune tâche n'est supprimée ni reformulée. Une tâche cochée est gardée avec sa date (rangée dans « Terminées », décocher la remet à sa place). En cas de doute, ne rien fermer.
 - **Honnêteté** : ne jamais inventer une date, un montant, un nom ou un document. Dire « je ne suis pas sûr ».
 
 ## Code et tests

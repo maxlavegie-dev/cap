@@ -6,7 +6,7 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 
 ## Où on en est
 
-**Étape actuelle :** Lot 2 (liste de tâches) construit le 29/10/2026, pas encore publié.
+**Étape actuelle :** Lot 2 (liste de tâches) publié le 29/10/2026, à essayer sur le téléphone.
 
 ### Fait
 - 27/10/2026 : cahier des charges de Max rangé dans le projet (`PROMPT_CAP.txt`).
@@ -41,10 +41,10 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 - 29/10/2026 : LOT 1 construit (sauvegarde `sauvegarde-avant-lot1-accueil-20261029`) : l'heure disparaît de l'accueil ; la date reste en haut, centrée, un peu plus grosse ; une seule longue barre de recherche en bas, juste au-dessus des boutons, avec à gauche un petit menu qui affiche toujours le choix en cours (« Tâches ▾ ») ; les résultats arrivent pendant la frappe et s'affichent au-dessus de la barre, dans l'espace libre. Barre du haut du téléphone : Cap installée est en mode « standalone », qui garde la barre du téléphone (heure, réseau, batterie) visible ; la date est placée en dessous. 183 vérifications automatiques réussies.
 - 29/10/2026 : Lot 1 publié par Max et validé sur son téléphone, sauf le rendez-vous dicté avec rappel.
 - 29/10/2026 : DÉFAUT trouvé et corrigé : un rendez-vous dicté répondait « ajouté » mais n'allait dans aucun agenda. Cause : sans cerveau, Cap transformait toute demande en tâche « À trier » (le « Atrier » vu par Max était le message « Ajoutée dans À trier »). Correction : un nouveau fichier (`comprendre_demande.js`) reconnaît, sans IA, une demande de rendez-vous (date, heure, titre, rappels) et ouvre une fiche « Nouveau rendez-vous » préremplie ; Max vérifie, puis confirme, et le rendez-vous est créé dans l'agenda « Cap – FICTIF » seulement, avec le rappel en notification Google Agenda. Sans connexion, Cap le dit honnêtement et le note en tâche. Aucune nouvelle autorisation Google.
-- 29/10/2026 : LOT 2 construit (sauvegarde `sauvegarde-avant-lot2-20261029`) : les tâches cochées sortent de la liste et vont dans une ligne repliée « Terminées (N) » tout en bas ; un appui l'ouvre, décocher remet la tâche dans sa catégorie. Glisser une tâche vers la droite la coche, vers la gauche la reporte à demain, avec « Annuler » pendant 8 secondes. « Reporter à demain » aussi dans le menu « … », et à la voix (« Reporte ça à demain ») pour la dernière tâche ouverte. 193 vérifications automatiques réussies. Pas encore publié.
+- 29/10/2026 : LOT 2 construit (sauvegarde `sauvegarde-avant-lot2-20261029`) : les tâches cochées sortent de la liste et vont dans une ligne repliée « Terminées (N) » tout en bas ; un appui l'ouvre, décocher remet la tâche dans sa catégorie. Glisser une tâche vers la droite la coche, vers la gauche la reporte à demain, avec « Annuler » pendant 8 secondes. « Reporter à demain » aussi dans le menu « … », et à la voix (« Reporte ça à demain ») pour la dernière tâche ouverte. 193 vérifications automatiques réussies. Publié le 29/10/2026 avec l'accord de Max.
 
 ### En cours
-- Lot 2 : à publier (avec l'accord de Max) puis à essayer sur le téléphone, en particulier le rendez-vous dicté avec rappel : vérifier qu'il apparaît dans l'agenda « Cap – FICTIF » et que la notification arrive (dans l'appli Google Agenda, l'agenda « Cap – FICTIF » doit être synchronisé et ses notifications activées).
+- Lot 2 : publié, à essayer sur le téléphone, en particulier le rendez-vous dicté avec rappel : vérifier qu'il apparaît dans l'agenda « Cap – FICTIF » et que la notification arrive (dans l'appli Google Agenda, l'agenda « Cap – FICTIF » doit être synchronisé et ses notifications activées).
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)
