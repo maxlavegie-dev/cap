@@ -3,7 +3,6 @@
 
   const parId = id => document.getElementById(id);
   const dateElement = parId('date');
-  const heureElement = parId('heure');
   const listeElement = parId('liste-taches');
   const statutElement = parId('statut');
   const archiveElement = parId('basculer-archive');
@@ -91,6 +90,7 @@
   }
 
   function afficherRecherche() {
+    parId('libelle-source').textContent = sourceRecherche.selectedOptions[0]?.textContent || '';
     const texte = saisieRecherche.value.trim();
     resultatsRecherche.replaceChildren();
     resultatsRecherche.hidden = true;
@@ -709,17 +709,12 @@
   function actualiserHorloge() {
     const maintenant = new Date();
     const dateTexte = formatDate.format(maintenant).toLocaleLowerCase('fr-FR');
-    const heureTexte = formatHeure.format(maintenant);
     if (dateElement.textContent !== dateTexte) {
       dateElement.textContent = dateTexte;
       const annee = maintenant.getFullYear();
       const mois = String(maintenant.getMonth() + 1).padStart(2, '0');
       const jour = String(maintenant.getDate()).padStart(2, '0');
       dateElement.dateTime = `${annee}-${mois}-${jour}`;
-    }
-    if (heureElement.textContent !== heureTexte) {
-      heureElement.textContent = heureTexte;
-      heureElement.dateTime = heureTexte;
     }
     if (dernierJour && dernierJour !== dateTexte) {
       try {
@@ -893,6 +888,7 @@
     info.hidden = !INFO_CHARGEMENT;
     if (INFO_CHARGEMENT) annoncer(INFO_CHARGEMENT);
     afficher();
+    afficherRecherche();
   } catch (erreur) {
     signalerErreur(erreur);
   }

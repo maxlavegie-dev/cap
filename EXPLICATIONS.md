@@ -14,7 +14,7 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 
 | Fichier | Rôle |
 |---|---|
-| `index.html` | La structure de l'écran : date et heure en haut, liste au milieu, boutons + et micro en bas, petites fenêtres (menu, confirmation, ajout). |
+| `index.html` | La structure de l'écran : la date seule en haut, la barre de recherche en bas juste au-dessus des boutons + , micro et clavier, l'écran complet (liste, rendez-vous, dernières actions) qui s'ouvre d'un glissement vers le haut, et les petites fenêtres (menu, confirmation, ajout, fiche de rendez-vous). |
 | `style.css` | L'apparence : les couleurs de l'icône, la taille des textes et des boutons. |
 | `donnees_fictives.js` | Des tâches INVENTÉES pour les essais. Ce fichier sera supprimé d'un coup à la bascule. |
 | `etapes_par_defaut.js` | Les réglages des étapes créées automatiquement (ex. pour un titre d'album : réenregistrer les voix, mixer, masteriser). On peut les modifier sans toucher au reste. |
@@ -29,12 +29,21 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `phrases_clavier.js` | Les réglages des débuts de phrases du clavier. Ils iront dans le Drive en semaine 2. |
 | `preferences_clavier.js` | Retient sur le téléphone les phrases les plus utilisées, les dernières demandes et l'interrupteur « Réponse silencieuse ». |
 | `demandes.js` | La porte d'entrée unique de toutes les demandes (micro et clavier). C'est là qu'on branchera l'intelligence artificielle. |
+| `recherche.js` | La recherche tapée, sans intelligence artificielle : trouve un mot dans les tâches ou les rendez-vous, sans tenir compte des accents ni des majuscules. |
+| `journal_actions.js` | Retient sur le téléphone les dernières actions (ajout, coche, abandon) avec leur heure. |
+| `fiche_rendezvous.js` | La fiche d'un rendez-vous : détails, boutons « Appeler » et « Écrire », modification avec récapitulatif avant de confirmer. Ne touche que l'agenda « Cap – FICTIF ». |
 | `app.js` | L'affichage à l'écran et ce qui se passe quand on touche un bouton. |
 | `manifest.webmanifest` | La carte d'identité de l'appli pour le téléphone : nom, couleurs, icônes. Elle permet de l'installer sur l'écran d'accueil. |
 | `service-worker.js` | Garde une copie de l'appli sur le téléphone pour qu'elle s'ouvre même sans internet. |
 | `installation.js` | Active cette copie hors connexion. |
 | `icones/` | L'icône aux différentes tailles demandées par Android. Elles sont fabriquées par `outils/fabriquer_icones.py` à partir de l'icône validée. |
-| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée) et de l'installation (86 essais). |
+| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil et de l'installation (183 essais). |
+
+## L'écran d'accueil (Lot 1, 29/10/2026)
+- En haut : seulement la date du jour, centrée. Pas d'heure : la barre du haut du téléphone (heure, Wi-Fi, réseau, batterie) reste visible, car Cap installée s'ouvre en mode « standalone » (comme une appli, mais sans cacher cette barre).
+- En bas, juste au-dessus des trois boutons : une seule barre de recherche, facile à atteindre d'une main. À gauche dans la barre, un petit menu montre toujours où l'on cherche (« Tâches ▾ », « Rendez-vous ▾ » ; Gmail, Drive, archives et mémoire perso arriveront plus tard).
+- Les résultats arrivent pendant la frappe, sans appuyer sur Entrée, et s'affichent au-dessus de la barre, dans l'espace libre entre la date et la barre.
+- Un glissement vers le haut ouvre l'écran complet (liste, rendez-vous, dernières actions, état de la synchronisation).
 
 ## La connexion à Google (semaine 2)
 - Cap n'a accès qu'aux fichiers qu'il a créés lui-même, et seulement à son agenda « Cap – FICTIF ». Il ne voit ni le reste du Drive ni le vrai agenda.

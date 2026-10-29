@@ -42,24 +42,15 @@ body {
 .horloge {
   flex: none;
   padding: 40px 28px 25px;
+  text-align: center;
 }
 
 #date {
   display: block;
-  font-size: 16.5px;
+  font-size: 18.5px;
   font-weight: 500;
   line-height: 1.5;
   letter-spacing: 0.015em;
-}
-
-#heure {
-  display: block;
-  margin-top: 3px;
-  font-size: clamp(64px, 19vw, 80px);
-  font-weight: 300;
-  line-height: 1.12;
-  letter-spacing: -0.065em;
-  font-variant-numeric: tabular-nums;
 }
 
 #accueil {
@@ -75,7 +66,7 @@ body.vue-complete #accueil {
   display: flex;
   flex-direction: column;
   flex: 0 1 auto;
-  min-height: 48px;
+  min-height: 54px;
   margin: 0 22px;
 }
 
@@ -84,25 +75,56 @@ body.vue-complete #zone-recherche {
 }
 
 .barre-recherche {
+  position: relative;
   display: flex;
   flex: none;
-  gap: 8px;
-}
-
-#source-recherche,
-#saisie-recherche {
-  min-width: 0;
-  min-height: 48px;
-  padding: 10px;
+  align-items: center;
+  min-height: 52px;
   border: 1px solid #547a83;
-  border-radius: 10px;
-  color: var(--encre);
+  border-radius: 26px;
   background: #fffef7;
 }
 
+.barre-recherche:focus-within {
+  outline: 3px solid #173f5a;
+  outline-offset: 2px;
+}
+
+.choix-source {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  align-self: stretch;
+  max-width: 40%;
+  padding: 0 10px 0 16px;
+  overflow: hidden;
+  color: var(--secondaire);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.choix-source::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  right: 0;
+  bottom: 12px;
+  border-right: 1px solid rgb(32 62 73 / 20%);
+}
+
+.choix-source > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 #source-recherche {
-  width: 45%;
-  max-width: 180px;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 48px;
+  opacity: 0;
+  cursor: pointer;
 }
 
 #source-recherche option:disabled {
@@ -113,14 +135,20 @@ body.vue-complete #zone-recherche {
 #saisie-recherche {
   flex: 1;
   width: 0;
+  min-width: 0;
+  min-height: 48px;
+  padding: 10px 16px 10px 12px;
+  border: 0;
+  border-radius: 0 26px 26px 0;
+  outline: none;
+  color: var(--encre);
+  background: transparent;
 }
 
 #resultats-recherche {
   flex: 0 1 auto;
   min-height: 0;
-  max-height: 32vh;
-  max-height: 32dvh;
-  margin: 10px 0 0;
+  margin: 0 0 10px;
   padding: 0 4px;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -496,10 +524,6 @@ body.vue-complete #zone-recherche {
   .horloge {
     padding-top: 20px;
     padding-bottom: 16px;
-  }
-
-  #heure {
-    font-size: 58px;
   }
 }
 

@@ -12,30 +12,32 @@
 </head>
 <body>
   <div class="ecran">
-    <header class="horloge" aria-label="Date et heure actuelles">
+    <header class="horloge" aria-label="Date du jour">
       <time id="date"></time>
-      <time id="heure"></time>
     </header>
     <div id="alerte-google" role="alert" hidden>
       <p id="texte-alerte-google"></p>
       <button id="redonner-acces-google" type="button">Redonner l’accès à Google</button>
     </div>
-    <section id="zone-recherche" aria-label="Recherche">
-      <div class="barre-recherche">
-        <select id="source-recherche" aria-label="Chercher dans">
-          <option value="taches">Tâches</option>
-          <option value="rendez-vous">Rendez-vous</option>
-          <option disabled>Gmail (plus tard)</option>
-          <option disabled>Drive (plus tard)</option>
-          <option disabled>Archives perso (plus tard)</option>
-          <option disabled>Mémoire perso (plus tard)</option>
-        </select>
-        <input id="saisie-recherche" type="search" enterkeyhint="search" autocomplete="off" aria-label="Rechercher" aria-controls="resultats-recherche" placeholder="Rechercher…">
-      </div>
-      <ul id="resultats-recherche" aria-label="Résultats de recherche" hidden></ul>
-    </section>
     <button id="basculer-vue" class="visuellement-cache" type="button" aria-expanded="false" aria-controls="ecran-complet">Afficher tout</button>
     <div id="accueil"></div>
+    <section id="zone-recherche" aria-label="Recherche">
+      <ul id="resultats-recherche" aria-label="Résultats de recherche" hidden></ul>
+      <div class="barre-recherche">
+        <div class="choix-source">
+          <span aria-hidden="true"><span id="libelle-source">Tâches</span> ▾</span>
+          <select id="source-recherche" aria-label="Chercher dans">
+            <option value="taches">Tâches</option>
+            <option value="rendez-vous">Rendez-vous</option>
+            <option disabled>Gmail (plus tard)</option>
+            <option disabled>Drive (plus tard)</option>
+            <option disabled>Archives perso (plus tard)</option>
+            <option disabled>Mémoire perso (plus tard)</option>
+          </select>
+        </div>
+        <input id="saisie-recherche" type="search" enterkeyhint="search" autocomplete="off" aria-label="Rechercher" aria-controls="resultats-recherche" placeholder="Rechercher…">
+      </div>
+    </section>
     <main id="ecran-complet" class="taches" aria-label="Tes tâches" tabindex="0" hidden inert>
       <section id="dernieres-actions" aria-labelledby="titre-actions" hidden>
         <h2 id="titre-actions">Dernières actions</h2>

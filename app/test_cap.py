@@ -12,8 +12,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
 SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "app.js"]
-if (APP / "fiche_rendezvous.js").is_file():
-    SOURCES.insert(SOURCES.index("app.js"), "fiche_rendezvous.js")
 
 TESTS_JS = r"""
 (async () => {
@@ -1876,13 +1874,17 @@ TESTS_JS = r"""
       actualiser: () => c.window.dispatchEvent(new Event('cap-google-etat'))
     };
     avant(ui);
+    const agendaSimule = { prochainsRendezVous: async () => [], lireCache: () => c.agenda().lireCache() };
     objetIsole(SOURCE_APP, 'undefined', {
       document: doc, window: c.window, navigator: c.navigator, Date: c.Date,
       setInterval: c.setInterval, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout,
       googleConnexion: c.googleConnexion, synchronisation: c.synchronisation,
       recherche,
+      ficheRendezVous: objetIsole(SOURCE_FICHE_RDV, 'ficheRendezVous', {
+        document: doc, navigator: c.navigator, googleConnexion: c.googleConnexion, googleAgenda: agendaSimule
+      }),
       journalActions: objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', { localStorage: c.localStorage }),
-      googleAgenda: { prochainsRendezVous: async () => [], lireCache: () => c.agenda().lireCache() },
+      googleAgenda: agendaSimule,
       TACHES: c.TACHES, INFO_CHARGEMENT: '', ETAPES_PAR_DEFAUT,
       avancementTache: () => ({ faites: 0, total: 0 }), avancementSousCategorie: () => 0,
       joursRestants, dateDuJour, ajouterEtape, abandonner, remettre, cocher,
@@ -2193,7 +2195,13 @@ TESTS_JS = r"""
       attendre(rectangle.width > 0 && rectangle.height > 0, 'horloge ou commandes invisibles');
       attendre(rectangle.top >= 0 && rectangle.bottom <= ui.cadre.clientHeight + 1, 'horloge ou commandes hors écran');
     }
-    attendre(ui.parId('heure').textContent.length > 0 && ui.parId('date').textContent.length > 0, 'horloge vide');
+    attendre(ui.parId('date').textContent.length > 0, 'date vide');
+    attendre(!ui.parId('heure'), 'heure encore affichée');
+    const recherche = ui.parId('zone-recherche').getBoundingClientRect();
+    const barre = ui.doc.querySelector('.barre-recherche').getBoundingClientRect();
+    attendre(barre.bottom <= ui.doc.querySelector('footer.dictee').getBoundingClientRect().top + 1, 'barre de recherche pas au-dessus des boutons');
+    attendre(recherche.top > ui.cadre.clientHeight / 2, 'barre de recherche pas en bas');
+    attendre(ui.doc.querySelector('.choix-source').contains(ui.parId('source-recherche')), 'menu hors de la barre');
     ui.parId('basculer-vue').click();
     attendre(!ui.parId('ecran-complet').hidden && !ui.parId('ecran-complet').inert, 'vue complète non ouverte');
     attendre(ui.parId('accueil').hidden, 'accueil encore visible');
@@ -2231,11 +2239,12 @@ TESTS_JS = r"""
     ui.parId('clavier').close();
   });
 
-  for (const [largeur, hauteur, tailleHeure] of [[1024, 768, 80], [360, 560, 58]]) {
+  for (const [largeur, hauteur] of [[1024, 768], [360, 560]]) {
     await testAsync(`Présentation : tailles calculées et aucun débordement à ${largeur} × ${hauteur}`, async c => {
       const ui = preparerInterface(c, { largeur, hauteur });
       const style = noeud => ui.cadre.contentWindow.getComputedStyle(noeud);
-      attendreEgal(parseFloat(style(ui.parId('heure')).fontSize), tailleHeure, 'taille de l’horloge modifiée');
+      attendreEgal(parseFloat(style(ui.parId('date')).fontSize), 18.5, 'taille de la date modifiée');
+      attendreEgal(style(ui.doc.querySelector('header.horloge')).textAlign, 'center', 'date non centrée');
       ui.parId('basculer-vue').click();
       const intitule = ui.doc.querySelector('#liste-taches .intitule');
       attendreEgal(parseFloat(style(intitule).fontSize), 18.7, 'taille de la liste');
@@ -2463,10 +2472,8 @@ TESTS_JS = r"""
     const resultat = ui.parId('resultats-recherche').querySelector('button');
     attendre(resultat && resultat.textContent.includes('14:32') && resultat.textContent.includes('10'), 'date et heure absentes');
     resultat.click();
-    attendre(!ui.parId('ecran-complet').hidden, 'vue non ouverte');
-    attendre(!ui.parId('rendez-vous').hidden, 'bloc rendez-vous caché');
-    attendre(ui.parId('liste-rendez-vous').textContent.includes('FICTIF Répétition'), 'rendez-vous non montré');
-    attendre(ui.doc.querySelector('#rendez-vous .surbrillance-recherche, #rendez-vous.surbrillance-recherche'), 'surbrillance rendez-vous absente');
+    attendre(ui.parId('fiche-rendez-vous').open, 'fiche non ouverte');
+    attendre(ui.parId('cartes-rdv').textContent.includes('Théâtre'), 'rendez-vous non montré');
     attendreEgal(c.requetes.length, 0, 'recherche déclenche du réseau');
   });
 
@@ -2503,6 +2510,8 @@ TESTS_JS = r"""
     const liste = ui.parId('resultats-recherche');
     attendre(liste.scrollHeight > liste.clientHeight && liste.clientHeight > 0, 'résultats non défilables');
     attendre(liste.getBoundingClientRect().bottom <= 560, 'résultats hors écran');
+    attendre(liste.getBoundingClientRect().bottom <= ui.doc.querySelector('.barre-recherche').getBoundingClientRect().top, 'résultats pas au-dessus de la barre');
+    attendre(liste.getBoundingClientRect().top >= ui.doc.querySelector('header.horloge').getBoundingClientRect().bottom, 'résultats sur la date');
     for (const id of ['microphone', 'ouvrir-clavier', 'ajouter', 'saisie-recherche', 'source-recherche']) {
       const rect = ui.parId(id).getBoundingClientRect();
       attendre(rect.top >= 0 && rect.bottom <= 560 && rect.height >= 48, `${id} hors écran ou trop petit`);
@@ -2736,6 +2745,7 @@ def construire_page():
         "SOURCE_SERVICE_WORKER": "service-worker.js",
         "SOURCE_APP": "app.js",
         "SOURCE_JOURNAL_ACTIONS": "journal_actions.js",
+        "SOURCE_FICHE_RDV": "fiche_rendezvous.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }
