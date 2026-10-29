@@ -85,8 +85,7 @@
   </footer>
   <dialog id="clavier" aria-labelledby="titre-clavier">
     <header class="entete-clavier">
-      <h2 id="titre-clavier">Écrire à Cap</h2>
-      <button type="button" data-fermer>Fermer</button>
+      <h2 id="titre-clavier" tabindex="-1">Écrire à Cap</h2>
     </header>
     <button id="reponse-silencieuse" type="button" role="switch" aria-checked="false" aria-label="Réponse silencieuse">
       <span>Réponse silencieuse</span>
@@ -119,7 +118,6 @@
       <button id="reporter-tache" type="button">Reporter à demain</button>
       <button id="ajouter-etape" type="button">Ajouter une étape</button>
       <button id="abandonner-tache" type="button">Abandonner</button>
-      <button type="button" data-fermer>Annuler</button>
     </div>
   </dialog>
   <dialog id="confirmation" aria-labelledby="titre-confirmation">
@@ -165,7 +163,6 @@
       </fieldset>
       <p class="erreur" role="alert" hidden></p>
       <div class="actions-dialogue">
-        <button type="button" data-fermer>Annuler</button>
         <button type="submit">Ajouter</button>
       </div>
     </form>
@@ -249,6 +246,7 @@
   <script src="journal_actions.js"></script>
   <script src="fiche_rendezvous.js"></script>
   <script src="choix_dates.js"></script>
+  <script src="fermeture_fenetres.js"></script>
   <script src="fenetres_listes.js"></script>
   <script src="synchro_listes.js"></script>
   <script src="app.js"></script>

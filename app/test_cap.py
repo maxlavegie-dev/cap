@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fenetres_listes.js", "synchro_listes.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1953,8 +1953,12 @@ TESTS_JS = r"""
     ui.choixDates = objetIsole(SOURCE_CHOIX_DATES, 'choixDates', {
       document: doc, Date: c.Date, comprendreDemande, dictee: ui.dictee
     });
+    ui.fermetureFenetres = objetIsole(SOURCE_FERMETURE_FENETRES, 'fermetureFenetres', {
+      document: doc, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout, CSS, Event
+    });
     ui.fenetresListes = objetIsole(SOURCE_FENETRES_LISTES, 'fenetresListes', {
-      document: doc, listesChoix: ui.listesChoix, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout
+      document: doc, listesChoix: ui.listesChoix, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout,
+      fermetureFenetres: ui.fermetureFenetres
     });
     ui.etapesParDefaut = etapesIsolees;
     objetIsole(SOURCE_APP, 'undefined', {
@@ -1968,7 +1972,7 @@ TESTS_JS = r"""
       journalActions: objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', { localStorage: c.localStorage }),
       googleAgenda: agendaSimule,
       TACHES: c.TACHES, INFO_CHARGEMENT: '', ETAPES_PAR_DEFAUT: etapesIsolees,
-      listesChoix: ui.listesChoix, choixDates: ui.choixDates, fenetresListes: ui.fenetresListes,
+      listesChoix: ui.listesChoix, choixDates: ui.choixDates, fenetresListes: ui.fenetresListes, fermetureFenetres: ui.fermetureFenetres,
       avancementTache: () => ({ faites: 0, total: 0 }), avancementSousCategorie: () => 0,
       joursRestants, dateDuJour, ajouterEtape, abandonner, remettre, cocher,
       reporterADemain, changerEcheance, creerAvecEtapesParDefaut, creerTache, traiterDemande, composerTexte,
@@ -2759,6 +2763,154 @@ TESTS_JS = r"""
     remettreListesPage(etapesAvant);
   });
 
+  test('Dates : ligne en toutes lettres sous les menus, vide si la date est vide', () => {
+    attendreEgal(choixDates.dateEnLettres('2026-11-02'), 'lundi 2 novembre 2026', 'lundi 2 novembre');
+    attendreEgal(choixDates.dateEnLettres('2026-02-31'), '', 'date impossible');
+    attendreEgal(choixDates.dateEnLettres(''), '', 'date vide');
+    remettreListesPage();
+    document.getElementById('ajouter').click();
+    const lisible = document.getElementById('echeance-lisible');
+    const echeance = document.getElementById('echeance');
+    attendreEgal(lisible.textContent, '', 'rien tant que la date est vide');
+    const zone = lisible.closest('.champ-date');
+    boutonTexte(zone, 'Demain').click();
+    attendreEgal(lisible.textContent, choixDates.dateEnLettres(echeance.value), 'bouton rapide');
+    const jour = document.getElementById('echeance-jour');
+    const mois = document.getElementById('echeance-mois');
+    const annee = document.getElementById('echeance-annee');
+    jour.value = '02';
+    mois.value = '11';
+    annee.value = '2026';
+    annee.dispatchEvent(new Event('change'));
+    attendreEgal(lisible.textContent, 'lundi 2 novembre 2026', 'menus');
+    boutonTexte(zone, 'Effacer').click();
+    attendreEgal(lisible.textContent, '', 'effacée');
+    remettreListesPage();
+  });
+
+  test('Dire la date : écoute, relance si rien entendu, texte provisoire et dates dites', () => {
+    let rappels = null;
+    let demarrages = 0;
+    const dicteeSimulee = {
+      disponible: () => true,
+      enCours: () => false,
+      arreter() {},
+      demarrer(r) { rappels = r; demarrages += 1; }
+    };
+    const instance = objetIsole(SOURCE_CHOIX_DATES, 'choixDates', {
+      document, Date, comprendreDemande, dictee: dicteeSimulee, setTimeout: f => f()
+    });
+    const cible = document.createElement('input');
+    cible.type = 'hidden';
+    cible.id = 'date-essai-dictee';
+    const conteneur = document.createElement('div');
+    conteneur.dataset.cible = cible.id;
+    conteneur.dataset.libelle = 'Essai';
+    document.body.append(cible, conteneur);
+    try {
+      instance.installer(conteneur);
+      const dire = boutonTexte(conteneur, 'Dire la date');
+      const aide = conteneur.querySelector('.aide-date');
+      attendre(!dire.hidden, 'bouton caché');
+      dire.click();
+      attendreEgal(demarrages, 1, 'écoute lancée');
+      attendre(aide.textContent.includes('Je t’écoute'), 'pas de message d’écoute');
+      rappels.surErreur('no-speech');
+      rappels.surFin();
+      attendreEgal(demarrages, 2, 'pas de relance après un silence');
+      rappels.surFin();
+      attendre(aide.textContent.includes('rien entendu'), 'pas de message après la relance');
+      const jeudi = new Date();
+      dire.click();
+      rappels.surProvisoire('vendredi');
+      attendre(aide.textContent.includes('vendredi'), 'texte entendu non affiché');
+      rappels.surFin();
+      attendreEgal(cible.value, comprendreDemande.date('vendredi', jeudi), 'texte provisoire non utilisé');
+      dire.click();
+      rappels.surFinal('demain');
+      rappels.surFin();
+      attendreEgal(cible.value, comprendreDemande.date('demain', new Date()), 'demain');
+      dire.click();
+      rappels.surFinal('le 15 novembre');
+      rappels.surFin();
+      attendreEgal(cible.value.slice(5), '11-15', 'le 15 novembre');
+      attendre(conteneur.querySelector('.date-lisible').textContent.includes('15 novembre'), 'ligne lisible');
+      dire.click();
+      rappels.surErreur('not-allowed');
+      rappels.surFin();
+      attendre(aide.textContent.includes('bloqué'), 'micro bloqué non expliqué');
+    } finally {
+      cible.remove();
+      conteneur.remove();
+    }
+  });
+
+  test('Petites fenêtres : toucher à côté ferme, question Garder, Jeter et Continuer', () => {
+    remettreListesPage();
+    for (const id of ['clavier', 'menu-tache', 'ajout-tache']) {
+      attendreEgal(document.querySelectorAll(`#${id} [data-fermer]`).length, 0, `bouton retour dans ${id}`);
+    }
+    const ajout = document.getElementById('ajout-tache');
+    const intitule = document.getElementById('intitule');
+    document.getElementById('ajouter').click();
+    const cadre = ajout.getBoundingClientRect();
+    ajout.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: cadre.left + 2, clientY: cadre.top + 2 }));
+    attendre(ajout.open, 'fermée en touchant dedans');
+    fermetureFenetres.toucheACote(ajout);
+    attendre(!ajout.open, 'fenêtre vide pas fermée');
+    document.getElementById('ajouter').click();
+    intitule.value = 'FICTIF brouillon';
+    intitule.dispatchEvent(new Event('input', { bubbles: true }));
+    fermetureFenetres.toucheACote(ajout);
+    attendre(ajout.open, 'fermée alors que Max avait écrit');
+    const question = () => ajout.querySelector('.question-fermeture');
+    attendre(question(), 'pas de question');
+    attendreEgal(Array.from(question().querySelectorAll('button'), b => b.textContent), ['Garder', 'Jeter', 'Continuer'], 'trois boutons');
+    boutonTexte(question(), 'Continuer').click();
+    attendre(ajout.open && !question() && intitule.value === 'FICTIF brouillon', 'Continuer');
+    fermetureFenetres.toucheACote(ajout);
+    boutonTexte(question(), 'Garder').click();
+    attendre(!ajout.open, 'Garder n’a pas fermé');
+    document.getElementById('ajouter').click();
+    attendreEgal(intitule.value, 'FICTIF brouillon', 'texte gardé retrouvé');
+    fermetureFenetres.toucheACote(ajout);
+    boutonTexte(question(), 'Jeter').click();
+    attendre(!ajout.open, 'Jeter n’a pas fermé');
+    const bandeau = document.querySelector('.annulation-fenetre');
+    attendre(bandeau, 'pas de bouton Annuler après Jeter');
+    document.getElementById('ajouter').click();
+    attendreEgal(intitule.value, '', 'texte jeté revenu tout seul');
+    ajout.close();
+    boutonTexte(bandeau, 'Annuler').click();
+    attendre(ajout.open, 'Annuler n’a pas rouvert');
+    attendreEgal(intitule.value, 'FICTIF brouillon', 'Annuler n’a pas remis le texte');
+    attendre(!document.querySelector('.annulation-fenetre'), 'bandeau resté');
+    intitule.value = '';
+    ajout.close();
+    document.getElementById('ajouter').click();
+    document.getElementById('choisir-categorie').click();
+    const fenetre = document.getElementById('fenetre-liste');
+    attendre(!boutonTexte(fenetre, 'Fermer') && !boutonTexte(fenetre, 'Retour'), 'bouton retour encore là');
+    boutonTexte(fenetre, 'Ajouter').click();
+    const nom = document.getElementById('nom-nouvel-element');
+    nom.value = 'Jardin FICTIF';
+    nom.dispatchEvent(new Event('input', { bubbles: true }));
+    fermetureFenetres.toucheACote(fenetre);
+    boutonTexte(fenetre.querySelector('.question-fermeture'), 'Garder').click();
+    attendre(fenetre.open, 'fenêtre d’avant pas revenue');
+    attendreEgal(document.getElementById('titre-fenetre-liste').textContent, 'Catégorie', 'retour à la liste des catégories');
+    attendre(ajout.open, 'fenêtre principale fermée');
+    boutonTexte(fenetre, 'Ajouter').click();
+    attendreEgal(document.getElementById('nom-nouvel-element').value, 'Jardin FICTIF', 'nom gardé');
+    document.getElementById('nom-nouvel-element').value = '';
+    fermetureFenetres.toucheACote(fenetre);
+    attendreEgal(document.getElementById('titre-fenetre-liste').textContent, 'Catégorie', 'vide : retour direct');
+    fermetureFenetres.toucheACote(fenetre);
+    attendre(!fenetre.open && ajout.open, 'catégories : retour à la fenêtre Ajouter');
+    attendre(!listesChoix.categories().includes('Jardin FICTIF'), 'catégorie créée sans le vouloir');
+    remettreListesPage();
+  });
+
   await testAsync('Google Sheets listes : lecture, ancien entête, onglet Catégories ajouté sans rien effacer', async c => {
     c.localStorage.setItem('cap_google_fichier_v1', 'tableau-fictif');
     let ongletsPresents = ['Tâches', 'Étapes par défaut', 'Phrases du clavier'];
@@ -2879,7 +3031,7 @@ TESTS_JS = r"""
     const nombre = TACHES.length;
     const ancienne = tache.echeance;
     document.querySelector(`[data-tache="${tache.id}"] .options-tache`).click();
-    document.querySelector('#menu-tache [data-fermer]').click();
+    document.getElementById('menu-tache').close();
     document.getElementById('ouvrir-clavier').click();
     document.getElementById('saisie-demande').value = 'Reporte ça à demain';
     document.getElementById('formulaire-demande').requestSubmit();
@@ -3195,8 +3347,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v9['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v9")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v10['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v10")
 
 
 def verifier_precache_fichiers_existent():
@@ -3274,6 +3426,7 @@ def construire_page():
         "SOURCE_LISTES_CHOIX": "listes_choix.js",
         "SOURCE_CHOIX_DATES": "choix_dates.js",
         "SOURCE_FENETRES_LISTES": "fenetres_listes.js",
+        "SOURCE_FERMETURE_FENETRES": "fermeture_fenetres.js",
         "SOURCE_SYNCHRO_LISTES": "synchro_listes.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",

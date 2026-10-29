@@ -234,6 +234,17 @@
     cible.focus({ preventScroll: true });
   }
 
+  fermetureFenetres.installer(menu);
+  fermetureFenetres.installer(confirmation);
+  fermetureFenetres.installer(clavier);
+  fermetureFenetres.installer(ajout, {
+    cle: () => `ajout:${parenteAjout ?? 'tache'}`,
+    rouvrir: () => {
+      const parente = parenteAjout;
+      return () => preparerAjout(parente, null);
+    }
+  });
+
   for (const dialogue of [menu, confirmation, ajout, clavier]) {
     dialogue.querySelectorAll('[data-fermer]').forEach(bouton => {
       bouton.addEventListener('click', () => dialogue.close());
@@ -589,9 +600,10 @@
     parId('champs-tache').disabled = estEtape;
     parId('categorie').value = '';
     parId('sous-categorie').value = '';
-    afficherCategorieChoisie();
     remplirModeles('');
     ouvrir(ajout, parId('intitule'), origine);
+    fermetureFenetres.restaurer(ajout);
+    afficherCategorieChoisie();
   }
 
   parId('ajouter').addEventListener('click', event => preparerAjout(null, event.currentTarget));
@@ -824,12 +836,13 @@
   }
 
   parId('ouvrir-clavier').addEventListener('click', event => {
-    ouvrir(clavier, clavier.querySelector('[data-fermer]'), event.currentTarget);
+    ouvrir(clavier, parId('titre-clavier'), event.currentTarget);
     try {
       reconstruireClavier();
     } catch (erreur) {
       signalerErreur(erreur, clavier);
     }
+    fermetureFenetres.restaurer(clavier);
   });
 
   parId('enlever-phrase').addEventListener('click', () => selectionnerPhrase(null));

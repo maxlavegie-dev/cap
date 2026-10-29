@@ -8,6 +8,9 @@ const fenetresListes = (() => {
   const bandeau = document.getElementById('annulation-liste');
   let delaiAnnulation;
   let rappels = {};
+  let retourActuel = () => fermer();
+  let cleActuelle = 'liste';
+  let rouvrirActuel = null;
 
   function noeud(balise, classe, texte) {
     const element = document.createElement(balise);
@@ -34,7 +37,11 @@ const fenetresListes = (() => {
     zoneErreur.hidden = !texte;
   }
 
-  function afficherVue(texteTitre, enfants, focus) {
+  function afficherVue(texteTitre, enfants, focus, retour = fermer, cle = 'liste', rouvrir = null) {
+    retourActuel = retour;
+    cleActuelle = cle;
+    rouvrirActuel = rouvrir;
+    fermetureFenetres.propre(fenetre);
     erreurVisible('');
     titre.textContent = texteTitre;
     contenu.replaceChildren(...enfants);
@@ -86,9 +93,8 @@ const fenetresListes = (() => {
         bouton('Sans catégorie', 'bouton-choix bouton-neutre', () => choisir('', '')),
         bouton('Ajouter', 'bouton-choix bouton-outil', () => vueAjout('categorie', '')),
         bouton('Modifier', 'bouton-choix bouton-outil', () => vueModifier('categorie', ''))
-      ]),
-      actionsBas([bouton('Fermer', '', fermer)])
-    ], boutons.find(element => element.hasAttribute('aria-current')) || boutons[0]);
+      ])
+    ], boutons.find(element => element.hasAttribute('aria-current')) || boutons[0], fermer);
   }
 
   function vueSousCategories(categorie) {
@@ -103,9 +109,8 @@ const fenetresListes = (() => {
       grille([
         bouton('Ajouter', 'bouton-choix bouton-outil', () => vueAjout('categorie', categorie)),
         bouton('Modifier', 'bouton-choix bouton-outil', () => vueModifier('categorie', categorie))
-      ]),
-      actionsBas([bouton('Retour', '', vueCategories)])
-    ], boutons.find(element => element.hasAttribute('aria-current')) || sans);
+      ])
+    ], boutons.find(element => element.hasAttribute('aria-current')) || sans, vueCategories);
   }
 
   function choisir(categorie, sousCategorie) {
@@ -149,7 +154,7 @@ const fenetresListes = (() => {
     const retour = retourDepuis(type, parente);
     const enregistrer = noeud('button', '', 'Enregistrer');
     enregistrer.type = 'submit';
-    formulaire.append(actionsBas([bouton('Retour', '', retour), enregistrer]));
+    formulaire.append(actionsBas([enregistrer]));
     formulaire.addEventListener('submit', event => {
       event.preventDefault();
       try {
@@ -166,7 +171,9 @@ const fenetresListes = (() => {
         erreurVisible(erreur instanceof Error ? erreur.message : 'Ajout impossible.');
       }
     });
-    afficherVue(type === 'modele' ? 'Ajouter des étapes par défaut' : parente ? 'Ajouter une sous-catégorie' : 'Ajouter une catégorie', [formulaire], nom);
+    afficherVue(type === 'modele' ? 'Ajouter des étapes par défaut' : parente ? 'Ajouter une sous-catégorie' : 'Ajouter une catégorie', [formulaire], nom,
+      retour, `ajout:${type}:${parente}`, () => vueAjout(type, parente));
+    if (fermetureFenetres.restaurer(fenetre)) nom.focus({ preventScroll: true });
   }
 
   function vueModifier(type, parente) {
@@ -223,10 +230,10 @@ const fenetresListes = (() => {
     }
     const retour = type === 'modele' ? fermer : parente ? () => vueSousCategories(parente) : vueCategories;
     const ajouter = type === 'modele' ? [bouton('Ajouter', '', () => vueAjout('modele', ''))] : [];
-    enfants.push(actionsBas([bouton(type === 'modele' ? 'Fermer' : 'Retour', '', retour), ...ajouter, retirer]));
+    enfants.push(actionsBas([...ajouter, retirer]));
     const titreVue = type === 'modele' ? 'Modifier la liste des étapes par défaut'
       : parente ? `Modifier les sous-catégories de ${parente}` : 'Modifier les catégories';
-    afficherVue(titreVue, enfants);
+    afficherVue(titreVue, enfants, undefined, retour);
   }
 
   function choisirCategorie({ categorie = '', sousCategorie = '', surChoix } = {}) {
@@ -239,6 +246,12 @@ const fenetresListes = (() => {
     if (action === 'ajouter') vueAjout('modele', '');
     else vueModifier('modele', '');
   }
+
+  fermetureFenetres.installer(fenetre, {
+    retour: () => retourActuel(),
+    cle: () => cleActuelle,
+    rouvrir: () => rouvrirActuel
+  });
 
   fenetre.addEventListener('close', () => {
     if (fenetre.open) return;

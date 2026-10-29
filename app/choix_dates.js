@@ -18,8 +18,18 @@ const choixDates = (() => {
     return element;
   }
 
+  const nomsJours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
   function dateRapide(texte, maintenant = new Date()) {
     return comprendreDemande.date(texte, maintenant);
+  }
+
+  function dateEnLettres(valeur) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(valeur || '')) return '';
+    const [a, m, j] = valeur.split('-').map(Number);
+    const date = new Date(a, m - 1, j, 12);
+    if (date.getDate() !== j) return '';
+    return `${nomsJours[date.getDay()]} ${j} ${nomsMois[m - 1]} ${a}`;
   }
 
   function installer(conteneur) {
@@ -53,9 +63,13 @@ const choixDates = (() => {
     const effacer = noeud('button', 'bouton-effacer-date', 'Effacer');
     effacer.type = 'button';
     actions.append(dire, effacer);
+    const lisible = noeud('p', 'date-lisible');
+    lisible.id = `${base}-lisible`;
+    lisible.setAttribute('aria-live', 'polite');
     const aide = noeud('p', 'aide-date');
     aide.setAttribute('aria-live', 'polite');
     aide.hidden = true;
+    let arretDemande = false;
 
     function message(texte) {
       aide.textContent = texte;
@@ -110,6 +124,7 @@ const choixDates = (() => {
 
     function actualiserRapides() {
       const maintenant = new Date();
+      lisible.textContent = cible.value ? dateEnLettres(cible.value) : '';
       groupeRapide.querySelectorAll('button').forEach(bouton => {
         bouton.setAttribute('aria-pressed', String(Boolean(cible.value) && dateRapide(bouton.dataset.texte, maintenant) === cible.value));
       });
@@ -126,34 +141,81 @@ const choixDates = (() => {
     effacer.addEventListener('click', () => remplir(''));
     dire.addEventListener('click', () => {
       if (dictee.enCours()) {
+        arretDemande = true;
         dictee.arreter();
         return;
       }
-      message('Dis la date, par exemple « vendredi » ou « le 12 novembre ».');
+      arretDemande = false;
+      if (document.activeElement && document.activeElement !== dire) document.activeElement.blur?.();
+      ecouter(1);
+    });
+
+    function comprendre(texte) {
+      const valeur = dateRapide(texte, new Date());
+      if (valeur) remplir(valeur);
+      else message(`Je n’ai pas compris la date dans « ${texte.trim()} ». Choisis-la dans les menus.`);
+    }
+
+    function ecouter(essaisRestants) {
+      message(essaisRestants ? 'Je t’écoute : dis la date, par exemple « vendredi » ou « le 15 novembre ».' : 'Je t’écoute encore…');
+      dire.setAttribute('aria-pressed', 'true');
       let compris = false;
+      let provisoire = '';
+      let erreur = '';
       dictee.demarrer({
+        surProvisoire(texte) {
+          if (compris) return;
+          provisoire = texte;
+          if (texte.trim()) message(`J’entends : « ${texte.trim()} »`);
+        },
         surFinal(texte) {
           if (compris) return;
           compris = true;
-          const valeur = dateRapide(texte, new Date());
-          if (valeur) remplir(valeur);
-          else message(`Je n’ai pas compris la date dans « ${texte} ». Choisis-la dans les menus.`);
+          comprendre(texte || provisoire);
         },
         surErreur(code) {
-          if (!compris && code !== 'aborted') message('La dictée n’a pas marché. Choisis la date dans les menus.');
+          if (compris) return;
+          erreur = code;
+          if (code === 'occupee') {
+            dire.setAttribute('aria-pressed', 'false');
+            message('Le micro est déjà en train d’écouter. Réessaie dans un instant.');
+          }
         },
         surFin() {
-          if (!compris && aide.textContent.startsWith('Dis la date')) message('Je n’ai rien entendu. Choisis la date dans les menus.');
+          dire.setAttribute('aria-pressed', 'false');
+          if (compris) return;
+          if (arretDemande) {
+            message('');
+            return;
+          }
+          if (provisoire.trim()) {
+            compris = true;
+            comprendre(provisoire);
+            return;
+          }
+          const messages = {
+            'not-allowed': 'Le micro est bloqué pour Cap. Autorise-le dans les réglages du navigateur.',
+            'service-not-allowed': 'Le micro est bloqué pour Cap. Autorise-le dans les réglages du navigateur.',
+            network: 'La dictée a besoin d’internet. Choisis la date dans les menus.',
+            'audio-capture': 'Aucun micro trouvé. Choisis la date dans les menus.'
+          };
+          if (messages[erreur]) {
+            message(messages[erreur]);
+          } else if (essaisRestants > 0 && (!erreur || erreur === 'no-speech' || erreur === 'aborted')) {
+            setTimeout(() => ecouter(essaisRestants - 1), 150);
+          } else {
+            message('Je n’ai rien entendu. Réessaie, ou choisis la date dans les menus.');
+          }
         }
       });
-    });
+    }
     cible.form?.addEventListener('reset', () => remplir(''));
-    conteneur.replaceChildren(titre, groupeRapide, menus, actions, aide);
+    conteneur.replaceChildren(titre, groupeRapide, menus, lisible, actions, aide);
     conteneur.setAttribute('role', 'group');
     conteneur.setAttribute('aria-labelledby', titre.id);
     remplir(cible.value);
     return { remplir };
   }
 
-  return { installer, dateRapide };
+  return { installer, dateRapide, dateEnLettres };
 })();

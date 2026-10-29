@@ -50,9 +50,15 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Rien n'est effacé** : ce qui est retiré reste dans le tableau, marqué avec la date, avec « Annuler » pendant 8 secondes et un bouton « Remettre ».
   - **Tableau** : nouvel onglet « Catégories » (nom, sous-catégorie de, couleur, retirée le), et l'onglet « Étapes par défaut » est maintenant relu par Cap. Aucune nouvelle autorisation Google.
   - 202 vérifications automatiques réussies. Publié le 29/10/2026 avec l'accord de Max.
+- 29/10/2026 : Max valide les boutons rapides de dates. Corrections avant le Lot 4 (sauvegarde `sauvegarde-avant-lot4-20261029`) :
+  - **Date en toutes lettres** : sous les trois menus, une ligne « lundi 2 novembre 2026 » se met à jour toute seule (boutons, menus ou voix) ; vide si la date est vide.
+  - **« Dire la date »** : écoute rendue plus solide. Cap affiche « Je t'écoute », montre ce qu'il entend pendant que Max parle, garde ce texte si le téléphone n'envoie pas de résultat final, relance l'écoute une fois s'il n'a rien entendu, et explique clairement si le micro est bloqué ou s'il manque internet. La cause exacte du défaut n'a pas pu être vue sans le téléphone : à vérifier par Max avec « vendredi », « demain » et « le 15 novembre ».
+  - **Petites fenêtres** : on les ferme en touchant à côté, ce qui ramène à la fenêtre d'avant ; les boutons Fermer/Retour/Annuler qui servaient seulement à sortir ont disparu. Fenêtre vide : elle se ferme tout de suite. Texte déjà écrit : question « Garder » (le texte revient à la prochaine ouverture), « Jeter » (avec « Annuler » pendant 8 secondes) ou « Continuer ». Le geste retour du téléphone marche comme avant. La fenêtre « Abandonner cette tâche ? » garde son bouton Annuler (c'est une réponse), et la fiche de rendez-vous garde son bouton Retour (c'est une fiche complète, pas une petite fenêtre).
+  - 205 vérifications automatiques réussies. Pas encore publié.
 
 ### En cours
-- Lot 3 : publié, à essayer sur le téléphone.
+- Corrections d'avant Lot 4 : faites, pas encore publiées.
+- Lot 4 (tuiles, micro par tuile, mode Trier, ordre des tuiles, Aide, sauvegarde hebdomadaire, journal des actions) : pas commencé. Avant l'Aide, montrer l'emplacement du bouton à Max ; avant la première sauvegarde, lui dire si une autorisation Google nouvelle est nécessaire.
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)
