@@ -6,7 +6,7 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 
 ## Où on en est
 
-**Étape actuelle :** Lot 3 (fenêtre « Ajouter une tâche ») construit le 29/10/2026, en attente de l'accord de Max pour publier.
+**Étape actuelle :** Lot 3 (fenêtre « Ajouter une tâche ») publié le 29/10/2026, à essayer sur le téléphone.
 
 ### Fait
 - 27/10/2026 : cahier des charges de Max rangé dans le projet (`PROMPT_CAP.txt`).
@@ -49,10 +49,10 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Étapes par défaut** : le menu gagne « Ajouter… » et « Modifier la liste… » (cases à cocher, bouton « Retirer (N) »).
   - **Rien n'est effacé** : ce qui est retiré reste dans le tableau, marqué avec la date, avec « Annuler » pendant 8 secondes et un bouton « Remettre ».
   - **Tableau** : nouvel onglet « Catégories » (nom, sous-catégorie de, couleur, retirée le), et l'onglet « Étapes par défaut » est maintenant relu par Cap. Aucune nouvelle autorisation Google.
-  - 202 vérifications automatiques réussies.
+  - 202 vérifications automatiques réussies. Publié le 29/10/2026 avec l'accord de Max.
 
 ### En cours
-- Lot 3 : construit, à publier avec l'accord de Max, puis à essayer sur le téléphone.
+- Lot 3 : publié, à essayer sur le téléphone.
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)
