@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fenetres_listes.js", "synchro_listes.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1208,10 +1208,11 @@ TESTS_JS = r"""
     attendre(creation.sheets.every(onglet => onglet.properties.gridProperties.frozenRowCount === 1), 'entêtes non figées');
     const remplissage = c.requetes.find(r => r.url.pathname.endsWith('/values:batchUpdate')).corps;
     attendreEgal(remplissage.valueInputOption, 'RAW', 'écriture brute');
-    attendreEgal(remplissage.data.length, 3, 'trois onglets remplis');
+    attendreEgal(remplissage.data.length, 4, 'quatre onglets remplis');
     attendreEgal(remplissage.data[0].values, [ENTETES_GOOGLE, ...c.TACHES.map(ligneGoogle)], 'entêtes et tâches exactes');
-    attendreEgal(remplissage.data[1].values, [['Modèle', 'Étape'], ...Object.entries(ETAPES_PAR_DEFAUT).flatMap(([modele, etapes]) => etapes.map(etape => [modele, etape]))], 'modèles');
-    attendreEgal(remplissage.data[2].values, [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'], ...PHRASES_CLAVIER.map(p => [p.id, p.categorie, p.debut, p.a_completer, p.action])], 'phrases');
+    attendreEgal(remplissage.data[1].values, [['Modèle', 'Étape', 'Retirée le', 'Modifiée le'], ...Object.entries(ETAPES_PAR_DEFAUT).flatMap(([modele, etapes]) => etapes.map(etape => [modele, etape, '', '']))], 'modèles');
+    attendreEgal(remplissage.data[2].values, [['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le']], 'catégories');
+    attendreEgal(remplissage.data[3].values, [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'], ...PHRASES_CLAVIER.map(p => [p.id, p.categorie, p.debut, p.a_completer, p.action])], 'phrases');
     const validations = c.requetes.find(r => r.url.pathname.endsWith('tableau-fictif:batchUpdate')).corps.requests;
     attendreEgal(validations.map(r => r.setDataValidation.range.startColumnIndex), [4, 14], 'colonnes booléennes');
     attendre(validations.every(r => r.setDataValidation.rule.condition.type === 'BOOLEAN' && r.setDataValidation.rule.strict), 'validation booléenne');
@@ -1945,6 +1946,17 @@ TESTS_JS = r"""
     };
     avant(ui);
     const agendaSimule = { prochainsRendezVous: async () => [], lireCache: () => c.agenda().lireCache() };
+    const etapesIsolees = JSON.parse(JSON.stringify(ETAPES_PAR_DEFAUT));
+    ui.listesChoix = objetIsole(SOURCE_LISTES_CHOIX, 'listesChoix', {
+      localStorage: c.localStorage, window: c.window, TACHES: c.TACHES, ETAPES_PAR_DEFAUT: etapesIsolees, dateDuJour
+    });
+    ui.choixDates = objetIsole(SOURCE_CHOIX_DATES, 'choixDates', {
+      document: doc, Date: c.Date, comprendreDemande, dictee: ui.dictee
+    });
+    ui.fenetresListes = objetIsole(SOURCE_FENETRES_LISTES, 'fenetresListes', {
+      document: doc, listesChoix: ui.listesChoix, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout
+    });
+    ui.etapesParDefaut = etapesIsolees;
     objetIsole(SOURCE_APP, 'undefined', {
       document: doc, window: c.window, navigator: c.navigator, Date: c.Date,
       setInterval: c.setInterval, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout,
@@ -1955,7 +1967,8 @@ TESTS_JS = r"""
       }),
       journalActions: objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', { localStorage: c.localStorage }),
       googleAgenda: agendaSimule,
-      TACHES: c.TACHES, INFO_CHARGEMENT: '', ETAPES_PAR_DEFAUT,
+      TACHES: c.TACHES, INFO_CHARGEMENT: '', ETAPES_PAR_DEFAUT: etapesIsolees,
+      listesChoix: ui.listesChoix, choixDates: ui.choixDates, fenetresListes: ui.fenetresListes,
       avancementTache: () => ({ faites: 0, total: 0 }), avancementSousCategorie: () => 0,
       joursRestants, dateDuJour, ajouterEtape, abandonner, remettre, cocher,
       reporterADemain, changerEcheance, creerAvecEtapesParDefaut, creerTache, traiterDemande, composerTexte,
@@ -2481,6 +2494,352 @@ TESTS_JS = r"""
     attendre(TACHES.includes(tache), 'tâche perdue');
   });
 
+  function listesIsolees(taches = [], etapes = { Roman: ['Relire'] }, memoire = espaceMemoire(), fenetre = new EventTarget()) {
+    let evenements = 0;
+    fenetre.addEventListener('cap-listes-changees', () => { evenements += 1; });
+    const instance = objetIsole(SOURCE_LISTES_CHOIX, 'listesChoix', {
+      localStorage: memoire, window: fenetre, TACHES: taches, ETAPES_PAR_DEFAUT: etapes, dateDuJour: () => '2026-10-29'
+    });
+    return { instance, memoire, etapes, fenetre, evenements: () => evenements };
+  }
+
+  const boutonTexte = (racine, texte) => Array.from(racine.querySelectorAll('button')).find(bouton => bouton.textContent === texte);
+  const texteJour = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+  function remettreListesPage(etapesAvant) {
+    document.querySelectorAll('dialog[open]').forEach(dialogue => dialogue.close());
+    if (etapesAvant) {
+      for (const nom of Object.keys(ETAPES_PAR_DEFAUT)) if (!(nom in etapesAvant)) delete ETAPES_PAR_DEFAUT[nom];
+    }
+    localStorage.removeItem('cap_listes_v1');
+    localStorage.removeItem('cap_listes_a_envoyer_v1');
+    listesChoix.recharger();
+  }
+
+  test('Listes : À trier en tête, plus utilisées ensuite, couleurs et sous-catégories', () => {
+    const taches = [
+      { categorie: 'Musique', sous_categorie: 'Guitare' }, { categorie: 'Jardin', sous_categorie: '' },
+      { categorie: 'Jardin', sous_categorie: '' }, { categorie: 'Écriture', sous_categorie: '', abandonnee_le: '2026-01-01' }
+    ];
+    const l = listesIsolees(taches);
+    attendreEgal(l.instance.categories(), ['À trier', 'Jardin', 'Musique', 'Écriture', 'Quotidien'], 'ordre');
+    attendreEgal(l.instance.couleur('À trier'), '#6f6f6f', 'gris pour À trier');
+    const couleurs = l.instance.categories().map(nom => l.instance.couleur(nom));
+    attendreEgal(new Set(couleurs).size, couleurs.length, 'une couleur par catégorie');
+    attendre(couleurs.every(couleur => /^#[0-9a-f]{6}$/i.test(couleur)), 'couleurs valides');
+    attendreEgal(l.instance.categories('Musique'), ['Guitare'], 'sous-catégorie reprise des tâches');
+    attendreEgal(l.instance.modeles(), ['Roman'], 'modèles de départ');
+    attendre(!l.instance.aEnvoyer(), 'rien à envoyer au départ');
+    attendreEgal(l.instance.ajouterCategorie('  Voyage   lointain '), 'Voyage lointain', 'nom nettoyé');
+    attendre(l.instance.categories().includes('Voyage lointain') && l.instance.aEnvoyer() && l.evenements() > 0, 'ajout signalé');
+    attendreEgal(l.instance.ajouterCategorie('musique'), 'Musique', 'pas de doublon');
+    attendreEgal(l.instance.categories().filter(nom => nom === 'Musique').length, 1, 'Musique unique');
+    l.instance.ajouterCategorie('Basse', 'Musique');
+    attendreEgal(l.instance.categories('Musique'), ['Guitare', 'Basse'], 'sous-catégorie ajoutée');
+    attendreEgal(l.instance.ajouterCategorie('x'.repeat(80)).length, 60, '60 caractères au plus');
+    attendreErreur(() => l.instance.ajouterCategorie('   '), 'Indique un nom');
+    attendreErreur(() => l.instance.ajouterCategorie('Solo', 'Inconnue'), 'introuvable');
+    const relue = listesIsolees(taches, { Roman: ['Relire'] }, l.memoire);
+    attendreEgal(relue.instance.categories('Musique'), ['Guitare', 'Basse'], 'relu après redémarrage');
+  });
+
+  test('Listes : retirer n’efface rien, remettre, modèles ajoutés et retirés', () => {
+    const l = listesIsolees([{ categorie: 'Jardin', sous_categorie: '' }]);
+    attendreEgal(l.instance.retirer('categorie', ['Jardin']), ['Jardin'], 'retrait');
+    attendre(!l.instance.categories().includes('Jardin'), 'Jardin encore proposé');
+    attendreEgal(l.instance.categoriesRetirees(), [{ nom: 'Jardin', retiree_le: '2026-10-29' }], 'retirée avec la date');
+    attendre(l.instance.exporter().categories.some(categorie => categorie.nom === 'Jardin'), 'Jardin effacé');
+    attendreEgal(l.instance.remettre('categorie', ['Jardin']), ['Jardin'], 'remise');
+    attendre(l.instance.categories().includes('Jardin'), 'Jardin pas revenu');
+    attendreEgal(l.instance.ajouterModele('Concert', ['Répéter', '', '  Jouer  ']), 'Concert', 'modèle ajouté');
+    attendreEgal(l.etapes.Concert, ['Répéter', 'Jouer'], 'étapes enregistrées pour la création');
+    attendreErreur(() => l.instance.ajouterModele('concert', ['A']), 'existe déjà');
+    attendreErreur(() => l.instance.ajouterModele('Vide', ['  ']), 'au moins une étape');
+    attendreErreur(() => l.instance.ajouterModele('Long', Array.from({ length: 21 }, (_, i) => `É${i}`)), 'Vingt étapes');
+    l.instance.retirer('modele', ['Roman']);
+    attendreEgal(l.instance.modeles(), ['Concert'], 'Roman retiré du menu');
+    attendreEgal(l.etapes.Roman, ['Relire'], 'Roman gardé');
+    attendreEgal(l.instance.exporter().modeles.find(modele => modele.nom === 'Roman').retiree_le, '2026-10-29', 'date de retrait');
+    attendreEgal(l.instance.ajouterModele('roman', ['Relire', 'Envoyer']), 'Roman', 'modèle remis par un nouvel ajout');
+    attendreEgal(l.instance.etapes('Roman'), ['Relire', 'Envoyer'], 'nouvelles étapes');
+    attendreEgal(l.instance.modeles(), ['Roman', 'Concert'], 'ordre conservé');
+  });
+
+  test('Listes : fusion avec le tableau, la modification la plus récente gagne', () => {
+    const l = listesIsolees([]);
+    l.instance.retirer('categorie', ['Musique']);
+    l.instance.marquerEnvoye();
+    l.instance.fusionner({
+      modeles: [
+        { nom: 'Roman', etapes: ['A', 'B'], retiree_le: '', modifie_le: '2099-01-01T00:00:00.000Z' },
+        { nom: 'Album', etapes: ['Mixer'], retiree_le: '', modifie_le: '' }
+      ],
+      categories: [
+        { nom: 'musique', parente: '', couleur: '#123456', retiree_le: '', modifie_le: '2000-01-01T00:00:00.000Z' },
+        { nom: 'Sport', parente: '', couleur: '', retiree_le: '', modifie_le: '' },
+        { nom: 'Course', parente: 'Sport', couleur: '', retiree_le: '', modifie_le: '' }
+      ]
+    });
+    attendreEgal(l.instance.etapes('Roman'), ['A', 'B'], 'version distante plus récente');
+    attendreEgal(l.etapes.Album, ['Mixer'], 'modèle distant ajouté');
+    attendre(!l.instance.categories().includes('Musique'), 'retrait local plus récent perdu');
+    attendreEgal(l.instance.couleur('Musique'), '#123456', 'couleur du tableau');
+    attendre(/^#[0-9a-f]{6}$/i.test(l.instance.couleur('Sport')), 'couleur donnée à Sport');
+    attendreEgal(l.instance.categories('Sport'), ['Course'], 'sous-catégorie distante');
+    attendre(!l.instance.aEnvoyer(), 'la fusion seule ne demande pas d’envoi');
+  });
+
+  test('Compréhension : ce week-end, semaine prochaine et jours pour les dates', () => {
+    const jeudi = new Date(2026, 9, 29, 12);
+    attendreEgal(comprendreDemande.date('ce week-end', jeudi), '2026-10-31', 'week-end depuis jeudi');
+    attendreEgal(comprendreDemande.date('ce week-end', new Date(2026, 9, 31, 12)), '2026-10-31', 'samedi');
+    attendreEgal(comprendreDemande.date('ce weekend', new Date(2026, 10, 1, 12)), '2026-11-01', 'dimanche');
+    attendreEgal(comprendreDemande.date('semaine prochaine', jeudi), '2026-11-02', 'lundi suivant');
+    attendreEgal(comprendreDemande.date('la semaine prochaine', new Date(2026, 10, 2, 12)), '2026-11-09', 'depuis un lundi');
+    attendreEgal(comprendreDemande.date('Vendredi', jeudi), '2026-10-30', 'vendredi');
+    attendreEgal(comprendreDemande.date('le 12 novembre', jeudi), '2026-11-12', 'date en toutes lettres');
+    attendreEgal(comprendreDemande.date('blabla', jeudi), '', 'rien inventé');
+    attendreEgal(choixDates.dateRapide("aujourd'hui", jeudi), '2026-10-29', 'bouton Aujourd’hui');
+  });
+
+  test('Ajouter une tâche : dates en menus, boutons rapides, date impossible refusée', () => {
+    remettreListesPage();
+    document.getElementById('ajouter').click();
+    const formulaireTache = document.getElementById('formulaire-ajout');
+    attendreEgal(formulaireTache.querySelectorAll('input[type="date"]').length, 0, 'plus de saisie JJ/MM/AAAA');
+    const jour = document.getElementById('echeance-jour');
+    const mois = document.getElementById('echeance-mois');
+    const annee = document.getElementById('echeance-annee');
+    const echeance = document.getElementById('echeance');
+    attendre(jour && mois && annee, 'trois menus absents');
+    attendreEgal(annee.options[1].value, String(new Date().getFullYear()), 'année en cours en premier');
+    attendreEgal(mois.options[11].textContent, 'novembre', 'mois en toutes lettres');
+    attendreEgal(echeance.value, '', 'vide par défaut');
+    const zone = jour.closest('.champ-date');
+    attendreEgal(Array.from(zone.querySelectorAll('.boutons-rapides button'), b => b.textContent),
+      ['Aujourd’hui', 'Demain', 'Ce week-end', 'Semaine prochaine'], 'quatre boutons rapides');
+    const demain = new Date();
+    demain.setDate(demain.getDate() + 1);
+    boutonTexte(zone, 'Demain').click();
+    attendreEgal(echeance.value, texteJour(demain), 'Demain');
+    attendreEgal([jour.value, mois.value, annee.value], texteJour(demain).split('-').reverse(), 'menus remplis d’un coup');
+    attendreEgal(boutonTexte(zone, 'Demain').getAttribute('aria-pressed'), 'true', 'bouton marqué');
+    boutonTexte(zone, 'Ce week-end').click();
+    const weekend = new Date(`${echeance.value}T12:00:00`);
+    attendre([0, 6].includes(weekend.getDay()) && echeance.value >= texteJour(new Date()), 'week-end incorrect');
+    boutonTexte(zone, 'Semaine prochaine').click();
+    attendre(new Date(`${echeance.value}T12:00:00`).getDay() === 1 && echeance.value > texteJour(new Date()), 'semaine prochaine incorrecte');
+    boutonTexte(zone, 'Effacer').click();
+    attendreEgal([echeance.value, jour.value, mois.value, annee.value], ['', '', '', ''], 'effacé');
+    mois.value = '03';
+    mois.dispatchEvent(new Event('change'));
+    attendreEgal([jour.value, annee.value], [String(new Date().getDate()).padStart(2, '0'), String(new Date().getFullYear())], 'jour et année du jour complétés');
+    jour.value = '31';
+    mois.value = '02';
+    jour.dispatchEvent(new Event('change'));
+    attendreEgal(echeance.value, '', 'date impossible gardée');
+    attendre(jour.validationMessage.includes('n’existe pas'), 'pas de message pour le 31 février');
+    document.getElementById('intitule').value = 'FICTIF date impossible';
+    const avant = TACHES.length;
+    formulaireTache.requestSubmit();
+    attendreEgal(TACHES.length, avant, 'tâche créée avec une date impossible');
+    jour.value = '28';
+    jour.dispatchEvent(new Event('change'));
+    attendreEgal(echeance.value, `${annee.value}-02-28`, '28 février');
+    attendreEgal(jour.validationMessage, '', 'message retiré');
+    boutonTexte(document.getElementById('avant-le-jour').closest('.champ-date'), 'Aujourd’hui').click();
+    document.getElementById('intitule').value = 'FICTIF dates menus';
+    formulaireTache.requestSubmit();
+    const tache = TACHES.find(item => item.intitule === 'FICTIF dates menus');
+    attendre(tache, 'tâche non créée');
+    attendreEgal([tache.echeance, tache.avant_le], [`${annee.value}-02-28`, texteJour(new Date())], 'dates enregistrées');
+    document.getElementById('ajouter').click();
+    attendreEgal([echeance.value, jour.value, document.getElementById('avant-le').value], ['', '', ''], 'formulaire remis à zéro');
+    remettreListesPage();
+  });
+
+  test('Ajouter une tâche : catégories en gros boutons, sous-catégories, ajouter et retirer sans effacer', () => {
+    remettreListesPage();
+    document.getElementById('ajouter').click();
+    document.getElementById('choisir-categorie').click();
+    const fenetre = document.getElementById('fenetre-liste');
+    attendre(fenetre.open, 'liste des catégories pas ouverte');
+    attendreEgal(fenetre.querySelectorAll('input, textarea').length, 0, 'aucun champ texte, donc pas de clavier');
+    const premiers = Array.from(fenetre.querySelector('.grille-choix').querySelectorAll('.bouton-choix'), b => b.textContent);
+    attendreEgal(premiers[0], 'À trier', 'À trier en premier');
+    attendre(['Musique', 'Écriture', 'Quotidien'].every(nom => premiers.includes(nom)), 'catégories prêtes absentes');
+    boutonTexte(fenetre, 'Ajouter').click();
+    document.getElementById('nom-nouvel-element').value = 'Jardin FICTIF';
+    fenetre.querySelector('form').requestSubmit();
+    const jardin = boutonTexte(fenetre, 'Jardin FICTIF');
+    attendre(jardin, 'nouvelle catégorie pas devenue un bouton');
+    attendre(jardin.style.getPropertyValue('--couleur-choix'), 'nouvelle catégorie sans couleur');
+    jardin.click();
+    attendreEgal(document.getElementById('titre-fenetre-liste').textContent, 'Jardin FICTIF : sous-catégorie', 'sous-catégories ouvertes');
+    boutonTexte(fenetre, 'Ajouter').click();
+    document.getElementById('nom-nouvel-element').value = 'Potager';
+    fenetre.querySelector('form').requestSubmit();
+    boutonTexte(fenetre, 'Potager').click();
+    attendre(!fenetre.open, 'fenêtre restée ouverte après le choix');
+    attendreEgal([document.getElementById('categorie').value, document.getElementById('sous-categorie').value], ['Jardin FICTIF', 'Potager'], 'choix enregistré');
+    attendreEgal(document.getElementById('texte-categorie').textContent, 'Jardin FICTIF › Potager', 'choix affiché');
+    document.getElementById('intitule').value = 'FICTIF catégorie boutons';
+    document.getElementById('formulaire-ajout').requestSubmit();
+    const tache = TACHES.find(item => item.intitule === 'FICTIF catégorie boutons');
+    attendreEgal([tache.categorie, tache.sous_categorie], ['Jardin FICTIF', 'Potager'], 'tâche classée');
+    const section = document.getElementById(`tache-${tache.id}`).closest('section.categorie');
+    attendreEgal(section.style.getPropertyValue('--couleur-categorie'), listesChoix.couleur('Jardin FICTIF'), 'couleur dans la liste');
+    document.getElementById('ajouter').click();
+    document.getElementById('choisir-categorie').click();
+    boutonTexte(fenetre, 'Modifier').click();
+    const retirer = Array.from(fenetre.querySelectorAll('.bouton-retirer'))[0];
+    attendre(retirer.hidden, 'Retirer visible sans case cochée');
+    const caseJardin = Array.from(fenetre.querySelectorAll('.liste-cases input')).find(c => c.value === 'Jardin FICTIF');
+    caseJardin.checked = true;
+    caseJardin.dispatchEvent(new Event('change'));
+    attendre(!retirer.hidden && retirer.textContent === 'Retirer (1)', 'bouton Retirer (1) absent');
+    retirer.click();
+    attendre(!listesChoix.categories().includes('Jardin FICTIF'), 'catégorie encore proposée');
+    attendre(listesChoix.exporter().categories.find(c => c.nom === 'Jardin FICTIF').retiree_le, 'catégorie effacée au lieu d’être marquée');
+    attendre(fenetre.querySelector('.section-retirees').textContent.includes('Jardin FICTIF'), 'pas dans Retirées');
+    const bandeau = document.getElementById('annulation-liste');
+    attendre(!bandeau.hidden, 'pas de bouton Annuler');
+    boutonTexte(bandeau, 'Annuler').click();
+    attendre(listesChoix.categories().includes('Jardin FICTIF'), 'Annuler n’a pas remis la catégorie');
+    attendre(TACHES.includes(tache) && tache.categorie === 'Jardin FICTIF', 'tâche touchée');
+    remettreListesPage();
+  });
+
+  test('Étapes par défaut : Ajouter et Modifier la liste depuis le menu', () => {
+    const etapesAvant = JSON.parse(JSON.stringify(ETAPES_PAR_DEFAUT));
+    remettreListesPage(etapesAvant);
+    document.getElementById('ajouter').click();
+    const selection = document.getElementById('modele');
+    const options = Array.from(selection.options);
+    attendreEgal(options.slice(-2).map(o => [o.value, o.textContent]), [['__ajouter', 'Ajouter…'], ['__modifier', 'Modifier la liste…']], 'deux choix en bas');
+    selection.value = '__ajouter';
+    selection.dispatchEvent(new Event('change'));
+    attendreEgal(selection.value, '', 'menu remis à l’ancien choix');
+    const fenetre = document.getElementById('fenetre-liste');
+    attendre(fenetre.open, 'fenêtre d’ajout pas ouverte');
+    document.getElementById('nom-nouvel-element').value = 'Concert FICTIF';
+    document.getElementById('etapes-nouveau-modele').value = 'Répéter\n\nJouer';
+    fenetre.querySelector('form').requestSubmit();
+    attendre(!fenetre.open, 'fenêtre restée ouverte');
+    attendreEgal(selection.value, 'Concert FICTIF', 'nouveau modèle choisi');
+    attendreEgal(ETAPES_PAR_DEFAUT['Concert FICTIF'], ['Répéter', 'Jouer'], 'étapes enregistrées');
+    attendre(listesChoix.aEnvoyer(), 'pas marqué pour le tableau');
+    document.getElementById('intitule').value = 'FICTIF concert';
+    document.getElementById('formulaire-ajout').requestSubmit();
+    const parent = TACHES.find(item => item.intitule === 'FICTIF concert');
+    attendreEgal(TACHES.filter(item => item.parente === parent.id).map(item => item.intitule), ['Répéter', 'Jouer'], 'étapes créées');
+    document.getElementById('ajouter').click();
+    selection.value = '__modifier';
+    selection.dispatchEvent(new Event('change'));
+    attendre(fenetre.open, 'fenêtre Modifier pas ouverte');
+    const retirer = fenetre.querySelector('.bouton-retirer');
+    attendre(retirer.hidden, 'Retirer visible d’emblée');
+    const caseConcert = Array.from(fenetre.querySelectorAll('.liste-cases input')).find(c => c.value === 'Concert FICTIF');
+    caseConcert.checked = true;
+    caseConcert.dispatchEvent(new Event('change'));
+    attendreEgal(retirer.textContent, 'Retirer (1)', 'compteur');
+    fenetre.querySelector('.bouton-retirer').click();
+    attendre(!listesChoix.modeles().includes('Concert FICTIF'), 'modèle encore proposé');
+    attendre(!Array.from(selection.options).some(o => o.value === 'Concert FICTIF'), 'modèle encore dans le menu');
+    attendreEgal(listesChoix.modelesRetires().map(m => m.nom), ['Concert FICTIF'], 'modèle gardé comme retiré');
+    boutonTexte(document.getElementById('annulation-liste'), 'Annuler').click();
+    attendre(listesChoix.modeles().includes('Concert FICTIF'), 'Annuler sans effet');
+    const caseDeNouveau = Array.from(fenetre.querySelectorAll('.liste-cases input')).find(c => c.value === 'Concert FICTIF');
+    caseDeNouveau.checked = true;
+    caseDeNouveau.dispatchEvent(new Event('change'));
+    fenetre.querySelector('.bouton-retirer').click();
+    boutonTexte(fenetre.querySelector('.section-retirees'), 'Remettre').click();
+    attendre(listesChoix.modeles().includes('Concert FICTIF'), 'Remettre sans effet');
+    attendre(Array.from(selection.options).some(o => o.value === 'Concert FICTIF'), 'modèle pas revenu dans le menu');
+    remettreListesPage(etapesAvant);
+  });
+
+  await testAsync('Google Sheets listes : lecture, ancien entête, onglet Catégories ajouté sans rien effacer', async c => {
+    c.localStorage.setItem('cap_google_fichier_v1', 'tableau-fictif');
+    let ongletsPresents = ['Tâches', 'Étapes par défaut', 'Phrases du clavier'];
+    let lignesModeles = [['Modèle', 'Étape'], ['Roman', 'Relire'], ['Roman', 'Corriger'], ['Album', 'Mixer']];
+    c.repondre = async r => {
+      const chemin = decodeURIComponent(r.url.pathname);
+      if (r.methode === 'GET' && chemin === '/drive/v3/files/tableau-fictif') return reponseGoogle({ id: 'tableau-fictif', trashed: false });
+      if (r.methode === 'GET' && chemin === '/v4/spreadsheets/tableau-fictif') return reponseGoogle({ sheets: ongletsPresents.map(title => ({ properties: { title } })) });
+      if (r.methode === 'GET' && chemin.includes('Étapes par défaut')) return reponseGoogle({ values: lignesModeles });
+      if (r.methode === 'GET' && chemin.includes('Catégories')) return reponseGoogle({ values: [] });
+      if (r.methode === 'POST') return reponseGoogle({});
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const sheets = c.sheets();
+    await sheets.trouverOuCreer();
+    const lecture = await sheets.lireListes();
+    attendreEgal(lecture.modeles.map(m => [m.nom, m.etapes]), [['Roman', ['Relire', 'Corriger']], ['Album', ['Mixer']]], 'modèles lus');
+    attendreEgal(lecture.manquants, ['Catégories'], 'onglet manquant repéré');
+    await sheets.ecrireListes({
+      modeles: [{ nom: 'Roman', etapes: ['Relire'], retiree_le: '2026-10-29', modifie_le: 'x' }],
+      categories: [{ nom: 'À trier', parente: '', couleur: '#6f6f6f', retiree_le: '', modifie_le: '' }]
+    });
+    const ajoutOnglet = c.requetes.find(r => r.url.pathname.endsWith('tableau-fictif:batchUpdate')).corps.requests;
+    attendreEgal(ajoutOnglet.map(a => a.addSheet.properties.title), ['Catégories'], 'onglet Catégories ajouté');
+    const ecriture = c.requetes.find(r => r.url.pathname.endsWith('/values:batchUpdate')).corps;
+    attendreEgal(ecriture.valueInputOption, 'RAW', 'écriture brute');
+    attendreEgal(ecriture.data[0].values, [['Modèle', 'Étape', 'Retirée le', 'Modifiée le'], ['Roman', 'Relire', '2026-10-29', 'x'], ['', '', '', ''], ['', '', '', '']], 'lignes anciennes recouvertes, aucune suppression');
+    attendreEgal(ecriture.data[1].values, [['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le'], ['À trier', '', '#6f6f6f', '', '']], 'catégories écrites');
+    ongletsPresents = [...ongletsPresents, 'Catégories'];
+    lignesModeles = [['Nom', 'Truc'], ['Roman', 'Relire']];
+    const avant = c.requetes.filter(r => r.methode === 'POST').length;
+    await attendreRejet(() => sheets.ecrireListes({ modeles: [], categories: [] }), 'illisibles');
+    lignesModeles = [['Modèle', 'Étape'], ['Roman', 42]];
+    await attendreRejet(() => sheets.ecrireListes({ modeles: [], categories: [] }), 'illisible');
+    attendreEgal(c.requetes.filter(r => r.methode === 'POST').length, avant, 'aucune écriture sur un tableau illisible');
+  });
+
+  await testAsync('Synchro listes : lit, fusionne, écrit, puis seulement après un changement', async c => {
+    const memoire = espaceMemoire();
+    const l = listesIsolees([], { Roman: ['Relire'] }, memoire, c.window);
+    const ecritures = [];
+    let echec = false;
+    const fauxSheets = {
+      trouverOuCreer: async () => ({ id: 'tableau-fictif', cree: false }),
+      lireListes: async () => ({ modeles: [], categories: [{ nom: 'Sport', parente: '', couleur: '', retiree_le: '', modifie_le: '' }] }),
+      ecrireListes: async donnees => {
+        if (echec) throw new Error('panne simulée');
+        ecritures.push(donnees);
+      }
+    };
+    const synchro = objetIsole(SOURCE_SYNCHRO_LISTES, 'synchroListes', {
+      googleConnexion: c.googleConnexion, navigator: c.navigator, googleSheets: fauxSheets, listesChoix: l.instance,
+      localStorage: memoire, window: c.window, setInterval: c.setInterval, Date: c.Date
+    });
+    attendreEgal(await synchro.synchroniser(), true, 'première synchronisation');
+    attendreEgal(ecritures.length, 1, 'une écriture');
+    attendre(ecritures[0].categories.some(cat => cat.nom === 'Sport') && l.instance.categories().includes('Sport'), 'fusion absente');
+    attendreEgal(await synchro.synchroniser(), false, 'rien à refaire');
+    attendreEgal(ecritures.length, 1, 'pas de réécriture inutile');
+    l.instance.ajouterCategorie('Voyage');
+    await synchro.synchroniser();
+    attendreEgal(ecritures.length, 2, 'changement envoyé');
+    attendre(ecritures[1].categories.some(cat => cat.nom === 'Voyage'), 'Voyage absent');
+    echec = true;
+    l.instance.ajouterCategorie('Cuisine');
+    await synchro.synchroniser();
+    attendre(l.instance.aEnvoyer(), 'changement perdu après une panne');
+    attendre(synchro.erreur().includes('panne simulée'), 'erreur non gardée');
+    echec = false;
+    attendreEgal(await synchro.synchroniser(), false, 'nouvel essai trop tôt');
+    c.maintenant += 61000;
+    attendreEgal(await synchro.synchroniser(), true, 'nouvel essai après une minute');
+    attendre(ecritures.at(-1).categories.some(cat => cat.nom === 'Cuisine') && !l.instance.aEnvoyer(), 'Cuisine pas envoyée');
+    c.navigator.onLine = false;
+    l.instance.ajouterCategorie('Hors ligne');
+    const nombre = ecritures.length;
+    attendreEgal(await synchro.synchroniser(), false, 'hors ligne');
+    attendreEgal(ecritures.length, nombre, 'aucun envoi hors ligne');
+    attendre(l.instance.aEnvoyer(), 'changement hors ligne gardé');
+  });
+
   test('Glisser et report : droite coche, gauche reporte à demain, Annuler remet', () => {
     const tache = tacheInterface('FICTIF glisser interface');
     const glisser = ecart => {
@@ -2836,8 +3195,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v8['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v8")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v9['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v9")
 
 
 def verifier_precache_fichiers_existent():
@@ -2912,6 +3271,10 @@ def construire_page():
         "SOURCE_APP": "app.js",
         "SOURCE_JOURNAL_ACTIONS": "journal_actions.js",
         "SOURCE_FICHE_RDV": "fiche_rendezvous.js",
+        "SOURCE_LISTES_CHOIX": "listes_choix.js",
+        "SOURCE_CHOIX_DATES": "choix_dates.js",
+        "SOURCE_FENETRES_LISTES": "fenetres_listes.js",
+        "SOURCE_SYNCHRO_LISTES": "synchro_listes.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }

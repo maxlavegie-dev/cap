@@ -140,17 +140,19 @@
       <input id="intitule" name="intitule" type="text" required autocomplete="off">
       <fieldset id="champs-tache">
         <legend>Précisions facultatives</legend>
-        <label for="categorie">Catégorie</label>
-        <input id="categorie" name="categorie" type="text" list="categories" autocomplete="off">
-        <datalist id="categories"></datalist>
-        <label for="sous-categorie">Sous-catégorie</label>
-        <input id="sous-categorie" name="sous_categorie" type="text" list="sous-categories" autocomplete="off">
-        <datalist id="sous-categories"></datalist>
+        <span class="etiquette-champ" id="etiquette-categorie">Catégorie</span>
+        <button id="choisir-categorie" class="bouton-categorie" type="button" aria-labelledby="etiquette-categorie texte-categorie">
+          <span class="pastille-categorie" aria-hidden="true"></span><span id="texte-categorie">Aucune</span>
+        </button>
+        <input id="categorie" name="categorie" type="hidden">
+        <input id="sous-categorie" name="sous_categorie" type="hidden">
         <label for="modele">Étapes par défaut</label>
         <select id="modele" name="modele"><option value="">Aucune</option></select>
         <div class="dates-formulaire">
-          <div><label for="echeance">Échéance</label><input id="echeance" name="echeance" type="date"></div>
-          <div><label for="avant-le">Avant le</label><input id="avant-le" name="avant_le" type="date"></div>
+          <div class="champ-date" data-cible="echeance" data-libelle="Échéance"></div>
+          <input id="echeance" name="echeance" type="hidden">
+          <div class="champ-date" data-cible="avant-le" data-libelle="Avant le"></div>
+          <input id="avant-le" name="avant_le" type="hidden">
         </div>
         <label for="priorite">Priorité</label>
         <select id="priorite" name="priorite">
@@ -167,6 +169,12 @@
         <button type="submit">Ajouter</button>
       </div>
     </form>
+  </dialog>
+  <dialog id="fenetre-liste" aria-labelledby="titre-fenetre-liste">
+    <h2 id="titre-fenetre-liste">Catégorie</h2>
+    <div id="contenu-fenetre-liste"></div>
+    <p class="erreur" role="alert" hidden></p>
+    <div id="annulation-liste" class="annulation-liste" role="status" hidden></div>
   </dialog>
   <dialog id="fiche-rendez-vous" aria-labelledby="titre-fiche-rendez-vous">
     <header class="entete-fiche-rdv">
@@ -226,6 +234,7 @@
   <script src="etapes_par_defaut.js"></script>
   <script src="stockage.js"></script>
   <script src="taches.js"></script>
+  <script src="listes_choix.js"></script>
   <script src="reglages_google.js"></script>
   <script src="google_connexion.js"></script>
   <script src="google_sheets.js"></script>
@@ -239,6 +248,9 @@
   <script src="recherche.js"></script>
   <script src="journal_actions.js"></script>
   <script src="fiche_rendezvous.js"></script>
+  <script src="choix_dates.js"></script>
+  <script src="fenetres_listes.js"></script>
+  <script src="synchro_listes.js"></script>
   <script src="app.js"></script>
   <script src="installation.js"></script>
 </body>

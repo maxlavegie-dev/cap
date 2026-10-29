@@ -488,6 +488,7 @@
       Number(b === 'À trier') - Number(a === 'À trier'));
     for (const [categorie, sousGroupes] of categoriesTriees) {
       const section = element('section', 'categorie');
+      if (categorie) section.style.setProperty('--couleur-categorie', listesChoix.couleur(categorie));
       section.append(element('h2', '', categorie || 'Sans catégorie'));
       for (const [sousCategorie, taches] of sousGroupes) {
         const sousSection = element('section', 'sous-categorie');
@@ -551,19 +552,28 @@
     afficherRecherche();
   }
 
-  function suggestions() {
-    const categories = [...new Set(TACHES.map(tache => tache.categorie).filter(Boolean))];
+  function afficherCategorieChoisie() {
     const categorie = parId('categorie').value;
-    const sousCategories = [...new Set(TACHES
-      .filter(tache => !categorie || tache.categorie === categorie)
-      .map(tache => tache.sous_categorie).filter(Boolean))];
-    for (const [id, valeurs] of [['categories', categories], ['sous-categories', sousCategories]]) {
-      parId(id).replaceChildren(...valeurs.map(valeur => {
-        const option = element('option');
-        option.value = valeur;
-        return option;
-      }));
-    }
+    const sousCategorie = parId('sous-categorie').value;
+    parId('texte-categorie').textContent = categorie ? (sousCategorie ? `${categorie} › ${sousCategorie}` : categorie) : 'Aucune';
+    parId('choisir-categorie').style.setProperty('--couleur-categorie', categorie ? listesChoix.couleur(categorie) : 'transparent');
+  }
+
+  function remplirModeles(valeur = parId('modele').value) {
+    const aucune = element('option', '', 'Aucune');
+    aucune.value = '';
+    const ajouterModele = element('option', '', 'Ajouter…');
+    ajouterModele.value = '__ajouter';
+    const modifierModeles = element('option', '', 'Modifier la liste…');
+    modifierModeles.value = '__modifier';
+    const noms = listesChoix.modeles();
+    parId('modele').replaceChildren(aucune, ...noms.map(nom => {
+      const option = element('option', '', nom);
+      option.value = nom;
+      return option;
+    }), ajouterModele, modifierModeles);
+    parId('modele').value = noms.includes(valeur) ? valeur : '';
+    parId('modele').dataset.precedent = parId('modele').value;
   }
 
   function preparerAjout(parente, origine) {
@@ -577,19 +587,43 @@
     contexte.hidden = !estEtape;
     parId('champs-tache').hidden = estEtape;
     parId('champs-tache').disabled = estEtape;
-    const aucune = element('option', '', 'Aucune');
-    aucune.value = '';
-    parId('modele').replaceChildren(aucune, ...Object.keys(ETAPES_PAR_DEFAUT).map(nom => {
-      const option = element('option', '', nom);
-      option.value = nom;
-      return option;
-    }));
-    suggestions();
+    parId('categorie').value = '';
+    parId('sous-categorie').value = '';
+    afficherCategorieChoisie();
+    remplirModeles('');
     ouvrir(ajout, parId('intitule'), origine);
   }
 
   parId('ajouter').addEventListener('click', event => preparerAjout(null, event.currentTarget));
-  parId('categorie').addEventListener('input', suggestions);
+  parId('choisir-categorie').addEventListener('click', () => {
+    fenetresListes.choisirCategorie({
+      categorie: parId('categorie').value,
+      sousCategorie: parId('sous-categorie').value,
+      surChoix(categorie, sousCategorie) {
+        parId('categorie').value = categorie;
+        parId('sous-categorie').value = sousCategorie;
+        afficherCategorieChoisie();
+        parId('choisir-categorie').focus({ preventScroll: true });
+      }
+    });
+  });
+  parId('modele').addEventListener('change', () => {
+    const selection = parId('modele');
+    const action = selection.value;
+    if (action !== '__ajouter' && action !== '__modifier') {
+      selection.dataset.precedent = action;
+      return;
+    }
+    selection.value = selection.dataset.precedent || '';
+    fenetresListes.gererModeles({
+      action: action === '__ajouter' ? 'ajouter' : 'modifier',
+      surFin(nom) {
+        remplirModeles(nom);
+        selection.focus({ preventScroll: true });
+      }
+    });
+  });
+  document.querySelectorAll('#formulaire-ajout .champ-date').forEach(champ => choixDates.installer(champ));
   parId('ajouter-etape').addEventListener('click', () => {
     const parent = TACHES.find(tache => tache.id === tacheSelectionnee);
     if (!parent || parent.parente) return;
@@ -953,7 +987,7 @@
   }
 
   function tenterReconnexionSilencieuse() {
-    const texteSaisi = Array.from(document.querySelectorAll('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]), textarea, [contenteditable="true"]'))
+    const texteSaisi = Array.from(document.querySelectorAll('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]):not([type="hidden"]), textarea, [contenteditable="true"]'))
       .some(champ => (champ.value ?? champ.textContent).trim());
     const conditionsOk = !document.hidden && !document.querySelector('dialog[open]')
       && !dictee.enCours() && !texteSaisi;
@@ -1048,7 +1082,17 @@
   });
   window.addEventListener('cap-google-etat', afficherEtatGoogle);
   window.addEventListener('cap-google-deconnecte', afficherEtatGoogle);
-  window.addEventListener('cap-google-fusion', afficher);
+  window.addEventListener('cap-google-fusion', () => {
+    listesChoix.recharger();
+    afficher();
+  });
+  window.addEventListener('cap-listes-changees', () => {
+    afficher();
+    if (ajout.open && !parId('champs-tache').disabled) {
+      remplirModeles();
+      afficherCategorieChoisie();
+    }
+  });
   window.addEventListener('online', () => { void afficherRendezVous(); });
   afficherEtatGoogle();
   tenterReconnexionSilencieuse();

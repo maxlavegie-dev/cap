@@ -62,6 +62,10 @@ const comprendreDemande = (() => {
     if (trouve) return { date: dansJours(maintenant, 1), morceau: trouve[0] };
     trouve = /\baujourd'hui\b|\bce\s+(?:matin|midi|soir|après-midi)\b/i.exec(texte);
     if (trouve) return { date: dansJours(maintenant, 0), morceau: trouve[0] };
+    trouve = /\b(?:ce\s+)?week[- ]?end\b/i.exec(texte);
+    if (trouve) return { date: dansJours(maintenant, maintenant.getDay() === 0 ? 0 : 6 - maintenant.getDay()), morceau: trouve[0] };
+    trouve = /\b(?:la\s+)?semaine\s+prochaine\b/i.exec(texte);
+    if (trouve) return { date: dansJours(maintenant, (8 - maintenant.getDay()) % 7 || 7), morceau: trouve[0] };
     trouve = new RegExp(`\\b(?:le\\s+)?(1er|premier|\\d{1,2})\\s+(${mois.join('|')})(?:\\s+(\\d{4}))?\\b`, 'i').exec(texte);
     if (trouve) {
       const jour = /^\d+$/.test(trouve[1]) ? Number(trouve[1]) : 1;
@@ -142,5 +146,9 @@ const comprendreDemande = (() => {
     return { cible: motRendezVous.test(source) ? 'rendez-vous' : 'tache' };
   }
 
-  return { rendezVous, report };
+  function date(texte, maintenant = new Date()) {
+    return trouverDate(String(texte || '').replace(/[’`]/g, "'"), maintenant).date;
+  }
+
+  return { rendezVous, report, date };
 })();

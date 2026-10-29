@@ -6,7 +6,7 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 
 ## Où on en est
 
-**Étape actuelle :** Lot 2 (liste de tâches) publié le 29/10/2026, à essayer sur le téléphone.
+**Étape actuelle :** Lot 3 (fenêtre « Ajouter une tâche ») construit le 29/10/2026, en attente de l'accord de Max pour publier.
 
 ### Fait
 - 27/10/2026 : cahier des charges de Max rangé dans le projet (`PROMPT_CAP.txt`).
@@ -42,9 +42,17 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 - 29/10/2026 : Lot 1 publié par Max et validé sur son téléphone, sauf le rendez-vous dicté avec rappel.
 - 29/10/2026 : DÉFAUT trouvé et corrigé : un rendez-vous dicté répondait « ajouté » mais n'allait dans aucun agenda. Cause : sans cerveau, Cap transformait toute demande en tâche « À trier » (le « Atrier » vu par Max était le message « Ajoutée dans À trier »). Correction : un nouveau fichier (`comprendre_demande.js`) reconnaît, sans IA, une demande de rendez-vous (date, heure, titre, rappels) et ouvre une fiche « Nouveau rendez-vous » préremplie ; Max vérifie, puis confirme, et le rendez-vous est créé dans l'agenda « Cap – FICTIF » seulement, avec le rappel en notification Google Agenda. Sans connexion, Cap le dit honnêtement et le note en tâche. Aucune nouvelle autorisation Google.
 - 29/10/2026 : LOT 2 construit (sauvegarde `sauvegarde-avant-lot2-20261029`) : les tâches cochées sortent de la liste et vont dans une ligne repliée « Terminées (N) » tout en bas ; un appui l'ouvre, décocher remet la tâche dans sa catégorie. Glisser une tâche vers la droite la coche, vers la gauche la reporte à demain, avec « Annuler » pendant 8 secondes. « Reporter à demain » aussi dans le menu « … », et à la voix (« Reporte ça à demain ») pour la dernière tâche ouverte. 193 vérifications automatiques réussies. Publié le 29/10/2026 avec l'accord de Max.
+- 29/10/2026 : Lot 2 validé par Max.
+- 29/10/2026 : LOT 3 construit (sauvegarde `sauvegarde-avant-lot3-20261029`), fenêtre « Ajouter une tâche » :
+  - **Dates** : « Échéance » et « Avant le » se choisissent avec trois menus (jour, mois, année, l'année en cours en premier). Au-dessus, quatre boutons : Aujourd'hui, Demain, Ce week-end, Semaine prochaine. Un bouton « Dire la date » permet de dicter (« vendredi »), et un bouton « Effacer » vide la date. La date reste vide tant que Max ne la choisit pas ; une date impossible (31 février) est refusée.
+  - **Catégorie** : plus de clavier. Un appui ouvre de gros boutons de couleur : « À trier » toujours en premier, puis les plus utilisées. Un appui sur une catégorie ouvre ses sous-catégories, en boutons aussi. « Ajouter » et « Modifier » marchent aux deux niveaux. Chaque catégorie a sa couleur, visible dans la liste (trait coloré devant le titre).
+  - **Étapes par défaut** : le menu gagne « Ajouter… » et « Modifier la liste… » (cases à cocher, bouton « Retirer (N) »).
+  - **Rien n'est effacé** : ce qui est retiré reste dans le tableau, marqué avec la date, avec « Annuler » pendant 8 secondes et un bouton « Remettre ».
+  - **Tableau** : nouvel onglet « Catégories » (nom, sous-catégorie de, couleur, retirée le), et l'onglet « Étapes par défaut » est maintenant relu par Cap. Aucune nouvelle autorisation Google.
+  - 202 vérifications automatiques réussies.
 
 ### En cours
-- Lot 2 : publié, à essayer sur le téléphone, en particulier le rendez-vous dicté avec rappel : vérifier qu'il apparaît dans l'agenda « Cap – FICTIF » et que la notification arrive (dans l'appli Google Agenda, l'agenda « Cap – FICTIF » doit être synchronisé et ses notifications activées).
+- Lot 3 : construit, à publier avec l'accord de Max, puis à essayer sur le téléphone.
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)

@@ -33,18 +33,27 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `recherche.js` | La recherche tapée, sans intelligence artificielle : trouve un mot dans les tâches ou les rendez-vous, sans tenir compte des accents ni des majuscules. |
 | `journal_actions.js` | Retient sur le téléphone les dernières actions (ajout, coche, abandon) avec leur heure. |
 | `fiche_rendezvous.js` | La fiche d'un rendez-vous : détails, boutons « Appeler » et « Écrire », modification avec récapitulatif avant de confirmer. Ne touche que l'agenda « Cap – FICTIF ». |
+| `listes_choix.js` | Les listes de catégories (avec leurs couleurs et sous-catégories) et d'étapes par défaut. Retirer n'efface rien : l'élément est marqué avec la date et peut être remis. |
+| `synchro_listes.js` | Recopie ces listes dans le tableau (onglets « Catégories » et « Étapes par défaut ») et relit ce qui s'y trouve. |
+| `choix_dates.js` | Les dates en trois menus (jour, mois, année), avec les boutons Aujourd'hui, Demain, Ce week-end, Semaine prochaine, et la date dictée. |
+| `fenetres_listes.js` | Les fenêtres en gros boutons pour choisir une catégorie, et pour ajouter, retirer ou remettre une catégorie ou des étapes par défaut. |
 | `app.js` | L'affichage à l'écran et ce qui se passe quand on touche un bouton. |
 | `manifest.webmanifest` | La carte d'identité de l'appli pour le téléphone : nom, couleurs, icônes. Elle permet de l'installer sur l'écran d'accueil. |
 | `service-worker.js` | Garde une copie de l'appli sur le téléphone pour qu'elle s'ouvre même sans internet. |
 | `installation.js` | Active cette copie hors connexion. |
 | `icones/` | L'icône aux différentes tailles demandées par Android. Elles sont fabriquées par `outils/fabriquer_icones.py` à partir de l'icône validée. |
-| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil et de l'installation (183 essais). |
+| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout et de l'installation (202 essais). |
 
 ## L'écran d'accueil (Lot 1, 29/10/2026)
 - En haut : seulement la date du jour, centrée. Pas d'heure : la barre du haut du téléphone (heure, Wi-Fi, réseau, batterie) reste visible, car Cap installée s'ouvre en mode « standalone » (comme une appli, mais sans cacher cette barre).
 - En bas, juste au-dessus des trois boutons : une seule barre de recherche, facile à atteindre d'une main. À gauche dans la barre, un petit menu montre toujours où l'on cherche (« Tâches ▾ », « Rendez-vous ▾ » ; Gmail, Drive, archives et mémoire perso arriveront plus tard).
 - Les résultats arrivent pendant la frappe, sans appuyer sur Entrée, et s'affichent au-dessus de la barre, dans l'espace libre entre la date et la barre.
 - Un glissement vers le haut ouvre l'écran complet (liste, rendez-vous, dernières actions, état de la synchronisation).
+
+## La fenêtre « Ajouter une tâche » (Lot 3, 29/10/2026)
+- Dates : trois menus (jour, mois, année) et quatre boutons rapides. « Ce week-end » donne le samedi qui vient (ou aujourd'hui le week-end) ; « Semaine prochaine » donne le lundi suivant. La date reste vide tant qu'on ne la choisit pas.
+- Catégorie : de gros boutons de couleur, « À trier » en premier puis les plus utilisées ; un appui ouvre les sous-catégories.
+- Ce qui est retiré (catégorie ou étapes par défaut) reste dans le tableau avec la date ; « Annuler » pendant 8 secondes, puis « Remettre » à tout moment.
 
 ## La connexion à Google (semaine 2)
 - Cap n'a accès qu'aux fichiers qu'il a créés lui-même, et seulement à son agenda « Cap – FICTIF ». Il ne voit ni le reste du Drive ni le vrai agenda.

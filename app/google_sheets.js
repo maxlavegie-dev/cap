@@ -7,6 +7,8 @@ const googleSheets = (() => {
     'echeance', 'date_realisation', 'priorite', 'parente', 'note', 'avant_le', 'abandonnee_le', 'origine', 'fictif'];
   const entetes = ['Identifiant', 'Intitulé', 'Catégorie', 'Sous-catégorie', 'Fait', "Date d'entrée",
     'Échéance', 'Date de réalisation', 'Priorité', 'Tâche parente', 'Note', 'Avant le', 'Abandonnée le', 'Origine', 'Fictif'];
+  const entetesModeles = ['Modèle', 'Étape', 'Retirée le', 'Modifiée le'];
+  const entetesCategories = ['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le'];
   let fichier = '';
   let ouverture = null;
 
@@ -70,8 +72,9 @@ const googleSheets = (() => {
     await poster(adresse('/values:batchUpdate'), {
       valueInputOption: 'RAW', data: [
         { range: plage(REGLAGES_GOOGLE.onglets.taches, 'A1:O'), values: [entetes, ...copie.map(valeurs)] },
-        { range: plage(REGLAGES_GOOGLE.onglets.etapes_par_defaut, 'A1:B'),
-          values: [['Modèle', 'Étape'], ...Object.entries(ETAPES_PAR_DEFAUT).flatMap(([modele, etapes]) => etapes.map(etape => [modele, etape]))] },
+        { range: plage(REGLAGES_GOOGLE.onglets.etapes_par_defaut, 'A1:D'),
+          values: [entetesModeles, ...Object.entries(ETAPES_PAR_DEFAUT).flatMap(([modele, etapes]) => etapes.map(etape => [modele, etape, '', '']))] },
+        { range: plage(REGLAGES_GOOGLE.onglets.categories, 'A1:E'), values: [entetesCategories] },
         { range: plage(REGLAGES_GOOGLE.onglets.phrases_clavier, 'A1:E'),
           values: [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'],
             ...PHRASES_CLAVIER.map(phrase => [phrase.id, phrase.categorie, phrase.debut, phrase.a_completer, phrase.action])] }
@@ -173,5 +176,73 @@ const googleSheets = (() => {
     return ecrits;
   }
 
-  return { trouverOuCreer, lireTaches, ecrireTaches };
+  const vide = cellule => cellule === '' || cellule === null || cellule === undefined;
+
+  async function lireOnglet(nom, colonnes, entete, attendues) {
+    const lignes = (await lire(adresse(`/values/${encodeURIComponent(plage(nom, colonnes))}?valueRenderOption=UNFORMATTED_VALUE`))).values || [];
+    const premiere = JSON.stringify(lignes[0] || []);
+    if (lignes.length && !attendues.some(longueur => premiere === JSON.stringify(entete.slice(0, longueur)))) {
+      throw new Error(`Les colonnes de l’onglet « ${nom} » sont illisibles. Je n’y touche pas.`);
+    }
+    const contenu = lignes.slice(1).filter(ligne => !ligne.every(vide)).map(ligne => {
+      const cellules = entete.map((_, indice) => (vide(ligne[indice]) ? '' : ligne[indice]));
+      if (cellules.some(cellule => typeof cellule !== 'string') || !cellules[0].trim()) {
+        throw new Error(`Une ligne de l’onglet « ${nom} » est illisible. Je n’y touche pas.`);
+      }
+      return cellules.map(cellule => cellule.trim());
+    });
+    return { lignes: lignes.length, contenu };
+  }
+
+  async function lireListes() {
+    const titres = ((await lire(adresse('?fields=sheets.properties.title'))).sheets || []).map(feuille => feuille.properties?.title);
+    const nomModeles = REGLAGES_GOOGLE.onglets.etapes_par_defaut;
+    const nomCategories = REGLAGES_GOOGLE.onglets.categories;
+    const resultat = { modeles: [], categories: [], lignesModeles: 0, lignesCategories: 0,
+      manquants: [nomModeles, nomCategories].filter(nom => !titres.includes(nom)) };
+    if (titres.includes(nomModeles)) {
+      const onglet = await lireOnglet(nomModeles, 'A:D', entetesModeles, [2, 4]);
+      resultat.lignesModeles = onglet.lignes;
+      for (const [nom, etape, retiree, modifiee] of onglet.contenu) {
+        if (!etape) throw new Error(`Une ligne de l’onglet « ${nomModeles} » est illisible. Je n’y touche pas.`);
+        let modele = resultat.modeles.find(item => item.nom.toLocaleLowerCase('fr') === nom.toLocaleLowerCase('fr'));
+        if (!modele) {
+          modele = { nom, etapes: [], retiree_le: retiree, modifie_le: modifiee };
+          resultat.modeles.push(modele);
+        }
+        modele.etapes.push(etape);
+      }
+    }
+    if (titres.includes(nomCategories)) {
+      const onglet = await lireOnglet(nomCategories, 'A:E', entetesCategories, [5]);
+      resultat.lignesCategories = onglet.lignes;
+      resultat.categories = onglet.contenu.map(([nom, parente, couleur, retiree, modifiee]) => ({
+        nom, parente, couleur, retiree_le: retiree, modifie_le: modifiee
+      }));
+    }
+    return resultat;
+  }
+
+  async function ecrireListes(donnees) {
+    const lecture = await lireListes();
+    if (lecture.manquants.length) {
+      await poster(adresse(':batchUpdate'), { requests: lecture.manquants.map(title => ({
+        addSheet: { properties: { title, gridProperties: { frozenRowCount: 1 } } }
+      })) });
+    }
+    const completer = (lignes, total, largeur) => {
+      while (lignes.length < total) lignes.push(Array(largeur).fill(''));
+      return lignes;
+    };
+    const modeles = [entetesModeles, ...donnees.modeles.flatMap(modele => modele.etapes.map(etape =>
+      [modele.nom, etape, modele.retiree_le, modele.modifie_le]))];
+    const categories = [entetesCategories, ...donnees.categories.map(categorie =>
+      [categorie.nom, categorie.parente, categorie.couleur, categorie.retiree_le, categorie.modifie_le])];
+    await poster(adresse('/values:batchUpdate'), { valueInputOption: 'RAW', data: [
+      { range: plage(REGLAGES_GOOGLE.onglets.etapes_par_defaut, 'A1:D'), values: completer(modeles, lecture.lignesModeles, 4) },
+      { range: plage(REGLAGES_GOOGLE.onglets.categories, 'A1:E'), values: completer(categories, lecture.lignesCategories, 5) }
+    ] });
+  }
+
+  return { trouverOuCreer, lireTaches, ecrireTaches, lireListes, ecrireListes };
 })();

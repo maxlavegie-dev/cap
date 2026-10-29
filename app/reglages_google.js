@@ -13,7 +13,8 @@ const REGLAGES_GOOGLE = Object.freeze({
   onglets: Object.freeze({
     taches: 'Tâches',
     etapes_par_defaut: 'Étapes par défaut',
-    phrases_clavier: 'Phrases du clavier'
+    phrases_clavier: 'Phrases du clavier',
+    categories: 'Catégories'
   }),
   nom_agenda: 'Cap – FICTIF'
 });
