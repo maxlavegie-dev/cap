@@ -68,7 +68,7 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Nouveau moteur de dates** (`comprendre_dates.js`) : dans N jours, semaines, mois ou ans (même jour de la semaine pour les semaines) ; « vendredi dans deux semaines » ; « lundi en huit », « mardi en quinze » ; « la semaine prochaine, mercredi » ; « le premier lundi du mois prochain », « le dernier vendredi de novembre » ; fin du mois, du mois prochain, de l'année ; après-demain ; dates en chiffres ou en lettres.
   - **Pas de devinette** : si deux dates sont possibles (« jeudi » dit un jeudi, « vendredi prochain » dit un jeudi, « dans 8 jours », « fin de semaine »), Cap pose une question avec deux gros boutons. Si Max ferme la question, rien n'est inventé.
   - **Partout** : bouton « Dire la date », dictée principale (la tâche reçoit son échéance, l'intitulé reste mot pour mot), micro des tuiles, et rendez-vous dictés.
-  - 218 vérifications automatiques réussies. Pas encore publié : à tester par Max.
+  - 218 vérifications automatiques réussies. Publié le 29/10/2026 avec l'accord de Max, à tester sur le téléphone.
 
 ### En cours
 - Lot 5, demande 1 (dates) : construite, à tester par Max. Ensuite, demande 2 (dictée dans une catégorie à sous-catégories, avec « À classer »), puis demande 3 (« + Ajouter » et « Modifier » dans les écrans de choix de catégorie), une à la fois.
