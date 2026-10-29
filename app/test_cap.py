@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1208,11 +1208,12 @@ TESTS_JS = r"""
     attendre(creation.sheets.every(onglet => onglet.properties.gridProperties.frozenRowCount === 1), 'entêtes non figées');
     const remplissage = c.requetes.find(r => r.url.pathname.endsWith('/values:batchUpdate')).corps;
     attendreEgal(remplissage.valueInputOption, 'RAW', 'écriture brute');
-    attendreEgal(remplissage.data.length, 4, 'quatre onglets remplis');
+    attendreEgal(remplissage.data.length, 5, 'cinq onglets remplis');
     attendreEgal(remplissage.data[0].values, [ENTETES_GOOGLE, ...c.TACHES.map(ligneGoogle)], 'entêtes et tâches exactes');
     attendreEgal(remplissage.data[1].values, [['Modèle', 'Étape', 'Retirée le', 'Modifiée le'], ...Object.entries(ETAPES_PAR_DEFAUT).flatMap(([modele, etapes]) => etapes.map(etape => [modele, etape, '', '']))], 'modèles');
-    attendreEgal(remplissage.data[2].values, [['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le']], 'catégories');
-    attendreEgal(remplissage.data[3].values, [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'], ...PHRASES_CLAVIER.map(p => [p.id, p.categorie, p.debut, p.a_completer, p.action])], 'phrases');
+    attendreEgal(remplissage.data[2].values, [['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le', 'Ordre']], 'catégories');
+    attendreEgal(remplissage.data[3].values, [['Date et heure', 'Venu de', 'Ce que Max a dit ou touché', 'Ce que Cap a compris', 'Ce que Cap a fait']], 'journal');
+    attendreEgal(remplissage.data[4].values, [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'], ...PHRASES_CLAVIER.map(p => [p.id, p.categorie, p.debut, p.a_completer, p.action])], 'phrases');
     const validations = c.requetes.find(r => r.url.pathname.endsWith('tableau-fictif:batchUpdate')).corps.requests;
     attendreEgal(validations.map(r => r.setDataValidation.range.startColumnIndex), [4, 14], 'colonnes booléennes');
     attendre(validations.every(r => r.setDataValidation.rule.condition.type === 'BOOLEAN' && r.setDataValidation.rule.strict), 'validation booléenne');
@@ -1961,6 +1962,25 @@ TESTS_JS = r"""
       fermetureFenetres: ui.fermetureFenetres
     });
     ui.etapesParDefaut = etapesIsolees;
+    ui.journalActions = objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', { localStorage: c.localStorage, googleSheets: undefined });
+    ui.classer = (id, categorie, sousCategorie) => {
+      const tache = c.TACHES.find(item => item.id === id);
+      const ancienne = { categorie: tache.categorie, sous_categorie: tache.sous_categorie };
+      tache.categorie = categorie;
+      tache.sous_categorie = sousCategorie;
+      return ancienne;
+    };
+    ui.tuiles = objetIsole(SOURCE_TUILES, 'tuiles', { document: doc, navigator: c.navigator, setTimeout, clearTimeout });
+    ui.modeTrier = objetIsole(SOURCE_MODE_TRIER, 'modeTrier', {
+      document: doc, TACHES: c.TACHES, listesChoix: ui.listesChoix, classer: ui.classer, dictee: ui.dictee,
+      journalActions: ui.journalActions, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout
+    });
+    ui.sauvegardes = [];
+    ui.sauvegardeDrive = {
+      etat: () => ({ derniere: '', dossier: '', nombre: 0 }),
+      sauvegarder: async () => { ui.sauvegardes.push(1); return { nom: 'Cap – FICTIF – sauvegarde', nombre: 1, enTrop: 0 }; },
+      verifierAutomatique: async () => null, aFaire: () => false
+    };
     objetIsole(SOURCE_APP, 'undefined', {
       document: doc, window: c.window, navigator: c.navigator, Date: c.Date,
       setInterval: c.setInterval, setTimeout: c.setTimeout, clearTimeout: c.clearTimeout,
@@ -1969,7 +1989,8 @@ TESTS_JS = r"""
       ficheRendezVous: objetIsole(SOURCE_FICHE_RDV, 'ficheRendezVous', {
         document: doc, navigator: c.navigator, googleConnexion: c.googleConnexion, googleAgenda: agendaSimule
       }),
-      journalActions: objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', { localStorage: c.localStorage }),
+      journalActions: ui.journalActions,
+      tuiles: ui.tuiles, modeTrier: ui.modeTrier, sauvegardeDrive: ui.sauvegardeDrive, REGLAGES_GOOGLE,
       googleAgenda: agendaSimule,
       TACHES: c.TACHES, INFO_CHARGEMENT: '', ETAPES_PAR_DEFAUT: etapesIsolees,
       listesChoix: ui.listesChoix, choixDates: ui.choixDates, fenetresListes: ui.fenetresListes, fermetureFenetres: ui.fermetureFenetres,
@@ -2938,7 +2959,7 @@ TESTS_JS = r"""
     const ecriture = c.requetes.find(r => r.url.pathname.endsWith('/values:batchUpdate')).corps;
     attendreEgal(ecriture.valueInputOption, 'RAW', 'écriture brute');
     attendreEgal(ecriture.data[0].values, [['Modèle', 'Étape', 'Retirée le', 'Modifiée le'], ['Roman', 'Relire', '2026-10-29', 'x'], ['', '', '', ''], ['', '', '', '']], 'lignes anciennes recouvertes, aucune suppression');
-    attendreEgal(ecriture.data[1].values, [['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le'], ['À trier', '', '#6f6f6f', '', '']], 'catégories écrites');
+    attendreEgal(ecriture.data[1].values, [['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le', 'Ordre'], ['À trier', '', '#6f6f6f', '', '', '']], 'catégories écrites');
     ongletsPresents = [...ongletsPresents, 'Catégories'];
     lignesModeles = [['Nom', 'Truc'], ['Roman', 'Relire']];
     const avant = c.requetes.filter(r => r.methode === 'POST').length;
@@ -3125,11 +3146,18 @@ TESTS_JS = r"""
     const champ = ui.parId('saisie-recherche');
     champ.value = c.TACHES[0].intitule;
     champ.dispatchEvent(new Event('input'));
-    const ligne = ui.doc.getElementById(`tache-${c.TACHES[0].id}`).closest('li');
     let defile = false;
-    ligne.scrollIntoView = () => { defile = true; };
-    ui.parId('resultats-recherche').querySelector('button').click();
+    const prototype = ui.cadre.contentWindow.Element.prototype;
+    const ancienDefilement = prototype.scrollIntoView;
+    prototype.scrollIntoView = function () { if (this.matches('li')) defile = true; };
+    try {
+      ui.parId('resultats-recherche').querySelector('button').click();
+    } finally {
+      prototype.scrollIntoView = ancienDefilement;
+    }
+    const ligne = ui.doc.getElementById(`tache-${c.TACHES[0].id}`).closest('li');
     attendre(!ui.parId('ecran-complet').hidden, 'vue complète fermée');
+    attendreEgal(ui.parId('ecran-complet').dataset.vue, 'tout', 'grande liste ouverte');
     attendre(defile, 'pas de défilement');
     attendre(ligne.classList.contains('surbrillance-recherche'), 'surbrillance absente');
     const delai = [...c.delais.values()].find(delai => delai.delai === 2000);
@@ -3204,6 +3232,227 @@ TESTS_JS = r"""
     await agenda.prochainsRendezVous();
     attendreEgal(recherche.chercherRendezVous(agenda.lireCache(), 'theatre').length, 1, 'lieu perdu');
     attendreEgal(recherche.chercherRendezVous(agenda.lireCache(), 'eclairage').length, 1, 'description perdue');
+  });
+
+  function tachesTuiles(c) {
+    const modele = { ...TACHES_FICTIVES[0], parente: '', fait: false, abandonnee_le: '', echeance: '', avant_le: '', sous_categorie: '' };
+    c.TACHES.splice(0, c.TACHES.length,
+      { ...modele, id: 'FICTIF-T1', intitule: 'FICTIF idée en vrac', categorie: 'À trier' },
+      { ...modele, id: 'FICTIF-T2', intitule: 'FICTIF autre idée', categorie: 'À trier' },
+      { ...modele, id: 'FICTIF-T3', intitule: 'FICTIF accorder la guitare', categorie: 'Musique', echeance: '2020-01-01' },
+      { ...modele, id: 'FICTIF-T4', intitule: 'FICTIF chapitre fini', categorie: 'Écriture', fait: true });
+  }
+
+  function dicteeQuiEntend(ui, texte) {
+    ui.dictee.disponible = () => true;
+    ui.dictee.enCours = () => false;
+    ui.dictee.arreter = () => {};
+    ui.dictee.demarrer = rappels => { rappels.surFinal(texte); rappels.surFin(); };
+  }
+
+  await testAsync('Tuiles : fixes d’abord, À trier en tête, compteurs, Tout, Ajouter et Modifier à la fin', async c => {
+    tachesTuiles(c);
+    const ui = preparerInterface(c);
+    const tuilesAffichees = Array.from(ui.parId('tuiles').querySelectorAll('.tuile'));
+    const titres = tuilesAffichees.map(t => t.querySelector('.titre-tuile').textContent);
+    attendreEgal(titres.slice(0, 4), ['Dernières actions', 'Prochains rendez-vous', 'Aujourd’hui', 'Trier'], 'tuiles fixes');
+    attendreEgal(titres[4], 'À trier', 'À trier pas en premier');
+    attendreEgal(titres.slice(-3), ['Tout', '+ Ajouter', 'Modifier'], 'tuiles de fin');
+    const compteur = titre => tuilesAffichees.find(t => t.querySelector('.titre-tuile').textContent === titre).querySelector('.compteur-tuile')?.textContent;
+    attendreEgal(compteur('À trier'), '(2)', 'compteur À trier');
+    attendreEgal(compteur('Musique'), '(1)', 'compteur Musique');
+    attendreEgal(compteur('Écriture'), '(0)', 'tâche cochée comptée');
+    attendreEgal(compteur('Trier'), '(2)', 'compteur Trier');
+    attendreEgal(compteur('Aujourd’hui'), '(1)', 'retard compté');
+    attendreEgal(compteur('Tout'), '(3)', 'compteur Tout');
+    attendre(tuilesAffichees.filter(t => t.classList.contains('tuile-fixe')).every(t => !t.classList.contains('deplacable') && !t.querySelector('.micro-tuile')), 'tuile fixe déplaçable');
+    attendre(tuilesAffichees.filter(t => t.classList.contains('tuile-categorie')).every(t => t.querySelector('.micro-tuile')), 'micro absent');
+    attendre(!tuilesAffichees[4].classList.contains('deplacable'), 'À trier déplaçable');
+    attendreEgal(ui.parId('ecran-complet').dataset.vue, 'tuiles', 'vue de départ');
+    attendre(ui.parId('liste-taches').classList.contains('hors-vue'), 'longue liste visible sous les tuiles');
+  });
+
+  await testAsync('Tuiles : une catégorie ouvre sa liste, ‹ Tuiles revient, Tout et Aujourd’hui filtrent', async c => {
+    tachesTuiles(c);
+    const ui = preparerInterface(c);
+    ui.parId('basculer-vue').click();
+    const ouvrirTuileTitre = titre => Array.from(ui.parId('tuiles').querySelectorAll('.ouvrir-tuile'))
+      .find(b => b.querySelector('.titre-tuile').textContent === titre).click();
+    ouvrirTuileTitre('Musique');
+    attendreEgal(ui.parId('titre-vue').textContent, 'Musique', 'titre');
+    attendre(!ui.parId('retour-tuiles').hidden, 'retour caché');
+    attendre(ui.parId('tuiles').classList.contains('hors-vue'), 'tuiles encore visibles');
+    const intitules = () => Array.from(ui.parId('liste-taches').querySelectorAll('[data-tache]'), n => c.TACHES.find(t => t.id === n.dataset.tache)?.intitule).filter(Boolean);
+    attendreEgal(intitules(), ['FICTIF accorder la guitare'], 'filtre catégorie');
+    ui.parId('retour-tuiles').click();
+    attendreEgal(ui.parId('ecran-complet').dataset.vue, 'tuiles', 'retour aux tuiles');
+    ouvrirTuileTitre('Aujourd’hui');
+    attendreEgal(intitules(), ['FICTIF accorder la guitare'], 'filtre aujourd’hui');
+    ui.parId('retour-tuiles').click();
+    ouvrirTuileTitre('Tout');
+    attendreEgal(intitules().length, 3, 'grande liste');
+    attendre(!ui.parId('basculer-archive').classList.contains('hors-vue'), 'archive absente de Tout');
+    ui.parId('basculer-vue').click();
+    attendreEgal(ui.parId('ecran-complet').dataset.vue, 'tuiles', 'accueil remet les tuiles');
+  });
+
+  await testAsync('Tuiles : le micro d’une tuile range la tâche dictée dans sa catégorie', async c => {
+    tachesTuiles(c);
+    const ui = preparerInterface(c);
+    dicteeQuiEntend(ui, 'FICTIF changer les cordes');
+    const pendantOriginal = ui.journalActions.pendant;
+    ui.journalActions.pendant = (contexte, action) => {
+      ui.journalActions.consigner({ ...contexte, fait: 'FICTIF' });
+      return pendantOriginal(contexte, action);
+    };
+    const tuileMusique = ui.parId('tuiles').querySelector('.tuile[data-categorie="Musique"]');
+    tuileMusique.querySelector('.micro-tuile').click();
+    const creee = TACHES.find(t => t.intitule === 'FICTIF changer les cordes');
+    attendre(creee, 'tâche non créée');
+    attendreEgal(creee.categorie, 'Musique', 'catégorie de la tuile');
+    attendreEgal(creee.origine, 'dictée', 'origine');
+    const ligne = ui.journalActions.lireComplet().find(l => l[3].includes('Musique'));
+    attendre(ligne && ligne[1] === 'micro de la tuile Musique' && ligne[2] === 'FICTIF changer les cordes', 'journal incomplet');
+  });
+
+  await testAsync('Trier : toucher une catégorie, Annuler, puis la voix range la tâche suivante', async c => {
+    tachesTuiles(c);
+    const ui = preparerInterface(c);
+    const fenetre = ui.parId('mode-trier');
+    Array.from(ui.parId('tuiles').querySelectorAll('.ouvrir-tuile')).find(b => b.querySelector('.titre-tuile').textContent === 'Trier').click();
+    attendre(fenetre.open, 'Trier fermé');
+    attendreEgal(fenetre.querySelector('.tache-a-trier').textContent, 'FICTIF idée en vrac', 'première tâche');
+    const choix = Array.from(fenetre.querySelectorAll('.choix-tri'), b => b.textContent);
+    attendre(!choix.includes('À trier') && choix.includes('Musique'), 'choix de catégories');
+    boutonTexte(fenetre, 'Écriture').click();
+    attendreEgal(c.TACHES.find(t => t.id === 'FICTIF-T1').categorie, 'Écriture', 'tâche rangée');
+    attendreEgal(fenetre.querySelector('.tache-a-trier').textContent, 'FICTIF autre idée', 'tâche suivante');
+    boutonTexte(fenetre, 'Annuler').click();
+    attendreEgal(c.TACHES.find(t => t.id === 'FICTIF-T1').categorie, 'À trier', 'Annuler');
+    attendreEgal(fenetre.querySelector('.tache-a-trier').textContent, 'FICTIF idée en vrac', 'tâche revenue');
+    dicteeQuiEntend(ui, 'mets ça dans musique');
+    fenetre.querySelector('.micro-tri').click();
+    attendreEgal(c.TACHES.find(t => t.id === 'FICTIF-T1').categorie, 'Musique', 'voix');
+    attendreEgal(ui.modeTrier.reconnaitre('quotidien'), 'Quotidien', 'reconnaissance');
+    attendreEgal(ui.modeTrier.reconnaitre('rien du tout'), '', 'pas d’invention');
+    boutonTexte(fenetre, 'Passer').click();
+    attendre(fenetre.querySelector('.revoir-passees'), 'revoir les passées');
+    attendreEgal(c.TACHES.length, 4, 'aucune tâche effacée');
+    ui.fermetureFenetres.toucheACote(fenetre);
+    attendre(!fenetre.open, 'toucher à côté ne ferme pas Trier');
+  });
+
+  test('Ordre des tuiles : ordonner garde le choix de Max, À trier reste devant', () => {
+    const { instance } = listesIsolees([]);
+    attendreEgal(instance.categories().slice(0, 4), ['À trier', 'Musique', 'Écriture', 'Quotidien'], 'départ');
+    attendre(instance.ordonner(['Quotidien', 'Musique', 'Écriture']), 'aucun changement');
+    attendreEgal(instance.categories().slice(0, 4), ['À trier', 'Quotidien', 'Musique', 'Écriture'], 'ordre choisi');
+    attendre(!instance.ordonner(['Quotidien', 'Musique', 'Écriture']), 'réécriture inutile');
+  });
+
+  test('Classer : change la catégorie de la tâche et de ses étapes, rien n’est effacé', () => {
+    const tache = creerTache({ intitule: 'FICTIF à classer', categorie: 'À trier', sous_categorie: '' });
+    ajouterEtape(tache.id, 'FICTIF étape');
+    const total = TACHES.length;
+    const ancienne = classer(tache.id, 'Musique', '');
+    attendreEgal(ancienne.categorie, 'À trier', 'ancienne catégorie');
+    attendre(TACHES.filter(t => t.id === tache.id || t.parente === tache.id).every(t => t.categorie === 'Musique'), 'étapes non suivies');
+    attendreEgal(TACHES.length, total, 'tâche effacée');
+  });
+
+  await testAsync('Aide : bouton en haut à droite, gestes listés, fermeture en touchant à côté', async c => {
+    const ui = preparerInterface(c);
+    ui.parId('basculer-vue').click();
+    const bouton = ui.parId('ouvrir-aide');
+    const entete = bouton.parentElement.getBoundingClientRect();
+    const cadre = bouton.getBoundingClientRect();
+    attendre(Math.abs(entete.right - cadre.right) < 2 && cadre.top - entete.top < 20, 'Aide pas en haut à droite');
+    bouton.click();
+    const aide = ui.parId('aide');
+    attendre(aide.open, 'aide fermée');
+    attendre(aide.querySelectorAll('.geste-aide').length >= 6, 'gestes manquants');
+    attendre(aide.textContent.includes('droite') && aide.textContent.includes('Annuler'), 'contenu incomplet');
+    attendreEgal(aide.querySelectorAll('[data-fermer]').length, 0, 'bouton retour présent');
+    ui.fermetureFenetres.toucheACote(aide);
+    attendre(!aide.open, 'aide pas fermée en touchant à côté');
+  });
+
+  test('Journal complet : contexte, heure à la seconde, masquage des secrets', () => {
+    const memoire = espaceMemoire();
+    const j = objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', { localStorage: memoire, googleSheets: undefined });
+    j.pendant({ source: 'micro', entree: 'ajoute FICTIF pain', compris: 'ajouter une tâche' }, () => j.noter('ajout', 'FICTIF pain'));
+    j.consigner({ source: 'clavier', entree: 'mon mot de passe est Secret123 et ma carte 4970 1234 5678 9012', compris: 'rien', fait: 'rien' });
+    const lignes = j.lireComplet();
+    attendreEgal(lignes.length, 2, 'deux lignes');
+    attendre(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(lignes[0][0]), 'heure');
+    attendreEgal(lignes[0].slice(1), ['micro', 'ajoute FICTIF pain', 'ajouter une tâche', 'ajout de la tâche : FICTIF pain'], 'ligne');
+    attendre(!lignes[1][2].includes('Secret123') && !lignes[1][2].includes('9012'), 'secret conservé');
+    j.noter('fait', 'FICTIF pain');
+    attendreEgal(j.lireComplet()[2][1], 'écran touché', 'source par défaut');
+  });
+
+  await testAsync('Journal complet : envoi en ajout à la fin de l’onglet, file vidée seulement après succès', async c => {
+    preparerConnexion(c);
+    let ongletPresent = false;
+    let panne = true;
+    c.repondre = async r => {
+      const chemin = decodeURIComponent(r.url.pathname);
+      if (r.methode === 'GET' && chemin === '/drive/v3/files/tableau-fictif') return reponseGoogle({ id: 'tableau-fictif', trashed: false });
+      if (r.methode === 'GET' && chemin === '/v4/spreadsheets/tableau-fictif') return reponseGoogle({ sheets: [{ properties: { title: 'Tâches' } }, ...(ongletPresent ? [{ properties: { title: 'Journal' } }] : [])] });
+      if (r.methode === 'POST' && chemin.endsWith(':append')) {
+        if (panne) return reponseGoogle({ error: { message: 'panne' } }, 500);
+        return reponseGoogle({});
+      }
+      if (r.methode === 'POST') { ongletPresent = true; return reponseGoogle({}); }
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    c.localStorage.setItem('cap_google_fichier_v1', 'tableau-fictif');
+    const sheets = c.sheets();
+    const j = objetIsole(SOURCE_JOURNAL_ACTIONS, 'journalActions', {
+      localStorage: c.localStorage, googleSheets: sheets, googleConnexion: c.googleConnexion,
+      navigator: c.navigator, synchronisation: { informations: () => ({ pret: true }) }, setTimeout: () => 0
+    });
+    j.consigner({ source: 'micro', entree: 'FICTIF', compris: 'test', fait: 'rien' });
+    attendreEgal(await j.envoyer(), false, 'panne non signalée');
+    attendreEgal(j.enAttente(), 1, 'ligne perdue après une panne');
+    panne = false;
+    attendreEgal(await j.envoyer(), true, 'envoi');
+    attendreEgal(j.enAttente(), 0, 'file non vidée');
+    const ajout = c.requetes.filter(r => decodeURIComponent(r.url.pathname).endsWith(':append')).pop();
+    attendre(decodeURIComponent(ajout.url.pathname).includes('Journal'), 'mauvais onglet');
+    attendreEgal(ajout.url.searchParams.get('insertDataOption'), 'INSERT_ROWS', 'ajout sans écraser');
+    attendreEgal(ajout.corps.values[0].slice(1), ['micro', 'FICTIF', 'test', 'rien'], 'contenu');
+    attendre(c.requetes.every(r => !['DELETE'].includes(r.methode) && !r.url.pathname.includes(':clear')), 'effacement');
+  });
+
+  await testAsync('Sauvegarde Drive : copie datée dans le dossier, aucune suppression, hebdomadaire après la première', async c => {
+    preparerConnexion(c);
+    c.localStorage.setItem('cap_google_fichier_v1', 'tableau-fictif');
+    c.repondre = async r => {
+      const chemin = decodeURIComponent(r.url.pathname);
+      if (r.methode === 'GET' && chemin === '/drive/v3/files/tableau-fictif') return reponseGoogle({ id: 'tableau-fictif', trashed: false });
+      if (r.methode === 'GET' && chemin === '/drive/v3/files' && r.url.searchParams.get('q').includes('folder')) return reponseGoogle({ files: [] });
+      if (r.methode === 'POST' && chemin === '/drive/v3/files') return reponseGoogle({ id: 'dossier-fictif' });
+      if (r.methode === 'POST' && chemin === '/drive/v3/files/tableau-fictif/copy') return reponseGoogle({ id: 'copie-fictive', name: r.corps.name });
+      if (r.methode === 'GET' && chemin === '/drive/v3/files') return reponseGoogle({ files: Array.from({ length: 6 }, (_, i) => ({ id: `c${i}` })) });
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const sheets = c.sheets();
+    const s = objetIsole(SOURCE_SAUVEGARDE_DRIVE, 'sauvegardeDrive', {
+      localStorage: c.localStorage, window: c.window, googleConnexion: c.googleConnexion, googleSheets: sheets,
+      REGLAGES_GOOGLE, journalActions: { consigner: () => {} }
+    });
+    attendre(!s.aFaire(), 'automatique avant la première');
+    attendreEgal(await s.verifierAutomatique(), null, 'sauvegarde automatique sans accord');
+    const resultat = await s.sauvegarder();
+    const copie = c.requetes.find(r => r.url.pathname.endsWith('/copy'));
+    attendre(copie.corps.name.includes('sauvegarde du') && copie.corps.name.includes('FICTIF'), 'nom de la copie');
+    attendreEgal(copie.corps.parents, ['dossier-fictif'], 'dossier');
+    attendreEgal(resultat.enTrop, 1, 'copies en trop');
+    attendre(c.requetes.every(r => r.methode !== 'DELETE' && !(r.corps && r.corps.trashed)), 'suppression');
+    attendre(!s.aFaire(Date.now()), 'refait aussitôt');
+    attendre(s.aFaire(Date.now() + 8 * 24 * 3600 * 1000), 'pas refait après une semaine');
+    attendreEgal(s.etat().nombre, 6, 'nombre de copies');
   });
 
   const erreursPage = window.erreursPage || [];
@@ -3347,8 +3596,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v10['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v10")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v11['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v11")
 
 
 def verifier_precache_fichiers_existent():
@@ -3428,6 +3677,9 @@ def construire_page():
         "SOURCE_FENETRES_LISTES": "fenetres_listes.js",
         "SOURCE_FERMETURE_FENETRES": "fermeture_fenetres.js",
         "SOURCE_SYNCHRO_LISTES": "synchro_listes.js",
+        "SOURCE_SAUVEGARDE_DRIVE": "sauvegarde_drive.js",
+        "SOURCE_TUILES": "tuiles.js",
+        "SOURCE_MODE_TRIER": "mode_trier.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }

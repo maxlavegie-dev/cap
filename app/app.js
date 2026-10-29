@@ -34,6 +34,7 @@
   });
   let archiveOuverte = false;
   let termineesOuvertes = false;
+  let vueActuelle = { type: 'tuiles', categorie: '' };
   let derniereTache = null;
   let tacheSelectionnee = null;
   let parenteAjout = null;
@@ -89,6 +90,10 @@
 
   function ouvrirResultatTache(tache) {
     retenirTache(tache.id);
+    if (vueActuelle.type !== 'tout') {
+      vueActuelle = { type: 'tout', categorie: '' };
+      afficher();
+    }
     if (tache.abandonnee_le) {
       archiveOuverte = true;
       afficher();
@@ -152,7 +157,7 @@
   function afficherJournal() {
     const libelles = {
       ajout: 'Ajouté', fait: 'Fait', 'remise à faire': 'Remis à faire',
-      abandon: 'Abandonné', remise: 'Remis', 'échéance': 'Échéance changée'
+      abandon: 'Abandonné', remise: 'Remis', 'échéance': 'Échéance changée', classement: 'Classé'
     };
     const actions = journalActions.lire().slice(0, 5);
     const maintenant = new Date();
@@ -486,8 +491,11 @@
       const parent = parIdTache.get(tache.parente);
       return !tache.parente || !parent || parent.abandonnee_le;
     });
-    const racines = toutesRacines.filter(tache => !tache.fait);
-    const terminees = toutesRacines.filter(tache => tache.fait);
+    const dansVue = vueActuelle.type === 'categorie'
+      ? tache => (tache.categorie || '') === vueActuelle.categorie
+      : vueActuelle.type === 'aujourdhui' ? estPourAujourdhui : () => true;
+    const racines = toutesRacines.filter(tache => !tache.fait && dansVue(tache));
+    const terminees = toutesRacines.filter(tache => tache.fait && dansVue(tache));
     const groupes = new Map();
     for (const tache of racines) {
       if (!groupes.has(tache.categorie)) groupes.set(tache.categorie, new Map());
@@ -527,7 +535,9 @@
     if (visibles.length === 0) {
       fragment.append(element('p', 'etat-vide', 'Aucune tâche pour le moment. Le bouton + permet d’en ajouter une.'));
     } else if (racines.length === 0) {
-      fragment.append(element('p', 'etat-vide', 'Tout est terminé. Bravo !'));
+      fragment.append(element('p', 'etat-vide', vueActuelle.type === 'aujourdhui'
+        ? 'Rien de dû aujourd’hui, rien en retard.' : vueActuelle.type === 'categorie' && terminees.length === 0
+          ? 'Aucune tâche dans cette catégorie. Le micro de la tuile permet d’en dicter une.' : 'Tout est terminé. Bravo !'));
     }
     listeElement.replaceChildren(fragment);
     termineesElement.hidden = terminees.length === 0;
@@ -561,6 +571,178 @@
     if (repere) restaurerFocus(repere);
     afficherJournal();
     afficherRecherche();
+    afficherTuiles();
+    appliquerVue();
+  }
+
+  function estPourAujourdhui(tache) {
+    const jour = dateDuJour();
+    return Boolean((tache.echeance && tache.echeance <= jour) || (tache.avant_le && tache.avant_le <= jour));
+  }
+
+  function racinesActives() {
+    const parIdTache = new Map(TACHES.map(tache => [tache.id, tache]));
+    return TACHES.filter(tache => {
+      if (tache.abandonnee_le || tache.fait) return false;
+      const parent = parIdTache.get(tache.parente);
+      return !tache.parente || !parent || parent.abandonnee_le;
+    });
+  }
+
+  function rendezVousDuJour() {
+    const jour = dateDuJour();
+    return (googleAgenda.lireCache() || []).filter(rendezVous => rendezVous.date === jour);
+  }
+
+  function titreDeVue() {
+    const titres = { tuiles: 'Tout voir', tout: 'Tout', actions: 'Dernières actions',
+      'rendez-vous': 'Prochains rendez-vous', aujourdhui: 'Aujourd’hui' };
+    return vueActuelle.type === 'categorie' ? vueActuelle.categorie || 'Sans catégorie' : titres[vueActuelle.type];
+  }
+
+  function appliquerVue() {
+    const ecran = parId('ecran-complet');
+    ecran.dataset.vue = vueActuelle.type;
+    parId('titre-vue').textContent = titreDeVue();
+    parId('retour-tuiles').hidden = vueActuelle.type === 'tuiles';
+    for (const bloc of ecran.querySelectorAll('[data-vues]')) {
+      bloc.classList.toggle('hors-vue', !bloc.dataset.vues.split(' ').includes(vueActuelle.type));
+    }
+    const rdvJour = rendezVousDuJour();
+    parId('liste-rdv-jour').replaceChildren(...rdvJour.map(rendezVous => {
+      const ligne = element('li');
+      const bouton = element('button', 'ouvrir-rdv', texteRendezVous(rendezVous));
+      bouton.type = 'button';
+      bouton.addEventListener('click', () => ouvrirResultatRendezVous(rendezVous, bouton));
+      ligne.append(bouton);
+      return ligne;
+    }));
+    parId('rendez-vous-du-jour').hidden = rdvJour.length === 0;
+    const vide = parId('vide-vue');
+    const messages = {
+      actions: parId('dernieres-actions').hidden ? 'Aucune action pour le moment.' : '',
+      'rendez-vous': parId('rendez-vous').hidden ? 'Aucun rendez-vous à venir (ou agenda pas encore lu).' : ''
+    };
+    vide.textContent = messages[vueActuelle.type] || '';
+    vide.hidden = !vide.textContent;
+  }
+
+  function ouvrirVue(type, categorie = '') {
+    vueActuelle = { type, categorie };
+    termineesOuvertes = false;
+    afficher();
+    const ecran = parId('ecran-complet');
+    ecran.scrollTop = 0;
+    const cible = type === 'tuiles' ? parId('tuiles').querySelector('.ouvrir-tuile') : parId('retour-tuiles');
+    (cible || ecran).focus({ preventScroll: true });
+  }
+
+  function afficherTuiles() {
+    const actives = racinesActives();
+    const compte = new Map();
+    for (const tache of actives) compte.set(tache.categorie || '', (compte.get(tache.categorie || '') || 0) + 1);
+    const noms = listesChoix.categories();
+    const autres = [...compte.keys()].filter(nom => !noms.some(item => item.toLocaleLowerCase('fr') === nom.toLocaleLowerCase('fr')));
+    const aTrier = compte.get(listesChoix.A_TRIER) || 0;
+    tuiles.afficher(parId('tuiles'), {
+      fixes: [
+        { id: 'actions', titre: 'Dernières actions', compteur: journalActions.lire().length },
+        { id: 'rendez-vous', titre: 'Prochains rendez-vous', compteur: (googleAgenda.lireCache() || []).length },
+        { id: 'aujourdhui', titre: 'Aujourd’hui', compteur: actives.filter(estPourAujourdhui).length + rendezVousDuJour().length },
+        { id: 'trier', titre: 'Trier', compteur: aTrier }
+      ],
+      categories: [...noms, ...autres].map(nom => ({
+        titre: nom || 'Sans catégorie', categorie: nom, compteur: compte.get(nom) || 0,
+        couleur: nom ? listesChoix.couleur(nom) : '', deplacable: nom !== '' && noms.includes(nom) && nom !== listesChoix.A_TRIER
+      })),
+      finales: [
+        { id: 'tout', titre: 'Tout', compteur: actives.length },
+        { id: 'ajouter-categorie', titre: '+ Ajouter' },
+        { id: 'modifier-categories', titre: 'Modifier' }
+      ]
+    }, {
+      surOuvrir: ouvrirTuile,
+      surMicro: dicterDansCategorie,
+      surOrdre(ordre) {
+        listesChoix.ordonner(ordre);
+        annoncer('Ordre des tuiles enregistré.', true);
+      },
+      surDebutDeplacement(nom) { annoncer(`Glisse « ${nom} » à sa nouvelle place.`, true); }
+    });
+  }
+
+  function ouvrirTuile(id, categorie) {
+    if (id === 'trier') {
+      modeTrier.ouvrir(parId('mode-trier'), { surChangement: afficher });
+      return;
+    }
+    if (id === 'ajouter-categorie') {
+      fenetresListes.gererCategories({ action: 'ajouter' });
+      return;
+    }
+    if (id === 'modifier-categories') {
+      fenetresListes.gererCategories({ action: 'modifier' });
+      return;
+    }
+    if (categorie !== undefined) ouvrirVue('categorie', categorie);
+    else ouvrirVue(id);
+  }
+
+  function dicterDansCategorie(categorie, bouton) {
+    if (dictee.enCours()) {
+      dictee.arreter();
+      return;
+    }
+    if (!dictee.disponible()) {
+      annoncer("La dictée n'est pas disponible dans ce navigateur. Utilise le bouton +.");
+      return;
+    }
+    const nom = categorie || 'Sans catégorie';
+    let recu = false;
+    let provisoire = '';
+    bouton.setAttribute('aria-pressed', 'true');
+    bouton.classList.add('ecoute');
+    annoncer(`Je t'écoute… (tâche pour ${nom})`);
+    const ajouterDans = texte => {
+      if (recu) return;
+      recu = true;
+      const intitule = texte.trim();
+      if (!intitule) {
+        annoncer("Je n'ai rien entendu, réessaie.");
+        return;
+      }
+      let tache;
+      try {
+        tache = journalActions.pendant({ source: `micro de la tuile ${nom}`, entree: intitule, compris: `ajouter une tâche dans ${nom}` },
+          () => creerTache({ intitule, categorie, sous_categorie: '', origine: 'dictée' }));
+      } catch (erreur) {
+        annoncer(`${erreur instanceof Error ? erreur.message : 'Ajout impossible.'} Texte dicté : « ${intitule} »`);
+        return;
+      }
+      retenirTache(tache.id);
+      afficher();
+      proposerAnnulation(`Ajoutée dans ${nom} : « ${intitule} »`, () => abandonner(tache.id),
+        'Tâche abandonnée : tu la retrouves dans les tâches abandonnées.', bouton);
+    };
+    dictee.demarrer({
+      surProvisoire(texte) {
+        if (texte) provisoire = texte;
+        if (!recu) annoncer(texte || `Je t'écoute… (tâche pour ${nom})`);
+      },
+      surFinal: ajouterDans,
+      surErreur(code) {
+        if (recu || code === 'aborted') return;
+        recu = true;
+        annoncer(code === 'not-allowed' || code === 'service-not-allowed'
+          ? 'Le micro est bloqué. Autorise-le pour cette page dans le navigateur.' : "Je n'ai rien entendu, réessaie.");
+      },
+      surFin() {
+        bouton.setAttribute('aria-pressed', 'false');
+        bouton.classList.remove('ecoute');
+        if (!recu && provisoire) ajouterDans(provisoire);
+        else if (!recu) annoncer("Je n'ai rien entendu, réessaie.");
+      }
+    });
   }
 
   function afficherCategorieChoisie() {
@@ -718,6 +900,14 @@
     return navigator.onLine && googleConnexion.connecte();
   }
 
+  function noterDemande(source, texte, resultat) {
+    if (resultat.type === 'tache') return;
+    const compris = { report: 'reporter la tâche ouverte à demain', 'rendez-vous': 'préparer un rendez-vous',
+      vide: 'rien reçu', pas_compris: 'pas compris', attente_cerveau: 'demande pour plus tard' };
+    journalActions.consigner({ source, entree: texte, compris: compris[resultat.type] || resultat.type,
+      fait: resultat.message || (resultat.type === 'report' ? 'report demandé' : 'rien') });
+  }
+
   function afficherResultatDemande(resultat, origine) {
     if (resultat.type === 'report') {
       const recente = derniereTache && Date.now() - derniereTache.heure < 15 * 60 * 1000
@@ -761,11 +951,13 @@
     erreur.textContent = '';
     let resultat;
     try {
-      resultat = traiterDemande({ ...demande, agenda_disponible: agendaDisponible() });
+      resultat = journalActions.pendant({ source: 'clavier', entree: demande.texte, compris: 'noter une tâche dans À trier' },
+        () => traiterDemande({ ...demande, agenda_disponible: agendaDisponible() }));
     } catch (erreur) {
       signalerErreur(erreur, clavier);
       return;
     }
+    noterDemande('clavier', demande.texte, resultat);
     if (resultat.type === 'vide') {
       signalerErreur(new Error(resultat.message), clavier);
       return;
@@ -879,7 +1071,9 @@
   function ajouterDictee(texte) {
     const intitule = texte.trim();
     try {
-      const resultat = traiterDemande({ texte: intitule, source: 'micro', agenda_disponible: agendaDisponible() });
+      const resultat = journalActions.pendant({ source: 'micro', entree: intitule, compris: 'noter une tâche dans À trier' },
+        () => traiterDemande({ texte: intitule, source: 'micro', agenda_disponible: agendaDisponible() }));
+      noterDemande('micro', intitule, resultat);
       afficherResultatDemande(resultat, parId('microphone'));
     } catch (erreur) {
       const message = erreur instanceof Error ? erreur.message : 'L’action n’a pas pu être enregistrée.';
@@ -1022,8 +1216,53 @@
     basculerVue.textContent = complete ? 'Revenir à l’accueil' : 'Afficher tout';
     basculerVue.setAttribute('aria-expanded', String(complete));
     if (complete) ecranComplet.focus({ preventScroll: true });
-    else parId('ajouter').focus({ preventScroll: true });
+    else {
+      if (vueActuelle.type !== 'tuiles') {
+        vueActuelle = { type: 'tuiles', categorie: '' };
+        afficher();
+      }
+      parId('ajouter').focus({ preventScroll: true });
+    }
   }
+
+  parId('retour-tuiles').addEventListener('click', () => ouvrirVue('tuiles'));
+  const aide = parId('aide');
+  const fenetreTri = parId('mode-trier');
+  fermetureFenetres.installer(aide);
+  fermetureFenetres.installer(fenetreTri);
+  fenetreTri.addEventListener('close', () => {
+    if (dictee.enCours()) dictee.arreter();
+    afficher();
+  });
+  parId('ouvrir-aide').addEventListener('click', event => {
+    ouvrir(aide, parId('titre-aide'), event.currentTarget);
+  });
+
+  function afficherSauvegarde() {
+    const etat = sauvegardeDrive.etat();
+    const date = Date.parse(etat.derniere);
+    const texte = Number.isFinite(date)
+      ? `Dernière sauvegarde du tableau : ${formatDateCourte.format(new Date(date))}. Prochaine copie automatique une semaine après.`
+      : 'Aucune sauvegarde du tableau pour le moment. La copie automatique chaque semaine commencera après la première.';
+    const enTrop = etat.nombre > REGLAGES_GOOGLE.sauvegardes_a_garder
+      ? ` Tu as ${etat.nombre} copies : Cap n’en supprime aucune sans ton accord.` : '';
+    parId('texte-sauvegarde').textContent = texte + enTrop;
+    parId('sauvegarder-maintenant').disabled = !googleConnexion.connecte();
+  }
+
+  parId('sauvegarder-maintenant').addEventListener('click', async event => {
+    const bouton = event.currentTarget;
+    bouton.disabled = true;
+    annoncer('Sauvegarde du tableau en cours…');
+    try {
+      const resultat = await sauvegardeDrive.sauvegarder();
+      annoncer(`Sauvegarde faite : « ${resultat.nom} », rangée dans le dossier ${REGLAGES_GOOGLE.dossier_sauvegardes}.`);
+    } catch (erreur) {
+      annoncer(`La sauvegarde n’a pas marché : ${erreur instanceof Error ? erreur.message : 'erreur inconnue'}. Rien n’a été perdu.`);
+    }
+    afficherSauvegarde();
+  });
+  window.addEventListener('cap-sauvegarde-etat', afficherSauvegarde);
 
   basculerVue.addEventListener('click', () => changerVue(ecranComplet.hidden));
   let debutGlissement = null;
@@ -1092,9 +1331,12 @@
     afficherEtatGoogle();
     tenterReconnexionSilencieuse();
     synchronisation.reprendre();
+    void journalActions.envoyer();
   });
   window.addEventListener('cap-google-etat', afficherEtatGoogle);
+  window.addEventListener('cap-google-etat', afficherSauvegarde);
   window.addEventListener('cap-google-deconnecte', afficherEtatGoogle);
+  window.addEventListener('cap-google-deconnecte', afficherSauvegarde);
   window.addEventListener('cap-google-fusion', () => {
     listesChoix.recharger();
     afficher();
@@ -1106,12 +1348,20 @@
       afficherCategorieChoisie();
     }
   });
-  window.addEventListener('online', () => { void afficherRendezVous(); });
+  window.addEventListener('online', () => {
+    void afficherRendezVous();
+    void journalActions.envoyer();
+  });
   afficherEtatGoogle();
+  afficherSauvegarde();
   tenterReconnexionSilencieuse();
   if (googleConnexion.connecte()) {
     void synchronisation.demarrer().then(() => {
       afficher();
+      void journalActions.envoyer();
+      void sauvegardeDrive.verifierAutomatique().then(resultat => {
+        if (resultat) annoncer(`Sauvegarde de la semaine faite : « ${resultat.nom} ».`, true);
+      });
       return afficherRendezVous();
     }).catch(erreur => signalerErreur(erreur));
   }

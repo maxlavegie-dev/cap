@@ -1454,7 +1454,324 @@ dialog button:hover {
 
 }
 
+.hors-vue {
+  display: none !important;
+}
+
+.entete-complet {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.entete-complet h1 {
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 1.3rem;
+  overflow-wrap: anywhere;
+}
+
+#retour-tuiles,
+#ouvrir-aide {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid #8a9d9c;
+  border-radius: 22px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--encre);
+  background: #fffef7;
+}
+
+#ouvrir-aide {
+  margin-left: auto;
+}
+
+.grille-tuiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tuile {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  min-height: 110px;
+  border-radius: 14px;
+  border: 2px solid var(--couleur-categorie, #8a9d9c);
+  border-top-width: 10px;
+  background: #fffef7;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.tuile-fixe {
+  border-color: #2d6f8f;
+  background: #eef7fb;
+}
+
+.tuile-outil {
+  border-style: dashed;
+  border-top-width: 2px;
+  background: rgba(255, 254, 247, 0.75);
+}
+
+.ouvrir-tuile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  text-align: left;
+  color: var(--encre);
+  background: transparent;
+  touch-action: manipulation;
+}
+
+.titre-tuile {
+  font-size: 1.05rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.compteur-tuile {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--secondaire);
+}
+
+.micro-tuile {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid #8a9d9c;
+  border-radius: 50%;
+  color: var(--encre);
+  background: #fff;
+}
+
+.micro-tuile.ecoute {
+  color: #fff;
+  background: #a34a36;
+}
+
+.tuile.deplacable .ouvrir-tuile {
+  touch-action: pan-y;
+}
+
+.tuile.en-deplacement {
+  z-index: 2;
+  transform: scale(1.06);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  opacity: 0.92;
+}
+
+#zone-sauvegarde {
+  margin: 12px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 254, 247, 0.8);
+}
+
+#zone-sauvegarde p {
+  margin: 0 0 8px;
+}
+
+#rendez-vous-du-jour ul {
+  margin: 0 0 12px;
+  padding: 0;
+  list-style: none;
+}
+
+.compte-tri {
+  margin: 0 0 6px;
+  color: var(--secondaire);
+}
+
+dialog .tache-a-trier {
+  margin: 0 0 14px;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  background: #fff3d6;
+  overflow-wrap: anywhere;
+}
+
+.grille-tri {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+dialog .choix-tri {
+  min-height: 64px;
+  border: 2px solid var(--couleur-categorie, #8a9d9c);
+  border-left-width: 10px;
+  font-size: 17.6px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.actions-tri {
+  display: flex;
+  gap: 10px;
+}
+
+.actions-tri button {
+  flex: 1 1 0;
+  min-height: 48px;
+}
+
+dialog .micro-tri[aria-pressed="true"] {
+  color: #fff;
+  background: #a34a36;
+}
+
+.annulation-tri:not(:empty) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #e2f3ee;
+}
+
+.liste-aide {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.geste-aide {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #d9e2e1;
+}
+
+.geste-aide p {
+  margin: 0;
+}
+
+.demo {
+  position: relative;
+  flex: 0 0 72px;
+  height: 48px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #eef7fb;
+}
+
+.demo-ligne {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 16px;
+  height: 16px;
+  border-radius: 4px;
+  background: #fffef7;
+  border: 1px solid #8a9d9c;
+}
+
+.demo-doigt {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(163, 74, 54, 0.75);
+}
+
+.demo-droite .demo-ligne { animation: demo-droite 2s ease-in-out infinite; }
+.demo-gauche .demo-ligne { animation: demo-gauche 2s ease-in-out infinite; }
+.demo-droite .demo-doigt,
+.demo-gauche .demo-doigt { top: -1px; left: 26px; }
+
+.demo-bouton {
+  position: absolute;
+  inset: 12px 8px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #e2f3ee;
+  animation: demo-pulse 2s ease-in-out infinite;
+}
+
+.demo-fenetre {
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 34px;
+  height: 32px;
+  border-radius: 4px;
+  background: #fffef7;
+  border: 1px solid #8a9d9c;
+  animation: demo-fermer 2.4s ease-in-out infinite;
+}
+
+.demo-cote .demo-doigt { right: 8px; top: 16px; animation: demo-pulse 2.4s ease-in-out infinite; }
+
+.demo-rond {
+  position: absolute;
+  left: 24px;
+  top: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #a34a36;
+  animation: demo-pulse 1.4s ease-in-out infinite;
+}
+
+.demo-haut .demo-doigt { left: 28px; animation: demo-haut 2s ease-in-out infinite; }
+
+.demo-tuile {
+  position: absolute;
+  top: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 5px;
+  border: 2px solid #2d6f8f;
+  background: #fffef7;
+}
+
+.demo-long .demo-tuile { left: 8px; animation: demo-deplacer 2.4s ease-in-out infinite; }
+.demo-trier .demo-tuile:first-child { left: 8px; }
+.demo-trier .demo-tuile:last-child { left: 38px; animation: demo-pulse 1.6s ease-in-out infinite; }
+
+@keyframes demo-droite { 0%, 20% { transform: translateX(0); } 60%, 100% { transform: translateX(30px); opacity: 0.4; } }
+@keyframes demo-gauche { 0%, 20% { transform: translateX(0); } 60%, 100% { transform: translateX(-30px); opacity: 0.4; } }
+@keyframes demo-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.85); } }
+@keyframes demo-fermer { 0%, 40% { opacity: 1; } 60%, 100% { opacity: 0; } }
+@keyframes demo-haut { 0% { top: 32px; } 70%, 100% { top: 2px; } }
+@keyframes demo-deplacer { 0%, 30% { transform: translateX(0) scale(1); } 40% { transform: translateX(0) scale(1.1); } 80%, 100% { transform: translateX(32px) scale(1.1); } }
+
 @media (prefers-reduced-motion: reduce) {
+  .demo *,
+  .tuile.en-deplacement {
+    animation: none !important;
+    transition: none !important;
+  }
+
   #microphone[aria-pressed="true"] {
     animation: none;
   }

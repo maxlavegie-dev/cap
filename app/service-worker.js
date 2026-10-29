@@ -1,6 +1,6 @@
 // Service worker : garde une copie de l'appli pour l'ouvrir même sans internet.
 // Stratégie : réseau d'abord (nouvelles versions immédiates), copie en cache si hors connexion.
-const VERSION_CACHE = 'cap-v10';
+const VERSION_CACHE = 'cap-v11';
 const FICHIERS_PRECACHE = [
   "./",
   "index.html",
@@ -27,6 +27,9 @@ const FICHIERS_PRECACHE = [
   "fermeture_fenetres.js",
   "fenetres_listes.js",
   "synchro_listes.js",
+  "sauvegarde_drive.js",
+  "tuiles.js",
+  "mode_trier.js",
   "app.js",
   "installation.js",
   "service-worker.js",

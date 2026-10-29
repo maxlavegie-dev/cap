@@ -55,10 +55,19 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **« Dire la date »** : écoute rendue plus solide. Cap affiche « Je t'écoute », montre ce qu'il entend pendant que Max parle, garde ce texte si le téléphone n'envoie pas de résultat final, relance l'écoute une fois s'il n'a rien entendu, et explique clairement si le micro est bloqué ou s'il manque internet. La cause exacte du défaut n'a pas pu être vue sans le téléphone : à vérifier par Max avec « vendredi », « demain » et « le 15 novembre ».
   - **Petites fenêtres** : on les ferme en touchant à côté, ce qui ramène à la fenêtre d'avant ; les boutons Fermer/Retour/Annuler qui servaient seulement à sortir ont disparu. Fenêtre vide : elle se ferme tout de suite. Texte déjà écrit : question « Garder » (le texte revient à la prochaine ouverture), « Jeter » (avec « Annuler » pendant 8 secondes) ou « Continuer ». Le geste retour du téléphone marche comme avant. La fenêtre « Abandonner cette tâche ? » garde son bouton Annuler (c'est une réponse), et la fiche de rendez-vous garde son bouton Retour (c'est une fiche complète, pas une petite fenêtre).
   - 205 vérifications automatiques réussies. Publié le 29/10/2026 avec l'accord de Max.
+- 29/10/2026 : Lot 4 construit (sauvegarde `sauvegarde-avant-lot4-tuiles-20261029`) :
+  - **Tuiles** : l'écran complet montre des tuiles carrées avec compteur. D'abord les tuiles fixes (Dernières actions, Prochains rendez-vous, Aujourd'hui, Trier), puis À trier, puis les catégories de Max, et enfin Tout, + Ajouter et Modifier. « ‹ Tuiles » permet de revenir. Les catégories sont les mêmes que dans « Ajouter une tâche ».
+  - **Micro sur chaque tuile de catégorie** : la tâche dictée va directement dans cette catégorie.
+  - **Ordre au doigt** : appui long (une demi-seconde) puis glissement. L'ordre est gardé dans la colonne « Ordre » de l'onglet Catégories. À trier reste en tête et les tuiles fixes ne bougent pas.
+  - **Mode Trier** : une tâche à trier à la fois. Max touche une catégorie ou la dit à la voix, ou appuie sur « Passer ». « Annuler » reste affiché 8 secondes. Rien n'est effacé.
+  - **Aide** : bouton en haut à droite de l'écran complet (décidé par Max). Il ouvre 8 gestes expliqués, chacun avec une petite démonstration animée. On le ferme en touchant à côté.
+  - **Journal de toutes les actions** : il est écrit dans un nouvel onglet « Journal » (heure à la seconde, ce que Max a dit ou touché, ce que Cap a compris, ce que Cap a fait). Les mots de passe et les longs numéros sont masqués. Rien n'est jamais effacé. Hors connexion, les lignes attendent et partent ensuite.
+  - **Sauvegarde du tableau** : bouton « Sauvegarder maintenant ». La copie datée va dans le dossier Drive des sauvegardes. Ensuite, une copie automatique chaque semaine, mais seulement après la première. Aucune copie n'est supprimée sans l'accord de Max. Pas de nouvelle autorisation Google : le droit déjà donné sur les fichiers créés par Cap suffit.
+  - 215 vérifications automatiques réussies. Pas encore publié.
 
 ### En cours
 - Corrections d'avant Lot 4 : publiées, à essayer sur le téléphone.
-- Lot 4 (tuiles, micro par tuile, mode Trier, ordre des tuiles, Aide, sauvegarde hebdomadaire, journal des actions) : pas commencé. Avant l'Aide, montrer l'emplacement du bouton à Max ; avant la première sauvegarde, lui dire si une autorisation Google nouvelle est nécessaire.
+- Lot 4 : construit et vérifié sur l'ordinateur. Il reste à le publier (avec l'accord de Max) et à l'essayer sur le téléphone, surtout le déplacement des tuiles au doigt, qui n'est pas vérifié automatiquement.
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)

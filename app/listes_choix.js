@@ -45,7 +45,7 @@ const listesChoix = (() => {
         })),
         categories: (Array.isArray(brut.categories) ? brut.categories : []).filter(categorieValide).map(categorie => ({
           nom: categorie.nom.trim(), parente: texte(categorie.parente).trim(), couleur: texte(categorie.couleur),
-          retiree_le: texte(categorie.retiree_le), modifie_le: texte(categorie.modifie_le)
+          retiree_le: texte(categorie.retiree_le), modifie_le: texte(categorie.modifie_le), ordre: texte(categorie.ordre)
         }))
       };
     } catch (erreur) {
@@ -111,13 +111,33 @@ const listesChoix = (() => {
       : cleNom(tache.categorie) === cleNom(categorie.nom))).length;
   }
 
+  function rang(categorie) {
+    const valeur = Number.parseInt(categorie.ordre, 10);
+    return Number.isFinite(valeur) && valeur > 0 ? valeur : Infinity;
+  }
+
   function categories(parente = '') {
     return donnees.categories
-      .map((categorie, ordre) => ({ categorie, ordre, usage: usage(categorie) }))
+      .map((categorie, ordre) => ({ categorie, ordre, rang: rang(categorie), usage: usage(categorie) }))
       .filter(({ categorie }) => !categorie.retiree_le && cleNom(categorie.parente) === cleNom(parente))
       .sort((a, b) => Number(cleNom(b.categorie.nom) === cleNom(A_TRIER)) - Number(cleNom(a.categorie.nom) === cleNom(A_TRIER))
-        || b.usage - a.usage || a.ordre - b.ordre)
+        || (a.rang === b.rang ? 0 : a.rang < b.rang ? -1 : 1) || b.usage - a.usage || a.ordre - b.ordre)
       .map(({ categorie }) => categorie.nom);
+  }
+
+  function ordonner(noms, parente = '') {
+    const cibles = noms.map(nom => trouverCategorie(nom, parente))
+      .filter(categorie => categorie && !categorie.retiree_le && cleNom(categorie.nom) !== cleNom(A_TRIER));
+    let change = false;
+    cibles.forEach((categorie, indice) => {
+      const valeur = String(indice + 1);
+      if (categorie.ordre === valeur) return;
+      categorie.ordre = valeur;
+      categorie.modifie_le = maintenant();
+      change = true;
+    });
+    if (change) enregistrer();
+    return change;
   }
 
   function categoriesRetirees(parente = '') {
@@ -155,7 +175,7 @@ const listesChoix = (() => {
       existante.modifie_le = maintenant();
     } else {
       donnees.categories.push({ nom, parente: parente ? trouverCategorie(parente).nom : '', couleur: parente ? '' : couleurLibre(),
-        retiree_le: '', modifie_le: maintenant() });
+        retiree_le: '', modifie_le: maintenant(), ordre: '' });
     }
     enregistrer();
     return existante ? existante.nom : nom;
@@ -207,12 +227,13 @@ const listesChoix = (() => {
     for (const categorie of (distant?.categories || []).filter(categorieValide)) {
       const local = trouverCategorie(categorie.nom, categorie.parente);
       const copie = { nom: categorie.nom.trim(), parente: texte(categorie.parente).trim(), couleur: texte(categorie.couleur),
-        retiree_le: texte(categorie.retiree_le), modifie_le: texte(categorie.modifie_le) };
+        retiree_le: texte(categorie.retiree_le), modifie_le: texte(categorie.modifie_le), ordre: texte(categorie.ordre) };
       if (!local) donnees.categories.push(copie);
       else {
         if (copie.modifie_le > local.modifie_le) {
           local.retiree_le = copie.retiree_le;
           local.modifie_le = copie.modifie_le;
+          local.ordre = copie.ordre;
         }
         if (/^#[0-9a-f]{6}$/i.test(copie.couleur) && !copie.parente) local.couleur = copie.couleur;
       }
@@ -241,5 +262,5 @@ const listesChoix = (() => {
 
   recharger();
   return { A_TRIER, categories, categoriesRetirees, couleur, modeles, modelesRetires, etapes, ajouterCategorie, ajouterModele,
-    retirer, remettre, fusionner, exporter, aEnvoyer, marquerEnvoye, recharger };
+    retirer, remettre, fusionner, exporter, aEnvoyer, marquerEnvoye, recharger, ordonner };
 })();

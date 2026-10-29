@@ -14,7 +14,10 @@ const REGLAGES_GOOGLE = Object.freeze({
     taches: 'Tâches',
     etapes_par_defaut: 'Étapes par défaut',
     phrases_clavier: 'Phrases du clavier',
-    categories: 'Catégories'
+    categories: 'Catégories',
+    journal: 'Journal'
   }),
+  dossier_sauvegardes: 'Cap – FICTIF – Sauvegardes',
+  sauvegardes_a_garder: 5,
   nom_agenda: 'Cap – FICTIF'
 });

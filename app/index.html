@@ -38,28 +38,42 @@
         <input id="saisie-recherche" type="search" enterkeyhint="search" autocomplete="off" aria-label="Rechercher" aria-controls="resultats-recherche" placeholder="Rechercher…">
       </div>
     </section>
-    <main id="ecran-complet" class="taches" aria-label="Tes tâches" tabindex="0" hidden inert>
-      <section id="dernieres-actions" aria-labelledby="titre-actions" hidden>
+    <main id="ecran-complet" class="taches" aria-label="Tes tâches" tabindex="0" data-vue="tuiles" hidden inert>
+      <div class="entete-complet">
+        <button id="retour-tuiles" type="button" hidden>‹ Tuiles</button>
+        <h1 id="titre-vue">Tout voir</h1>
+        <button id="ouvrir-aide" type="button" aria-haspopup="dialog" aria-controls="aide">Aide</button>
+      </div>
+      <div id="tuiles" class="grille-tuiles" aria-label="Tuiles" data-vues="tuiles"></div>
+      <section id="dernieres-actions" aria-labelledby="titre-actions" data-vues="tout actions" hidden>
         <h2 id="titre-actions">Dernières actions</h2>
         <ul id="liste-actions"></ul>
       </section>
-      <div id="etat-synchro">
+      <div id="etat-synchro" data-vues="tuiles tout">
         <span id="texte-etat-google" role="status">non connecté</span>
         <p id="dernier-envoi"></p>
         <button id="synchroniser-maintenant" type="button">Synchroniser maintenant</button>
         <button id="connexion-google" type="button">Se connecter à Google</button>
       </div>
-      <section id="rendez-vous" aria-labelledby="titre-rendez-vous" hidden>
+      <section id="zone-sauvegarde" aria-label="Sauvegarde du tableau" data-vues="tuiles tout">
+        <p id="texte-sauvegarde"></p>
+        <button id="sauvegarder-maintenant" type="button">Sauvegarder maintenant</button>
+      </section>
+      <section id="rendez-vous" aria-labelledby="titre-rendez-vous" data-vues="tout rendez-vous" hidden>
         <h2 id="titre-rendez-vous">Prochains rendez-vous</h2>
         <ul id="liste-rendez-vous"></ul>
       </section>
       <p id="info-chargement" role="status" hidden></p>
-      <h1 class="visuellement-cache">Tes tâches</h1>
-      <div id="liste-taches"></div>
-      <button id="basculer-terminees" type="button" aria-expanded="false" aria-controls="liste-terminees" hidden>Terminées (0)</button>
-      <ul id="liste-terminees" class="liste-groupe" aria-label="Tâches terminées" hidden></ul>
-      <button id="basculer-archive" class="lien" type="button" aria-expanded="false" aria-controls="archive-taches">Voir les tâches abandonnées (0)</button>
-      <section id="archive-taches" aria-labelledby="titre-archive" hidden>
+      <section id="rendez-vous-du-jour" aria-labelledby="titre-rdv-jour" data-vues="aujourdhui" hidden>
+        <h2 id="titre-rdv-jour">Rendez-vous du jour</h2>
+        <ul id="liste-rdv-jour"></ul>
+      </section>
+      <p id="vide-vue" class="etat-vide" hidden></p>
+      <div id="liste-taches" data-vues="tout categorie aujourdhui"></div>
+      <button id="basculer-terminees" type="button" aria-expanded="false" aria-controls="liste-terminees" data-vues="tout categorie" hidden>Terminées (0)</button>
+      <ul id="liste-terminees" class="liste-groupe" aria-label="Tâches terminées" data-vues="tout categorie" hidden></ul>
+      <button id="basculer-archive" class="lien" type="button" aria-expanded="false" aria-controls="archive-taches" data-vues="tout">Voir les tâches abandonnées (0)</button>
+      <section id="archive-taches" aria-labelledby="titre-archive" data-vues="tout" hidden>
         <h2 id="titre-archive">Tâches abandonnées</h2>
         <ul id="liste-archive" class="liste-groupe"></ul>
       </section>
@@ -227,6 +241,46 @@
       </section>
     </div>
   </dialog>
+  <dialog id="mode-trier" class="fenetre-tri" aria-labelledby="titre-mode-trier">
+    <div class="contenu-tri"></div>
+  </dialog>
+  <dialog id="aide" class="fenetre-aide" aria-labelledby="titre-aide">
+    <h2 id="titre-aide" tabindex="-1">Aide : les gestes de Cap</h2>
+    <ul class="liste-aide">
+      <li class="geste-aide">
+        <div class="demo demo-droite" aria-hidden="true"><span class="demo-ligne"><span class="demo-doigt"></span></span></div>
+        <p><strong>Cocher une tâche</strong> : glisse-la vers la droite.</p>
+      </li>
+      <li class="geste-aide">
+        <div class="demo demo-gauche" aria-hidden="true"><span class="demo-ligne"><span class="demo-doigt"></span></span></div>
+        <p><strong>Reporter à demain</strong> : glisse-la vers la gauche.</p>
+      </li>
+      <li class="geste-aide">
+        <div class="demo demo-annuler" aria-hidden="true"><span class="demo-bouton">Annuler</span></div>
+        <p><strong>Une erreur ?</strong> Touche « Annuler » dans les 8 secondes. Rien n’est jamais effacé.</p>
+      </li>
+      <li class="geste-aide">
+        <div class="demo demo-cote" aria-hidden="true"><span class="demo-fenetre"></span><span class="demo-doigt"></span></div>
+        <p><strong>Fermer une petite fenêtre</strong> : touche à côté.</p>
+      </li>
+      <li class="geste-aide">
+        <div class="demo demo-micro" aria-hidden="true"><span class="demo-rond"></span></div>
+        <p><strong>Dicter</strong> : touche le micro, parle, puis attends. Le micro d’une tuile range la tâche directement dans sa catégorie.</p>
+      </li>
+      <li class="geste-aide">
+        <div class="demo demo-haut" aria-hidden="true"><span class="demo-doigt"></span></div>
+        <p><strong>Voir les tuiles</strong> : glisse vers le haut sur l’accueil. Glisse vers le bas pour revenir.</p>
+      </li>
+      <li class="geste-aide">
+        <div class="demo demo-long" aria-hidden="true"><span class="demo-tuile"></span></div>
+        <p><strong>Déplacer une tuile</strong> : garde le doigt appuyé dessus une demi-seconde, puis glisse-la.</p>
+      </li>
+      <li class="geste-aide">
+        <div class="demo demo-trier" aria-hidden="true"><span class="demo-tuile"></span><span class="demo-tuile"></span></div>
+        <p><strong>Trier</strong> : la tuile « Trier » montre une tâche à la fois. Touche une catégorie ou dis son nom.</p>
+      </li>
+    </ul>
+  </dialog>
   <script src="donnees_fictives.js"></script>
   <script src="etapes_par_defaut.js"></script>
   <script src="stockage.js"></script>
@@ -249,6 +303,9 @@
   <script src="fermeture_fenetres.js"></script>
   <script src="fenetres_listes.js"></script>
   <script src="synchro_listes.js"></script>
+  <script src="sauvegarde_drive.js"></script>
+  <script src="tuiles.js"></script>
+  <script src="mode_trier.js"></script>
   <script src="app.js"></script>
   <script src="installation.js"></script>
 </body>

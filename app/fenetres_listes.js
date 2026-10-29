@@ -127,6 +127,7 @@ const fenetresListes = (() => {
 
   function retourDepuis(type, parente) {
     if (type === 'modele') return rappels.vueDepart === 'modifier' ? () => vueModifier('modele', '') : fermer;
+    if (!parente && rappels.vueDepart === 'tuiles') return fermer;
     return parente ? () => vueSousCategories(parente) : vueCategories;
   }
 
@@ -228,7 +229,8 @@ const fenetresListes = (() => {
       section.append(listeRetirees);
       enfants.push(section);
     }
-    const retour = type === 'modele' ? fermer : parente ? () => vueSousCategories(parente) : vueCategories;
+    const retour = type === 'modele' || (!parente && rappels.vueDepart === 'tuiles') ? fermer
+      : parente ? () => vueSousCategories(parente) : vueCategories;
     const ajouter = type === 'modele' ? [bouton('Ajouter', '', () => vueAjout('modele', ''))] : [];
     enfants.push(actionsBas([...ajouter, retirer]));
     const titreVue = type === 'modele' ? 'Modifier la liste des étapes par défaut'
@@ -247,6 +249,12 @@ const fenetresListes = (() => {
     else vueModifier('modele', '');
   }
 
+  function gererCategories({ action = 'modifier' } = {}) {
+    rappels = { vueDepart: 'tuiles' };
+    if (action === 'ajouter') vueAjout('categorie', '');
+    else vueModifier('categorie', '');
+  }
+
   fermetureFenetres.installer(fenetre, {
     retour: () => retourActuel(),
     cle: () => cleActuelle,
@@ -260,5 +268,5 @@ const fenetresListes = (() => {
     bandeau.replaceChildren();
   });
 
-  return { choisirCategorie, gererModeles, fermer };
+  return { choisirCategorie, gererModeles, gererCategories, fermer };
 })();

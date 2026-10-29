@@ -8,7 +8,8 @@ const googleSheets = (() => {
   const entetes = ['Identifiant', 'Intitulé', 'Catégorie', 'Sous-catégorie', 'Fait', "Date d'entrée",
     'Échéance', 'Date de réalisation', 'Priorité', 'Tâche parente', 'Note', 'Avant le', 'Abandonnée le', 'Origine', 'Fictif'];
   const entetesModeles = ['Modèle', 'Étape', 'Retirée le', 'Modifiée le'];
-  const entetesCategories = ['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le'];
+  const entetesCategories = ['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le', 'Ordre'];
+  const entetesJournal = ['Date et heure', 'Venu de', 'Ce que Max a dit ou touché', 'Ce que Cap a compris', 'Ce que Cap a fait'];
   let fichier = '';
   let ouverture = null;
 
@@ -74,7 +75,8 @@ const googleSheets = (() => {
         { range: plage(REGLAGES_GOOGLE.onglets.taches, 'A1:O'), values: [entetes, ...copie.map(valeurs)] },
         { range: plage(REGLAGES_GOOGLE.onglets.etapes_par_defaut, 'A1:D'),
           values: [entetesModeles, ...Object.entries(ETAPES_PAR_DEFAUT).flatMap(([modele, etapes]) => etapes.map(etape => [modele, etape, '', '']))] },
-        { range: plage(REGLAGES_GOOGLE.onglets.categories, 'A1:E'), values: [entetesCategories] },
+        { range: plage(REGLAGES_GOOGLE.onglets.categories, 'A1:F'), values: [entetesCategories] },
+        { range: plage(REGLAGES_GOOGLE.onglets.journal, 'A1:E'), values: [entetesJournal] },
         { range: plage(REGLAGES_GOOGLE.onglets.phrases_clavier, 'A1:E'),
           values: [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'],
             ...PHRASES_CLAVIER.map(phrase => [phrase.id, phrase.categorie, phrase.debut, phrase.a_completer, phrase.action])] }
@@ -185,7 +187,8 @@ const googleSheets = (() => {
       throw new Error(`Les colonnes de l’onglet « ${nom} » sont illisibles. Je n’y touche pas.`);
     }
     const contenu = lignes.slice(1).filter(ligne => !ligne.every(vide)).map(ligne => {
-      const cellules = entete.map((_, indice) => (vide(ligne[indice]) ? '' : ligne[indice]));
+      const cellules = entete.map((titre, indice) => (vide(ligne[indice]) ? ''
+        : titre === 'Ordre' && Number.isFinite(ligne[indice]) ? String(ligne[indice]) : ligne[indice]));
       if (cellules.some(cellule => typeof cellule !== 'string') || !cellules[0].trim()) {
         throw new Error(`Une ligne de l’onglet « ${nom} » est illisible. Je n’y touche pas.`);
       }
@@ -214,10 +217,10 @@ const googleSheets = (() => {
       }
     }
     if (titres.includes(nomCategories)) {
-      const onglet = await lireOnglet(nomCategories, 'A:E', entetesCategories, [5]);
+      const onglet = await lireOnglet(nomCategories, 'A:F', entetesCategories, [5, 6]);
       resultat.lignesCategories = onglet.lignes;
-      resultat.categories = onglet.contenu.map(([nom, parente, couleur, retiree, modifiee]) => ({
-        nom, parente, couleur, retiree_le: retiree, modifie_le: modifiee
+      resultat.categories = onglet.contenu.map(([nom, parente, couleur, retiree, modifiee, ordre]) => ({
+        nom, parente, couleur, retiree_le: retiree, modifie_le: modifiee, ordre
       }));
     }
     return resultat;
@@ -237,12 +240,29 @@ const googleSheets = (() => {
     const modeles = [entetesModeles, ...donnees.modeles.flatMap(modele => modele.etapes.map(etape =>
       [modele.nom, etape, modele.retiree_le, modele.modifie_le]))];
     const categories = [entetesCategories, ...donnees.categories.map(categorie =>
-      [categorie.nom, categorie.parente, categorie.couleur, categorie.retiree_le, categorie.modifie_le])];
+      [categorie.nom, categorie.parente, categorie.couleur, categorie.retiree_le, categorie.modifie_le, categorie.ordre ? String(categorie.ordre) : ''])];
     await poster(adresse('/values:batchUpdate'), { valueInputOption: 'RAW', data: [
       { range: plage(REGLAGES_GOOGLE.onglets.etapes_par_defaut, 'A1:D'), values: completer(modeles, lecture.lignesModeles, 4) },
-      { range: plage(REGLAGES_GOOGLE.onglets.categories, 'A1:E'), values: completer(categories, lecture.lignesCategories, 5) }
+      { range: plage(REGLAGES_GOOGLE.onglets.categories, 'A1:F'), values: completer(categories, lecture.lignesCategories, 6) }
     ] });
   }
 
-  return { trouverOuCreer, lireTaches, ecrireTaches, lireListes, ecrireListes };
+  async function ajouterJournal(lignes) {
+    if (!fichier) await trouverOuCreer();
+    const nom = REGLAGES_GOOGLE.onglets.journal;
+    const titres = ((await lire(adresse('?fields=sheets.properties.title'))).sheets || []).map(feuille => feuille.properties?.title);
+    if (!titres.includes(nom)) {
+      await poster(adresse(':batchUpdate'), { requests: [{
+        addSheet: { properties: { title: nom, gridProperties: { frozenRowCount: 1 } } }
+      }] });
+      await poster(adresse('/values:batchUpdate'), { valueInputOption: 'RAW', data: [
+        { range: plage(nom, 'A1:E1'), values: [entetesJournal] }
+      ] });
+    }
+    await poster(adresse(`/values/${encodeURIComponent(plage(nom, 'A:E'))}:append?valueInputOption=RAW&insertDataOption=INSERT_ROWS`), {
+      values: lignes
+    });
+  }
+
+  return { trouverOuCreer, lireTaches, ecrireTaches, lireListes, ecrireListes, ajouterJournal };
 })();

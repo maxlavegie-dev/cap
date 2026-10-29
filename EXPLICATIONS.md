@@ -31,7 +31,10 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `comprendre_demande.js` | Comprend, sans intelligence artificielle, une demande de rendez-vous (date, heure, titre, rappels) ou « Reporte ça à demain ». Ne fait rien lui-même : il prépare seulement un brouillon. |
 | `demandes.js` | La porte d'entrée unique de toutes les demandes (micro et clavier). C'est là qu'on branchera l'intelligence artificielle. |
 | `recherche.js` | La recherche tapée, sans intelligence artificielle : trouve un mot dans les tâches ou les rendez-vous, sans tenir compte des accents ni des majuscules. |
-| `journal_actions.js` | Retient sur le téléphone les dernières actions (ajout, coche, abandon) avec leur heure. |
+| `journal_actions.js` | Retient les dernières actions (ajout, coche, abandon) et tient le journal complet (heure à la seconde, ce que Max a dit ou touché, ce que Cap a compris, ce qu'il a fait), envoyé dans l'onglet « Journal ». Masque les mots de passe et les longs numéros ; n'efface jamais rien. |
+| `tuiles.js` | Dessine les tuiles de l'écran complet, leur micro, et le déplacement par appui long puis glissement. |
+| `mode_trier.js` | Le mode Trier : une tâche « À trier » à la fois, rangée d'un toucher ou à la voix, avec Annuler pendant 8 secondes. |
+| `sauvegarde_drive.js` | Copie datée du tableau dans un dossier du Drive : à la demande, puis chaque semaine. Ne supprime aucune copie. |
 | `fiche_rendezvous.js` | La fiche d'un rendez-vous : détails, boutons « Appeler » et « Écrire », modification avec récapitulatif avant de confirmer. Ne touche que l'agenda « Cap – FICTIF ». |
 | `listes_choix.js` | Les listes de catégories (avec leurs couleurs et sous-catégories) et d'étapes par défaut. Retirer n'efface rien : l'élément est marqué avec la date et peut être remis. |
 | `synchro_listes.js` | Recopie ces listes dans le tableau (onglets « Catégories » et « Étapes par défaut ») et relit ce qui s'y trouve. |
@@ -43,7 +46,7 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `service-worker.js` | Garde une copie de l'appli sur le téléphone pour qu'elle s'ouvre même sans internet. |
 | `installation.js` | Active cette copie hors connexion. |
 | `icones/` | L'icône aux différentes tailles demandées par Android. Elles sont fabriquées par `outils/fabriquer_icones.py` à partir de l'icône validée. |
-| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout et de l'installation (205 essais). |
+| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout, des tuiles, du mode Trier, du journal, de la sauvegarde et de l'installation (215 essais). |
 
 ## L'écran d'accueil (Lot 1, 29/10/2026)
 - En haut : seulement la date du jour, centrée. Pas d'heure : la barre du haut du téléphone (heure, Wi-Fi, réseau, batterie) reste visible, car Cap installée s'ouvre en mode « standalone » (comme une appli, mais sans cacher cette barre).
@@ -57,6 +60,13 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 - Petites fenêtres : on les ferme en touchant à côté. Si Max a déjà écrit, Cap demande « Garder », « Jeter » ou « Continuer ».
 - Catégorie : de gros boutons de couleur, « À trier » en premier puis les plus utilisées ; un appui ouvre les sous-catégories.
 - Ce qui est retiré (catégorie ou étapes par défaut) reste dans le tableau avec la date ; « Annuler » pendant 8 secondes, puis « Remettre » à tout moment.
+
+## L'écran complet en tuiles (Lot 4, 29/10/2026)
+- Les tuiles fixes (Dernières actions, Prochains rendez-vous, Aujourd'hui, Trier) viennent toujours en premier et ne peuvent être ni retirées ni déplacées. Ensuite : À trier, les catégories de Max, puis Tout, + Ajouter et Modifier. Chaque tuile affiche son compteur.
+- Les catégories des tuiles et celles de « Ajouter une tâche » sont la même liste.
+- Appui long puis glissement pour changer l'ordre ; cet ordre passe avant le classement par usage et est gardé dans la colonne « Ordre » de l'onglet Catégories.
+- Le bouton Aide est en haut à droite de l'écran complet.
+- « Sauvegarder maintenant » fait la première copie ; ensuite Cap en fait une chaque semaine. Au-delà de 5 copies, Cap prévient mais ne supprime rien.
 
 ## La connexion à Google (semaine 2)
 - Cap n'a accès qu'aux fichiers qu'il a créés lui-même, et seulement à son agenda « Cap – FICTIF ». Il ne voit ni le reste du Drive ni le vrai agenda.

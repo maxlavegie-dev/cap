@@ -44,6 +44,9 @@ function enregistrerModification(modifier) {
         else {
           if (ancienne.fait !== tache.fait) journalActions.noter(tache.fait ? 'fait' : 'remise à faire', tache.intitule);
           if (ancienne.echeance !== tache.echeance) journalActions.noter('échéance', tache.intitule);
+          if (!tache.parente && (ancienne.categorie !== tache.categorie || ancienne.sous_categorie !== tache.sous_categorie)) {
+            journalActions.noter('classement', `${tache.intitule} → ${[tache.categorie || 'Sans catégorie', tache.sous_categorie].filter(Boolean).join(' › ')}`);
+          }
           if (ancienne.abandonnee_le !== tache.abandonnee_le) {
             journalActions.noter(tache.abandonnee_le ? 'abandon' : 'remise', tache.intitule);
           }
@@ -163,6 +166,20 @@ function reporterADemain(id) {
   date.setDate(date.getDate() + 1);
   const demain = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   return changerEcheance(id, demain);
+}
+
+function classer(id, categorie, sousCategorie = '') {
+  if (typeof categorie !== 'string' || typeof sousCategorie !== 'string') throw new Error('Choisis une catégorie valide.');
+  return enregistrerModification(() => {
+    const tache = trouverTache(id);
+    if (tache.parente) throw new Error('Une étape suit la catégorie de sa tâche.');
+    const ancienne = { categorie: tache.categorie, sous_categorie: tache.sous_categorie };
+    for (const cible of TACHES.filter(item => item.id === id || item.parente === id)) {
+      cible.categorie = categorie;
+      cible.sous_categorie = sousCategorie;
+    }
+    return ancienne;
+  });
 }
 
 function abandonner(id) {
