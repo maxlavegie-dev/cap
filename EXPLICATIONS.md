@@ -28,6 +28,7 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `dictee.js` | Écoute ce que Max dit, avec la reconnaissance vocale du navigateur, et transmet le texte entendu. |
 | `phrases_clavier.js` | Les réglages des débuts de phrases du clavier. Ils iront dans le Drive en semaine 2. |
 | `preferences_clavier.js` | Retient sur le téléphone les phrases les plus utilisées, les dernières demandes et l'interrupteur « Réponse silencieuse ». |
+| `comprendre_dates.js` | Trouve la date dans une phrase (« dans deux semaines », « vendredi dans deux semaines », « lundi en huit », « premier lundi du mois prochain », « fin du mois »…). S'il hésite entre deux dates, il ne devine pas : il renvoie les deux choix, et Cap pose la question à Max avec deux boutons. |
 | `comprendre_demande.js` | Comprend, sans intelligence artificielle, une demande de rendez-vous (date, heure, titre, rappels) ou « Reporte ça à demain ». Ne fait rien lui-même : il prépare seulement un brouillon. |
 | `demandes.js` | La porte d'entrée unique de toutes les demandes (micro et clavier). C'est là qu'on branchera l'intelligence artificielle. |
 | `recherche.js` | La recherche tapée, sans intelligence artificielle : trouve un mot dans les tâches ou les rendez-vous, sans tenir compte des accents ni des majuscules. |

@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_dates.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -2627,6 +2627,45 @@ TESTS_JS = r"""
     attendreEgal(choixDates.dateRapide("aujourd'hui", jeudi), '2026-10-29', 'bouton Aujourd’hui');
   });
 
+  test('Dates : toutes les façons de dire une date par rapport à aujourd’hui', () => {
+    const jeudi = new Date(2026, 9, 29, 9);
+    const cas = [
+      ['dans deux semaines', '2026-11-12'], ['vendredi dans deux semaines', '2026-11-13'],
+      ['dans 2 semaines, vendredi', '2026-11-13'], ['dans un mois', '2026-11-29'],
+      ['le premier lundi du mois prochain', '2026-11-02'], ['le dernier vendredi du mois prochain', '2026-11-27'],
+      ['après-demain', '2026-10-31'], ['dans trois jours', '2026-11-01'], ['lundi en huit', '2026-11-09'],
+      ['mardi en quinze', '2026-11-17'], ['la semaine prochaine, mercredi', '2026-11-04'],
+      ['mercredi de la semaine prochaine', '2026-11-04'], ['fin du mois', '2026-10-31'],
+      ['fin du mois prochain', '2026-11-30'], ['dans une quinzaine', '2026-11-12'], ['dans un an', '2027-10-29'],
+      ['le premier mardi de décembre', '2026-12-01'], ['le 3 février', '2027-02-03'],
+      ['le quinze novembre', '2026-11-15'], ['ce jeudi', '2026-10-29'], ['mardi prochain', '2026-11-03']
+    ];
+    for (const [phrase, attendu] of cas) {
+      const resultat = comprendreDates.trouver(phrase, jeudi);
+      attendreEgal([resultat.date, resultat.choix], [attendu, []], phrase);
+    }
+    attendreEgal(comprendreDates.trouver('dans un mois', new Date(2027, 0, 31, 9)).date, '2027-02-28', 'fin de mois raccourcie');
+    attendreEgal(comprendreDates.trouver('jeudi', jeudi).choix, ['2026-10-29', '2026-11-05'], 'jeudi un jeudi : question');
+    attendreEgal(comprendreDates.trouver('vendredi prochain', jeudi).choix, ['2026-10-30', '2026-11-06'], 'vendredi prochain : question');
+    attendreEgal(comprendreDates.trouver('dans 8 jours', jeudi).choix, ['2026-11-05', '2026-11-06'], 'huit jours : question');
+    attendreEgal(comprendreDates.trouver('le 15', jeudi).date, '', 'le 15 seul ignoré dans une phrase');
+    attendreEgal(comprendreDates.trouver('le 15', jeudi, { seul: true }).date, '2026-11-15', 'le 15 dans Dire la date');
+    attendreEgal(comprendreDates.trouver('acheter du pain FICTIF', jeudi), { date: '', choix: [], morceau: '' }, 'rien inventé');
+    const rdv = comprendreDemande.rendezVous('rendez-vous jeudi à 10h garage FICTIF', jeudi);
+    attendreEgal([rdv.date, rdv.choix_date], ['', ['2026-10-29', '2026-11-05']], 'rendez-vous : date à demander');
+  });
+
+  test('Dates : une tâche dictée reçoit son échéance, et Cap demande quand il hésite', () => {
+    const avant = TACHES.length;
+    const resultat = traiterDemande({ texte: 'Rappeler le garage FICTIF dans deux semaines', source: 'micro' });
+    attendreEgal(resultat.type, 'tache', 'type');
+    attendreEgal(resultat.tache.intitule, 'Rappeler le garage FICTIF dans deux semaines', 'intitulé intact');
+    attendreEgal(resultat.tache.echeance, comprendreDates.trouver('dans deux semaines').date, 'échéance');
+    attendreEgal(TACHES.length, avant + 1, 'une tâche ajoutée');
+    const hesite = traiterDemande({ texte: 'Arroser les plantes FICTIF dans 8 jours', source: 'micro' });
+    attendreEgal([hesite.tache.echeance, hesite.choix_echeance.length], ['', 2], 'hésitation : pas de date devinée');
+  });
+
   test('Ajouter une tâche : dates en menus, boutons rapides, date impossible refusée', () => {
     remettreListesPage();
     document.getElementById('ajouter').click();
@@ -3315,6 +3354,29 @@ TESTS_JS = r"""
     attendre(ligne && ligne[1] === 'micro de la tuile Musique' && ligne[2] === 'FICTIF changer les cordes', 'journal incomplet');
   });
 
+  await testAsync('Dates : micro de tuile, échéance dite, puis question à deux boutons si Cap hésite', async c => {
+    tachesTuiles(c);
+    const ui = preparerInterface(c);
+    const tuile = () => ui.parId('tuiles').querySelector('.tuile[data-categorie="Musique"]');
+    dicteeQuiEntend(ui, 'FICTIF accorder la guitare après-demain');
+    tuile().querySelector('.micro-tuile').click();
+    const avecDate = TACHES.find(t => t.intitule === 'FICTIF accorder la guitare après-demain');
+    attendreEgal(avecDate.echeance, comprendreDates.trouver('après-demain').date, 'échéance dite');
+    attendre(!ui.parId('question-date').open, 'pas de question si la date est sûre');
+    dicteeQuiEntend(ui, 'FICTIF répéter dans 8 jours');
+    tuile().querySelector('.micro-tuile').click();
+    const hesite = TACHES.find(t => t.intitule === 'FICTIF répéter dans 8 jours');
+    attendreEgal(hesite.echeance, '', 'rien deviné');
+    const question = ui.parId('question-date');
+    attendre(question.open, 'question ouverte');
+    const boutons = [...question.querySelectorAll('.choix-date-possible')];
+    attendreEgal(boutons.length, 2, 'deux boutons');
+    const attendu = comprendreDates.trouver('dans 8 jours').choix[1];
+    boutons[1].click();
+    attendre(!question.open, 'question fermée');
+    attendreEgal(TACHES.find(t => t.id === hesite.id).echeance, attendu, 'date choisie');
+  });
+
   await testAsync('Trier : toucher une catégorie, Annuler, puis la voix range la tâche suivante', async c => {
     tachesTuiles(c);
     const ui = preparerInterface(c);
@@ -3596,8 +3658,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v11['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v11")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v12['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v12")
 
 
 def verifier_precache_fichiers_existent():

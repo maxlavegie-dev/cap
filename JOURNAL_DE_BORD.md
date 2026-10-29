@@ -64,10 +64,14 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Journal de toutes les actions** : il est écrit dans un nouvel onglet « Journal » (heure à la seconde, ce que Max a dit ou touché, ce que Cap a compris, ce que Cap a fait). Les mots de passe et les longs numéros sont masqués. Rien n'est jamais effacé. Hors connexion, les lignes attendent et partent ensuite.
   - **Sauvegarde du tableau** : bouton « Sauvegarder maintenant ». La copie datée va dans le dossier Drive des sauvegardes. Ensuite, une copie automatique chaque semaine, mais seulement après la première. Aucune copie n'est supprimée sans l'accord de Max. Pas de nouvelle autorisation Google : le droit déjà donné sur les fichiers créés par Cap suffit.
   - 215 vérifications automatiques réussies. Publié le 29/10/2026 avec l'accord de Max.
+- 29/10/2026 : Max valide tout le Lot 4 sur son téléphone. Lot 5, demande 1 (toutes les façons de dire une date) :
+  - **Nouveau moteur de dates** (`comprendre_dates.js`) : dans N jours, semaines, mois ou ans (même jour de la semaine pour les semaines) ; « vendredi dans deux semaines » ; « lundi en huit », « mardi en quinze » ; « la semaine prochaine, mercredi » ; « le premier lundi du mois prochain », « le dernier vendredi de novembre » ; fin du mois, du mois prochain, de l'année ; après-demain ; dates en chiffres ou en lettres.
+  - **Pas de devinette** : si deux dates sont possibles (« jeudi » dit un jeudi, « vendredi prochain » dit un jeudi, « dans 8 jours », « fin de semaine »), Cap pose une question avec deux gros boutons. Si Max ferme la question, rien n'est inventé.
+  - **Partout** : bouton « Dire la date », dictée principale (la tâche reçoit son échéance, l'intitulé reste mot pour mot), micro des tuiles, et rendez-vous dictés.
+  - 218 vérifications automatiques réussies. Pas encore publié : à tester par Max.
 
 ### En cours
-- Corrections d'avant Lot 4 : publiées, à essayer sur le téléphone.
-- Lot 4 : publié, à essayer sur le téléphone, surtout le déplacement des tuiles au doigt, qui n'est pas vérifié automatiquement.
+- Lot 5, demande 1 (dates) : construite, à tester par Max. Ensuite, demande 2 (dictée dans une catégorie à sous-catégories, avec « À classer »), puis demande 3 (« + Ajouter » et « Modifier » dans les écrans de choix de catégorie), une à la fois.
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)

@@ -239,6 +239,59 @@
     cible.focus({ preventScroll: true });
   }
 
+  const questionDate = parId('question-date');
+  fermetureFenetres.installer(questionDate);
+  let questionEnCours = null;
+  questionDate.addEventListener('close', () => {
+    if (questionDate.open) return;
+    const question = questionEnCours;
+    questionEnCours = null;
+    question?.surRefus?.();
+  });
+
+  function demanderDate(choix, texte, surChoix, surRefus) {
+    if (questionDate.open) {
+      const ancienne = questionEnCours;
+      questionEnCours = null;
+      questionDate.close();
+      ancienne?.surRefus?.();
+    }
+    const question = { surRefus };
+    parId('texte-question-date').textContent = texte;
+    parId('choix-question-date').replaceChildren(...choix.map(valeur => {
+      const bouton = element('button', 'choix-date-possible', choixDates.dateEnLettres(valeur));
+      bouton.type = 'button';
+      bouton.addEventListener('click', () => {
+        if (questionEnCours === question) questionEnCours = null;
+        questionDate.close();
+        surChoix(valeur);
+      });
+      return bouton;
+    }));
+    questionEnCours = question;
+    questionDate.showModal();
+    parId('choix-question-date').querySelector('button').focus({ preventScroll: true });
+  }
+
+  function proposerEcheance(tache, choix) {
+    if (!choix?.length) return;
+    demanderDate(choix, `Pour « ${tache.intitule} », je ne suis pas sûr de la date. Laquelle ?`, valeur => {
+      try {
+        journalActions.pendant({ source: 'question sur la date', entree: valeur, compris: 'échéance choisie' },
+          () => changerEcheance(tache.id, valeur));
+      } catch (erreur) {
+        signalerErreur(erreur);
+        return;
+      }
+      afficher();
+      annoncer(`Échéance : ${choixDates.dateEnLettres(valeur)}.`);
+    }, () => annoncer('Pas d’échéance pour cette tâche : choisis-la plus tard si besoin.'));
+  }
+
+  function texteEcheance(tache) {
+    return tache.echeance ? ` Échéance : ${choixDates.dateEnLettres(tache.echeance)}.` : '';
+  }
+
   fermetureFenetres.installer(menu);
   fermetureFenetres.installer(confirmation);
   fermetureFenetres.installer(clavier);
@@ -712,17 +765,19 @@
         return;
       }
       let tache;
+      const date = comprendreDemande.trouverDate(intitule);
       try {
         tache = journalActions.pendant({ source: `micro de la tuile ${nom}`, entree: intitule, compris: `ajouter une tâche dans ${nom}` },
-          () => creerTache({ intitule, categorie, sous_categorie: '', origine: 'dictée' }));
+          () => creerTache({ intitule, categorie, sous_categorie: '', echeance: date.date, origine: 'dictée' }));
       } catch (erreur) {
         annoncer(`${erreur instanceof Error ? erreur.message : 'Ajout impossible.'} Texte dicté : « ${intitule} »`);
         return;
       }
       retenirTache(tache.id);
       afficher();
-      proposerAnnulation(`Ajoutée dans ${nom} : « ${intitule} »`, () => abandonner(tache.id),
+      proposerAnnulation(`Ajoutée dans ${nom} : « ${intitule} »${texteEcheance(tache)}`, () => abandonner(tache.id),
         'Tâche abandonnée : tu la retrouves dans les tâches abandonnées.', bouton);
+      proposerEcheance(tache, date.choix);
     };
     dictee.demarrer({
       surProvisoire(texte) {
@@ -917,14 +972,23 @@
       return;
     }
     if (resultat.type === 'rendez-vous') {
-      annoncer(resultat.message);
-      const ouverte = ficheRendezVous.nouveau(resultat.brouillon, origine, rendezVous => {
-        erreurAgenda = '';
-        remplirRendezVous(googleAgenda.lireCache() || []);
-        afficherRecherche();
-        annoncer(`Rendez-vous ajouté dans l'agenda Cap – FICTIF : ${rendezVous.titre}`);
-      }, () => annoncer("Rendez-vous pas ajouté : rien n'a été mis dans l'agenda."));
-      if (!ouverte) annoncer("Je n'ai pas pu ouvrir le rendez-vous. Réessaie.");
+      const { choix_date: choixDate = [], ...brouillon } = resultat.brouillon;
+      const ouvrirFiche = date => {
+        annoncer(resultat.message);
+        const ouverte = ficheRendezVous.nouveau({ ...brouillon, date }, origine, rendezVous => {
+          erreurAgenda = '';
+          remplirRendezVous(googleAgenda.lireCache() || []);
+          afficherRecherche();
+          annoncer(`Rendez-vous ajouté dans l'agenda Cap – FICTIF : ${rendezVous.titre}`);
+        }, () => annoncer("Rendez-vous pas ajouté : rien n'a été mis dans l'agenda."));
+        if (!ouverte) annoncer("Je n'ai pas pu ouvrir le rendez-vous. Réessaie.");
+      };
+      if (choixDate.length) {
+        demanderDate(choixDate, 'Pour ce rendez-vous, je ne suis pas sûr de la date. Laquelle ?',
+          ouvrirFiche, () => ouvrirFiche(''));
+      } else {
+        ouvrirFiche(brouillon.date);
+      }
       return;
     }
     if (resultat.type === 'tache') afficher();
@@ -932,8 +996,9 @@
       annoncer(resultat.message);
       return;
     }
-    proposerAnnulation(resultat.message, () => abandonner(resultat.tache.id),
+    proposerAnnulation(resultat.message + texteEcheance(resultat.tache), () => abandonner(resultat.tache.id),
       'Tâche abandonnée : tu la retrouves dans les tâches abandonnées.', origine);
+    proposerEcheance(resultat.tache, resultat.choix_echeance);
   }
 
   function selectionnerPhrase(phrase) {

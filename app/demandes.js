@@ -6,13 +6,16 @@ function composerTexte(phrase, complement) {
 }
 
 function noterEnTache(intitule, source) {
-  return creerTache({
+  const date = comprendreDemande.trouverDate(intitule);
+  const tache = creerTache({
     intitule,
     categorie: 'À trier',
     sous_categorie: '',
+    echeance: date.date,
     origine: source === 'micro' ? 'dictée' : 'ajout à la main',
     fictif: false
   });
+  return { tache, choix: date.choix };
 }
 
 function traiterDemande({ texte = '', source, id_phrase = '', complement = '', agenda_disponible = false }) {
@@ -46,14 +49,14 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
     } else if (brouillon && agenda_disponible) {
       resultat = { type: 'rendez-vous', brouillon, message: 'Vérifie le rendez-vous avant que je l’ajoute à l’agenda.' };
     } else if (brouillon) {
-      const tache = noterEnTache(intitule, source);
+      const { tache, choix } = noterEnTache(intitule, source);
       resultat = {
-        type: 'tache', tache,
+        type: 'tache', tache, choix_echeance: choix,
         message: `Pas de connexion à Google : ce n'est PAS dans l'agenda. Je l'ai notée comme tâche dans À trier : « ${intitule} »`
       };
     } else {
-      const tache = noterEnTache(intitule, source);
-      resultat = { type: 'tache', tache, message: `Ajoutée dans À trier : « ${intitule} »` };
+      const { tache, choix } = noterEnTache(intitule, source);
+      resultat = { type: 'tache', tache, choix_echeance: choix, message: `Ajoutée dans À trier : « ${intitule} »` };
     }
   }
   if (id_phrase) preferencesClavier.compterUtilisation(id_phrase);

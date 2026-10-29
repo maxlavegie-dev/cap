@@ -6,28 +6,12 @@ const comprendreDemande = (() => {
     onze: 11, douze: 12, quinze: 15, vingt: 20, 'vingt-cinq': 25, trente: 30, quarante: 40,
     'quarante-cinq': 45, cinquante: 50
   };
-  const jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-  const mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
   const motsNombres = Object.keys(nombres).sort((a, b) => b.length - a.length).join('|');
   const motRendezVous = /\b(?:rendez[- ]vous|rdv)\b/i;
   const motReport = /\b(?:report(?:e|er|es)?|repouss(?:e|er|es)?|décal(?:e|er|es)?)\b/i;
 
   function deuxChiffres(valeur) {
     return String(valeur).padStart(2, '0');
-  }
-
-  function texteDate(date) {
-    return `${date.getFullYear()}-${deuxChiffres(date.getMonth() + 1)}-${deuxChiffres(date.getDate())}`;
-  }
-
-  function dansJours(maintenant, nombre) {
-    const date = new Date(maintenant.getFullYear(), maintenant.getMonth(), maintenant.getDate() + nombre, 12);
-    return texteDate(date);
-  }
-
-  function dateValide(annee, moisIndex, jour) {
-    const date = new Date(annee, moisIndex, jour, 12);
-    return date.getMonth() === moisIndex && date.getDate() === jour ? date : null;
   }
 
   function lireNombre(mot) {
@@ -55,39 +39,8 @@ const comprendreDemande = (() => {
     return { rappels: rappels.slice(0, 5), morceaux };
   }
 
-  function trouverDate(texte, maintenant) {
-    let trouve = /\baprès[- ]demain\b/i.exec(texte);
-    if (trouve) return { date: dansJours(maintenant, 2), morceau: trouve[0] };
-    trouve = /\bdemain\b/i.exec(texte);
-    if (trouve) return { date: dansJours(maintenant, 1), morceau: trouve[0] };
-    trouve = /\baujourd'hui\b|\bce\s+(?:matin|midi|soir|après-midi)\b/i.exec(texte);
-    if (trouve) return { date: dansJours(maintenant, 0), morceau: trouve[0] };
-    trouve = /\b(?:ce\s+)?week[- ]?end\b/i.exec(texte);
-    if (trouve) return { date: dansJours(maintenant, maintenant.getDay() === 0 ? 0 : 6 - maintenant.getDay()), morceau: trouve[0] };
-    trouve = /\b(?:la\s+)?semaine\s+prochaine\b/i.exec(texte);
-    if (trouve) return { date: dansJours(maintenant, (8 - maintenant.getDay()) % 7 || 7), morceau: trouve[0] };
-    trouve = new RegExp(`\\b(?:le\\s+)?(1er|premier|\\d{1,2})\\s+(${mois.join('|')})(?:\\s+(\\d{4}))?\\b`, 'i').exec(texte);
-    if (trouve) {
-      const jour = /^\d+$/.test(trouve[1]) ? Number(trouve[1]) : 1;
-      const moisIndex = mois.indexOf(trouve[2].toLowerCase());
-      let annee = trouve[3] ? Number(trouve[3]) : maintenant.getFullYear();
-      let date = dateValide(annee, moisIndex, jour);
-      if (date && !trouve[3] && texteDate(date) < dansJours(maintenant, 0)) date = dateValide(++annee, moisIndex, jour);
-      if (date) return { date: texteDate(date), morceau: trouve[0] };
-    }
-    trouve = /\b(?:le\s+)?(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?\b/.exec(texte);
-    if (trouve) {
-      let annee = trouve[3] ? Number(trouve[3]) : maintenant.getFullYear();
-      let date = dateValide(annee, Number(trouve[2]) - 1, Number(trouve[1]));
-      if (date && !trouve[3] && texteDate(date) < dansJours(maintenant, 0)) date = dateValide(++annee, Number(trouve[2]) - 1, Number(trouve[1]));
-      if (date) return { date: texteDate(date), morceau: trouve[0] };
-    }
-    trouve = new RegExp(`\\b(?:ce\\s+|le\\s+)?(${jours.join('|')})(?:\\s+prochain)?\\b`, 'i').exec(texte);
-    if (trouve) {
-      const ecart = (jours.indexOf(trouve[1].toLowerCase()) - maintenant.getDay() + 7) % 7 || 7;
-      return { date: dansJours(maintenant, ecart), morceau: trouve[0] };
-    }
-    return { date: '', morceau: '' };
+  function trouverDate(texte, maintenant = new Date(), options = {}) {
+    return comprendreDates.trouver(texte, maintenant, options);
   }
 
   function trouverHeure(texte) {
@@ -136,7 +89,8 @@ const comprendreDemande = (() => {
     const titre = trouverTitre(sansRappels, [date.morceau, heure.morceau]);
     return {
       titre, date: date.date, heure: heure.heure, heure_fin: uneHeurePlusTard(heure.heure),
-      journee_entiere: false, lieu: '', telephone: '', mail: '', notes: '', rappels: rappels.rappels
+      journee_entiere: false, lieu: '', telephone: '', mail: '', notes: '', rappels: rappels.rappels,
+      choix_date: date.choix
     };
   }
 
@@ -147,8 +101,8 @@ const comprendreDemande = (() => {
   }
 
   function date(texte, maintenant = new Date()) {
-    return trouverDate(String(texte || '').replace(/[’`]/g, "'"), maintenant).date;
+    return trouverDate(texte, maintenant).date;
   }
 
-  return { rendezVous, report, date };
+  return { rendezVous, report, date, trouverDate };
 })();

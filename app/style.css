@@ -905,6 +905,30 @@ dialog .bouton-date-rapide {
   padding: 8px;
 }
 
+.choix-question-date {
+  display: grid;
+  gap: 10px;
+}
+
+.choix-date-possible {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border: 2px solid #1f6f63;
+  border-radius: 12px;
+  background: #d5eee7;
+  color: #18303d;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 700;
+}
+
+.choix-question-date .choix-date-possible {
+  margin-top: 0;
+}
+
 dialog .bouton-date-rapide[aria-pressed="true"] {
   border-color: #1f6f63;
   background: #d5eee7;

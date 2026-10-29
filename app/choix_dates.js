@@ -151,9 +151,23 @@ const choixDates = (() => {
     });
 
     function comprendre(texte) {
-      const valeur = dateRapide(texte, new Date());
-      if (valeur) remplir(valeur);
-      else message(`Je n’ai pas compris la date dans « ${texte.trim()} ». Choisis-la dans les menus.`);
+      const resultat = comprendreDemande.trouverDate(texte, new Date(), { seul: true });
+      if (resultat.date) {
+        remplir(resultat.date);
+      } else if (resultat.choix.length) {
+        message('');
+        aide.append(noeud('span', '', `« ${texte.trim()} » : je ne suis pas sûr. Laquelle ?`),
+          ...resultat.choix.map(valeur => {
+            const bouton = noeud('button', 'choix-date-possible', dateEnLettres(valeur));
+            bouton.type = 'button';
+            bouton.addEventListener('click', () => remplir(valeur));
+            return bouton;
+          }));
+        aide.hidden = false;
+        aide.querySelector('button').focus({ preventScroll: true });
+      } else {
+        message(`Je n’ai pas compris la date dans « ${texte.trim()} ». Choisis-la dans les menus.`);
+      }
     }
 
     function ecouter(essaisRestants) {
