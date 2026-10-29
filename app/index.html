@@ -56,6 +56,8 @@
       <p id="info-chargement" role="status" hidden></p>
       <h1 class="visuellement-cache">Tes tâches</h1>
       <div id="liste-taches"></div>
+      <button id="basculer-terminees" type="button" aria-expanded="false" aria-controls="liste-terminees" hidden>Terminées (0)</button>
+      <ul id="liste-terminees" class="liste-groupe" aria-label="Tâches terminées" hidden></ul>
       <button id="basculer-archive" class="lien" type="button" aria-expanded="false" aria-controls="archive-taches">Voir les tâches abandonnées (0)</button>
       <section id="archive-taches" aria-labelledby="titre-archive" hidden>
         <h2 id="titre-archive">Tâches abandonnées</h2>
@@ -114,6 +116,7 @@
     <h2 id="titre-menu">Actions sur la tâche</h2>
     <p id="intitule-menu" class="intitule-dialogue"></p>
     <div class="actions-menu">
+      <button id="reporter-tache" type="button">Reporter à demain</button>
       <button id="ajouter-etape" type="button">Ajouter une étape</button>
       <button id="abandonner-tache" type="button">Abandonner</button>
       <button type="button" data-fermer>Annuler</button>
@@ -231,6 +234,7 @@
   <script src="dictee.js"></script>
   <script src="phrases_clavier.js"></script>
   <script src="preferences_clavier.js"></script>
+  <script src="comprendre_demande.js"></script>
   <script src="demandes.js"></script>
   <script src="recherche.js"></script>
   <script src="journal_actions.js"></script>

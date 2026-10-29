@@ -6,7 +6,7 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 
 ## Où on en est
 
-**Étape actuelle :** Lot 1 (écran d'accueil) construit le 29/10/2026, pas encore publié.
+**Étape actuelle :** Lot 2 (liste de tâches) construit le 29/10/2026, pas encore publié.
 
 ### Fait
 - 27/10/2026 : cahier des charges de Max rangé dans le projet (`PROMPT_CAP.txt`).
@@ -38,11 +38,13 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 - 28/10/2026 : corrigé et publié : alerte visible quand Google coupe l'accès, bouton « Redonner l'accès à Google », reconnexion silencieuse, envoi automatique des tâches en attente. Max a vu l'alerte sur son téléphone et a pu redonner l'accès : PRIORITÉ N° 1 REMPLIE.
 - 28/10/2026 : publiés : accueil épuré, recherche tapée (tâches et rendez-vous), dernières actions avec l'heure, indicateur d'envois en attente et « Synchroniser maintenant », fiche de rendez-vous (affichage, modification, « Appeler », « Écrire »). Max est content ; ses remarques viendront plus tard.
 - 29/10/2026 : vérifications automatiques réparées : deux essais étaient faux depuis l'arrivée de la fiche de rendez-vous (le fichier était chargé deux fois dans les essais, et un essai attendait l'ancien comportement).
-- 29/10/2026 : LOT 1 construit (sauvegarde `sauvegarde-avant-lot1-accueil-20261029`) : l'heure disparaît de l'accueil ; la date reste en haut, centrée, un peu plus grosse ; une seule longue barre de recherche en bas, juste au-dessus des boutons, avec à gauche un petit menu qui affiche toujours le choix en cours (« Tâches ▾ ») ; les résultats arrivent pendant la frappe et s'affichent au-dessus de la barre, dans l'espace libre. Barre du haut du téléphone : Cap installée est en mode « standalone », qui garde la barre du téléphone (heure, réseau, batterie) visible ; la date est placée en dessous. 183 vérifications automatiques réussies. Pas encore publié.
+- 29/10/2026 : LOT 1 construit (sauvegarde `sauvegarde-avant-lot1-accueil-20261029`) : l'heure disparaît de l'accueil ; la date reste en haut, centrée, un peu plus grosse ; une seule longue barre de recherche en bas, juste au-dessus des boutons, avec à gauche un petit menu qui affiche toujours le choix en cours (« Tâches ▾ ») ; les résultats arrivent pendant la frappe et s'affichent au-dessus de la barre, dans l'espace libre. Barre du haut du téléphone : Cap installée est en mode « standalone », qui garde la barre du téléphone (heure, réseau, batterie) visible ; la date est placée en dessous. 183 vérifications automatiques réussies.
+- 29/10/2026 : Lot 1 publié par Max et validé sur son téléphone, sauf le rendez-vous dicté avec rappel.
+- 29/10/2026 : DÉFAUT trouvé et corrigé : un rendez-vous dicté répondait « ajouté » mais n'allait dans aucun agenda. Cause : sans cerveau, Cap transformait toute demande en tâche « À trier » (le « Atrier » vu par Max était le message « Ajoutée dans À trier »). Correction : un nouveau fichier (`comprendre_demande.js`) reconnaît, sans IA, une demande de rendez-vous (date, heure, titre, rappels) et ouvre une fiche « Nouveau rendez-vous » préremplie ; Max vérifie, puis confirme, et le rendez-vous est créé dans l'agenda « Cap – FICTIF » seulement, avec le rappel en notification Google Agenda. Sans connexion, Cap le dit honnêtement et le note en tâche. Aucune nouvelle autorisation Google.
+- 29/10/2026 : LOT 2 construit (sauvegarde `sauvegarde-avant-lot2-20261029`) : les tâches cochées sortent de la liste et vont dans une ligne repliée « Terminées (N) » tout en bas ; un appui l'ouvre, décocher remet la tâche dans sa catégorie. Glisser une tâche vers la droite la coche, vers la gauche la reporte à demain, avec « Annuler » pendant 8 secondes. « Reporter à demain » aussi dans le menu « … », et à la voix (« Reporte ça à demain ») pour la dernière tâche ouverte. 193 vérifications automatiques réussies. Pas encore publié.
 
 ### En cours
-- Fiche de rendez-vous : il reste à vérifier sur le téléphone que le rappel arrive bien en vraie notification de Google Agenda (agenda FICTIF).
-- Lot 1 : à publier (avec l'accord de Max) puis à essayer sur le téléphone.
+- Lot 2 : à publier (avec l'accord de Max) puis à essayer sur le téléphone, en particulier le rendez-vous dicté avec rappel : vérifier qu'il apparaît dans l'agenda « Cap – FICTIF » et que la notification arrive (dans l'appli Google Agenda, l'agenda « Cap – FICTIF » doit être synchronisé et ses notifications activées).
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)
@@ -54,6 +56,8 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 ---
 
 ## Décisions prises
+- 29/10/2026 : à la demande de Max (Lot 2), les tâches cochées ne restent plus dans leur catégorie : elles vont dans la ligne repliée « Terminées (N) ». Rien n'est effacé : la tâche garde sa date et sa catégorie, et décocher la remet à sa place. Cela remplace le choix du 28/10 (« les tâches cochées restent dans leur catégorie »).
+- 29/10/2026 : un rendez-vous dicté n'est jamais ajouté directement : Cap ouvre une fiche préremplie que Max vérifie et confirme. Déplacer un rendez-vous à la voix n'est pas encore géré (Cap le dit et propose « Modifier »).
 - 28/10/2026 : plan de la semaine 2 validé par Max : liste dans un Google Sheets « Cap – FICTIF – Tâches » (accès limité aux seuls fichiers créés par Cap), agenda séparé « Cap – FICTIF » (Cap ne lit pas le vrai agenda), copie sur le téléphone et file d'attente hors connexion, aucune ligne jamais effacée. Briefing (besoin de la clé API) et Gmail repoussés à l'étape suivante.
 - 28/10/2026 : NOUVELLE RÈGLE DE TRAVAIL (Complément 4, remplace la précédente) : tant que tout est fictif, l'assistant avance seul et fait un compte rendu court à chaque étape (fait + à tester). Il s'arrête et demande l'accord de Max avant : toute autorisation Google nouvelle ou élargie, tout accès aux vraies données, tout envoi de mail, toute publication. Sauvegarde avant chaque grosse modification.
 - 28/10/2026 : plan « accueil, recherche, rendez-vous » validé par Max, avec deux choix : rappel par Google Agenda (uniquement sur l'agenda FICTIF tant que Max n'a pas donné son accord) ; zone « Dernières actions » en haut au lieu de déplacer les tâches (les tâches cochées restent dans leur catégorie).
@@ -83,6 +87,7 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 ---
 
 ## Ajouts de Max en cours de route
+- 29/10/2026 : LOT 2, liste de tâches : d'abord régler le rendez-vous dicté avec rappel (rien n'arrivait dans l'agenda, « Atrier » affiché, droit aux notifications à vérifier) ; tâches cochées regroupées dans une ligne repliée « Terminées (N) » en bas ; glisser à droite pour cocher, à gauche pour reporter à demain, aussi à la voix, avec « Annuler ».
 - 29/10/2026 : LOT 1, écran d'accueil : plus d'heure dans Cap (la barre du téléphone la montre déjà, comme dans Google Agenda) ; date seule en haut, centrée, un peu plus grosse ; une seule barre de recherche en bas, au-dessus du micro et des trois boutons, facile à atteindre d'une main, avec le petit menu des sources intégré à gauche et toujours visible ; résultats pendant la frappe, affichés au-dessus de la barre. Également : gestion des premiums annoncée à chaque séance (15 % gardés en réserve ; la publication est faite par Max lui-même).
 - 28/10/2026 : COMPLÉMENT 4 (texte complet : `PROMPT_COMPLEMENT_4.txt`) : mode conversation continue (appui long d'environ 2 s sur le micro, vibration et son doux grave à l'entrée et à la sortie, micro allumé bien visible, sortie par un appui ou seule après 3 minutes de silence, test batterie) ; conversation en arrière-plan pendant l'usage d'autres applis ; alerte quand Google refuse ou expire (priorité n° 1) ; nouvelle règle de travail ; compte rendu à chaque étape ; sauvegarde avant les grosses modifications.
 - 28/10/2026 : après l'essai Google (texte complet : `PROMPT_COMPLEMENT_ACCUEIL_RDV.txt`) : écran d'accueil épuré (jour, heure, barre de recherche, boutons du bas ; un glissement vers le haut montre l'écran complet) ; texte un peu plus gros sauf l'heure ; recherche tapée sans IA (tâches et rendez-vous, autres sources grisées) ; dernières actions avec l'heure ; fiche de rendez-vous cliquable et modifiable (adresse, téléphone « Appeler », mail « Écrire », « Itinéraire », notes, rappel affiché ET vraie notification) ; indicateur des envois en attente et bouton « Synchroniser maintenant » ; animations douces gardées pour la toute fin.

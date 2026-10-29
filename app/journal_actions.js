@@ -2,7 +2,7 @@
 
 const journalActions = (() => {
   const cle = 'cap_journal_actions_v1';
-  const types = ['ajout', 'fait', 'remise à faire', 'abandon', 'remise'];
+  const types = ['ajout', 'fait', 'remise à faire', 'abandon', 'remise', 'échéance'];
 
   function lire() {
     try {

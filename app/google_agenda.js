@@ -371,5 +371,43 @@ const googleAgenda = (() => {
     return resultat;
   }
 
-  return { trouverOuCreer, prochainsRendezVous, lireCache, lireDescription, ecrireDescription, modifierRendezVous, lireHistorique };
+  async function creerRendezVous(champs) {
+    const verifierConnexion = () => {
+      if (!navigator.onLine || !googleConnexion.connecte()) throw new Error('Il faut être connecté à Google pour ajouter un rendez-vous.');
+    };
+    verifierConnexion();
+    verifierChangements(champs);
+    const valeur = cle => (typeof champs[cle] === 'string' ? champs[cle] : '');
+    if (!valeur('titre').trim()) throw new Error('Le titre est obligatoire.');
+    if (!valeur('date')) throw new Error('La date n’est pas valide.');
+    if (!valeur('heure') || !valeur('heure_fin') || valeur('heure_fin') <= valeur('heure')) throw new Error('L’heure de fin doit être après l’heure de début.');
+    const idAgenda = await trouverOuCreer();
+    if (!idValide(idAgenda)) throw new Error('Ajout dans cet agenda interdit.');
+    const base = `${racine}/calendars/${encodeURIComponent(idAgenda)}`;
+    const agenda = await (await requete(base)).json();
+    if (agenda.primary || agenda.summary !== REGLAGES_GOOGLE.nom_agenda || !REGLAGES_GOOGLE.nom_agenda.includes('FICTIF')) {
+      throw new Error('Seul l’agenda Cap – FICTIF peut recevoir un rendez-vous.');
+    }
+    const corps = {
+      summary: valeur('titre').trim(),
+      location: valeur('lieu'),
+      description: ecrireDescription({ notes: valeur('notes'), telephone: valeur('telephone'), mail: valeur('mail') }),
+      start: { dateTime: `${valeur('date')}T${valeur('heure')}:00`, timeZone: fuseau },
+      end: { dateTime: `${valeur('date')}T${valeur('heure_fin')}:00`, timeZone: fuseau },
+      reminders: { useDefault: false, overrides: (champs.rappels || []).map(minutes => ({ method: 'popup', minutes })) }
+    };
+    verifierConnexion();
+    const reponse = await (await requete(`${base}/events`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps)
+    })).json();
+    if (!reponse.id) throw new Error('Google n’a pas confirmé l’ajout. Vérifie dans l’agenda avant de réessayer.');
+    const resultat = versRendezVous({ ...corps, ...reponse });
+    const cache = lireCache() || [];
+    cache.push(resultat);
+    cache.sort((a, b) => `${a.date} ${a.heure}`.localeCompare(`${b.date} ${b.heure}`));
+    ecrireStockage(cleCache, JSON.stringify({ enregistre_le: new Date().toISOString(), rendezvous: cache }));
+    return resultat;
+  }
+
+  return { trouverOuCreer, prochainsRendezVous, lireCache, lireDescription, ecrireDescription, modifierRendezVous, creerRendezVous, lireHistorique };
 })();

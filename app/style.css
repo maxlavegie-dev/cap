@@ -626,6 +626,55 @@ button {
   gap: 4px;
 }
 
+#liste-taches .tache,
+#liste-terminees .tache {
+  touch-action: pan-y;
+  border-radius: 8px;
+}
+
+.tache.glisse {
+  position: relative;
+  z-index: 1;
+  user-select: none;
+}
+
+.tache.glisse[data-sens="droite"] {
+  background: rgb(120 190 150 / 45%);
+}
+
+.tache.glisse[data-sens="gauche"] {
+  background: rgb(240 190 110 / 50%);
+}
+
+#basculer-terminees {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  min-height: 52px;
+  margin: 24px 0 0;
+  padding: 10px 6px;
+  border: 0;
+  border-top: 1px solid rgb(32 62 73 / 25%);
+  background: transparent;
+  font-size: 16.5px;
+  font-weight: 600;
+  text-align: left;
+}
+
+#basculer-terminees::after {
+  content: "▾";
+  font-size: 15px;
+}
+
+#basculer-terminees[aria-expanded="true"]::after {
+  content: "▴";
+}
+
+#basculer-terminees[hidden] {
+  display: none;
+}
+
 .tache.etape {
   margin-left: 26px;
   border-left: 2px solid rgb(32 62 73 / 18%);

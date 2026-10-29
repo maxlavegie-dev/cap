@@ -28,6 +28,7 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `dictee.js` | Écoute ce que Max dit, avec la reconnaissance vocale du navigateur, et transmet le texte entendu. |
 | `phrases_clavier.js` | Les réglages des débuts de phrases du clavier. Ils iront dans le Drive en semaine 2. |
 | `preferences_clavier.js` | Retient sur le téléphone les phrases les plus utilisées, les dernières demandes et l'interrupteur « Réponse silencieuse ». |
+| `comprendre_demande.js` | Comprend, sans intelligence artificielle, une demande de rendez-vous (date, heure, titre, rappels) ou « Reporte ça à demain ». Ne fait rien lui-même : il prépare seulement un brouillon. |
 | `demandes.js` | La porte d'entrée unique de toutes les demandes (micro et clavier). C'est là qu'on branchera l'intelligence artificielle. |
 | `recherche.js` | La recherche tapée, sans intelligence artificielle : trouve un mot dans les tâches ou les rendez-vous, sans tenir compte des accents ni des majuscules. |
 | `journal_actions.js` | Retient sur le téléphone les dernières actions (ajout, coche, abandon) avec leur heure. |
@@ -71,7 +72,8 @@ Pour utiliser Cap sans parler (détail dans `PROMPT_COMPLEMENT_CLAVIER.txt`).
 - On touche un début de phrase (« Retrouve-moi... »), on écrit la fin, puis « Envoyer ». On peut aussi écrire n'importe quoi dans le champ, sans phrase.
 - « Les plus utilisées » remontent toutes seules ; « Dernières demandes » permet de relancer une demande telle quelle.
 - L'interrupteur « Réponse silencieuse » est allumé par défaut. Pour l'instant Cap ne parle jamais : il servira quand Cap saura répondre à voix haute.
-- Le micro et le clavier passent par la même porte d'entrée (`demandes.js`). Tant que l'intelligence artificielle n'est pas branchée, tout ce qui est écrit va dans « À trier », mot pour mot. « Ajoute à ma to-do... » ne garde que la fin de la phrase. « Continue. » et « Annule. » attendront l'intelligence artificielle.
+- Le micro et le clavier passent par la même porte d'entrée (`demandes.js`). Tant que l'intelligence artificielle n'est pas branchée, tout ce qui est écrit va dans « À trier », mot pour mot. « Ajoute à ma to-do... » ne garde que la fin de la phrase. « Continue. » et « Annule. » attendront l'intelligence artificielle. Exception : une demande de rendez-vous ouvre une fiche « Nouveau rendez-vous » préremplie, que Max vérifie avant l'ajout dans l'agenda « Cap – FICTIF » ; « Reporte ça à demain » reporte la dernière tâche ouverte.
+- Les tâches cochées vont dans la ligne repliée « Terminées (N) », en bas de la liste. Glisser une tâche à droite la coche, à gauche la reporte à demain. Rien n'est jamais effacé, et « Annuler » reste affiché 8 secondes.
 - Un bouton ne fait que remplir une phrase : il ne peut jamais envoyer un mail.
 
 ## Ce que contient une tâche

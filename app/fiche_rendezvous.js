@@ -22,6 +22,8 @@ const ficheRendezVous = (() => {
   let surModification;
   let changements = {};
   let enCours = false;
+  let creation = false;
+  let surAbandon;
 
   function element(balise, classe, texte) {
     const noeud = document.createElement(balise);
@@ -61,7 +63,7 @@ const ficheRendezVous = (() => {
 
   function autorise() {
     if (navigator.onLine && googleConnexion.connecte()) return true;
-    messageErreur('Il faut être connecté à Google pour modifier un rendez-vous.');
+    messageErreur(creation ? 'Il faut être connecté à Google pour ajouter un rendez-vous.' : 'Il faut être connecté à Google pour modifier un rendez-vous.');
     return false;
   }
 
@@ -92,6 +94,7 @@ const ficheRendezVous = (() => {
   }
 
   function afficherConsultation() {
+    parId('titre-fiche-rendez-vous').textContent = 'Ton rendez-vous';
     const lieu = texte(rendezVous.lieu).trim();
     const telephone = texte(rendezVous.telephone).trim();
     const numero = telephone.replace(/[^\d+]/g, '');
@@ -119,14 +122,30 @@ const ficheRendezVous = (() => {
     cleOrigine = origine?.dataset.rdvFocus;
     surModification = apresModification;
     changements = {};
+    creation = false;
     afficherConsultation();
     dialogue.showModal();
     retour.focus({ preventScroll: true });
   }
 
-  parId('modifier-rdv').addEventListener('click', () => {
-    messageErreur('');
-    if (!autorise()) return;
+  function nouveau(brouillon, boutonOrigine, apresCreation, apresAbandon) {
+    if (enCours || dialogue.open) return false;
+    surAbandon = apresAbandon;
+    const vide = { id: '', titre: '', date: '', heure: '', heure_fin: '', journee_entiere: false, lieu: '', telephone: '', mail: '', notes: '', rappels: [] };
+    rendezVous = { ...vide, ...brouillon, id: '', journee_entiere: false, rappels: [...(brouillon?.rappels || [])] };
+    origine = boutonOrigine || document.activeElement;
+    cleOrigine = undefined;
+    surModification = apresCreation;
+    changements = {};
+    creation = true;
+    remplirFormulaire();
+    parId('titre-fiche-rendez-vous').textContent = 'Nouveau rendez-vous';
+    dialogue.showModal();
+    afficherVue('edition', champ('titre'));
+    return true;
+  }
+
+  function remplirFormulaire() {
     for (const cle of Object.keys(champs).filter(cle => cle !== 'rappels')) champ(cle).value = texte(rendezVous[cle]);
     const journee = Boolean(rendezVous.journee_entiere);
     parId('horaires-rdv').hidden = false;
@@ -138,10 +157,21 @@ const ficheRendezVous = (() => {
     const autres = rendezVous.rappels.filter(minutes => !standards.includes(minutes));
     parId('autres-rappels-rdv').textContent = autres.length ? `Rappels conservés : ${autres.map(duree).join(', ')} avant.` : '';
     parId('autres-rappels-rdv').hidden = autres.length === 0;
+    parId('enregistrer-rdv').textContent = creation ? 'Vérifier' : 'Enregistrer';
+    parId('titre-recapitulatif-rdv').textContent = creation ? 'Rendez-vous à ajouter' : 'Ce qui va changer';
+  }
+
+  parId('modifier-rdv').addEventListener('click', () => {
+    messageErreur('');
+    if (!autorise()) return;
+    remplirFormulaire();
     afficherVue('edition', champ('titre'));
   });
 
-  parId('annuler-edition-rdv').addEventListener('click', afficherConsultation);
+  parId('annuler-edition-rdv').addEventListener('click', () => {
+    if (creation) dialogue.close();
+    else afficherConsultation();
+  });
   parId('revenir-rdv').addEventListener('click', () => afficherVue('edition', parId('enregistrer-rdv')));
   retour.addEventListener('click', () => { if (!enCours) dialogue.close(); });
   dialogue.addEventListener('cancel', event => { if (enCours) event.preventDefault(); });
@@ -153,6 +183,10 @@ const ficheRendezVous = (() => {
     if (!cible?.isConnected || cible.closest('[hidden], [inert]')) cible = parId('basculer-vue');
     cible.focus({ preventScroll: true });
     formulaire.reset();
+    if (creation) {
+      creation = false;
+      try { surAbandon?.(); } catch (echec) {}
+    }
   });
 
   formulaire.addEventListener('submit', event => {
@@ -185,15 +219,16 @@ const ficheRendezVous = (() => {
     for (const cle of Object.keys(champs).filter(cle => cle !== 'rappels')) {
       if (rendezVous.journee_entiere && (cle === 'heure' || cle === 'heure_fin')) continue;
       const valeur = champ(cle).value;
-      if (valeur !== texte(rendezVous[cle])) changements[cle] = valeur;
+      if (creation || valeur !== texte(rendezVous[cle])) changements[cle] = valeur;
     }
     const rappels = [...rendezVous.rappels.filter(minutes => !standards.includes(minutes)),
       ...casesRappels.filter(caseRappel => caseRappel.checked).map(caseRappel => Number(caseRappel.value))];
     const trier = valeurs => [...valeurs].sort((a, b) => a - b);
-    if (JSON.stringify(trier(rappels)) !== JSON.stringify(trier(rendezVous.rappels))) changements.rappels = rappels;
+    if (creation || JSON.stringify(trier(rappels)) !== JSON.stringify(trier(rendezVous.rappels))) changements.rappels = rappels;
     const lignes = Object.entries(changements).map(([cle, valeur]) => {
       const section = element('section', 'carte-rdv');
-      section.append(element('h4', '', champs[cle]), element('p', '', `${valeurLisible(cle, rendezVous[cle])} → ${valeurLisible(cle, valeur)}`));
+      section.append(element('h4', '', champs[cle]), element('p', '', creation ? valeurLisible(cle, valeur)
+        : `${valeurLisible(cle, rendezVous[cle])} → ${valeurLisible(cle, valeur)}`));
       return section;
     });
     parId('changements-rdv').replaceChildren(...(lignes.length ? lignes : [element('p', '', 'Aucun changement.')]));
@@ -210,12 +245,16 @@ const ficheRendezVous = (() => {
     retour.disabled = true;
     confirmer.textContent = 'Enregistrement…';
     messageErreur('');
+    const etaitCreation = creation;
     try {
-      const resultat = await googleAgenda.modifierRendezVous(rendezVous.id, changements);
+      const resultat = creation ? await googleAgenda.creerRendezVous(changements)
+        : await googleAgenda.modifierRendezVous(rendezVous.id, changements);
       rendezVous = { ...resultat, rappels: [...(resultat.rappels || [])] };
+      creation = false;
     } catch (echec) {
       afficherVue('edition', parId('enregistrer-rdv'));
-      messageErreur(echec instanceof Error ? echec.message : 'Le rendez-vous n’a pas pu être modifié. Réessaie.');
+      messageErreur(echec instanceof Error ? echec.message
+        : creation ? 'Le rendez-vous n’a pas pu être ajouté. Réessaie.' : 'Le rendez-vous n’a pas pu être modifié. Réessaie.');
       return;
     } finally {
       enCours = false;
@@ -226,11 +265,12 @@ const ficheRendezVous = (() => {
       confirmer.textContent = 'Confirmer';
     }
     afficherConsultation();
-    statut.textContent = "Rendez-vous mis à jour dans l'agenda Cap – FICTIF.";
+    statut.textContent = etaitCreation ? "Rendez-vous ajouté dans l'agenda Cap – FICTIF."
+      : "Rendez-vous mis à jour dans l'agenda Cap – FICTIF.";
     statut.hidden = false;
     contenu.scrollTop = 0;
     try { surModification?.(rendezVous); } catch (echec) {}
   });
 
-  return { ouvrir };
+  return { ouvrir, nouveau };
 })();

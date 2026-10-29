@@ -43,6 +43,7 @@ function enregistrerModification(modifier) {
         if (!ancienne) journalActions.noter('ajout', tache.intitule);
         else {
           if (ancienne.fait !== tache.fait) journalActions.noter(tache.fait ? 'fait' : 'remise à faire', tache.intitule);
+          if (ancienne.echeance !== tache.echeance) journalActions.noter('échéance', tache.intitule);
           if (ancienne.abandonnee_le !== tache.abandonnee_le) {
             journalActions.noter(tache.abandonnee_le ? 'abandon' : 'remise', tache.intitule);
           }
@@ -144,6 +145,24 @@ function cocher(id, valeur) {
     tache.date_realisation = valeur ? dateDuJour() : '';
     return tache;
   });
+}
+
+function changerEcheance(id, valeur) {
+  if (typeof valeur !== 'string') throw new Error('Choisis une date valide.');
+  if (valeur !== '') joursRestants(valeur);
+  return enregistrerModification(() => {
+    const tache = trouverTache(id);
+    const ancienne = tache.echeance;
+    tache.echeance = valeur;
+    return ancienne;
+  });
+}
+
+function reporterADemain(id) {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  const demain = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  return changerEcheance(id, demain);
 }
 
 function abandonner(id) {

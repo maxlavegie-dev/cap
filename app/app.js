@@ -7,6 +7,8 @@
   const statutElement = parId('statut');
   const archiveElement = parId('basculer-archive');
   const listeArchiveElement = parId('liste-archive');
+  const termineesElement = parId('basculer-terminees');
+  const listeTermineesElement = parId('liste-terminees');
   const menu = parId('menu-tache');
   const confirmation = parId('confirmation');
   const ajout = parId('ajout-tache');
@@ -31,6 +33,8 @@
     day: 'numeric', month: 'long', year: 'numeric'
   });
   let archiveOuverte = false;
+  let termineesOuvertes = false;
+  let derniereTache = null;
   let tacheSelectionnee = null;
   let parenteAjout = null;
   let retourDialogue = null;
@@ -69,13 +73,31 @@
     return [date, rendezVous.heure, rendezVous.titre].filter(Boolean).join(' – ');
   }
 
+  function retenirTache(id) {
+    derniereTache = { id, heure: Date.now() };
+  }
+
+  function racineDe(tache) {
+    const parent = TACHES.find(item => item.id === tache.parente);
+    return tache.parente && parent && !parent.abandonnee_le ? parent : tache;
+  }
+
+  function estTerminee(tache) {
+    const racine = racineDe(tache);
+    return !tache.abandonnee_le && Boolean(racine.fait) && !racine.abandonnee_le;
+  }
+
   function ouvrirResultatTache(tache) {
+    retenirTache(tache.id);
     if (tache.abandonnee_le) {
       archiveOuverte = true;
       afficher();
+    } else if (estTerminee(tache) && !termineesOuvertes) {
+      termineesOuvertes = true;
+      afficher();
     }
     changerVue(true);
-    const liste = tache.abandonnee_le ? listeArchiveElement : listeElement;
+    const liste = tache.abandonnee_le ? listeArchiveElement : estTerminee(tache) ? listeTermineesElement : listeElement;
     const ligne = Array.from(liste.querySelectorAll('[data-tache]'))
       .find(noeud => noeud.dataset.tache === String(tache.id));
     surlignerResultat(ligne);
@@ -130,7 +152,7 @@
   function afficherJournal() {
     const libelles = {
       ajout: 'Ajouté', fait: 'Fait', 'remise à faire': 'Remis à faire',
-      abandon: 'Abandonné', remise: 'Remis'
+      abandon: 'Abandonné', remise: 'Remis', 'échéance': 'Échéance changée'
     };
     const actions = journalActions.lire().slice(0, 5);
     const maintenant = new Date();
@@ -190,8 +212,11 @@
   function restaurerFocus(repere) {
     let cible = repere?.noeud;
     if (!cible?.isConnected && repere?.cle) {
-      cible = Array.from(document.querySelectorAll('#liste-taches [data-focus], #liste-archive [data-focus]'))
+      cible = Array.from(document.querySelectorAll('#liste-taches [data-focus], #liste-terminees [data-focus], #liste-archive [data-focus]'))
         .find(noeud => noeud.dataset.focus === repere.cle);
+    }
+    if ((!cible?.isConnected || cible.closest('[hidden], [inert]')) && repere?.cle && !termineesElement.closest('[hidden], [inert]')) {
+      cible = termineesElement;
     }
     if (!cible?.isConnected || cible.closest('[hidden], [inert]')) cible = parId('basculer-vue');
     cible.focus({ preventScroll: true });
@@ -261,11 +286,14 @@
     }
   }
 
-  function creerLigne(tache, contexte = false, estArchive = false) {
+  function creerLigne(tache, contexte = false, estArchive = false, termine = false) {
     const ligne = element('li', tache.parente ? 'tache etape' : 'tache');
     ligne.dataset.tache = tache.id;
     const texte = element('span', estArchive ? 'texte-tache texte-archive' : 'texte-tache');
     details(tache, texte, contexte || estArchive);
+    if (termine && !tache.parente) {
+      texte.append(element('span', 'classement', [tache.categorie || 'Sans catégorie', tache.sous_categorie].filter(Boolean).join(' > ')));
+    }
     if (estArchive) {
       texte.append(element('span', 'classement', `${tache.categorie || 'Sans catégorie'} > ${tache.sous_categorie || 'Sans sous-catégorie'}`));
       texte.append(element('span', 'details-tache', `Abandonnée le ${dateLisible(tache.abandonnee_le)}`));
@@ -312,24 +340,143 @@
     options.setAttribute('aria-haspopup', 'dialog');
     options.addEventListener('click', () => {
       tacheSelectionnee = tache.id;
+      retenirTache(tache.id);
       parId('intitule-menu').textContent = tache.intitule;
       parId('ajouter-etape').hidden = Boolean(tache.parente);
       ouvrir(menu, tache.parente ? parId('abandonner-tache') : parId('ajouter-etape'), options);
     });
     ligne.append(etiquette, options);
+    activerGlissement(ligne, tache);
     return ligne;
+  }
+
+  function proposerAnnulation(message, action, messageApres, origine) {
+    annoncer(message);
+    const annuler = element('button', 'annuler-dictee', 'Annuler');
+    annuler.type = 'button';
+    const rendreFocus = () => {
+      const cible = origine?.isConnected && !origine.closest('[hidden], [inert]') ? origine : parId('basculer-vue');
+      cible.focus({ preventScroll: true });
+    };
+    annuler.addEventListener('click', () => {
+      const avaitFocus = document.activeElement === annuler;
+      try {
+        action();
+      } catch (erreur) {
+        signalerErreur(erreur);
+        if (avaitFocus) rendreFocus();
+        return;
+      }
+      afficher();
+      if (avaitFocus) rendreFocus();
+      annoncer(messageApres);
+    });
+    statutElement.append(annuler);
+    delaiStatut = setTimeout(() => {
+      if (document.activeElement === annuler) rendreFocus();
+      annuler.remove();
+    }, 8000);
+  }
+
+  function terminerParGlissement(tache) {
+    if (tache.fait) {
+      annoncer('Cette tâche est déjà terminée.', true);
+      return;
+    }
+    try {
+      cocher(tache.id, true);
+    } catch (erreur) {
+      signalerErreur(erreur);
+      return;
+    }
+    afficher();
+    proposerAnnulation(`Terminée : ${tache.intitule}`, () => cocher(tache.id, false),
+      `Remise à faire : ${tache.intitule}`, parId('ecran-complet'));
+  }
+
+  function reporterTache(id, origine) {
+    const tache = TACHES.find(item => item.id === id);
+    if (!tache || tache.abandonnee_le) {
+      annoncer('Je ne trouve pas cette tâche.');
+      return;
+    }
+    let ancienne;
+    try {
+      ancienne = reporterADemain(tache.id);
+    } catch (erreur) {
+      signalerErreur(erreur);
+      return;
+    }
+    retenirTache(tache.id);
+    afficher();
+    proposerAnnulation(`Reportée à demain : ${tache.intitule}`, () => changerEcheance(tache.id, ancienne),
+      `Report annulé : ${tache.intitule}`, origine);
+  }
+
+  function activerGlissement(ligne, tache) {
+    let depart = null;
+    const remettreEnPlace = () => {
+      ligne.style.transform = '';
+      ligne.classList.remove('glisse');
+      delete ligne.dataset.sens;
+    };
+    ligne.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
+      if (event.target.closest('.options-tache')) return;
+      depart = { x: event.clientX, y: event.clientY, id: event.pointerId, actif: false };
+    });
+    ligne.addEventListener('pointermove', event => {
+      if (!depart || event.pointerId !== depart.id) return;
+      const ecartX = event.clientX - depart.x;
+      const ecartY = event.clientY - depart.y;
+      if (!depart.actif) {
+        if (Math.abs(ecartY) > 12 && Math.abs(ecartY) > Math.abs(ecartX)) {
+          depart = null;
+          return;
+        }
+        if (Math.abs(ecartX) < 12) return;
+        depart.actif = true;
+        try { ligne.setPointerCapture(event.pointerId); } catch (erreur) {}
+        ligne.classList.add('glisse');
+      }
+      ligne.style.transform = `translateX(${ecartX}px)`;
+      ligne.dataset.sens = ecartX > 0 ? 'droite' : 'gauche';
+    });
+    const finir = event => {
+      if (!depart || event.pointerId !== depart.id) return;
+      const etat = depart;
+      depart = null;
+      if (!etat.actif) return;
+      remettreEnPlace();
+      const bloquer = clic => {
+        clic.preventDefault();
+        clic.stopPropagation();
+      };
+      ligne.addEventListener('click', bloquer, { capture: true, once: true });
+      setTimeout(() => ligne.removeEventListener('click', bloquer, true), 400);
+      if (event.type === 'pointercancel') return;
+      const ecartX = event.clientX - etat.x;
+      const seuil = Math.min(90, ligne.offsetWidth * 0.3);
+      if (ecartX >= seuil) terminerParGlissement(tache);
+      else if (ecartX <= -seuil) reporterTache(tache.id, parId('ecran-complet'));
+    };
+    ligne.addEventListener('pointerup', finir);
+    ligne.addEventListener('pointercancel', finir);
   }
 
   function afficher() {
     const actif = document.activeElement;
-    const repere = listeElement.contains(actif) || listeArchiveElement.contains(actif) ? repereFocus(actif) : null;
+    const repere = listeElement.contains(actif) || listeArchiveElement.contains(actif)
+      || listeTermineesElement.contains(actif) ? repereFocus(actif) : null;
     const fragment = document.createDocumentFragment();
     const parIdTache = new Map(TACHES.map(tache => [tache.id, tache]));
     const visibles = TACHES.filter(tache => !tache.abandonnee_le);
-    const racines = visibles.filter(tache => {
+    const toutesRacines = visibles.filter(tache => {
       const parent = parIdTache.get(tache.parente);
       return !tache.parente || !parent || parent.abandonnee_le;
     });
+    const racines = toutesRacines.filter(tache => !tache.fait);
+    const terminees = toutesRacines.filter(tache => tache.fait);
     const groupes = new Map();
     for (const tache of racines) {
       if (!groupes.has(tache.categorie)) groupes.set(tache.categorie, new Map());
@@ -367,8 +514,25 @@
     }
     if (visibles.length === 0) {
       fragment.append(element('p', 'etat-vide', 'Aucune tâche pour le moment. Le bouton + permet d’en ajouter une.'));
+    } else if (racines.length === 0) {
+      fragment.append(element('p', 'etat-vide', 'Tout est terminé. Bravo !'));
     }
     listeElement.replaceChildren(fragment);
+    termineesElement.hidden = terminees.length === 0;
+    termineesElement.textContent = `Terminées (${terminees.length})`;
+    termineesElement.setAttribute('aria-expanded', String(termineesOuvertes && terminees.length > 0));
+    listeTermineesElement.hidden = !termineesOuvertes || terminees.length === 0;
+    listeTermineesElement.replaceChildren();
+    if (termineesOuvertes) {
+      for (const tache of [...terminees].reverse()) {
+        listeTermineesElement.append(creerLigne(tache, Boolean(tache.parente), false, true));
+        if (!tache.parente) {
+          for (const etape of visibles.filter(item => item.parente === tache.id)) {
+            listeTermineesElement.append(creerLigne(etape));
+          }
+        }
+      }
+    }
     const abandonnees = TACHES.filter(tache => tache.abandonnee_le);
     archiveElement.textContent = `${archiveOuverte ? 'Masquer' : 'Voir'} les tâches abandonnées (${abandonnees.length})`;
     archiveElement.setAttribute('aria-expanded', String(archiveOuverte));
@@ -495,30 +659,45 @@
     archiveOuverte = !archiveOuverte;
     afficher();
   });
+  termineesElement.addEventListener('click', () => {
+    termineesOuvertes = !termineesOuvertes;
+    afficher();
+  });
+  parId('reporter-tache').addEventListener('click', () => {
+    const id = tacheSelectionnee;
+    menu.close();
+    reporterTache(id, parId('ecran-complet'));
+  });
+  function agendaDisponible() {
+    return navigator.onLine && googleConnexion.connecte();
+  }
+
   function afficherResultatDemande(resultat, origine) {
+    if (resultat.type === 'report') {
+      const recente = derniereTache && Date.now() - derniereTache.heure < 15 * 60 * 1000
+        && TACHES.some(tache => tache.id === derniereTache.id && !tache.abandonnee_le);
+      if (recente) reporterTache(derniereTache.id, origine);
+      else annoncer('Je ne sais pas quelle tâche reporter. Ouvre-la d’abord (bouton …), ou glisse-la vers la gauche.');
+      return;
+    }
+    if (resultat.type === 'rendez-vous') {
+      annoncer(resultat.message);
+      const ouverte = ficheRendezVous.nouveau(resultat.brouillon, origine, rendezVous => {
+        erreurAgenda = '';
+        remplirRendezVous(googleAgenda.lireCache() || []);
+        afficherRecherche();
+        annoncer(`Rendez-vous ajouté dans l'agenda Cap – FICTIF : ${rendezVous.titre}`);
+      }, () => annoncer("Rendez-vous pas ajouté : rien n'a été mis dans l'agenda."));
+      if (!ouverte) annoncer("Je n'ai pas pu ouvrir le rendez-vous. Réessaie.");
+      return;
+    }
     if (resultat.type === 'tache') afficher();
-    annoncer(resultat.message);
-    if (resultat.type !== 'tache') return;
-    const annuler = element('button', 'annuler-dictee', 'Annuler');
-    annuler.type = 'button';
-    annuler.addEventListener('click', () => {
-      try {
-        abandonner(resultat.tache.id);
-      } catch (erreur) {
-        const rendreFocus = document.activeElement === annuler;
-        signalerErreur(erreur);
-        if (rendreFocus) origine.focus({ preventScroll: true });
-        return;
-      }
-      afficher();
-      if (document.activeElement === annuler) origine.focus({ preventScroll: true });
-      annoncer('Tâche abandonnée : tu la retrouves dans les tâches abandonnées.');
-    });
-    statutElement.append(annuler);
-    delaiStatut = setTimeout(() => {
-      if (document.activeElement === annuler) origine.focus({ preventScroll: true });
-      annuler.remove();
-    }, 8000);
+    if (resultat.type !== 'tache') {
+      annoncer(resultat.message);
+      return;
+    }
+    proposerAnnulation(resultat.message, () => abandonner(resultat.tache.id),
+      'Tâche abandonnée : tu la retrouves dans les tâches abandonnées.', origine);
   }
 
   function selectionnerPhrase(phrase) {
@@ -536,7 +715,7 @@
     erreur.textContent = '';
     let resultat;
     try {
-      resultat = traiterDemande(demande);
+      resultat = traiterDemande({ ...demande, agenda_disponible: agendaDisponible() });
     } catch (erreur) {
       signalerErreur(erreur, clavier);
       return;
@@ -653,7 +832,7 @@
   function ajouterDictee(texte) {
     const intitule = texte.trim();
     try {
-      const resultat = traiterDemande({ texte: intitule, source: 'micro' });
+      const resultat = traiterDemande({ texte: intitule, source: 'micro', agenda_disponible: agendaDisponible() });
       afficherResultatDemande(resultat, parId('microphone'));
     } catch (erreur) {
       const message = erreur instanceof Error ? erreur.message : 'L’action n’a pas pu être enregistrée.';

@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1757,6 +1757,76 @@ TESTS_JS = r"""
     });
   }
 
+  const nouveauRdv = { titre: 'test notification FICTIF', date: '2030-01-10', heure: '11:45', heure_fin: '12:45',
+    lieu: '', telephone: '', mail: '', notes: '', rappels: [10] };
+
+  await testAsync('Google Agenda création : POST sur l’agenda FICTIF avec rappel popup', async c => {
+    preparerFicheRendezVous(c);
+    const repondre = c.repondre;
+    let envoye = null;
+    c.repondre = async r => {
+      if (r.methode === 'POST') {
+        attendreEgal(r.url.pathname, '/calendar/v3/calendars/agenda-fictif/events', 'agenda FICTIF seulement');
+        envoye = r.corps;
+        return reponseGoogle({ id: 'nouveau-fictif', ...r.corps,
+          start: { dateTime: '2030-01-10T11:45:00+01:00' }, end: { dateTime: '2030-01-10T12:45:00+01:00' } });
+      }
+      return repondre(r);
+    };
+    const resultat = await c.agenda().creerRendezVous(nouveauRdv);
+    attendre(envoye, 'aucun POST');
+    attendreEgal(envoye.summary, 'test notification FICTIF', 'titre envoyé');
+    attendreEgal(envoye.start, { dateTime: '2030-01-10T11:45:00', timeZone: 'Europe/Paris' }, 'début');
+    attendreEgal(envoye.end, { dateTime: '2030-01-10T12:45:00', timeZone: 'Europe/Paris' }, 'fin');
+    attendreEgal(envoye.reminders, { useDefault: false, overrides: [{ method: 'popup', minutes: 10 }] }, 'rappel');
+    attendreEgal([resultat.id, resultat.date, resultat.heure, resultat.rappels], ['nouveau-fictif', '2030-01-10', '11:45', [10]], 'résultat');
+    attendre(c.agenda().lireCache().some(rdv => rdv.id === 'nouveau-fictif'), 'cache mis à jour');
+    attendre(c.requetes.every(r => !['DELETE', 'PATCH', 'PUT'].includes(r.methode)), 'aucune autre écriture');
+  });
+
+  for (const etat of ['hors ligne', 'déconnecté', 'principal', 'fin avant début']) {
+    await testAsync(`Google Agenda création : refus ${etat} sans POST`, async c => {
+      preparerFicheRendezVous(c);
+      let champs = nouveauRdv;
+      if (etat === 'hors ligne') c.navigator.onLine = false;
+      if (etat === 'déconnecté') c.googleConnexion.connecte = () => false;
+      if (etat === 'fin avant début') champs = { ...nouveauRdv, heure_fin: '11:00' };
+      if (etat === 'principal') {
+        c.repondre = async r => {
+          attendreEgal(r.methode, 'GET', 'lecture seulement');
+          return reponseGoogle({ id: c.agendaModifiable, summary: REGLAGES_GOOGLE.nom_agenda, primary: true });
+        };
+      }
+      await attendreRejet(() => c.agenda().creerRendezVous(champs), '');
+      attendre(c.requetes.every(r => r.methode !== 'POST'), 'aucun POST');
+    });
+  }
+
+  test('Compréhension : la phrase de Max donne un rendez-vous à 11h45 aujourd’hui', () => {
+    const maintenant = new Date(2026, 9, 29, 10, 0);
+    const rdv = comprendreDemande.rendezVous('Ajoute-moi un rendez-vous à 11h45 aujourd\'hui, intitulé test notification, avec un rappel dix minutes avant', maintenant);
+    attendreEgal([rdv.titre, rdv.date, rdv.heure, rdv.heure_fin, rdv.rappels], ['test notification', '2026-10-29', '11:45', '12:45', [10]], 'brouillon');
+  });
+
+  test('Compréhension : dates, heures, rappels et refus', () => {
+    const maintenant = new Date(2026, 9, 29, 10, 0);
+    const cas = [
+      ['rendez-vous demain à midi chez le dentiste FICTIF', '2026-10-30', '12:00', []],
+      ['rdv le 12 novembre à 9 heures et demie, rappel une demi-heure avant', '2026-11-12', '09:30', [30]],
+      ['rendez-vous lundi 14h garage FICTIF avec un rappel la veille', '2026-11-02', '14:00', [1440]],
+      ['rendez-vous le 3/02 à 8h05', '2027-02-03', '08:05', []]
+    ];
+    for (const [phrase, date, heure, rappels] of cas) {
+      const rdv = comprendreDemande.rendezVous(phrase, maintenant);
+      attendreEgal([rdv.date, rdv.heure, rdv.rappels], [date, heure, rappels], phrase);
+    }
+    attendreEgal(comprendreDemande.rendezVous('acheter du pain FICTIF', maintenant), null, 'pas de rendez-vous');
+    attendreEgal(comprendreDemande.rendezVous('reporte le rendez-vous à demain', maintenant), null, 'report exclu');
+    attendreEgal(comprendreDemande.report('Reporte ça à demain'), { cible: 'tache' }, 'report tâche');
+    attendreEgal(comprendreDemande.report('décale le rendez-vous à demain'), { cible: 'rendez-vous' }, 'report rdv');
+    attendreEgal(comprendreDemande.report('reporte à après-demain'), null, 'après-demain non géré');
+  });
+
   const modificationsRdvInvalides = [
     ['titre vide', { titre: '' }, 'titre'], ['titre blanc', { titre: '   ' }, 'titre'],
     ['date impossible', { date: '2030-02-30' }, 'date'], ['date mois invalide', { date: '2030-13-01' }, 'date'],
@@ -1888,7 +1958,7 @@ TESTS_JS = r"""
       TACHES: c.TACHES, INFO_CHARGEMENT: '', ETAPES_PAR_DEFAUT,
       avancementTache: () => ({ faites: 0, total: 0 }), avancementSousCategorie: () => 0,
       joursRestants, dateDuJour, ajouterEtape, abandonner, remettre, cocher,
-      creerAvecEtapesParDefaut, creerTache, traiterDemande, composerTexte,
+      reporterADemain, changerEcheance, creerAvecEtapesParDefaut, creerTache, traiterDemande, composerTexte,
       preferencesClavier, PHRASES_CLAVIER, dictee: dicteeSimulee
     });
     return ui;
@@ -2371,7 +2441,103 @@ TESTS_JS = r"""
     caseTache.checked = true;
     caseTache.dispatchEvent(new Event('change'));
     attendre(document.getElementById('liste-actions').firstElementChild.textContent.includes('Fait : FICTIF journal interface'), 'coche absente');
-    attendre(document.getElementById(`tache-${tache.id}`).closest('.categorie'), 'tâche déplacée');
+    attendre(!document.getElementById('liste-taches').querySelector(`[data-tache="${tache.id}"]`), 'tâche cochée encore dans la liste');
+  });
+
+  function tacheInterface(intitule, cochee = false) {
+    document.getElementById('ajouter').click();
+    document.getElementById('intitule').value = intitule;
+    document.getElementById('formulaire-ajout').requestSubmit();
+    const tache = TACHES.find(tache => tache.intitule === intitule);
+    attendre(tache, 'tâche de test non créée');
+    if (cochee) {
+      const caseTache = document.getElementById(`tache-${tache.id}`);
+      caseTache.checked = true;
+      caseTache.dispatchEvent(new Event('change'));
+    }
+    return tache;
+  }
+
+  test('Terminées : ligne repliée en bas, compteur, décocher remet la tâche dans sa catégorie', () => {
+    const bouton = document.getElementById('basculer-terminees');
+    const liste = document.getElementById('liste-terminees');
+    const tache = tacheInterface('FICTIF terminée interface', true);
+    const nombre = TACHES.filter(t => t.fait && !t.abandonnee_le && (!t.parente || !TACHES.some(p => p.id === t.parente && !p.abandonnee_le))).length;
+    attendre(!bouton.hidden, 'ligne Terminées cachée');
+    attendreEgal(bouton.textContent, `Terminées (${nombre})`, 'compteur');
+    attendre(liste.hidden, 'liste ouverte par défaut');
+    attendreEgal(bouton.getAttribute('aria-expanded'), 'false', 'aria fermé');
+    bouton.click();
+    attendre(!liste.hidden, 'liste non ouverte');
+    const caseTache = document.getElementById(`tache-${tache.id}`);
+    attendre(liste.contains(caseTache) && caseTache.checked, 'tâche absente des terminées');
+    caseTache.checked = false;
+    caseTache.dispatchEvent(new Event('change'));
+    attendre(!tache.fait, 'tâche encore cochée');
+    attendre(document.getElementById(`tache-${tache.id}`).closest('.categorie'), 'tâche pas revenue dans sa catégorie');
+    attendreEgal(bouton.textContent, `Terminées (${nombre - 1})`, 'compteur après décoche');
+    bouton.click();
+    attendre(liste.hidden, 'liste non refermée');
+    attendre(TACHES.includes(tache), 'tâche perdue');
+  });
+
+  test('Glisser et report : droite coche, gauche reporte à demain, Annuler remet', () => {
+    const tache = tacheInterface('FICTIF glisser interface');
+    const glisser = ecart => {
+      const ligne = document.getElementById('liste-taches').querySelector(`[data-tache="${tache.id}"]`);
+      ligne.getBoundingClientRect = () => ({ width: 300 });
+      Object.defineProperty(ligne, 'offsetWidth', { configurable: true, value: 300 });
+      const options = { bubbles: true, pointerId: 7, pointerType: 'touch', clientY: 10 };
+      ligne.dispatchEvent(new PointerEvent('pointerdown', { ...options, clientX: 150 }));
+      ligne.dispatchEvent(new PointerEvent('pointermove', { ...options, clientX: 150 + ecart / 2 }));
+      ligne.dispatchEvent(new PointerEvent('pointermove', { ...options, clientX: 150 + ecart }));
+      ligne.dispatchEvent(new PointerEvent('pointerup', { ...options, clientX: 150 + ecart }));
+    };
+    const demain = new Date();
+    demain.setDate(demain.getDate() + 1);
+    const texteDemain = `${demain.getFullYear()}-${String(demain.getMonth() + 1).padStart(2, '0')}-${String(demain.getDate()).padStart(2, '0')}`;
+    const ancienne = tache.echeance;
+    glisser(-120);
+    attendreEgal(tache.echeance, texteDemain, 'échéance demain');
+    attendre(!tache.fait, 'report ne coche pas');
+    let annuler = document.querySelector('#statut .annuler-dictee');
+    attendre(annuler, 'pas de bouton Annuler après report');
+    annuler.click();
+    attendreEgal(tache.echeance, ancienne, 'report annulé');
+    glisser(40);
+    attendre(!tache.fait, 'petit glisser ne coche pas');
+    glisser(120);
+    attendre(tache.fait, 'glisser à droite ne coche pas');
+    annuler = document.querySelector('#statut .annuler-dictee');
+    attendre(annuler, 'pas de bouton Annuler après coche');
+    annuler.click();
+    attendre(!tache.fait, 'coche non annulée');
+    attendre(TACHES.includes(tache), 'tâche perdue');
+  });
+
+  test('Voix : « Reporte ça à demain » reporte la dernière tâche ouverte', () => {
+    const tache = tacheInterface('FICTIF voix interface');
+    const nombre = TACHES.length;
+    const ancienne = tache.echeance;
+    document.querySelector(`[data-tache="${tache.id}"] .options-tache`).click();
+    document.querySelector('#menu-tache [data-fermer]').click();
+    document.getElementById('ouvrir-clavier').click();
+    document.getElementById('saisie-demande').value = 'Reporte ça à demain';
+    document.getElementById('formulaire-demande').requestSubmit();
+    const demain = new Date();
+    demain.setDate(demain.getDate() + 1);
+    attendreEgal(tache.echeance, `${demain.getFullYear()}-${String(demain.getMonth() + 1).padStart(2, '0')}-${String(demain.getDate()).padStart(2, '0')}`, 'tâche ouverte reportée');
+    attendreEgal(TACHES.length, nombre, 'aucune tâche créée');
+    if (document.getElementById('clavier').open) document.getElementById('clavier').close();
+    document.querySelector('#statut .annuler-dictee').click();
+    attendreEgal(tache.echeance, ancienne, 'report vocal annulé');
+    attendreEgal(traiterDemande({ texte: 'Ajoute-moi un rendez-vous à 11h45 aujourd\'hui, intitulé test, rappel dix minutes avant', source: 'micro', agenda_disponible: true }).type,
+      'rendez-vous', 'rendez-vous connecté');
+    attendreEgal(TACHES.length, nombre, 'rendez-vous connecté : aucune tâche');
+    const horsLigne = traiterDemande({ texte: 'rendez-vous demain à 9h FICTIF', source: 'micro', agenda_disponible: false });
+    attendre(horsLigne.type === 'tache' && horsLigne.message.includes('PAS dans l\'agenda'), 'message honnête hors connexion');
+    abandonner(horsLigne.tache.id);
+    attendreEgal(tache.echeance, ancienne, 'traiterDemande seul ne modifie pas');
   });
 
   await testAsync('Dernières actions : zone cachée si vide', async c => {
@@ -2670,8 +2836,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v6['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v6")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v8['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v8")
 
 
 def verifier_precache_fichiers_existent():
