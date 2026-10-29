@@ -63,11 +63,11 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Aide** : bouton en haut à droite de l'écran complet (décidé par Max). Il ouvre 8 gestes expliqués, chacun avec une petite démonstration animée. On le ferme en touchant à côté.
   - **Journal de toutes les actions** : il est écrit dans un nouvel onglet « Journal » (heure à la seconde, ce que Max a dit ou touché, ce que Cap a compris, ce que Cap a fait). Les mots de passe et les longs numéros sont masqués. Rien n'est jamais effacé. Hors connexion, les lignes attendent et partent ensuite.
   - **Sauvegarde du tableau** : bouton « Sauvegarder maintenant ». La copie datée va dans le dossier Drive des sauvegardes. Ensuite, une copie automatique chaque semaine, mais seulement après la première. Aucune copie n'est supprimée sans l'accord de Max. Pas de nouvelle autorisation Google : le droit déjà donné sur les fichiers créés par Cap suffit.
-  - 215 vérifications automatiques réussies. Pas encore publié.
+  - 215 vérifications automatiques réussies. Publié le 29/10/2026 avec l'accord de Max.
 
 ### En cours
 - Corrections d'avant Lot 4 : publiées, à essayer sur le téléphone.
-- Lot 4 : construit et vérifié sur l'ordinateur. Il reste à le publier (avec l'accord de Max) et à l'essayer sur le téléphone, surtout le déplacement des tuiles au doigt, qui n'est pas vérifié automatiquement.
+- Lot 4 : publié, à essayer sur le téléphone, surtout le déplacement des tuiles au doigt, qui n'est pas vérifié automatiquement.
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)
