@@ -90,14 +90,23 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 - 30/10/2026 : Max remplace le premier jet par sa fiche de consignes complète (sept paragraphes), copiée telle quelle dans `app/consignes_cap.txt`, sans la ligne BROUILLON. Elle n'est pas encore publiée : elle contient le prénom de la fille de Max et le dépôt est public (question posée à Max). Rien n'est branché tant que Max n'a pas dit que la clé est prête. Mécanique ajoutée :
   - **Fiche lue à chaque ouverture**, en tâche de fond (et au retour dans l'appli) dès qu'une clé est enregistrée. Fiche introuvable, illisible ou en brouillon : Claude n'est jamais appelé, Cap le dit en une phrase et prend les réponses préparées. Si elle n'est pas encore chargée quand Max parle, Cap attend au plus 1,5 seconde puis le dit, sans bloquer. « Réglages du cerveau » affiche la date de dernière lecture, la date de la version et un repère ; si la fiche change, Cap prévient Max.
   - **Date et heure** de Paris en première ligne de chaque échange (« Nous sommes le vendredi 30 octobre 2026, il est 10 h 37. »).
-  - **Plafond de dépense du mois** en euros, réglable par Max (10 € par défaut) : alerte à 80 %, arrêt net au plafond, retour aux réponses préparées.
+  - **Plafond de dépense du mois** en euros, réglable par Max (10 € par défaut, puis 4 € le jour même) : alerte à 80 %, arrêt net au plafond, retour aux réponses préparées.
   - **Historique de l'IA** (`journal_ia.js`) : ce que Max a dit, ce que Claude a répondu ou proposé, l'action demandée ; visible dans « Réglages du cerveau », effaçable d'un geste. La clé n'y est jamais écrite (vérifié par les tests), ni dans les messages d'erreur.
   - Sauvegarde avant ce travail : tag `sauvegarde-avant-fiche-haiku`. 234 vérifications automatiques réussies. Version du cache : cap-v17.
   - Pas encore fait : recherche sur Internet (attend l'accord de Max sur le coût), fiche des mots propres à Max (plus tard), sauvegarde exhaustive et restauration, verrouillage par empreinte.
+- 30/10/2026 (midi) : décision de Max, la fiche de Haiku n'est JAMAIS publiée.
+  - **Fiche gardée sur le téléphone** : Max la colle une seule fois dans « Réglages du cerveau » (champ « Ta fiche de consignes »). Elle reste dans la mémoire du téléphone, comme la clé, et Haiku lit exactement ce texte. Bouton « Revenir à la fiche de secours ». Le projet public ne contient plus qu'une fiche de secours neutre (`app/consignes_cap.txt`, sans aucun prénom). La fiche complète de Max est gardée sur l'ordinateur dans `FICHE_HAIKU_PRIVEE.txt`, jamais publié (`.gitignore`), pour qu'il puisse la copier.
+  - **Historique public vérifié** : aucun commit n'a jamais contenu la fiche de Max ni le prénom (recherche dans tout l'historique git). Rien à nettoyer.
+  - **Test anti-fuite** : avant chaque publication, les tests vérifient qu'aucun fichier publiable ne contient un mot de `mots_prives.txt` (prénoms des proches, phrases de la fiche ; fichier jamais publié) ni une vraie clé.
+  - **« Je ne sais pas »** : une ligne ajoutée à chaque échange interdit d'inventer un numéro, une adresse ou une coordonnée ; et un garde-fou dans le code remplace toute réponse contenant un numéro de téléphone que Max n'a jamais dit par « Je ne sais pas : tu ne m'as jamais donné ce numéro. » (testé).
+  - **Plafond du mois** : 4 € par défaut (crédit Anthropic de 5 dollars).
+  - **Clé expirée** (la clé de Max expire le 29/11/2026) : Cap dit « Ma clé n'est plus acceptée par Claude : elle a sans doute expiré. Il faut en créer une nouvelle… » et repasse aux réponses préparées.
+  - 235 vérifications automatiques réussies. Version du cache : cap-v18.
+- **Règle de publication (Max, 30/10/2026)** : ne jamais publier de vraie donnée, de prénom de proche, de clé, ni le contenu de la fiche de Haiku ou de la future fiche des mots propres à Max (qui suivra le même chemin : tapée dans Cap, jamais publiée). Au moindre doute : demander à Max avant de publier.
 
 ### En cours
 - Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
-- Lot 6 : Haiku prêt, fiche de consignes installée en local ; en attente de la réponse de Max sur le prénom dans le dépôt public, puis de sa clé. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
+- Lot 6 : Haiku prêt, fiche à coller par Max dans Cap ; en attente de son feu vert sur la clé. Étape suivante : verrouillage par empreinte, obligatoire avant toute vraie donnée. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
 - Question en attente : le texte des Lots 7 à 16 n'est pas dans le projet, et le Complément 6 interdit le Lot 7 sans validation complète du Lot 6.
 - Plus tard : mode conversation continue (pas commencé).
 

@@ -4,3 +4,5 @@ __pycache__/
 *.pyc
 .env
 reglages_secrets*
+*_PRIVE*
+mots_prives.txt

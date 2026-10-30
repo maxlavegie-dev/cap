@@ -1425,6 +1425,7 @@
       : 'Cerveau : réponses préparées (gratuites). Aucune clé d’IA enregistrée.';
     parId('usage-ia').textContent = `${usage} Plafond du mois : ${formatEuros.format(limiteIA.plafondMensuel())}.`;
     parId('retirer-cle-ia').hidden = !cle;
+    parId('retirer-fiche-ia').hidden = !cerveauClaude.ficheTelephone();
     if (reglagesIA.open && document.activeElement !== parId('limite-ia')) parId('limite-ia').value = String(limiteIA.maximum());
     if (reglagesIA.open && document.activeElement !== parId('plafond-ia')) parId('plafond-ia').value = String(limiteIA.plafondMensuel()).replace('.', ',');
     afficherJournalIA();
@@ -1444,9 +1445,29 @@
 
   function texteFiche() {
     const info = cerveauClaude.infoConsignes();
-    return info ? `Fiche de consignes lue le ${dateCourte(info.lue_le)}, version du ${dateCourte(info.version_du)} (repère ${info.empreinte}).`
-      : 'Fiche de consignes : pas encore lue.';
+    const quelle = cerveauClaude.origineFiche() === 'telephone' ? 'ta fiche, gardée sur ce téléphone' : 'la fiche de secours (aucune fiche collée)';
+    return info ? `Fiche suivie : ${quelle}. Lue le ${dateCourte(info.lue_le)}, version du ${dateCourte(info.version_du)} (repère ${info.empreinte}).`
+      : `Fiche suivie : ${quelle}. Pas encore lue.`;
   }
+
+  parId('formulaire-fiche-ia').addEventListener('submit', async event => {
+    event.preventDefault();
+    try {
+      await cerveauClaude.enregistrerFiche(parId('texte-fiche-ia').value);
+      erreurReglagesIA('');
+      annoncer('Ta fiche est enregistrée sur ce téléphone : je la suis à partir de maintenant.', true);
+    } catch (erreur) {
+      erreurReglagesIA(erreur.message);
+    }
+    afficherCerveau();
+  });
+  parId('retirer-fiche-ia').addEventListener('click', async () => {
+    await cerveauClaude.retirerFiche();
+    parId('texte-fiche-ia').value = '';
+    erreurReglagesIA('');
+    annoncer('Ta fiche est retirée de ce téléphone : je suis la fiche de secours.', true);
+    afficherCerveau();
+  });
 
   function afficherJournalIA() {
     const entrees = journalIA.lire().slice(0, 20);
@@ -1492,6 +1513,7 @@
 
   parId('ouvrir-reglages-ia').addEventListener('click', event => {
     ouvrir(reglagesIA, parId('titre-reglages-ia'), event.currentTarget);
+    parId('texte-fiche-ia').value = cerveauClaude.ficheTelephone();
     afficherCerveau();
   });
   parId('formulaire-cle-ia').addEventListener('submit', event => {
@@ -1530,6 +1552,7 @@
     parId('cle-ia').value = '';
     parId('limite-ia').value = '';
     parId('plafond-ia').value = '';
+    parId('texte-fiche-ia').value = '';
   });
 
   basculerVue.addEventListener('click', () => changerVue(ecranComplet.hidden));

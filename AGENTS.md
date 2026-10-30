@@ -31,7 +31,7 @@ Projet **Cap** : application Android personnelle (PWA recommandée) pour Max. Le
 - PWA : `manifest.webmanifest`, `service-worker.js` (réseau d'abord, cache en secours ; ajouter chaque nouveau fichier à `FICHIERS_PRECACHE`), `installation.js`. Icônes régénérées par `python outils\fabriquer_icones.py`.
 - Tests : `python app\test_cap.py`. Il lance Microsoft Edge sans fenêtre ; Node n'est pas installé.
 - Construire le DOM avec `textContent`, jamais `innerHTML` avec des données.
-- Déploiement : dépôt public `maxlavegie-dev/cap`, GitHub Pages servi depuis la racine de `main`. L'appli est en ligne sur https://maxlavegie-dev.github.io/cap/app/, et chaque `git push` sur `main` la met à jour. Le dépôt est public : `PROMPT_CAP.txt` et tout secret doivent rester dans `.gitignore`.
+- Déploiement : dépôt public `maxlavegie-dev/cap`, GitHub Pages servi depuis la racine de `main`. L'appli est en ligne sur https://maxlavegie-dev.github.io/cap/app/, et chaque `git push` sur `main` la met à jour. Le dépôt est public : `PROMPT_CAP.txt` et tout secret doivent rester dans `.gitignore`. Ne jamais publier de vraie donnée, de prénom de proche, de clé, ni le contenu de la fiche de Haiku (collée par Max dans Cap, gardée sur le téléphone) ; `mots_prives.txt` (ignoré) liste les mots interdits, vérifiés par les tests. Au moindre doute, demander à Max avant de publier.
 - Commits : messages courts en français. Les commits locaux servent de sauvegarde et sont permis sur le fictif ; ne jamais faire de push sans l'accord de Max : lui présenter d'abord ce qui sera publié, puis lui dire clairement quand il doit essayer sur son téléphone.
 - Le shell cmd gère mal les guillemets : passer les messages de commit par un fichier (`git commit -F`).
 

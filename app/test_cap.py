@@ -3700,7 +3700,7 @@ TESTS_JS = r"""
       localStorage.setItem('cap_depense_ia_v1', JSON.stringify({ mois: '2000-01', euros: 5 }));
       attendreEgal(limiteIA.depenseDuMois(), 0, 'nouveau mois');
       localStorage.removeItem('cap_echanges_ia_v1');
-      attendreEgal(limiteIA.plafondMensuel(), 10, 'plafond du mois par défaut : 10 €');
+      attendreEgal(limiteIA.plafondMensuel(), 4, 'plafond du mois par défaut : 4 € (crédit de 5 dollars)');
       attendreEgal(limiteIA.definirPlafond('2,50'), 2.5, 'plafond réglé par Max, virgule acceptée');
       for (const mauvais of ['0', '-1', 'cher', '2,555', '5000']) attendreErreur(() => limiteIA.definirPlafond(mauvais), 'euros');
       attendreEgal([limiteIA.plafondMensuel(), limiteIA.maximum()], [2.5, 100], 'mauvais plafond refusé, limite du jour gardée');
@@ -3738,8 +3738,10 @@ TESTS_JS = r"""
     const envois = [];
     let consignes = 'BROUILLON : pas encore validé par Max.\nTu es Cap FICTIF.';
     let reponses = [];
+    let lecturesFiche = 0;
     window.fetch = (adresse, options = {}) => {
       if (adresse === REGLAGES_IA.fichier_consignes) {
+        lecturesFiche += 1;
         if (consignes === null) return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
         return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(consignes) });
       }
@@ -3828,11 +3830,37 @@ TESTS_JS = r"""
       const inconnue = await traiterDemande({ texte: 'Efface tout FICTIF', source: 'micro' }).suite;
       attendreEgal([inconnue.type, TACHES.length], ['question', avant], 'action inconnue refusée');
 
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Le numéro de ton médecin est le 01 23 45 67 89.' }] } });
+      const invente = await traiterDemande({ texte: 'Quel est le numéro de mon médecin FICTIF ?', source: 'micro' }).suite;
+      attendreEgal([invente.type, invente.message], ['reponse', 'Je ne sais pas : tu ne m’as jamais donné ce numéro.'], 'numéro inconnu : « je ne sais pas », jamais inventé');
+      attendre(JSON.parse(envois[envois.length - 1].options.body).system.includes('réponds « Je ne sais pas. »'), 'consigne « je ne sais pas » envoyée à chaque échange');
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Je ne sais pas.' }] } });
+      const sait = await traiterDemande({ texte: 'Et le numéro de la pharmacie FICTIF ?', source: 'micro' }).suite;
+      attendreEgal(sait.message, 'Je ne sais pas.', 'Claude qui dit ne pas savoir : réponse gardée');
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'C’est le 06 11 22 33 44.' }] } });
+      const donne = await traiterDemande({ texte: 'Retiens le 0611223344 pour le garage FICTIF, et redis-le moi', source: 'micro' }).suite;
+      attendreEgal(donne.message, 'C’est le 06 11 22 33 44.', 'numéro donné par Max : répété sans souci');
+
+      const lecturesAvant = lecturesFiche;
+      await cerveauClaude.enregistrerFiche('  Tu es Cap FICTIF, fiche collée sur le téléphone.  ');
+      attendreEgal([cerveauClaude.ficheTelephone(), cerveauClaude.origineFiche(), cerveauClaude.infoConsignes().origine],
+        ['Tu es Cap FICTIF, fiche collée sur le téléphone.', 'telephone', 'telephone'], 'fiche gardée sur le téléphone');
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Bien reçu, Max.' }] } });
+      await traiterDemande({ texte: 'Tu as ma fiche FICTIF ?', source: 'micro' }).suite;
+      const systemeTelephone = JSON.parse(envois[envois.length - 1].options.body).system;
+      attendre(systemeTelephone.includes('fiche collée sur le téléphone') && !systemeTelephone.includes(consignes), 'Claude lit exactement la fiche collée par Max');
+      attendreEgal(lecturesFiche, lecturesAvant, 'la fiche publique n’est même pas lue quand Max a collé la sienne');
+      let videRefusee = false;
+      try { await cerveauClaude.enregistrerFiche('   '); } catch (erreur) { videRefusee = erreur.message.includes('vide'); }
+      attendre(videRefusee && cerveauClaude.ficheTelephone().includes('fiche collée'), 'fiche vide refusée, l’ancienne gardée');
+      await cerveauClaude.retirerFiche();
+      attendreEgal([cerveauClaude.ficheTelephone(), cerveauClaude.origineFiche(), await cerveauClaude.etatConsignes()], ['', 'secours', 'pret'], 'retour à la fiche de secours');
+
       const utilises = limiteIA.utilises();
       reponses.push({ statut: 401, corps: {} });
       const refusee = await traiterDemande({ texte: 'Ajoute dans Quotidien : FICTIF clé refusée', source: 'saisie' }).suite;
       attendreEgal([refusee.type, refusee.tache.categorie, limiteIA.utilises()], ['tache', 'Quotidien', utilises], 'clé refusée : réponses préparées, non compté');
-      attendre(refusee.message.includes('clé n’est pas acceptée'), refusee.message);
+      attendre(refusee.message.includes('clé n’est plus acceptée') && refusee.message.includes('expiré') && refusee.message.includes('en créer une nouvelle'), refusee.message);
       attendre(!refusee.message.includes(CLE_FICTIVE), 'la clé n’est jamais dans un message d’erreur');
 
       localStorage.setItem('cap_depense_ia_v1', JSON.stringify({ mois: dateDuJour().slice(0, 7), euros: 10 }));
@@ -3849,7 +3877,7 @@ TESTS_JS = r"""
       window.fetch = vraiFetch;
       cleIA.retirer();
       cerveauClaude.oublier();
-      ['cap_echanges_ia_v1', 'cap_depense_ia_v1', 'cap_journal_ia_v1', 'cap_consignes_v1'].forEach(cle => localStorage.removeItem(cle));
+      ['cap_echanges_ia_v1', 'cap_depense_ia_v1', 'cap_journal_ia_v1', 'cap_consignes_v1', 'cap_fiche_consignes_v1'].forEach(cle => localStorage.removeItem(cle));
     }
   })();
 
@@ -3874,6 +3902,14 @@ TESTS_JS = r"""
       ui.parId('plafond-ia').value = '7,5';
       ui.parId('formulaire-plafond-ia').requestSubmit();
       attendreEgal(limiteIA.plafondMensuel(), 7.5, 'plafond changé par Max');
+      ui.parId('texte-fiche-ia').value = 'Tu es Cap FICTIF, fiche collée par Max.';
+      ui.parId('formulaire-fiche-ia').requestSubmit();
+      await new Promise(resolve => setTimeout(resolve, 20));
+      attendreEgal([cerveauClaude.ficheTelephone(), ui.parId('retirer-fiche-ia').hidden], ['Tu es Cap FICTIF, fiche collée par Max.', false], 'fiche collée et gardée sur le téléphone');
+      attendre(ui.parId('fiche-ia').textContent.includes('ta fiche, gardée sur ce téléphone'), ui.parId('fiche-ia').textContent);
+      ui.parId('retirer-fiche-ia').click();
+      await new Promise(resolve => setTimeout(resolve, 20));
+      attendreEgal([cerveauClaude.ficheTelephone(), ui.parId('texte-fiche-ia').value, ui.parId('retirer-fiche-ia').hidden], ['', '', true], 'retour à la fiche de secours');
       journalIA.noter({ dit: 'FICTIF bonjour', repondu: 'FICTIF salut' });
       await new Promise(resolve => setTimeout(resolve, 0));
       ui.parId('formulaire-limite-ia').requestSubmit();
@@ -3887,7 +3923,7 @@ TESTS_JS = r"""
       window.fetch = vraiFetch;
       cleIA.retirer();
       cerveauClaude.oublier();
-      ['cap_reglages_ia_v1', 'cap_journal_ia_v1', 'cap_consignes_v1'].forEach(cle => localStorage.removeItem(cle));
+      ['cap_reglages_ia_v1', 'cap_journal_ia_v1', 'cap_consignes_v1', 'cap_fiche_consignes_v1'].forEach(cle => localStorage.removeItem(cle));
     }
   });
 
@@ -4196,8 +4232,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v17['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v17")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v18['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v18")
 
 
 def verifier_precache_fichiers_existent():
@@ -4225,7 +4261,32 @@ def verifier_installation_en_dernier():
              "les scripts du clavier doivent suivre dictee.js, avant app.js et installation.js")
 
 
+def verifier_rien_de_prive_publie():
+    # Les mots privés (prénoms des proches, phrases de la fiche de Max) sont dans mots_prives.txt, jamais publié.
+    racine = APP.parent
+    liste = racine / "mots_prives.txt"
+    attendre(liste.is_file(), "mots_prives.txt absent : impossible de vérifier qu'aucun prénom de proche n'est publié")
+    ignore = subprocess.run(["git", "check-ignore", "-q", str(liste)], cwd=racine)
+    attendre(ignore.returncode == 0, "mots_prives.txt doit rester dans .gitignore")
+    mots = [ligne.strip() for ligne in liste.read_text(encoding="utf-8").splitlines() if ligne.strip() and not ligne.startswith("#")]
+    attendre(mots, "mots_prives.txt est vide")
+    sortie = subprocess.run(["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+                            cwd=racine, capture_output=True, check=True).stdout.decode("utf-8")
+    fautifs = []
+    for nom in filter(None, sortie.split("\0")):
+        chemin = racine / nom
+        if not chemin.is_file() or chemin.suffix.lower() in {".png", ".ico"}:
+            continue
+        texte = chemin.read_text(encoding="utf-8", errors="ignore").casefold()
+        if any(re.search(rf"(?<!\w){re.escape(mot.casefold())}(?!\w)", texte) for mot in mots):
+            fautifs.append(nom)
+        if re.search(r"sk-ant-(?!FICTIF)[A-Za-z0-9_-]{20,}", chemin.read_text(encoding="utf-8", errors="ignore")):
+            fautifs.append(f"{nom} (clé)")
+    attendre(not fautifs, f"donnée privée dans des fichiers publiables : {', '.join(fautifs)}")
+
+
 TESTS_PWA = [
+    ("Publication : aucun prénom de proche, aucune phrase de la fiche, aucune clé", verifier_rien_de_prive_publie),
     ("PWA : fichiers requis présents", verifier_fichiers_requis),
     ("PWA : manifest, champs attendus", verifier_manifest),
     ("PWA : manifest, icônes déclarées", verifier_icones_manifest),

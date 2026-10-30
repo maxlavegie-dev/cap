@@ -6,6 +6,8 @@
 // La fiche de consignes est lue à chaque ouverture de Cap, en tâche de fond : sans elle, l'IA n'est jamais appelée.
 const cerveauClaude = (() => {
   const cleFiche = 'cap_consignes_v1';
+  const cleFicheTelephone = 'cap_fiche_consignes_v1';
+  let origine = '';
   let consignes = null;
   let erreurConsignes = '';
   let chargement = null;
@@ -32,7 +34,7 @@ const cerveauClaude = (() => {
     const nouvelle = empreinte(texte);
     const maintenant = new Date().toISOString();
     const changee = Boolean(avant && avant.empreinte !== nouvelle);
-    const info = { empreinte: nouvelle, lue_le: maintenant, version_du: avant && !changee ? avant.version_du : maintenant };
+    const info = { empreinte: nouvelle, lue_le: maintenant, version_du: avant && !changee ? avant.version_du : maintenant, origine };
     try {
       localStorage.setItem(cleFiche, JSON.stringify(info));
     } catch (erreur) {
@@ -41,8 +43,56 @@ const cerveauClaude = (() => {
     if (changee && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('cap-consignes-changees', { detail: info }));
   }
 
+  // La fiche de Max est collée une seule fois dans Cap et reste sur ce téléphone, comme la clé.
+  // Elle n'est jamais publiée : le projet public ne contient qu'une fiche de secours neutre.
+  function ficheTelephone() {
+    try {
+      return String(localStorage.getItem(cleFicheTelephone) || '').trim();
+    } catch (erreur) {
+      return '';
+    }
+  }
+
+  function enregistrerFiche(valeur) {
+    const texte = String(valeur ?? '').replace(/\r\n?/g, '\n').trim();
+    if (!texte) throw new Error('La fiche est vide : rien n’a été enregistré.');
+    if (texte.length > REGLAGES_IA.fiche_maximum_caracteres) {
+      throw new Error(`La fiche est trop longue (${REGLAGES_IA.fiche_maximum_caracteres} caractères au plus) : rien n’a été enregistré.`);
+    }
+    try {
+      localStorage.setItem(cleFicheTelephone, texte);
+    } catch (erreur) {
+      throw new Error('La fiche n’a pas pu être enregistrée sur ce téléphone.');
+    }
+    return relire();
+  }
+
+  function retirerFiche() {
+    try {
+      localStorage.removeItem(cleFicheTelephone);
+    } catch (erreur) {
+    }
+    return relire();
+  }
+
+  function relire() {
+    consignes = null;
+    erreurConsignes = '';
+    chargement = null;
+    return precharger();
+  }
+
+  function origineFiche() {
+    return ficheTelephone() ? 'telephone' : 'secours';
+  }
+
   async function lireFiche() {
-    let texte;
+    let texte = ficheTelephone();
+    if (texte) {
+      origine = 'telephone';
+      validerFiche(texte);
+      return;
+    }
     try {
       const reponse = await fetch(REGLAGES_IA.fichier_consignes, { cache: 'no-cache' });
       if (!reponse.ok) throw new Error('illisible');
@@ -52,6 +102,12 @@ const cerveauClaude = (() => {
       if (!consignes) erreurConsignes = 'Je n’ai pas pu lire ma fiche de consignes.';
       return;
     }
+    if (ficheTelephone()) return;
+    origine = 'secours';
+    validerFiche(texte);
+  }
+
+  function validerFiche(texte) {
     const premiereLigne = texte.split('\n', 1)[0];
     if (!texte || premiereLigne.toLocaleUpperCase('fr').includes(REGLAGES_IA.marqueur_brouillon)) {
       consignes = null;
@@ -111,8 +167,25 @@ const cerveauClaude = (() => {
       maintenantParis(),
       texteConsignes,
       `Catégories de Cap : ${categories.join(' ; ')}. « ${contexte.a_trier} » si aucune ne convient clairement.`,
-      'Pour agir, utilise un outil ; recopie l’intitulé de Max mot pour mot. Une seule action par réponse.'
+      'Pour agir, utilise un outil ; recopie l’intitulé de Max mot pour mot. Une seule action par réponse.',
+      'Tu ne connais aucun numéro, adresse ou coordonnée que Max ne t’a pas donné dans cette conversation : dans ce cas, réponds « Je ne sais pas. » sans rien inventer.'
     ].join('\n');
+  }
+
+  // Garde-fou : un numéro de téléphone que Max n'a jamais dit est forcément inventé.
+  function chiffres(texte) {
+    return String(texte || '').replace(/\D/g, '');
+  }
+
+  function numeroInvente(paroles, texte) {
+    const numeros = String(paroles || '').match(/(?:\+\d{1,3}[\s.-]?)?\(?\d(?:[\s.()-]?\d){7,}/g) || [];
+    if (!numeros.length) return false;
+    const dits = [texte, ...historique.filter(message => message.role === 'user').map(message => message.content)].map(chiffres).join(' ');
+    return numeros.some(numero => {
+      const seul = chiffres(numero);
+      const national = seul.replace(/^33/, '0');
+      return !dits.includes(seul) && !dits.includes(national) && !dits.includes(national.replace(/^0/, ''));
+    });
   }
 
   function retenir(texteMax, texteCap, appel = null) {
@@ -132,7 +205,8 @@ const cerveauClaude = (() => {
   }
 
   function erreurHttp(statut) {
-    if (statut === 401 || statut === 403) return 'Ma clé n’est pas acceptée par Claude. Vérifie-la dans les réglages du cerveau.';
+    if (statut === 401) return 'Ma clé n’est plus acceptée par Claude : elle a sans doute expiré. Il faut en créer une nouvelle et la taper dans les réglages du cerveau.';
+    if (statut === 403) return 'Ma clé n’a pas le droit d’utiliser Claude. Vérifie-la dans les réglages du cerveau.';
     if (statut === 429) return 'Claude reçoit trop de demandes en ce moment.';
     if (statut >= 500) return 'Claude ne répond pas en ce moment.';
     return 'Claude n’a pas compris la demande de Cap.';
@@ -172,8 +246,13 @@ const cerveauClaude = (() => {
     const donnees = await reponse.json();
     limiteIA.ajouterDepense(donnees?.usage?.input_tokens, donnees?.usage?.output_tokens);
     const contenu = Array.isArray(donnees?.content) ? donnees.content : [];
-    const paroles = contenu.filter(bloc => bloc.type === 'text').map(bloc => String(bloc.text || '').trim()).filter(Boolean).join(' ');
     const appels = contenu.filter(bloc => bloc.type === 'tool_use');
+    let paroles = contenu.filter(bloc => bloc.type === 'text').map(bloc => String(bloc.text || '').trim()).filter(Boolean).join(' ');
+    if (numeroInvente(paroles, texte)) {
+      paroles = 'Je ne sais pas : tu ne m’as jamais donné ce numéro.';
+      retenir(texte, paroles);
+      return { type: 'reponse', texte: paroles };
+    }
     if (appels.length > 1) {
       const texteCap = 'Je fais une seule chose à la fois pour l’instant. Redis-moi la première.';
       retenir(texte, texteCap);
@@ -200,5 +279,5 @@ const cerveauClaude = (() => {
 
   const fournisseur = { nom: REGLAGES_IA.nom, payant: true, pret: () => cleIA.presente(), comprendre };
   cerveau.enregistrerFournisseur('claude', fournisseur);
-  return { ...fournisseur, etatConsignes, oublier, precharger, infoConsignes, maintenantParis };
+  return { ...fournisseur, etatConsignes, oublier, precharger, infoConsignes, maintenantParis, ficheTelephone, enregistrerFiche, retirerFiche, origineFiche };
 })();

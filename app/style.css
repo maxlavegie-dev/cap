@@ -1636,7 +1636,8 @@ dialog button:hover {
   margin: 12px 0;
 }
 
-#reglages-ia input {
+#reglages-ia input,
+#reglages-ia textarea {
   min-height: 44px;
   font-size: 1rem;
 }
