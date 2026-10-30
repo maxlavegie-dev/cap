@@ -81,10 +81,16 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Réponse parlée** (`voix.js`) : Cap dit ce qu'il a fait, si « Réponse silencieuse » est éteinte.
   - **Limite** (`limite_ia.js`) : 60 échanges par jour avec une IA payante, alerte à 50, puis retour aux réponses préparées. Inactive tant qu'aucune clé n'est branchée.
   - Aucune clé branchée. 228 vérifications automatiques réussies. Version du cache : cap-v14.
+- 30/10/2026 : Max a testé le Lot 6 V1 (5 tests réussis) et donne son feu vert pour préparer Claude Haiku. Fait :
+  - **Branchement Haiku préparé** : modèle `claude-haiku-4-5` (réglable dans `reglages_ia.js`). Fenêtre « Réglages du cerveau » : Max tape sa clé une fois, elle reste sur le téléphone (jamais dans le code, seul « …abcd » est affiché) ; il peut la retirer. Limite d'échanges par jour réglable par Max (60 par défaut), alerte aux 5/6, puis « J'ai atteint ma limite pour aujourd'hui » et retour aux réponses préparées. Dépense du mois affichée. Vraie conversation possible (réponses chaleureuses), une seule action à la fois, intitulé mot pour mot (sinon Cap redemande), action inconnue refusée, Annuler toujours proposé. En cas d'erreur (clé refusée, pas de réseau), Cap le dit et repasse aux réponses préparées.
+  - **Document de consignes** `app/consignes_cap.txt` : modifiable, envoyé à chaque échange (environ 450 jetons, soit environ 0,04 centime par échange). Contient le premier jet de Max, marqué BROUILLON sur la première ligne : tant que ce mot y est, il n'est jamais envoyé et Cap reste sur les réponses préparées.
+  - **Dictée dans Écriture** : nouveau `indices_rangement.js` (scène, séquence, dialogue, scénario → Scénarios ; chapitre, personnage, roman, « Les jardins suspendus de minuit » → Roman). Un seul indice : rangé ; plusieurs : « À classer ». Aussi pour le micro général (sans catégorie nommée). L'intitulé « À classer » s'affiche maintenant au-dessus des anciennes tâches sans sous-catégorie, dans toutes les tuiles.
+  - **Dernières actions cliquables** : toucher une ligne ouvre la liste sur la tâche (surlignée). Pour l'instant seules les tâches sont notées dans ce journal ; rendez-vous et notes viendront avec leurs lots.
+  - 234 vérifications automatiques réussies. Version du cache : cap-v16.
 
 ### En cours
 - Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
-- Lot 6 V1 (sans clé) : à tester par Max. Ensuite, avec son accord : brancher Claude Haiku (clé tapée une fois dans Cap, gardée sur le téléphone, jamais dans le code), puis rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
+- Lot 6 : Haiku prêt, en attente de la validation du texte des consignes par Max (retirer alors la ligne BROUILLON) et de sa clé. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
 - Question en attente : le texte des Lots 7 à 16 n'est pas dans le projet, et le Complément 6 interdit le Lot 7 sans validation complète du Lot 6.
 - Plus tard : mode conversation continue (pas commencé).
 

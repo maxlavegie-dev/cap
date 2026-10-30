@@ -18,7 +18,7 @@ const journalActions = (() => {
       return entrees.filter(entree => entree && typeof entree.heure === 'string'
         && Number.isFinite(Date.parse(entree.heure)) && types.includes(entree.type)
         && typeof entree.texte === 'string').slice(0, 30)
-        .map(({ heure, type, texte }) => ({ heure, type, texte }));
+        .map(({ heure, type, texte, id }) => (typeof id === 'string' || Number.isFinite(id) ? { heure, type, texte, id } : { heure, type, texte }));
     } catch (erreur) {
       return [];
     }
@@ -68,10 +68,13 @@ const journalActions = (() => {
     }
   }
 
-  function noter(type, texte) {
+  // id : la tâche concernée, pour que la ligne des « Dernières actions » y mène.
+  function noter(type, texte, id) {
     try {
       if (!types.includes(type) || typeof texte !== 'string') return;
-      const entrees = [{ heure: new Date().toISOString(), type, texte }, ...lire()].slice(0, 30);
+      const entree = { heure: new Date().toISOString(), type, texte };
+      if (typeof id === 'string' || Number.isFinite(id)) entree.id = id;
+      const entrees = [entree, ...lire()].slice(0, 30);
       localStorage.setItem(cle, JSON.stringify(entrees));
     } catch (erreur) {
       return;

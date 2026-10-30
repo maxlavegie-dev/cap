@@ -42,6 +42,21 @@ const sousCategories = (() => {
     });
   }
 
+  // Indices évidents (réglages INDICES_RANGEMENT) : « scène » pour Scénarios, « chapitre » pour Roman…
+  function parIndices(texte, disponibles) {
+    const reglages = typeof INDICES_RANGEMENT === 'object' && INDICES_RANGEMENT ? INDICES_RANGEMENT : {};
+    const phrase = ` ${mots(texte).join(' ')} `;
+    return (Array.isArray(disponibles) ? disponibles : []).filter(nom => {
+      const cle = Object.keys(reglages).find(item => mots(item).join(' ') === mots(nom).join(' '));
+      const indices = cle && Array.isArray(reglages[cle]) ? reglages[cle] : [];
+      return indices.some(indice => {
+        const suite = mots(indice);
+        if (suite.length > 1 && ['le', 'la', 'les', 'l', 'un', 'une', 'des', 'de', 'du'].includes(suite[0])) suite.shift();
+        return suite.length && phrase.includes(` ${suite.join(' ')} `);
+      });
+    });
+  }
+
   function parContenu(texte, categorie, disponibles, taches) {
     const motsPhrase = motsSignificatifs(texte);
     if (!motsPhrase.size) return '';
@@ -67,10 +82,13 @@ const sousCategories = (() => {
     const nommees = nommee(texte, liste);
     if (nommees.length === 1) return { sous_categorie: nommees[0], raison: 'nommée' };
     if (nommees.length > 1) return { sous_categorie: A_CLASSER, raison: 'plusieurs nommées' };
+    const indiquees = parIndices(texte, liste);
+    if (indiquees.length === 1) return { sous_categorie: indiquees[0], raison: 'indice' };
+    if (indiquees.length > 1) return { sous_categorie: A_CLASSER, raison: 'plusieurs indices' };
     const proche = parContenu(texte, categorie, liste, Array.isArray(taches) ? taches : []);
     if (proche) return { sous_categorie: proche, raison: 'contenu proche' };
     return { sous_categorie: A_CLASSER, raison: 'pas clair' };
   }
 
-  return { A_CLASSER, trouver, estAClasser };
+  return { A_CLASSER, trouver, estAClasser, parIndices };
 })();

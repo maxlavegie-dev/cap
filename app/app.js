@@ -174,7 +174,18 @@
         heure.dateTime = date.toISOString();
         ligne.append(heure, document.createTextNode(' · '));
       }
-      ligne.append(element('span', '', `${libelles[action.type]} : ${action.texte}`));
+      const texte = `${libelles[action.type]} : ${action.texte}`;
+      const memeTexte = TACHES.filter(tache => tache.intitule === action.texte);
+      const tache = action.id !== undefined ? TACHES.find(item => item.id === action.id)
+        : memeTexte.length === 1 ? memeTexte[0] : null;
+      if (tache) {
+        const bouton = element('button', 'lien-action', texte);
+        bouton.type = 'button';
+        bouton.addEventListener('click', () => ouvrirResultatTache(tache));
+        ligne.append(bouton);
+      } else {
+        ligne.append(element('span', '', texte));
+      }
       return ligne;
     }));
     parId('dernieres-actions').hidden = actions.length === 0;
@@ -584,8 +595,10 @@
     for (const tache of racines) {
       if (!groupes.has(tache.categorie)) groupes.set(tache.categorie, new Map());
       const sousGroupes = groupes.get(tache.categorie);
-      if (!sousGroupes.has(tache.sous_categorie)) sousGroupes.set(tache.sous_categorie, []);
-      sousGroupes.get(tache.sous_categorie).push(tache);
+      const avecSous = tache.categorie && tache.categorie !== listesChoix.A_TRIER && listesChoix.categories(tache.categorie).length > 0;
+      const cleSous = !tache.sous_categorie && avecSous ? sousCategories.A_CLASSER : tache.sous_categorie;
+      if (!sousGroupes.has(cleSous)) sousGroupes.set(cleSous, []);
+      sousGroupes.get(cleSous).push(tache);
     }
     const categoriesTriees = [...groupes].sort(([a], [b]) =>
       Number(b === 'À trier') - Number(a === 'À trier'));

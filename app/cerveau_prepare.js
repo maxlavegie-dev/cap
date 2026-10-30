@@ -115,7 +115,21 @@ const cerveauPrepare = (() => {
     const candidats = nommees(plie, toutes);
     if (candidats.length > 1) return question(original, original, candidats);
     if (candidats.length === 1) return action(original, candidats[0].categorie, candidats[0].sous_categorie);
+    const indiques = parIndices(original, contexte);
+    if (indiques.length > 1) return question(original, original, indiques);
+    if (indiques.length === 1) return action(original, indiques[0].categorie, indiques[0].sous_categorie);
     return action(original);
+  }
+
+  // Rien de nommé : indices évidents (« scène » → Scénarios, « chapitre » → Roman). Plusieurs dans une catégorie : À classer.
+  function parIndices(original, contexte) {
+    const resultat = [];
+    for (const { nom, sous_categories: sous = [] } of contexte.categories) {
+      if (plier(nom).trim() === plier(contexte.a_trier).trim()) continue;
+      const trouvees = sousCategories.parIndices(original, sous.filter(item => !sousCategories.estAClasser(item)));
+      if (trouvees.length) resultat.push({ categorie: nom, sous_categorie: trouvees.length === 1 ? trouvees[0] : sousCategories.A_CLASSER });
+    }
+    return resultat;
   }
 
   const fournisseur = { nom: 'réponses préparées', payant: false, comprendre };

@@ -41,15 +41,15 @@ function enregistrerModification(modifier) {
       const anciennes = new Map(avant.map(tache => [tache.id, tache]));
       for (const tache of TACHES) {
         const ancienne = anciennes.get(tache.id);
-        if (!ancienne) journalActions.noter('ajout', tache.intitule);
+        if (!ancienne) journalActions.noter('ajout', tache.intitule, tache.id);
         else {
-          if (ancienne.fait !== tache.fait) journalActions.noter(tache.fait ? 'fait' : 'remise à faire', tache.intitule);
-          if (ancienne.echeance !== tache.echeance) journalActions.noter('échéance', tache.intitule);
+          if (ancienne.fait !== tache.fait) journalActions.noter(tache.fait ? 'fait' : 'remise à faire', tache.intitule, tache.id);
+          if (ancienne.echeance !== tache.echeance) journalActions.noter('échéance', tache.intitule, tache.id);
           if (!tache.parente && (ancienne.categorie !== tache.categorie || ancienne.sous_categorie !== tache.sous_categorie)) {
-            journalActions.noter('classement', `${tache.intitule} → ${[tache.categorie || 'Sans catégorie', tache.sous_categorie].filter(Boolean).join(' › ')}`);
+            journalActions.noter('classement', `${tache.intitule} → ${[tache.categorie || 'Sans catégorie', tache.sous_categorie].filter(Boolean).join(' › ')}`, tache.id);
           }
           if (ancienne.abandonnee_le !== tache.abandonnee_le) {
-            journalActions.noter(tache.abandonnee_le ? 'abandon' : 'remise', tache.intitule);
+            journalActions.noter(tache.abandonnee_le ? 'abandon' : 'remise', tache.intitule, tache.id);
           }
         }
       }

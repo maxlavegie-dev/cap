@@ -226,6 +226,19 @@ body.vue-complete #zone-recherche {
   white-space: pre-wrap;
 }
 
+#liste-actions .lien-action {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 .heure-action {
   display: inline;
   color: var(--secondaire);

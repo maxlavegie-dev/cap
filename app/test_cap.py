@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -3402,7 +3402,8 @@ TESTS_JS = r"""
     c.TACHES.push(
       { ...modele, id: 'FICTIF-T5', intitule: 'Les jardins suspendus de minuit', sous_categorie: 'Roman' },
       { ...modele, id: 'FICTIF-T6', intitule: 'Noter l’idée du train', sous_categorie: 'Scénarios' },
-      { ...modele, id: 'FICTIF-T7', intitule: 'FICTIF déjà à classer', sous_categorie: 'À classer' });
+      { ...modele, id: 'FICTIF-T7', intitule: 'FICTIF déjà à classer', sous_categorie: 'À classer' },
+      { ...modele, id: 'FICTIF-T8', intitule: 'FICTIF ancienne sans sous-catégorie', sous_categorie: '' });
     const ui = preparerInterface(c);
     const micro = () => ui.parId('tuiles').querySelector('.tuile[data-categorie="Écriture"] .micro-tuile');
     const dicter = texte => { dicteeQuiEntend(ui, texte); micro().click(); return TACHES.find(t => t.intitule === texte); };
@@ -3411,11 +3412,19 @@ TESTS_JS = r"""
     const cahiers = dicter('Penser à acheter des cahiers');
     attendreEgal(cahiers.sous_categorie, 'À classer', 'À classer');
     attendreEgal(cahiers.categorie, 'Écriture', 'reste dans Écriture');
+    attendreEgal(dicter('Réécrire la scène 4').sous_categorie, 'Scénarios', 'indice « scène »');
+    attendreEgal(dicter('Revoir le personnage principal').sous_categorie, 'Roman', 'indice « personnage »');
+    attendreEgal(dicter('Une scène du chapitre 3').sous_categorie, 'À classer', 'deux indices : À classer');
     attendre(!ui.listesChoix.categories('Écriture').includes('À classer'), 'À classer ne devient pas une sous-catégorie à choisir');
     Array.from(ui.parId('tuiles').querySelectorAll('.ouvrir-tuile')).find(b => b.querySelector('.titre-tuile').textContent === 'Écriture').click();
     const titres = Array.from(ui.parId('liste-taches').querySelectorAll('.sous-categorie h3'), h => h.firstChild.textContent);
     attendreEgal(titres[0], 'À classer', 'À classer en premier');
     attendre(!ui.parId('liste-taches').querySelector('.sous-categorie h3').querySelector('.pourcentage'), 'pas de pourcentage');
+    const sections = Array.from(ui.parId('liste-taches').querySelectorAll('.sous-categorie'));
+    attendre(sections.length && sections.every(section => section.querySelector('h3')), 'aucune case en vrac sans intitulé');
+    attendreEgal(titres.filter(titre => titre === 'À classer').length, 1, 'un seul groupe À classer');
+    const aClasser = sections.find(section => section.querySelector('h3').firstChild.textContent === 'À classer');
+    attendre(aClasser.textContent.includes('FICTIF ancienne sans sous-catégorie'), 'ancienne tâche sans sous-catégorie sous « À classer »');
   });
 
   await testAsync('Trier : + Ajouter crée la catégorie et y range la tâche, Modifier la retire sans perte, Annuler la ramène', async c => {
@@ -3534,8 +3543,10 @@ TESTS_JS = r"""
   test('Cerveau préparé : range seulement ce qui est nommé, intitulé mot pour mot, réponse courte', () => {
     const debut = traiterDemande({ texte: 'Ajoute dans Écriture : relire le chapitre 2 FICTIF', source: 'micro' });
     attendreEgal([debut.type, debut.tache.intitule, debut.tache.categorie, debut.tache.sous_categorie, debut.tache.origine],
-      ['tache', 'relire le chapitre 2 FICTIF', 'Écriture', 'À classer', 'dictée'], 'catégorie nommée au début');
-    attendreEgal(debut.parole, 'C’est noté dans Écriture, À classer.', 'réponse parlée');
+      ['tache', 'relire le chapitre 2 FICTIF', 'Écriture', 'Roman', 'dictée'], 'catégorie nommée au début, indice « chapitre »');
+    attendreEgal(debut.parole, 'C’est noté dans Écriture, Roman.', 'réponse parlée');
+    const flou = traiterDemande({ texte: 'Ajoute dans Écriture : acheter un carnet FICTIF', source: 'micro' });
+    attendreEgal(flou.tache.sous_categorie, 'À classer', 'rien d’évident : À classer');
     const scenario = traiterDemande({ texte: 'J’ai une idée de scénario d’horreur FICTIF', source: 'micro' });
     attendreEgal([scenario.tache.intitule, scenario.tache.categorie, scenario.tache.sous_categorie],
       ['J’ai une idée de scénario d’horreur FICTIF', 'Écriture', 'Scénarios'], 'sous-catégorie nommée dans la phrase');
@@ -3555,6 +3566,51 @@ TESTS_JS = r"""
     attendreEgal([date.tache.categorie, date.tache.echeance],
       ['Musique', `${attendue.getFullYear()}-${String(attendue.getMonth() + 1).padStart(2, '0')}-${String(attendue.getDate()).padStart(2, '0')}`],
       'date dite naturellement');
+  });
+
+  test('Cerveau préparé : indices évidents (titre du roman, scène, chapitre), sinon À trier', () => {
+    reinitialiser();
+    const sous = listesChoix.categories('Écriture');
+    attendre(sous.includes('Roman') && sous.includes('Scénarios'), `sous-catégories fictives : ${sous.join(', ')}`);
+    const roman = traiterDemande({ texte: 'Relire le chapitre 2 des Jardins suspendus de minuit', source: 'micro' });
+    attendreEgal([roman.tache.intitule, roman.tache.categorie, roman.tache.sous_categorie],
+      ['Relire le chapitre 2 des Jardins suspendus de minuit', 'Écriture', 'Roman'], 'titre du roman');
+    const titre = traiterDemande({ texte: 'Relire les jardins suspendus de minuit FICTIF', source: 'micro' });
+    attendreEgal([titre.tache.categorie, titre.tache.sous_categorie], ['Écriture', 'Roman'], 'titre seul');
+    const scene = traiterDemande({ texte: 'Réécrire la scène 4', source: 'micro' });
+    attendreEgal([scene.tache.intitule, scene.tache.categorie, scene.tache.sous_categorie], ['Réécrire la scène 4', 'Écriture', 'Scénarios'], 'scène');
+    const dialogues = traiterDemande({ texte: 'Corriger les dialogues FICTIF', source: 'saisie' });
+    attendreEgal(dialogues.tache.sous_categorie, 'Scénarios', 'dialogues au pluriel');
+    const deux = traiterDemande({ texte: 'Une scène du chapitre 3 FICTIF', source: 'micro' });
+    attendreEgal([deux.tache.categorie, deux.tache.sous_categorie], ['Écriture', 'À classer'], 'deux indices : À classer');
+    const rien = traiterDemande({ texte: 'Scener les arbres FICTIF', source: 'micro' });
+    attendreEgal(rien.tache.categorie, 'À trier', 'mot voisin ignoré');
+  });
+
+  await testAsync('Dernières actions : toucher une ligne ouvre la liste sur la tâche', async c => {
+    tachesTuiles(c);
+    const tache = c.TACHES.find(item => !item.parente && !item.fait && !item.abandonnee_le);
+    c.localStorage.setItem('cap_journal_actions_v1', JSON.stringify([
+      { heure: new Date().toISOString(), type: 'ajout', texte: tache.intitule, id: tache.id },
+      { heure: new Date().toISOString(), type: 'ajout', texte: 'FICTIF tâche disparue', id: 'FICTIF-absente' }
+    ]));
+    const ui = preparerInterface(c);
+    const lignes = ui.parId('liste-actions').querySelectorAll('li');
+    attendreEgal(lignes.length, 2, 'deux lignes');
+    attendre(!lignes[1].querySelector('button'), 'tâche introuvable : simple texte');
+    const bouton = lignes[0].querySelector('button.lien-action');
+    attendre(bouton && bouton.textContent.includes(tache.intitule), 'ligne cliquable');
+    bouton.click();
+    const ligne = ui.parId('liste-taches').querySelector(`[data-tache="${tache.id}"]`);
+    attendre(ligne && ligne.classList.contains('surbrillance-recherche'), 'tâche surlignée dans la liste');
+    attendreEgal(ui.doc.activeElement, ligne, 'tâche mise en avant');
+    try {
+      journalActions.noter('ajout', 'FICTIF avec id', 'FICTIF-id-1');
+      const premiere = journalActions.lire()[0];
+      attendreEgal([premiere.texte, premiere.id], ['FICTIF avec id', 'FICTIF-id-1'], 'id gardé');
+    } finally {
+      localStorage.removeItem('cap_journal_actions_v1');
+    }
   });
 
   test('Cerveau préparé : deux catégories citées, une seule question, puis la réponse range la tâche', () => {
@@ -4083,8 +4139,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v15['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v15")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v16['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v16")
 
 
 def verifier_precache_fichiers_existent():

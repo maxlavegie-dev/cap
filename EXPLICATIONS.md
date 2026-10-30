@@ -34,7 +34,12 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `annulation.js` | Un seul « Annuler » pour toute l'appli : retient la dernière action pendant 8 secondes, l'annule une seule fois, et reconnaît « Annule », « Annule ça », « Cap, annule la dernière action ». |
 | `vibration.js` | Une vibration très courte (30 ms) quand une action est enregistrée, si le téléphone le permet. |
 | `voix.js` | Cap répond à voix haute (voix du téléphone, en français), sauf si « Réponse silencieuse » est allumée. |
-| `limite_ia.js` | Compte les échanges avec une IA payante, jour par jour : alerte à 50, arrêt à 60 (retour aux réponses préparées). |
+| `indices_rangement.js` | Les indices évidents pour ranger (scène, séquence, dialogue → Scénarios ; chapitre, personnage, titre du roman → Roman). Modifiable sans toucher au reste. |
+| `reglages_ia.js` | Les réglages de l'IA : modèle (Claude Haiku), limite par défaut (60), prix, nom du fichier de consignes. Aucune clé. |
+| `cle_ia.js` | Garde la clé d'IA tapée par Max, sur le téléphone seulement ; n'en montre que les 4 derniers caractères. |
+| `consignes_cap.txt` | Le document de consignes envoyé à l'IA à chaque échange (qui est Cap, comment il parle, ce qu'il ne fait jamais). Tant que la première ligne contient « BROUILLON », il n'est jamais envoyé. |
+| `cerveau_claude.js` | Le fournisseur Claude Haiku : utilisé seulement avec une clé et des consignes validées. Une action à la fois, intitulé mot pour mot. |
+| `limite_ia.js` | Compte les échanges avec une IA payante, jour par jour : limite réglable par Max (60 par défaut), alerte aux 5/6, puis retour aux réponses préparées. Calcule la dépense du mois. |
 | `actions_cap.js` | La frontière entre le cerveau et Cap : la liste des actions permises, et la vérification de chacune. Le cerveau ne touche jamais aux tâches lui-même. |
 | `cerveau.js` | Le cerveau : comprend la demande et rend une décision (une action, ou une seule question courte). Le modèle d'IA est interchangeable. |
 | `cerveau_prepare.js` | Les réponses préparées, gratuites et sans clé : range une tâche seulement si la catégorie est nommée, sinon dans À trier ; pose une question s'il hésite. |
@@ -55,7 +60,7 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `service-worker.js` | Garde une copie de l'appli sur le téléphone pour qu'elle s'ouvre même sans internet. |
 | `installation.js` | Active cette copie hors connexion. |
 | `icones/` | L'icône aux différentes tailles demandées par Android. Elles sont fabriquées par `outils/fabriquer_icones.py` à partir de l'icône validée. |
-| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout, des tuiles, du mode Trier, du journal, de la sauvegarde, de l'annulation, du cerveau et de l'installation (228 essais). |
+| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout, des tuiles, du mode Trier, du journal, de la sauvegarde, de l'annulation, du cerveau et de l'installation (234 essais). |
 
 ## L'écran d'accueil (Lot 1, 29/10/2026)
 - En haut : seulement la date du jour, centrée. Pas d'heure : la barre du haut du téléphone (heure, Wi-Fi, réseau, batterie) reste visible, car Cap installée s'ouvre en mode « standalone » (comme une appli, mais sans cacher cette barre).
@@ -87,7 +92,9 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 - Deux pièces séparées : le cerveau comprend et décide ; `actions_cap.js` exécute et vérifie. On peut changer de modèle d'IA ou ajouter des actions sans refaire le reste.
 - Sans clé, Cap utilise des réponses préparées, gratuites. Il range seulement ce qui est nommé (« Ajoute dans Écriture : … », « … dans Quotidien Courses », « idée de scénario… ») ; sinon la tâche va dans À trier. S'il hésite entre deux catégories, il pose une seule question.
 - Si « Réponse silencieuse » est éteinte, Cap dit en une phrase ce qu'il a fait. Le bouton « Annuler » reste proposé.
-- Aucune clé n'est branchée. Plus tard, avec l'accord de Max, la clé sera tapée une fois dans Cap et restera sur le téléphone, jamais dans le code. Limite : 60 échanges par jour, alerte à 50.
+- Claude Haiku est prêt : Max tape sa clé une fois dans « Réglages du cerveau », elle reste sur le téléphone, jamais dans le code. La limite par jour se règle au même endroit (60 par défaut) ; la dépense du mois y est affichée. Les consignes (`consignes_cap.txt`, environ 0,04 centime par échange) ne partent qu'une fois validées par Max.
+- Une fois la clé branchée, ce que Max dit à Cap part chez Anthropic (l'entreprise de Claude), avec les noms des catégories fictives.
+- Les « Dernières actions » sont cliquables : une ligne ouvre la liste sur la tâche. Les tâches sans sous-catégorie s'affichent sous l'intitulé « À classer ».
 
 ## La connexion à Google (semaine 2)
 - Cap n'a accès qu'aux fichiers qu'il a créés lui-même, et seulement à son agenda « Cap – FICTIF ». Il ne voit ni le reste du Drive ni le vrai agenda.
