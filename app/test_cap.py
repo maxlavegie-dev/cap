@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_dates.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_dates.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -733,8 +733,7 @@ TESTS_JS = r"""
     attendreEgal([continuer.type, continuer.message],
       ['attente_cerveau', '« Continue. » marchera quand le cerveau de Cap sera branché.'], 'Continuer');
     const annuler = traiterDemande({ texte: 'Annule.', source: 'micro', id_phrase: 'annuler' });
-    attendreEgal([annuler.type, annuler.message],
-      ['attente_cerveau', '« Annule. » marchera quand le cerveau de Cap sera branché.'], 'Annuler');
+    attendreEgal([annuler.type, annuler.message], ['annuler', ''], 'Annuler');
     attendreEgal(TACHES.length, avant, 'tâche créée');
     attendreEgal(preferencesClavier.plusUtilisees(5).map(p => p.id), ['continuer', 'annuler'], 'usages');
     attendreEgal(preferencesClavier.historique().map(e => [e.id_phrase, e.source, e.texte]),
@@ -3451,6 +3450,87 @@ TESTS_JS = r"""
     trier.close();
   });
 
+  test('Annuler : phrases reconnues, une seule fois, délai de 8 secondes, vibration', () => {
+    for (const phrase of ['Annule', 'Annule.', 'annule ça', 'Annuler', 'Cap, annule la dernière action', 'Annule ce que tu viens de faire'])
+      attendre(annulation.estDemande(phrase), `reconnue : ${phrase}`);
+    for (const phrase of ['Annuler le rendez-vous chez le dentiste', 'Annule ma réunion de lundi', 'Appeler Annie'])
+      attendre(!annulation.estDemande(phrase), `pas une annulation : ${phrase}`);
+    let defaits = 0;
+    let retires = 0;
+    annulation.proposer({ annuler: () => { defaits += 1; }, messageApres: 'FICTIF défait', retirer: () => { retires += 1; } });
+    attendreEgal(annulation.annulerDerniere(), 'FICTIF défait', 'message');
+    attendreEgal(annulation.annulerDerniere(), '', 'une seule fois');
+    attendreEgal([defaits, retires], [1, 1], 'défait et bouton retiré');
+    const vraiNow = Date.now;
+    try {
+      annulation.proposer({ annuler: () => { defaits += 1; } });
+      const depart = vraiNow();
+      Date.now = () => depart + 8001;
+      attendreEgal(annulation.annulerDerniere(), '', 'trop tard');
+      Date.now = vraiNow;
+      annulation.proposer({ annuler: () => { defaits += 1; } });
+      annulation.garderPendantEcoute();
+      Date.now = () => depart + 12000;
+      attendreEgal(annulation.annulerDerniere(), 'C’est annulé.', 'le micro laisse le temps de dire Annule');
+    } finally {
+      Date.now = vraiNow;
+    }
+    attendreEgal(defaits, 2, 'rien défait après le délai');
+    const vraiVibrer = navigator.vibrate;
+    const durees = [];
+    try {
+      Object.defineProperty(navigator, 'vibrate', { value: duree => { durees.push(duree); return true; }, configurable: true });
+      Date.now = () => vraiNow() + 60000;
+      abandonner(creerTache({ intitule: 'FICTIF vibration', origine: 'ajout à la main' }).id);
+      attendreEgal(durees, [30], 'vibration courte à chaque action');
+    } finally {
+      Date.now = vraiNow;
+      Object.defineProperty(navigator, 'vibrate', { value: vraiVibrer, configurable: true });
+    }
+  });
+
+  test('Annuler partout : ajout, case cochée, abandon, puis « Annule » au clavier et à la voix', () => {
+    const statut = document.getElementById('statut');
+    const tache = tacheInterface('FICTIF annuler partout');
+    attendre(statut.querySelector('.annuler-dictee'), 'Annuler après ajout au formulaire');
+    const nombre = TACHES.length;
+    const cocherCase = () => {
+      const caseTache = document.getElementById(`tache-${tache.id}`);
+      caseTache.checked = !caseTache.checked;
+      caseTache.dispatchEvent(new Event('change'));
+    };
+    cocherCase();
+    attendre(tache.fait, 'cochée');
+    statut.querySelector('.annuler-dictee').click();
+    attendre(!tache.fait, 'Annuler décoche');
+    attendre(!statut.querySelector('.annuler-dictee'), 'bouton retiré après usage');
+    cocherCase();
+    document.getElementById('ouvrir-clavier').click();
+    document.getElementById('saisie-demande').value = 'Annule';
+    document.getElementById('formulaire-demande').requestSubmit();
+    if (document.getElementById('clavier').open) document.getElementById('clavier').close();
+    attendre(!tache.fait, '« Annule » au clavier décoche');
+    document.querySelector(`[data-tache="${tache.id}"] .options-tache`).click();
+    document.getElementById('abandonner-tache').click();
+    document.getElementById('confirmer-abandon').click();
+    attendre(tache.abandonnee_le, 'abandonnée');
+    attendre(statut.querySelector('.annuler-dictee'), 'Annuler après abandon');
+    const sauve = { ...dictee };
+    try {
+      dictee.disponible = () => true;
+      dictee.enCours = () => false;
+      dictee.demarrer = rappels => { rappels.surFinal('Annule ça'); rappels.surFin?.(); };
+      document.getElementById('microphone').click();
+      attendreEgal(tache.abandonnee_le, '', '« Annule » à la voix remet la tâche');
+      document.getElementById('microphone').click();
+      attendre(/plus rien à annuler/.test(statut.textContent), 'rien à annuler deux fois');
+    } finally {
+      Object.assign(dictee, sauve);
+    }
+    attendreEgal(TACHES.length, nombre, 'aucune tâche « Annule » créée, rien effacé');
+    abandonner(tache.id);
+  });
+
   await testAsync('Trier : toucher une catégorie, Annuler, puis la voix range la tâche suivante', async c => {
     tachesTuiles(c);
     const ui = preparerInterface(c);
@@ -3732,8 +3812,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v12['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v12")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v13['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v13")
 
 
 def verifier_precache_fichiers_existent():

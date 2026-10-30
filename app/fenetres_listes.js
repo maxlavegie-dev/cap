@@ -56,18 +56,25 @@ const fenetresListes = (() => {
 
   function proposerAnnulation(texte, annuler) {
     clearTimeout(delaiAnnulation);
-    const retour = bouton('Annuler', 'bouton-annuler-liste', () => {
-      clearTimeout(delaiAnnulation);
+    const cacher = () => {
       bandeau.hidden = true;
       bandeau.replaceChildren();
-      annuler();
+    };
+    const entree = annulation.proposer({
+      annuler,
+      messageApres: 'C’est annulé.',
+      retirer: () => {
+        clearTimeout(delaiAnnulation);
+        cacher();
+      }
     });
+    const retour = bouton('Annuler', 'bouton-annuler-liste', () => annulation.executer(entree));
     bandeau.replaceChildren(noeud('span', '', texte), retour);
     bandeau.hidden = false;
     delaiAnnulation = setTimeout(() => {
-      bandeau.hidden = true;
-      bandeau.replaceChildren();
-    }, 8000);
+      annulation.expirer(entree);
+      cacher();
+    }, annulation.DUREE_MS);
   }
 
   function grille(enfants) {

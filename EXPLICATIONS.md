@@ -30,6 +30,9 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `preferences_clavier.js` | Retient sur le téléphone les phrases les plus utilisées, les dernières demandes et l'interrupteur « Réponse silencieuse ». |
 | `comprendre_dates.js` | Trouve la date dans une phrase (« dans deux semaines », « vendredi dans deux semaines », « lundi en huit », « premier lundi du mois prochain », « fin du mois »…). S'il hésite entre deux dates, il ne devine pas : il renvoie les deux choix, et Cap pose la question à Max avec deux boutons. |
 | `comprendre_demande.js` | Comprend, sans intelligence artificielle, une demande de rendez-vous (date, heure, titre, rappels) ou « Reporte ça à demain ». Ne fait rien lui-même : il prépare seulement un brouillon. |
+| `sous_categories.js` | Trouve la sous-catégorie d'une tâche dictée dans une catégorie : celle nommée dans la phrase, sinon celle dont les tâches ressemblent clairement à la phrase (un seul gagnant), sinon « À classer ». Jamais de choix au hasard. |
+| `annulation.js` | Un seul « Annuler » pour toute l'appli : retient la dernière action pendant 8 secondes, l'annule une seule fois, et reconnaît « Annule », « Annule ça », « Cap, annule la dernière action ». |
+| `vibration.js` | Une vibration très courte (30 ms) quand une action est enregistrée, si le téléphone le permet. |
 | `demandes.js` | La porte d'entrée unique de toutes les demandes (micro et clavier). C'est là qu'on branchera l'intelligence artificielle. |
 | `recherche.js` | La recherche tapée, sans intelligence artificielle : trouve un mot dans les tâches ou les rendez-vous, sans tenir compte des accents ni des majuscules. |
 | `journal_actions.js` | Retient les dernières actions (ajout, coche, abandon) et tient le journal complet (heure à la seconde, ce que Max a dit ou touché, ce que Cap a compris, ce qu'il a fait), envoyé dans l'onglet « Journal ». Masque les mots de passe et les longs numéros ; n'efface jamais rien. |
@@ -47,7 +50,7 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `service-worker.js` | Garde une copie de l'appli sur le téléphone pour qu'elle s'ouvre même sans internet. |
 | `installation.js` | Active cette copie hors connexion. |
 | `icones/` | L'icône aux différentes tailles demandées par Android. Elles sont fabriquées par `outils/fabriquer_icones.py` à partir de l'icône validée. |
-| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout, des tuiles, du mode Trier, du journal, de la sauvegarde et de l'installation (215 essais). |
+| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout, des tuiles, du mode Trier, du journal, de la sauvegarde, de l'annulation et de l'installation (223 essais). |
 
 ## L'écran d'accueil (Lot 1, 29/10/2026)
 - En haut : seulement la date du jour, centrée. Pas d'heure : la barre du haut du téléphone (heure, Wi-Fi, réseau, batterie) reste visible, car Cap installée s'ouvre en mode « standalone » (comme une appli, mais sans cacher cette barre).
@@ -68,6 +71,12 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 - Appui long puis glissement pour changer l'ordre ; cet ordre passe avant le classement par usage et est gardé dans la colonne « Ordre » de l'onglet Catégories.
 - Le bouton Aide est en haut à droite de l'écran complet.
 - « Sauvegarder maintenant » fait la première copie ; ensuite Cap en fait une chaque semaine. Au-delà de 5 copies, Cap prévient mais ne supprime rien.
+
+## Dates, sous-catégories et Annuler (Lot 5, 30/10/2026)
+- Les dates dites naturellement sont comprises partout ; si deux dates sont possibles, Cap pose la question avec deux boutons.
+- Une tâche dictée dans une catégorie à sous-catégories va dans la sous-catégorie nommée ou évidente, sinon dans « À classer » (affiché en premier).
+- Dans l'écran Trier, « + Ajouter » crée une catégorie et y range la tâche ; « Modifier » retire une catégorie sans rien effacer.
+- Toute action garde un bouton « Annuler » 8 secondes ; dire ou écrire « Annule » fait la même chose. Une vibration courte confirme chaque action.
 
 ## La connexion à Google (semaine 2)
 - Cap n'a accès qu'aux fichiers qu'il a créés lui-même, et seulement à son agenda « Cap – FICTIF ». Il ne voit ni le reste du Drive ni le vrai agenda.
@@ -95,7 +104,7 @@ Pour utiliser Cap sans parler (détail dans `PROMPT_COMPLEMENT_CLAVIER.txt`).
 - On touche un début de phrase (« Retrouve-moi... »), on écrit la fin, puis « Envoyer ». On peut aussi écrire n'importe quoi dans le champ, sans phrase.
 - « Les plus utilisées » remontent toutes seules ; « Dernières demandes » permet de relancer une demande telle quelle.
 - L'interrupteur « Réponse silencieuse » est allumé par défaut. Pour l'instant Cap ne parle jamais : il servira quand Cap saura répondre à voix haute.
-- Le micro et le clavier passent par la même porte d'entrée (`demandes.js`). Tant que l'intelligence artificielle n'est pas branchée, tout ce qui est écrit va dans « À trier », mot pour mot. « Ajoute à ma to-do... » ne garde que la fin de la phrase. « Continue. » et « Annule. » attendront l'intelligence artificielle. Exception : une demande de rendez-vous ouvre une fiche « Nouveau rendez-vous » préremplie, que Max vérifie avant l'ajout dans l'agenda « Cap – FICTIF » ; « Reporte ça à demain » reporte la dernière tâche ouverte.
+- Le micro et le clavier passent par la même porte d'entrée (`demandes.js`). Tant que l'intelligence artificielle n'est pas branchée, tout ce qui est écrit va dans « À trier », mot pour mot. « Ajoute à ma to-do... » ne garde que la fin de la phrase. « Continue. » attendra l'intelligence artificielle ; « Annule. » annule la dernière action (Lot 5). Exception : une demande de rendez-vous ouvre une fiche « Nouveau rendez-vous » préremplie, que Max vérifie avant l'ajout dans l'agenda « Cap – FICTIF » ; « Reporte ça à demain » reporte la dernière tâche ouverte.
 - Les tâches cochées vont dans la ligne repliée « Terminées (N) », en bas de la liste. Glisser une tâche à droite la coche, à gauche la reporte à demain. Rien n'est jamais effacé, et « Annuler » reste affiché 8 secondes.
 - Un bouton ne fait que remplir une phrase : il ne peut jamais envoyer un mail.
 

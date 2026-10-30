@@ -69,9 +69,16 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Pas de devinette** : si deux dates sont possibles (« jeudi » dit un jeudi, « vendredi prochain » dit un jeudi, « dans 8 jours », « fin de semaine »), Cap pose une question avec deux gros boutons. Si Max ferme la question, rien n'est inventé.
   - **Partout** : bouton « Dire la date », dictée principale (la tâche reçoit son échéance, l'intitulé reste mot pour mot), micro des tuiles, et rendez-vous dictés.
   - 218 vérifications automatiques réussies. Publié le 29/10/2026 avec l'accord de Max, à tester sur le téléphone.
+- 30/10/2026 : nouvelle conversation (Complément 6). Max a testé et validé la demande 1 (dates) sur son téléphone. Plan chiffré validé par Max : finir le Lot 5 (plafond 300 premiums), publier, puis Lot 6 sans attendre. Fin du Lot 5 :
+  - **Demande 2, dictée dans une catégorie à sous-catégories** : cause trouvée. Le micro de tuile créait la tâche sans sous-catégorie ; à l'affichage, ce groupe sans titre tombait juste sous le dernier titre (« Scénarios »), d'où l'impression que Cap choisissait Scénario. Nouveau `sous_categories.js` : la sous-catégorie nommée dans la phrase (accents, singulier et pluriel tolérés), sinon celle dont les tâches partagent au moins 2 mots importants avec la phrase (un seul gagnant), sinon « À classer » de cette catégorie. Jamais de choix par défaut. « À classer » s'affiche en premier, sans pourcentage, seulement s'il contient quelque chose. Même règle dans l'écran Trier.
+  - **Demande 3, « + Ajouter » et « Modifier »** : dans l'écran Trier, deux boutons discrets. « + Ajouter » crée la catégorie et y range tout de suite la tâche en cours (avec Annuler) ; « Modifier » retire sans rien effacer, avec Annuler. L'écran « Ajouter une tâche » les avait déjà ; le libellé devient « + Ajouter ».
+  - **Un seul Annuler partout** (`annulation.js`) : toutes les actions gardent leur bouton « Annuler » 8 secondes : cocher ou décocher par la case, glisser, reporter, abandonner, remettre, ajouter (formulaire, micro, tuile, clavier), ranger dans Trier, retirer une catégorie. Dire ou écrire « Annule » (ou « Annule ça », « Cap, annule la dernière action ») annule la dernière action. Appuyer sur le micro laisse le temps de le dire. Une action n'est annulée qu'une fois ; après le délai, Cap dit qu'il n'y a plus rien à annuler. « Annule » ne crée jamais de tâche.
+  - **Vibration courte** (`vibration.js`, 30 ms) à chaque action enregistrée (tâche ou liste de catégories).
+  - 223 vérifications automatiques réussies. Version du cache : cap-v13.
 
 ### En cours
-- Lot 5, demande 1 (dates) : construite, à tester par Max. Ensuite, demande 2 (dictée dans une catégorie à sous-catégories, avec « À classer »), puis demande 3 (« + Ajouter » et « Modifier » dans les écrans de choix de catégorie), une à la fois.
+- Lot 5 terminé côté code : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
+- Lot 6 (cerveau IA) : V1 en préparation, entièrement fictive. Aucune clé branchée sans l'accord de Max.
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)

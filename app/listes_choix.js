@@ -100,7 +100,10 @@ const listesChoix = (() => {
 
   function enregistrer(aEnvoyer = true) {
     localStorage.setItem(cle, JSON.stringify(donnees));
-    if (aEnvoyer) localStorage.setItem(cleEnvoi, '1');
+    if (aEnvoyer) {
+      localStorage.setItem(cleEnvoi, '1');
+      if (typeof vibration !== 'undefined') vibration.courte();
+    }
     window.dispatchEvent(new Event('cap-listes-changees'));
   }
 

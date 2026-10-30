@@ -54,12 +54,17 @@ const modeTrier = (() => {
     clearTimeout(delaiAnnuler);
     const zone = dialogue.querySelector('.annulation-tri');
     if (!zone) return;
-    zone.replaceChildren(noeud('span', '', texte), bouton('Annuler', 'annuler-tri', () => {
+    const vider = () => dialogue?.querySelector('.annulation-tri')?.replaceChildren();
+    const retirer = () => {
       clearTimeout(delaiAnnuler);
-      zone.replaceChildren();
-      annuler();
-    }));
-    delaiAnnuler = setTimeout(() => zone.replaceChildren(), 8000);
+      vider();
+    };
+    const entree = annulation.proposer({ annuler, messageApres: '', retirer });
+    zone.replaceChildren(noeud('span', '', texte), bouton('Annuler', 'annuler-tri', () => annulation.executer(entree)));
+    delaiAnnuler = setTimeout(() => {
+      annulation.expirer(entree);
+      vider();
+    }, annulation.DUREE_MS);
   }
 
   function ranger(tache, categorie, contexte) {
@@ -104,11 +109,24 @@ const modeTrier = (() => {
     }
     let recu = false;
     micro.setAttribute('aria-pressed', 'true');
+    annulation.garderPendantEcoute();
     message('Je t’écoute… dis le nom de la catégorie.');
     let provisoire = '';
     const traiter = texte => {
       if (recu) return;
       recu = true;
+      if (annulation.estDemande(texte)) {
+        journalActions.consigner({ source: 'micro (Trier)', entree: texte, compris: 'annuler la dernière action', fait: 'annulation demandée' });
+        let fait = '';
+        try {
+          fait = annulation.annulerDerniere();
+        } catch (erreur) {
+          message(erreur instanceof Error ? erreur.message : 'Je n’ai pas pu annuler.');
+          return;
+        }
+        if (!fait) message('Il n’y a plus rien à annuler.');
+        return;
+      }
       const categorie = reconnaitre(texte);
       if (!categorie) {
         message(`Je n’ai pas reconnu de catégorie dans « ${texte} ». Touche-la plutôt.`);
@@ -180,12 +198,12 @@ const modeTrier = (() => {
     }
     const statut = noeud('p', 'message-tri');
     statut.setAttribute('role', 'status');
-    const annulation = noeud('div', 'annulation-tri');
+    const zoneAnnulation = noeud('div', 'annulation-tri');
     const ancienMessage = contenu.querySelector('.message-tri')?.textContent || '';
     const ancienneAnnulation = contenu.querySelector('.annulation-tri');
-    if (ancienneAnnulation) annulation.replaceChildren(...ancienneAnnulation.childNodes);
+    if (ancienneAnnulation) zoneAnnulation.replaceChildren(...ancienneAnnulation.childNodes);
     statut.textContent = ancienMessage;
-    elements.push(statut, annulation);
+    elements.push(statut, zoneAnnulation);
     contenu.replaceChildren(...elements);
   }
 

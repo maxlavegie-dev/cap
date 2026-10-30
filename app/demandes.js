@@ -30,7 +30,9 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
     };
   }
   let resultat;
-  if (phrase && !phrase.a_completer) {
+  if (phrase?.id === 'annuler' || (!phrase && annulation.estDemande(texteComplet))) {
+    resultat = { type: 'annuler', message: '' };
+  } else if (phrase && !phrase.a_completer) {
     resultat = {
       type: 'attente_cerveau',
       message: `« ${phrase.debut} » marchera quand le cerveau de Cap sera branché.`

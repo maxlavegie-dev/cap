@@ -36,6 +36,7 @@ function enregistrerModification(modifier) {
     const precedentes = new Map(avant.map(tache => [tache.id, JSON.stringify(tache)]));
     const ids = TACHES.filter(tache => precedentes.get(tache.id) !== JSON.stringify(tache)).map(tache => tache.id);
     if (typeof synchronisation !== 'undefined') synchronisation.signaler(ids);
+    if (ids.length && typeof vibration !== 'undefined') vibration.courte();
     if (typeof journalActions !== 'undefined') {
       const anciennes = new Map(avant.map(tache => [tache.id, tache]));
       for (const tache of TACHES) {
