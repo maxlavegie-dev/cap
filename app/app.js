@@ -1022,7 +1022,8 @@
 
   function noterDemande(source, texte, resultat) {
     if (resultat.type === 'tache') return;
-    const compris = { annuler: 'annuler la dernière action', report: 'reporter la tâche ouverte à demain', 'rendez-vous': 'préparer un rendez-vous',
+    const compris = { annuler: 'annuler la dernière action', report: 'reporter la tâche ouverte à demain',
+      proposition: 'proposition faite à Max', rendez_vous_ajoute: 'rendez-vous inscrit après le oui de Max',
       vide: 'rien reçu', pas_compris: 'pas compris', attente_cerveau: 'demande pour plus tard',
       question: 'question posée à Max', reflexion: 'demande envoyée au cerveau', reponse: 'conversation' };
     journalActions.consigner({ source, entree: texte, compris: compris[resultat.type] || resultat.type,
@@ -1040,7 +1041,7 @@
         .finally(() => afficherCerveau());
       return;
     }
-    if (resultat.type === 'question' || resultat.type === 'reponse') {
+    if (resultat.type === 'question' || resultat.type === 'reponse' || resultat.type === 'proposition') {
       annoncer(resultat.message);
       voix.dire(resultat.parole);
       return;
@@ -1052,24 +1053,21 @@
       else annoncer('Je ne sais pas quelle tâche reporter. Ouvre-la d’abord (bouton …), ou glisse-la vers la gauche.');
       return;
     }
-    if (resultat.type === 'rendez-vous') {
-      const { choix_date: choixDate = [], ...brouillon } = resultat.brouillon;
-      const ouvrirFiche = date => {
-        annoncer(resultat.message);
-        const ouverte = ficheRendezVous.nouveau({ ...brouillon, date }, origine, rendezVous => {
-          erreurAgenda = '';
-          remplirRendezVous(googleAgenda.lireCache() || []);
-          afficherRecherche();
-          annoncer(`Rendez-vous ajouté dans l'agenda Cap – FICTIF : ${rendezVous.titre}`);
-        }, () => annoncer("Rendez-vous pas ajouté : rien n'a été mis dans l'agenda."));
-        if (!ouverte) annoncer("Je n'ai pas pu ouvrir le rendez-vous. Réessaie.");
+    if (resultat.type === 'rendez_vous_ajoute') {
+      const rendezVous = resultat.rendezVous;
+      const rafraichir = () => {
+        erreurAgenda = '';
+        remplirRendezVous(googleAgenda.lireCache() || []);
+        afficherRecherche();
       };
-      if (choixDate.length) {
-        demanderDate(choixDate, 'Pour ce rendez-vous, je ne suis pas sûr de la date. Laquelle ?',
-          ouvrirFiche, () => ouvrirFiche(''));
-      } else {
-        ouvrirFiche(brouillon.date);
-      }
+      rafraichir();
+      // Annuler n'efface rien chez Google : le rendez-vous est gardé, marqué « ANNULÉ » dans son titre.
+      proposerAnnulation(resultat.message, () => {
+        googleAgenda.modifierRendezVous(rendezVous.id, { titre: `ANNULÉ – ${rendezVous.titre}` })
+          .then(rafraichir)
+          .catch(erreur => signalerErreur(erreur));
+      }, 'Rendez-vous annulé : il reste dans l’agenda Cap – FICTIF, marqué « ANNULÉ », car Cap n’efface jamais rien.', origine);
+      voix.dire(resultat.parole);
       return;
     }
     if (resultat.type === 'tache') afficher();
@@ -1592,8 +1590,23 @@
       ligne.append(bouton);
       return ligne;
     }));
-    parId('rendez-vous').hidden = rendezVous.length === 0;
+    parId('rendez-vous').hidden = rendezVous.length === 0 && !agendaDisponible();
   }
+
+  // La fiche d'un nouveau rendez-vous ne s'ouvre que sur ce bouton, jamais toute seule après une phrase dite.
+  parId('nouveau-rdv').addEventListener('click', event => {
+    const bouton = event.currentTarget;
+    if (!agendaDisponible()) {
+      annoncer('Connecte-toi à Google pour ajouter un rendez-vous.');
+      return;
+    }
+    ficheRendezVous.nouveau({}, bouton, rendezVous => {
+      erreurAgenda = '';
+      remplirRendezVous(googleAgenda.lireCache() || []);
+      afficherRecherche();
+      annoncer(`Rendez-vous ajouté dans l'agenda Cap – FICTIF : ${rendezVous.titre}`);
+    }, () => annoncer("Rendez-vous pas ajouté : rien n'a été mis dans l'agenda."));
+  });
 
   async function afficherRendezVous() {
     remplirRendezVous(googleAgenda.lireCache() || []);

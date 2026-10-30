@@ -11,7 +11,12 @@ const cerveau = (() => {
   const DUREE_QUESTION_MS = 2 * 60 * 1000;
   const fournisseurs = new Map();
   let actif = 'auto';
+  const DUREE_PROPOSITION_MS = 5 * 60 * 1000;
   let question = null;
+  let enAttente = null;
+  const MOTS_OUI = 'oui|ouais|ok|okay|d accord|daccord|vas y|va y|c est ca|c est bien ca|c est bon|parfait|exact|exactement|ca me va|ca marche|tres bien|bien sur|yes|go|top|valide|je valide|confirme|je confirme|absolument|tout a fait|impeccable|nickel|super';
+  const OUI = new RegExp(`^(?:(?:cap|max) )?(?:${MOTS_OUI})(?: (?:${MOTS_OUI}|merci|cap|max))*$`);
+  const NON = /^(?:(?:cap|max) )?(?:non|nan|non merci|pas du tout|surtout pas|pas la peine|laisse tomber|oublie|oublie ca|annule|annuler|annule ca|ne range rien|rien du tout)(?: (?:merci|cap|max|laisse tomber|oublie|ca ira))*$/;
 
   // Même longueur que le texte d'origine : les positions trouvées servent à recopier l'intitulé mot pour mot.
   function plier(texte) {
@@ -61,7 +66,22 @@ const cerveau = (() => {
     return typeof texte === 'string' ? texte.trim().slice(0, 400) : '';
   }
 
+  // Une action « confirmation » devient une proposition : Cap la dit à Max et attend son oui.
+  function proposition(nom, parametres) {
+    let prete;
+    try {
+      prete = actionsCap.preparerProposition(nom, parametres);
+    } catch (erreur) {
+      if (nom !== 'proposer_rangement') return { type: 'reponse', texte: parole(erreur.message) || PAS_COMPRIS.question };
+      prete = actionsCap.preparerProposition(nom, { ...parametres, categorie: '', sous_categorie: '' });
+    }
+    return { type: 'proposition', action: nom, parametres: prete.parametres, texte: prete.texte, manque: prete.manque || '', choix: prete.choix || [] };
+  }
+
   function valider(decision) {
+    if (decision?.type === 'action' && actionsCap.demandeConfirmation(decision.action)) {
+      return proposition(decision.action, { ...(decision.parametres || {}) });
+    }
     if (decision?.type === 'action' && actionsCap.CATALOGUE.some(action => action.nom === decision.action)) {
       return { type: 'action', action: decision.action, parametres: { ...(decision.parametres || {}) }, parole: parole(decision.parole) };
     }
@@ -78,7 +98,14 @@ const cerveau = (() => {
   function retenir(decision) {
     question = decision.type === 'question' && decision.choix.length
       ? { ...decision, jusqua: Date.now() + DUREE_QUESTION_MS } : null;
+    enAttente = decision.type === 'proposition' ? { ...decision, jusqua: Date.now() + DUREE_PROPOSITION_MS } : null;
     return decision;
+  }
+
+  // Une décision préparée par Cap lui-même (ex. rendez-vous dicté), soumise aux mêmes règles.
+  function proposer(brut) {
+    question = null;
+    return retenir(valider(brut));
   }
 
   // demande : { texte, source }. Renvoie une décision, ou une promesse de décision (IA en ligne).
@@ -110,30 +137,76 @@ const cerveau = (() => {
     );
   }
 
-  // Réponse à la question en attente. Renvoie la décision complétée, ou null (la question est alors oubliée).
+  // Réponse à une proposition : « oui » → l'action ; « non » → rien ; détail manquant → nouvelle proposition ;
+  // autre chose (une correction) → null, et la phrase repart vers le cerveau, qui repropose.
+  function repondreProposition(texte) {
+    const proposee = enAttente;
+    enAttente = null;
+    if (!proposee || Date.now() > proposee.jusqua) return null;
+    const plat = plier(texte).replace(/ +/g, ' ').trim();
+    const prevenir = reponse => fournisseurs.get(fournisseurActif())?.suiteProposition?.(texte, reponse);
+    if (!proposee.manque && OUI.test(plat)) {
+      prevenir('Max a dit oui : Cap l’a fait.');
+      return { type: 'action', action: proposee.action, parametres: { ...proposee.parametres }, parole: '' };
+    }
+    if (NON.test(plat)) {
+      prevenir('Max a dit non : rien n’a été fait.');
+      return { type: 'reponse', texte: proposee.action === 'proposer_rendez_vous' ? 'D’accord, je n’inscris rien dans l’agenda.' : 'D’accord, je ne range rien.' };
+    }
+    if (proposee.action === 'proposer_rendez_vous' && comprendreDemande.rendezVous(texte)) return null;
+    if (proposee.manque) {
+      const complets = actionsCap.completerProposition(proposee, texte);
+      if (complets) return retenir(proposition(proposee.action, complets));
+    }
+    if (proposee.action === 'proposer_rendez_vous') {
+      // Correction d'un rendez-vous (« non, à 16 h », « non, mardi ») : Cap reformule avec la correction.
+      const heure = actionsCap.heureDite(texte);
+      const date = comprendreDemande.trouverDate(texte).date;
+      if (heure || date) {
+        const corriges = { ...proposee.parametres, choix_date: [] };
+        if (heure) Object.assign(corriges, { heure, heure_fin: '' });
+        if (date) corriges.date = date;
+        return retenir(proposition(proposee.action, corriges));
+      }
+      return { type: 'reponse', texte: 'Je n’ai pas saisi la correction. Redis-moi le rendez-vous en entier.' };
+    }
+    return null;
+  }
+
+  // Réponse à la question (ou proposition) en attente. Renvoie la décision complétée, ou null (elle est alors oubliée).
   function repondre(texte) {
-    const enAttente = question;
+    if (enAttente) return repondreProposition(texte);
+    const posee = question;
     question = null;
-    if (!enAttente || Date.now() > enAttente.jusqua) return null;
+    if (!posee || Date.now() > posee.jusqua) return null;
     const plie = ` ${plier(texte).replace(/ +/g, ' ').trim()} `;
     if (/ (?:a trier|aucune?|nulle part|ni l un ni l autre) /.test(plie)) {
-      return { type: 'action', action: enAttente.action, parametres: { ...enAttente.base, categorie: '', sous_categorie: '' } };
+      return { type: 'action', action: posee.action, parametres: { ...posee.base, categorie: '', sous_categorie: '' } };
     }
-    const retenus = enAttente.choix.filter(choix => {
+    const retenus = posee.choix.filter(choix => {
       const motif = motifNom(choix.libelle);
       return motif && new RegExp(motif).test(plie);
     });
     if (retenus.length !== 1) return null;
     const { categorie = '', sous_categorie = '' } = retenus[0];
-    return { type: 'action', action: enAttente.action, parametres: { ...enAttente.base, categorie, sous_categorie } };
+    return { type: 'action', action: posee.action, parametres: { ...posee.base, categorie, sous_categorie } };
   }
 
   function questionEnAttente() {
     return Boolean(question) && Date.now() <= question.jusqua;
   }
 
+  function propositionEnAttente() {
+    return Boolean(enAttente) && Date.now() <= enAttente.jusqua;
+  }
+
+  function oublierProposition() {
+    enAttente = null;
+  }
+
   return {
-    comprendre, repondre, questionEnAttente, enregistrerFournisseur, choisirFournisseur, fournisseurActif,
+    comprendre, repondre, questionEnAttente, propositionEnAttente, oublierProposition, proposer,
+    enregistrerFournisseur, choisirFournisseur, fournisseurActif,
     texte: { plier, motifNom }
   };
 })();

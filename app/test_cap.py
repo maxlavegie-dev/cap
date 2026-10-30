@@ -3101,9 +3101,25 @@ TESTS_JS = r"""
     if (document.getElementById('clavier').open) document.getElementById('clavier').close();
     document.querySelector('#statut .annuler-dictee').click();
     attendreEgal(tache.echeance, ancienne, 'report vocal annulé');
-    attendreEgal(traiterDemande({ texte: 'Ajoute-moi un rendez-vous à 11h45 aujourd\'hui, intitulé test, rappel dix minutes avant', source: 'micro', agenda_disponible: true }).type,
-      'rendez-vous', 'rendez-vous connecté');
+    const proposeRdv = traiterDemande({ texte: 'Ajoute-moi un rendez-vous à 11h45 aujourd\'hui, intitulé test, rappel dix minutes avant', source: 'micro', agenda_disponible: true });
+    attendre(proposeRdv.type === 'proposition' && proposeRdv.message.includes('à 11 h 45') && proposeRdv.message.endsWith('c’est bien ça ?'), `rendez-vous redit : ${proposeRdv.message}`);
+    attendre(!document.getElementById('fiche-rendez-vous').open, 'la fiche rendez-vous ne s’ouvre pas toute seule');
+    const corrige = traiterDemande({ texte: 'Non, à 16h', source: 'micro', agenda_disponible: true });
+    attendre(corrige.type === 'proposition' && corrige.message.includes('à 16 h') && !corrige.message.includes('11 h 45'), `correction reformulée : ${corrige.message}`);
+    attendreEgal(traiterDemande({ texte: 'Non', source: 'micro', agenda_disponible: true }).message, 'D’accord, je n’inscris rien dans l’agenda.', 'non : rien inscrit');
     attendreEgal(TACHES.length, nombre, 'rendez-vous connecté : aucune tâche');
+    const sansHeure = actionsCap.preparerProposition('proposer_rendez_vous', { titre: 'Dentiste FICTIF', date: '2027-01-11', lieu: 'rue FICTIVE' });
+    attendreEgal([sansHeure.manque, sansHeure.texte], ['heure', 'À quelle heure ?'], 'heure manquante : une seule question');
+    const complete = actionsCap.completerProposition(sansHeure, 'à 15h30');
+    attendreEgal(actionsCap.preparerProposition('proposer_rendez_vous', complete).texte,
+      'Rendez-vous « Dentiste FICTIF » le lundi 11 janvier 2027 à 15 h 30, rue FICTIVE, c’est bien ça ?', 'jour de la semaine calculé par Cap');
+    const deuxDates = actionsCap.preparerProposition('proposer_rendez_vous', { titre: 'FICTIF', heure: '10:00', choix_date: ['2027-01-07', '2027-01-14'] });
+    attendre(deuxDates.manque === 'date' && deuxDates.texte.includes(' ou le '), `deux dates possibles : ${deuxDates.texte}`);
+    attendreEgal(actionsCap.completerProposition(deuxDates, 'le 14').date, '2027-01-14', 'date choisie');
+    attendreEgal([actionsCap.heureDite('midi'), actionsCap.heureDite('9 heures 05'), actionsCap.heureDite('rien')], ['12:00', '09:05', ''], 'heures dites');
+    cerveau.proposer({ type: 'action', action: 'proposer_rendez_vous', parametres: { titre: 'FICTIF', date: '2027-01-11', heure: '10:00' } });
+    attendreEgal(traiterDemande({ texte: 'annule', source: 'micro' }).message, 'D’accord, je n’inscris rien dans l’agenda.', '« annule » pendant une proposition : rien inscrit');
+    attendre(!cerveau.propositionEnAttente(), 'proposition oubliée');
     const horsLigne = traiterDemande({ texte: 'rendez-vous demain à 9h FICTIF', source: 'micro', agenda_disponible: false });
     attendre(horsLigne.type === 'tache' && horsLigne.message.includes('PAS dans l\'agenda'), 'message honnête hors connexion');
     abandonner(horsLigne.tache.id);
@@ -3816,11 +3832,26 @@ TESTS_JS = r"""
       attendre(journal[0].action.includes('arroser les plantes FICTIF'), `action notée : ${journal[0].action}`);
       attendre(!localStorage.getItem('cap_journal_ia_v1').includes(CLE_FICTIVE), 'la clé n’est jamais dans l’historique');
 
-      const avant = TACHES.length;
+      let avant = TACHES.length;
       reponses.push({ statut: 200, corps: { content: [{ type: 'tool_use', name: 'ajouter_tache', input: { intitule: 'Acheter du lait FICTIF' } }] } });
       const reformulee = await traiterDemande({ texte: 'Il faudrait du lait FICTIF', source: 'micro' }).suite;
-      attendreEgal([reformulee.type, TACHES.length], ['reponse', avant], 'reformulation refusée, rien créé');
-      attendre(reformulee.message.includes('mots exacts'), reformulee.message);
+      attendreEgal([reformulee.type, TACHES.length], ['proposition', avant], 'reformulation : proposition, rien créé avant le oui');
+      attendre(reformulee.message.startsWith('Je mets « Acheter du lait FICTIF » dans À trier') && reformulee.message.endsWith('ça te va ?')
+        && !reformulee.message.includes('répéter'), reformulee.message);
+      const envoisProposition = envois.length;
+      const oui = traiterDemande({ texte: 'Oui, vas-y', source: 'micro' });
+      attendreEgal([oui.type, oui.tache.intitule, TACHES.length, envois.length], ['tache', 'Acheter du lait FICTIF', avant + 1, envoisProposition], 'oui : rangé par Cap, sans nouvel appel');
+      attendre(oui.tache.note.includes('Dit par Max : « ') && oui.tache.note.includes('Il faudrait du lait FICTIF'), `mots exacts gardés : ${oui.tache.note}`);
+      abandonner(oui.tache.id);
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Bonne idée.' },
+        { type: 'tool_use', name: 'proposer_rangement', input: { intitule: 'Un homme tombe amoureux FICTIF', categorie: 'Inconnue FICTIF', raison: 'c’est une histoire.' } }] } });
+      const idee = await traiterDemande({ texte: 'J’ai une idée, un homme qui tombe amoureux FICTIF', source: 'micro' }).suite;
+      attendre(idee.type === 'proposition' && idee.message.includes('À trier') && !idee.message.includes('Bonne idée'), `catégorie inconnue : À trier proposé, Cap formule : ${idee.message}`);
+      const nombreAvantNon = TACHES.length;
+      const non = traiterDemande({ texte: 'Non merci', source: 'micro' });
+      attendreEgal([non.type, non.message, TACHES.length], ['reponse', 'D’accord, je ne range rien.', nombreAvantNon], 'non : rien rangé');
+      attendre(JSON.parse(envois[envois.length - 1].options.body).system.includes('Ne demande jamais à Max de répéter ses mots'), 'consigne : jamais répéter');
+      avant = TACHES.length;
       reponses.push({ statut: 200, corps: { content: [
         { type: 'tool_use', name: 'ajouter_tache', input: { intitule: 'un FICTIF' } },
         { type: 'tool_use', name: 'ajouter_tache', input: { intitule: 'deux FICTIF' } }] } });
@@ -4232,8 +4263,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v18['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v18")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v19['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v19")
 
 
 def verifier_precache_fichiers_existent():

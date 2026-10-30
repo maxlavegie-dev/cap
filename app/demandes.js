@@ -27,6 +27,17 @@ function executerDecision(decision, source) {
   if (decision.type === 'reponse') {
     return { type: 'reponse', message: [decision.alerte, decision.texte].filter(Boolean).join(' '), parole: decision.texte };
   }
+  if (decision.type === 'proposition') {
+    return { type: 'proposition', message: [decision.alerte, decision.texte].filter(Boolean).join(' '), parole: decision.texte };
+  }
+  if (decision.action === 'proposer_rendez_vous') {
+    const suite = actionsCap.executer(decision.action, decision.parametres).then(rendezVous => ({
+      type: 'rendez_vous_ajoute', rendezVous,
+      message: `Rendez-vous ajouté dans l'agenda Cap – FICTIF : ${rendezVous.titre}`,
+      parole: 'C’est inscrit dans l’agenda.'
+    }));
+    return { type: 'reflexion', message: 'J’inscris le rendez-vous…', suite };
+  }
   const { tache, choix } = actionsCap.executer(decision.action, { ...decision.parametres, source });
   const lieu = [tache.categorie, tache.sous_categorie].filter(Boolean);
   const message = `Ajoutée dans ${lieu.join(' › ')} : « ${tache.intitule} »`;
@@ -57,7 +68,9 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
     };
   }
   let resultat;
-  const suiteQuestion = !phrase && !annulation.estDemande(texteComplet) ? cerveau.repondre(texteComplet) : null;
+  const suiteQuestion = !phrase && (cerveau.propositionEnAttente() || !annulation.estDemande(texteComplet))
+    ? cerveau.repondre(texteComplet) : null;
+  if (phrase) cerveau.oublierProposition();
   if (suiteQuestion) {
     resultat = executerDecision(suiteQuestion, source);
   } else if (phrase?.id === 'annuler' || (!phrase && annulation.estDemande(texteComplet))) {
@@ -81,7 +94,8 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
         message: 'Je ne sais pas encore déplacer un rendez-vous à la voix. Cherche-le en bas, puis touche « Modifier ».'
       };
     } else if (brouillon && agenda_disponible) {
-      resultat = { type: 'rendez-vous', brouillon, message: 'Vérifie le rendez-vous avant que je l’ajoute à l’agenda.' };
+      // Rendez-vous dicté : Cap redit tous les détails et attend le oui de Max (la fiche ne s'ouvre que sur le bouton +).
+      resultat = executerDecision(cerveau.proposer({ type: 'action', action: 'proposer_rendez_vous', parametres: brouillon }), source);
     } else if (brouillon) {
       const { tache, choix } = noterEnTache(intitule, source);
       resultat = {

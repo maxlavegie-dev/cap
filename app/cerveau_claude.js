@@ -167,7 +167,7 @@ const cerveauClaude = (() => {
       maintenantParis(),
       texteConsignes,
       `Catégories de Cap : ${categories.join(' ; ')}. « ${contexte.a_trier} » si aucune ne convient clairement.`,
-      'Pour agir, utilise un outil ; recopie l’intitulé de Max mot pour mot. Une seule action par réponse.',
+      'Pour agir, utilise un outil, une seule action par réponse. Ordre clair : ajouter_tache avec les mots de Max. Idée, note ou chose à garder que tu reformules : proposer_rangement (Cap demande son accord à Max). Rendez-vous : proposer_rendez_vous ; s’il manque l’heure, demande-la en une question courte. Ne demande jamais à Max de répéter ses mots.',
       'Tu ne connais aucun numéro, adresse ou coordonnée que Max ne t’a pas donné dans cette conversation : dans ce cas, réponds « Je ne sais pas. » sans rien inventer.'
     ].join('\n');
   }
@@ -195,7 +195,7 @@ const cerveauClaude = (() => {
     journalIA.noter({ dit: texteMax, repondu: texteCap, action });
   }
 
-  // Zéro reformulation : l'intitulé doit se trouver tel quel dans ce que Max a dit (maintenant ou juste avant).
+  // L'intitulé se trouve-t-il tel quel dans ce que Max a dit (maintenant ou juste avant) ?
   function motPourMot(intitule, texte) {
     const { plier } = cerveau.texte;
     const cherche = plier(intitule).replace(/ +/g, ' ').trim();
@@ -258,14 +258,19 @@ const cerveauClaude = (() => {
       retenir(texte, texteCap);
       return { type: 'reponse', texte: texteCap };
     }
-    if (appels.length === 1 && !motPourMot(appels[0].input?.intitule, texte)) {
-      const texteCap = 'Je veux garder tes mots exacts : redis-moi la tâche telle que tu veux l’écrire.';
-      retenir(texte, texteCap);
-      return { type: 'reponse', texte: texteCap };
-    }
     if (appels.length === 1) {
-      retenir(texte, paroles, appels[0]);
-      return { type: 'action', action: appels[0].name, parametres: appels[0].input || {}, parole: paroles };
+      // Une tâche reformulée par l'IA n'est jamais créée d'office : elle devient une proposition, et Max dit oui ou non.
+      // Les mots exacts de Max sont gardés avec l'élément (zéro perte).
+      const reformulee = appels[0].name === 'ajouter_tache' && !motPourMot(appels[0].input?.intitule, texte);
+      const nom = reformulee ? 'proposer_rangement' : appels[0].name;
+      const appel = { name: nom, input: appels[0].input || {} };
+      // Si Cap venait de poser une question, la réponse courte de Max complète sa phrase précédente : les deux sont gardées.
+      const dernier = historique[historique.length - 1];
+      const precedent = dernier?.role === 'assistant' && /\?\s*$/.test(String(dernier.content)) ? historique[historique.length - 2]?.content : '';
+      const mots = precedent && texte.length < 60 ? `${precedent} / ${texte}` : texte;
+      retenir(texte, paroles, appel);
+      const parametres = { ...appel.input, mots_max: mots };
+      return { type: 'action', action: nom, parametres, parole: actionsCap.demandeConfirmation(nom) ? '' : paroles };
     }
     retenir(texte, paroles);
     return paroles ? { type: 'reponse', texte: paroles } : null;
@@ -277,7 +282,12 @@ const cerveauClaude = (() => {
     erreurConsignes = '';
   }
 
-  const fournisseur = { nom: REGLAGES_IA.nom, payant: true, pret: () => cleIA.presente(), comprendre };
+  // Max a répondu à une proposition sans passer par l'IA (oui / non) : elle le saura au prochain échange.
+  function suiteProposition(texteMax, texteCap) {
+    retenir(texteMax, texteCap);
+  }
+
+  const fournisseur = { nom: REGLAGES_IA.nom, payant: true, pret: () => cleIA.presente(), comprendre, suiteProposition };
   cerveau.enregistrerFournisseur('claude', fournisseur);
   return { ...fournisseur, etatConsignes, oublier, precharger, infoConsignes, maintenantParis, ficheTelephone, enregistrerFiche, retirerFiche, origineFiche };
 })();
