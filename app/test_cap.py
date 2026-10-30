@@ -2732,7 +2732,7 @@ TESTS_JS = r"""
     const premiers = Array.from(fenetre.querySelector('.grille-choix').querySelectorAll('.bouton-choix'), b => b.textContent);
     attendreEgal(premiers[0], 'À trier', 'À trier en premier');
     attendre(['Musique', 'Écriture', 'Quotidien'].every(nom => premiers.includes(nom)), 'catégories prêtes absentes');
-    boutonTexte(fenetre, 'Ajouter').click();
+    boutonTexte(fenetre, '+ Ajouter').click();
     document.getElementById('nom-nouvel-element').value = 'Jardin FICTIF';
     fenetre.querySelector('form').requestSubmit();
     const jardin = boutonTexte(fenetre, 'Jardin FICTIF');
@@ -2740,7 +2740,7 @@ TESTS_JS = r"""
     attendre(jardin.style.getPropertyValue('--couleur-choix'), 'nouvelle catégorie sans couleur');
     jardin.click();
     attendreEgal(document.getElementById('titre-fenetre-liste').textContent, 'Jardin FICTIF : sous-catégorie', 'sous-catégories ouvertes');
-    boutonTexte(fenetre, 'Ajouter').click();
+    boutonTexte(fenetre, '+ Ajouter').click();
     document.getElementById('nom-nouvel-element').value = 'Potager';
     fenetre.querySelector('form').requestSubmit();
     boutonTexte(fenetre, 'Potager').click();
@@ -2951,7 +2951,7 @@ TESTS_JS = r"""
     document.getElementById('choisir-categorie').click();
     const fenetre = document.getElementById('fenetre-liste');
     attendre(!boutonTexte(fenetre, 'Fermer') && !boutonTexte(fenetre, 'Retour'), 'bouton retour encore là');
-    boutonTexte(fenetre, 'Ajouter').click();
+    boutonTexte(fenetre, '+ Ajouter').click();
     const nom = document.getElementById('nom-nouvel-element');
     nom.value = 'Jardin FICTIF';
     nom.dispatchEvent(new Event('input', { bubbles: true }));
@@ -2960,7 +2960,7 @@ TESTS_JS = r"""
     attendre(fenetre.open, 'fenêtre d’avant pas revenue');
     attendreEgal(document.getElementById('titre-fenetre-liste').textContent, 'Catégorie', 'retour à la liste des catégories');
     attendre(ajout.open, 'fenêtre principale fermée');
-    boutonTexte(fenetre, 'Ajouter').click();
+    boutonTexte(fenetre, '+ Ajouter').click();
     attendreEgal(document.getElementById('nom-nouvel-element').value, 'Jardin FICTIF', 'nom gardé');
     document.getElementById('nom-nouvel-element').value = '';
     fermetureFenetres.toucheACote(fenetre);
@@ -3417,6 +3417,38 @@ TESTS_JS = r"""
     const titres = Array.from(ui.parId('liste-taches').querySelectorAll('.sous-categorie h3'), h => h.firstChild.textContent);
     attendreEgal(titres[0], 'À classer', 'À classer en premier');
     attendre(!ui.parId('liste-taches').querySelector('.sous-categorie h3').querySelector('.pourcentage'), 'pas de pourcentage');
+  });
+
+  await testAsync('Trier : + Ajouter crée la catégorie et y range la tâche, Modifier la retire sans perte, Annuler la ramène', async c => {
+    tachesTuiles(c);
+    const ui = preparerInterface(c);
+    const trier = ui.parId('mode-trier');
+    const liste = ui.parId('fenetre-liste');
+    Array.from(ui.parId('tuiles').querySelectorAll('.ouvrir-tuile')).find(b => b.querySelector('.titre-tuile').textContent === 'Trier').click();
+    attendre(trier.querySelector('.outils-tri'), 'boutons discrets absents');
+    boutonTexte(trier, '+ Ajouter').click();
+    attendre(liste.open, 'formulaire de création ouvert');
+    liste.querySelector('#nom-nouvel-element').value = 'FICTIF Jardin';
+    liste.querySelector('form').requestSubmit();
+    attendre(!liste.open, 'formulaire fermé');
+    attendreEgal(c.TACHES.find(t => t.id === 'FICTIF-T1').categorie, 'FICTIF Jardin', 'tâche rangée tout de suite');
+    attendre(trier.open, 'Trier reste ouvert');
+    attendreEgal(trier.querySelector('.tache-a-trier').textContent, 'FICTIF autre idée', 'tâche suivante');
+    attendre(Array.from(trier.querySelectorAll('.choix-tri'), b => b.textContent).includes('FICTIF Jardin'), 'nouvelle catégorie proposée');
+    boutonTexte(trier, 'Modifier').click();
+    attendre(liste.open, 'Modifier ouvert');
+    const caseJardin = Array.from(liste.querySelectorAll('input[type="checkbox"]')).find(i => i.value === 'FICTIF Jardin');
+    caseJardin.checked = true;
+    caseJardin.dispatchEvent(new Event('change'));
+    boutonTexte(liste, 'Retirer (1)').click();
+    attendre(!ui.listesChoix.categories().includes('FICTIF Jardin'), 'catégorie retirée');
+    attendreEgal(c.TACHES.find(t => t.id === 'FICTIF-T1').categorie, 'FICTIF Jardin', 'la tâche ne disparaît pas');
+    boutonTexte(ui.parId('annulation-liste'), 'Annuler').click();
+    attendre(ui.listesChoix.categories().includes('FICTIF Jardin'), 'Annuler ramène la catégorie');
+    liste.close();
+    await new Promise(r => setTimeout(r, 0));
+    attendre(Array.from(trier.querySelectorAll('.choix-tri'), b => b.textContent).includes('FICTIF Jardin'), 'Trier mis à jour après fermeture');
+    trier.close();
   });
 
   await testAsync('Trier : toucher une catégorie, Annuler, puis la voix range la tâche suivante', async c => {

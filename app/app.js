@@ -729,7 +729,7 @@
 
   function ouvrirTuile(id, categorie) {
     if (id === 'trier') {
-      modeTrier.ouvrir(parId('mode-trier'), { surChangement: afficher });
+      modeTrier.ouvrir(parId('mode-trier'), { surChangement: afficher, gererCategories: fenetresListes.gererCategories });
       return;
     }
     if (id === 'ajouter-categorie') {

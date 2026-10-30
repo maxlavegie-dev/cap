@@ -166,6 +166,17 @@ const modeTrier = (() => {
         message('Tâche passée : elle reste dans À trier.');
       }));
       elements.push(grille, actions);
+      if (rappels.gererCategories) {
+        const outils = noeud('div', 'outils-tri');
+        outils.append(
+          bouton('+ Ajouter', 'outil-tri', () => rappels.gererCategories({
+            action: 'ajouter',
+            surAjout: nom => ranger(tache, nom, { source: '+ Ajouter (Trier)', entree: nom, compris: `nouvelle catégorie ${nom}` }),
+            surFermeture: construire
+          })),
+          bouton('Modifier', 'outil-tri', () => rappels.gererCategories({ action: 'modifier', surFermeture: construire })));
+        elements.push(outils);
+      }
     }
     const statut = noeud('p', 'message-tri');
     statut.setAttribute('role', 'status');

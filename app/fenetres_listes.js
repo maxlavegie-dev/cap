@@ -91,7 +91,7 @@ const fenetresListes = (() => {
       grille(boutons),
       grille([
         bouton('Sans catégorie', 'bouton-choix bouton-neutre', () => choisir('', '')),
-        bouton('Ajouter', 'bouton-choix bouton-outil', () => vueAjout('categorie', '')),
+        bouton('+ Ajouter', 'bouton-choix bouton-outil', () => vueAjout('categorie', '')),
         bouton('Modifier', 'bouton-choix bouton-outil', () => vueModifier('categorie', ''))
       ])
     ], boutons.find(element => element.hasAttribute('aria-current')) || boutons[0], fermer);
@@ -107,7 +107,7 @@ const fenetresListes = (() => {
     afficherVue(`${categorie} : sous-catégorie`, [
       grille([sans, ...boutons]),
       grille([
-        bouton('Ajouter', 'bouton-choix bouton-outil', () => vueAjout('categorie', categorie)),
+        bouton('+ Ajouter', 'bouton-choix bouton-outil', () => vueAjout('categorie', categorie)),
         bouton('Modifier', 'bouton-choix bouton-outil', () => vueModifier('categorie', categorie))
       ])
     ], boutons.find(element => element.hasAttribute('aria-current')) || sans, vueCategories);
@@ -165,8 +165,14 @@ const fenetresListes = (() => {
           fermer();
           surFin?.(ajoute);
         } else {
-          listesChoix.ajouterCategorie(nom.value, parente);
-          retour();
+          const ajoutee = listesChoix.ajouterCategorie(nom.value, parente);
+          if (rappels.surAjout && !parente) {
+            const surAjout = rappels.surAjout;
+            fermer();
+            surAjout(ajoutee);
+          } else {
+            retour();
+          }
         }
       } catch (erreur) {
         erreurVisible(erreur instanceof Error ? erreur.message : 'Ajout impossible.');
@@ -249,8 +255,8 @@ const fenetresListes = (() => {
     else vueModifier('modele', '');
   }
 
-  function gererCategories({ action = 'modifier' } = {}) {
-    rappels = { vueDepart: 'tuiles' };
+  function gererCategories({ action = 'modifier', surAjout, surFermeture } = {}) {
+    rappels = { vueDepart: 'tuiles', surAjout, surFermeture };
     if (action === 'ajouter') vueAjout('categorie', '');
     else vueModifier('categorie', '');
   }
@@ -266,6 +272,9 @@ const fenetresListes = (() => {
     clearTimeout(delaiAnnulation);
     bandeau.hidden = true;
     bandeau.replaceChildren();
+    const surFermeture = rappels.surFermeture;
+    rappels = { ...rappels, surFermeture: undefined };
+    surFermeture?.();
   });
 
   return { choisirCategorie, gererModeles, gererCategories, fermer };

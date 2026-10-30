@@ -1662,6 +1662,23 @@ dialog .choix-tri {
   min-height: 48px;
 }
 
+.outils-tri {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+}
+
+dialog .outil-tri {
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
 dialog .micro-tri[aria-pressed="true"] {
   color: #fff;
   background: #a34a36;
