@@ -3556,6 +3556,54 @@ TESTS_JS = r"""
     abandonner(tache.id);
   });
 
+  await (async () => {
+    const nom = 'Mode conversation : appui long, écoute continue, « stop », bouton Arrêter';
+    const sauve = { ...dictee };
+    const micro = document.getElementById('microphone');
+    const bandeau = document.getElementById('bandeau-live');
+    const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+    try {
+      const nombre = TACHES.length;
+      const phrases = ['Ajoute dans Quotidien : FICTIF live un', 'Ajoute dans Quotidien : FICTIF live deux', 'stop'];
+      let ecoutes = 0;
+      dictee.disponible = () => true;
+      dictee.enCours = () => false;
+      dictee.arreter = () => {};
+      dictee.demarrer = rappels => {
+        ecoutes += 1;
+        const phrase = phrases.shift();
+        setTimeout(() => { if (phrase) rappels.surFinal(phrase); rappels.surFin(); }, 10);
+      };
+      micro.dispatchEvent(new Event('pointerdown'));
+      await pause(500);
+      micro.dispatchEvent(new Event('pointerup'));
+      attendre(bandeau.hidden && ecoutes === 0, 'appui court : pas de mode conversation');
+      micro.dispatchEvent(new Event('pointerdown'));
+      await pause(2100);
+      attendre(!bandeau.hidden && micro.classList.contains('live'), 'appui long : mode conversation visible');
+      micro.click();
+      attendre(!bandeau.hidden, 'le clic qui suit l’appui long n’arrête pas le mode');
+      await pause(1200);
+      const ajoutees = TACHES.slice(nombre).map(tache => tache.intitule);
+      attendreEgal(ajoutees, ['FICTIF live un', 'FICTIF live deux'], 'deux phrases traitées sans rappuyer');
+      attendre(bandeau.hidden && !micro.classList.contains('live'), '« stop » arrête le mode conversation');
+      attendre(document.getElementById('statut').textContent.includes('Mode conversation arrêté'), 'arrêt annoncé');
+      phrases.push();
+      micro.dispatchEvent(new Event('pointerdown'));
+      await pause(2100);
+      attendre(!bandeau.hidden, 'mode relancé');
+      document.getElementById('arreter-live').click();
+      attendre(bandeau.hidden, 'bouton Arrêter');
+      TACHES.slice(nombre).forEach(tache => abandonner(tache.id));
+      resultats.push({ nom, ok: true, erreur: '' });
+    } catch (erreur) {
+      resultats.push({ nom, ok: false, erreur: String(erreur && erreur.message ? erreur.message : erreur) });
+    } finally {
+      document.getElementById('arreter-live').click();
+      Object.assign(dictee, sauve);
+    }
+  })();
+
   test('Cerveau préparé : range seulement ce qui est nommé, intitulé mot pour mot, réponse courte', () => {
     const debut = traiterDemande({ texte: 'Ajoute dans Écriture : relire le chapitre 2 FICTIF', source: 'micro' });
     attendreEgal([debut.type, debut.tache.intitule, debut.tache.categorie, debut.tache.sous_categorie, debut.tache.origine],

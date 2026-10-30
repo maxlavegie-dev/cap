@@ -498,6 +498,40 @@ body.vue-complete #zone-recherche {
   background: #fffef7;
 }
 
+#bandeau-live {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #b5452f;
+  border-radius: 12px;
+  background: #fde8e2;
+  color: #5a1d10;
+  font-weight: 600;
+}
+
+#bandeau-live[hidden] {
+  display: none;
+}
+
+#arreter-live {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: #b5452f;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+}
+
+#microphone.live {
+  background: #fde8e2;
+  border-color: #b5452f;
+}
+
 #microphone[aria-pressed="true"] {
   background: #b3ede3;
   border-color: #315c68;

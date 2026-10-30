@@ -1030,6 +1030,8 @@
       fait: resultat.message || ({ report: 'report demandé', annuler: 'annulation demandée' }[resultat.type] || 'rien') });
   }
 
+  let reflexionsEnCours = 0;
+
   function afficherResultatDemande(resultat, origine) {
     if (resultat.type === 'annuler') {
       annulerParLaParole(origine);
@@ -1037,8 +1039,12 @@
     }
     if (resultat.type === 'reflexion') {
       annoncer(resultat.message);
+      reflexionsEnCours += 1;
       resultat.suite.then(suite => afficherResultatDemande(suite, origine)).catch(erreur => signalerErreur(erreur))
-        .finally(() => afficherCerveau());
+        .finally(() => {
+          reflexionsEnCours -= 1;
+          afficherCerveau();
+        });
       return;
     }
     if (resultat.type === 'question' || resultat.type === 'reponse' || resultat.type === 'proposition') {
@@ -1227,7 +1233,149 @@
     }
   }
 
-  parId('microphone').addEventListener('click', () => {
+  // Mode conversation (« live ») : un appui long de 2 secondes sur le micro. Cap écoute, répond, puis réécoute tout seul.
+  // Il s'arrête sur un appui sur le micro, sur « Arrêter », sur « stop », après une minute de silence, ou si la limite du jour est atteinte.
+  const APPUI_LONG_MS = 2000;
+  const SILENCE_LIVE_MS = 60 * 1000;
+  const live = { actif: false, dernierSon: 0, verrou: null, attente: null };
+  let minuteurAppui = null;
+  let appuiLong = false;
+
+  function bip(aigu) {
+    try {
+      const Contexte = window.AudioContext || window.webkitAudioContext;
+      if (!Contexte) return;
+      const contexte = new Contexte();
+      const oscillateur = contexte.createOscillator();
+      const volume = contexte.createGain();
+      oscillateur.frequency.value = aigu ? 880 : 520;
+      volume.gain.value = 0.15;
+      oscillateur.connect(volume);
+      volume.connect(contexte.destination);
+      oscillateur.start();
+      oscillateur.stop(contexte.currentTime + 0.15);
+      oscillateur.onended = () => contexte.close();
+    } catch (erreur) {
+      return;
+    }
+  }
+
+  function limiteLiveAtteinte() {
+    return cerveau.fournisseurActif() !== 'prepare' && !limiteIA.peutEchanger();
+  }
+
+  function demarrerLive() {
+    if (live.actif) return;
+    if (!dictee.disponible()) {
+      annoncer("La dictée n'est pas disponible dans ce navigateur.");
+      return;
+    }
+    if (limiteLiveAtteinte()) {
+      annoncer(limiteIA.raisonArret() || 'J’ai atteint ma limite pour aujourd’hui.');
+      return;
+    }
+    Object.assign(live, { actif: true, dernierSon: Date.now() });
+    parId('bandeau-live').hidden = false;
+    parId('microphone').classList.add('live');
+    parId('microphone').setAttribute('aria-label', 'Arrêter le mode conversation');
+    bip(true);
+    navigator.wakeLock?.request?.('screen').then(verrou => {
+      if (live.actif) live.verrou = verrou;
+      else verrou.release();
+    }).catch(() => {});
+    annoncer('Mode conversation : parle quand tu veux, je réponds à chaque pause.');
+    ecouterLive();
+  }
+
+  function arreterLive(message = 'Mode conversation arrêté.') {
+    if (!live.actif) return;
+    live.actif = false;
+    clearTimeout(live.attente);
+    live.verrou?.release?.().catch?.(() => {});
+    live.verrou = null;
+    parId('bandeau-live').hidden = true;
+    parId('microphone').classList.remove('live');
+    parId('microphone').setAttribute('aria-label', 'Dicter une tâche');
+    if (dictee.enCours()) dictee.arreter();
+    bip(false);
+    annoncer(message);
+  }
+
+  // Attend que Cap ait fini de réfléchir et de parler avant de réécouter (pour ne pas s'écouter lui-même).
+  function relancerLive() {
+    clearTimeout(live.attente);
+    if (!live.actif) return;
+    if (Date.now() - live.dernierSon > SILENCE_LIVE_MS) {
+      arreterLive('Mode conversation arrêté après une minute de silence.');
+      return;
+    }
+    if (limiteLiveAtteinte()) {
+      arreterLive(`${limiteIA.raisonArret() || 'J’ai atteint ma limite pour aujourd’hui.'} Mode conversation arrêté.`);
+      return;
+    }
+    if (reflexionsEnCours > 0 || voix.parle() || dictee.enCours()) {
+      live.attente = setTimeout(relancerLive, 300);
+      return;
+    }
+    ecouterLive();
+  }
+
+  function ecouterLive() {
+    if (!live.actif) return;
+    let entendu = '';
+    dictee.demarrer({
+      surProvisoire(texte) {
+        if (texte) annoncer(texte);
+      },
+      surFinal(texte) {
+        if (!entendu) entendu = texte.trim();
+      },
+      surErreur(code) {
+        if (['not-allowed', 'service-not-allowed', 'audio-capture'].includes(code)) {
+          arreterLive('Le micro est bloqué ou introuvable : mode conversation arrêté.');
+        }
+      },
+      surFin() {
+        if (!live.actif) return;
+        if (entendu) {
+          live.dernierSon = Date.now();
+          if (/^(?:stop|stoppe|arrete|arrete toi|fin|termine|c est fini|au revoir)(?: (?:le mode|la conversation|cap|merci))*$/.test(cerveau.texte.plier(entendu).replace(/ +/g, ' ').trim())) {
+            arreterLive('Mode conversation arrêté. À plus tard, Max.');
+            return;
+          }
+          ajouterDictee(entendu);
+        }
+        live.attente = setTimeout(relancerLive, 300);
+      }
+    });
+  }
+
+  const micro = parId('microphone');
+  micro.addEventListener('contextmenu', event => event.preventDefault());
+  micro.addEventListener('pointerdown', () => {
+    appuiLong = false;
+    clearTimeout(minuteurAppui);
+    if (live.actif || dictee.enCours()) return;
+    minuteurAppui = setTimeout(() => {
+      appuiLong = true;
+      demarrerLive();
+    }, APPUI_LONG_MS);
+  });
+  ['pointerup', 'pointerleave', 'pointercancel'].forEach(nom => micro.addEventListener(nom, () => clearTimeout(minuteurAppui)));
+  parId('arreter-live').addEventListener('click', () => arreterLive());
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') arreterLive();
+  });
+
+  micro.addEventListener('click', () => {
+    if (appuiLong) {
+      appuiLong = false;
+      return;
+    }
+    if (live.actif) {
+      arreterLive();
+      return;
+    }
     if (dictee.enCours()) {
       dictee.arreter();
       return;
@@ -1236,7 +1384,6 @@
       annoncer("La dictée n'est pas disponible dans ce navigateur. Utilise le bouton +.");
       return;
     }
-    const micro = parId('microphone');
     let resultatRecu = false;
     let finalRecu = false;
     micro.setAttribute('aria-pressed', 'true');
