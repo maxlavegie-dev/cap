@@ -33,7 +33,12 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `sous_categories.js` | Trouve la sous-catégorie d'une tâche dictée dans une catégorie : celle nommée dans la phrase, sinon celle dont les tâches ressemblent clairement à la phrase (un seul gagnant), sinon « À classer ». Jamais de choix au hasard. |
 | `annulation.js` | Un seul « Annuler » pour toute l'appli : retient la dernière action pendant 8 secondes, l'annule une seule fois, et reconnaît « Annule », « Annule ça », « Cap, annule la dernière action ». |
 | `vibration.js` | Une vibration très courte (30 ms) quand une action est enregistrée, si le téléphone le permet. |
-| `demandes.js` | La porte d'entrée unique de toutes les demandes (micro et clavier). C'est là qu'on branchera l'intelligence artificielle. |
+| `voix.js` | Cap répond à voix haute (voix du téléphone, en français), sauf si « Réponse silencieuse » est allumée. |
+| `limite_ia.js` | Compte les échanges avec une IA payante, jour par jour : alerte à 50, arrêt à 60 (retour aux réponses préparées). |
+| `actions_cap.js` | La frontière entre le cerveau et Cap : la liste des actions permises, et la vérification de chacune. Le cerveau ne touche jamais aux tâches lui-même. |
+| `cerveau.js` | Le cerveau : comprend la demande et rend une décision (une action, ou une seule question courte). Le modèle d'IA est interchangeable. |
+| `cerveau_prepare.js` | Les réponses préparées, gratuites et sans clé : range une tâche seulement si la catégorie est nommée, sinon dans À trier ; pose une question s'il hésite. |
+| `demandes.js` | La porte d'entrée unique de toutes les demandes (micro et clavier) : elle passe la demande au cerveau, puis exécute sa décision. |
 | `recherche.js` | La recherche tapée, sans intelligence artificielle : trouve un mot dans les tâches ou les rendez-vous, sans tenir compte des accents ni des majuscules. |
 | `journal_actions.js` | Retient les dernières actions (ajout, coche, abandon) et tient le journal complet (heure à la seconde, ce que Max a dit ou touché, ce que Cap a compris, ce qu'il a fait), envoyé dans l'onglet « Journal ». Masque les mots de passe et les longs numéros ; n'efface jamais rien. |
 | `tuiles.js` | Dessine les tuiles de l'écran complet, leur micro, et le déplacement par appui long puis glissement. |
@@ -50,7 +55,7 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `service-worker.js` | Garde une copie de l'appli sur le téléphone pour qu'elle s'ouvre même sans internet. |
 | `installation.js` | Active cette copie hors connexion. |
 | `icones/` | L'icône aux différentes tailles demandées par Android. Elles sont fabriquées par `outils/fabriquer_icones.py` à partir de l'icône validée. |
-| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout, des tuiles, du mode Trier, du journal, de la sauvegarde, de l'annulation et de l'installation (223 essais). |
+| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout, des tuiles, du mode Trier, du journal, de la sauvegarde, de l'annulation, du cerveau et de l'installation (228 essais). |
 
 ## L'écran d'accueil (Lot 1, 29/10/2026)
 - En haut : seulement la date du jour, centrée. Pas d'heure : la barre du haut du téléphone (heure, Wi-Fi, réseau, batterie) reste visible, car Cap installée s'ouvre en mode « standalone » (comme une appli, mais sans cacher cette barre).
@@ -77,6 +82,12 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 - Une tâche dictée dans une catégorie à sous-catégories va dans la sous-catégorie nommée ou évidente, sinon dans « À classer » (affiché en premier).
 - Dans l'écran Trier, « + Ajouter » crée une catégorie et y range la tâche ; « Modifier » retire une catégorie sans rien effacer.
 - Toute action garde un bouton « Annuler » 8 secondes ; dire ou écrire « Annule » fait la même chose. Une vibration courte confirme chaque action.
+
+## Le cerveau de Cap (Lot 6, première version, 30/10/2026)
+- Deux pièces séparées : le cerveau comprend et décide ; `actions_cap.js` exécute et vérifie. On peut changer de modèle d'IA ou ajouter des actions sans refaire le reste.
+- Sans clé, Cap utilise des réponses préparées, gratuites. Il range seulement ce qui est nommé (« Ajoute dans Écriture : … », « … dans Quotidien Courses », « idée de scénario… ») ; sinon la tâche va dans À trier. S'il hésite entre deux catégories, il pose une seule question.
+- Si « Réponse silencieuse » est éteinte, Cap dit en une phrase ce qu'il a fait. Le bouton « Annuler » reste proposé.
+- Aucune clé n'est branchée. Plus tard, avec l'accord de Max, la clé sera tapée une fois dans Cap et restera sur le téléphone, jamais dans le code. Limite : 60 échanges par jour, alerte à 50.
 
 ## La connexion à Google (semaine 2)
 - Cap n'a accès qu'aux fichiers qu'il a créés lui-même, et seulement à son agenda « Cap – FICTIF ». Il ne voit ni le reste du Drive ni le vrai agenda.

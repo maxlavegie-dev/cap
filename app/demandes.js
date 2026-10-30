@@ -18,6 +18,30 @@ function noterEnTache(intitule, source) {
   return { tache, choix: date.choix };
 }
 
+// Exécute la décision du cerveau par la frontière actionsCap, et prépare ce que Cap affiche et dit.
+function executerDecision(decision, source) {
+  if (decision.type === 'question') {
+    const message = [decision.alerte, decision.question].filter(Boolean).join(' ');
+    return { type: 'question', message, parole: decision.question };
+  }
+  const { tache, choix } = actionsCap.executer(decision.action, { ...decision.parametres, source });
+  const lieu = [tache.categorie, tache.sous_categorie].filter(Boolean);
+  const message = `Ajoutée dans ${lieu.join(' › ')} : « ${tache.intitule} »`;
+  return {
+    type: 'tache', tache, choix_echeance: choix,
+    message: decision.alerte ? `${message}. ${decision.alerte}` : message,
+    parole: `C’est noté dans ${lieu.join(', ')}.`
+  };
+}
+
+function demanderAuCerveau(texte, source) {
+  const decision = cerveau.comprendre({ texte, source });
+  if (decision && typeof decision.then === 'function') {
+    return { type: 'reflexion', message: 'Je réfléchis…', suite: decision.then(fini => executerDecision(fini, source)) };
+  }
+  return executerDecision(decision, source);
+}
+
 function traiterDemande({ texte = '', source, id_phrase = '', complement = '', agenda_disponible = false }) {
   if (!['micro', 'clavier', 'saisie'].includes(source)) throw new Error('Origine de demande invalide.');
   const phrase = PHRASES_CLAVIER.find(item => item.id === id_phrase);
@@ -30,7 +54,10 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
     };
   }
   let resultat;
-  if (phrase?.id === 'annuler' || (!phrase && annulation.estDemande(texteComplet))) {
+  const suiteQuestion = !phrase && !annulation.estDemande(texteComplet) ? cerveau.repondre(texteComplet) : null;
+  if (suiteQuestion) {
+    resultat = executerDecision(suiteQuestion, source);
+  } else if (phrase?.id === 'annuler' || (!phrase && annulation.estDemande(texteComplet))) {
     resultat = { type: 'annuler', message: '' };
   } else if (phrase && !phrase.a_completer) {
     resultat = {
@@ -57,8 +84,7 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
         message: `Pas de connexion à Google : ce n'est PAS dans l'agenda. Je l'ai notée comme tâche dans À trier : « ${intitule} »`
       };
     } else {
-      const { tache, choix } = noterEnTache(intitule, source);
-      resultat = { type: 'tache', tache, choix_echeance: choix, message: `Ajoutée dans À trier : « ${intitule} »` };
+      resultat = demanderAuCerveau(intitule, source);
     }
   }
   if (id_phrase) preferencesClavier.compterUtilisation(id_phrase);

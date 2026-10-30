@@ -75,10 +75,17 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Un seul Annuler partout** (`annulation.js`) : toutes les actions gardent leur bouton « Annuler » 8 secondes : cocher ou décocher par la case, glisser, reporter, abandonner, remettre, ajouter (formulaire, micro, tuile, clavier), ranger dans Trier, retirer une catégorie. Dire ou écrire « Annule » (ou « Annule ça », « Cap, annule la dernière action ») annule la dernière action. Appuyer sur le micro laisse le temps de le dire. Une action n'est annulée qu'une fois ; après le délai, Cap dit qu'il n'y a plus rien à annuler. « Annule » ne crée jamais de tâche.
   - **Vibration courte** (`vibration.js`, 30 ms) à chaque action enregistrée (tâche ou liste de catégories).
   - 223 vérifications automatiques réussies. Version du cache : cap-v13.
+- 30/10/2026 : Lot 5 publié (commit `4dfe1d9`). Lot 6, première version du cerveau, sans clé :
+  - **Pièce séparée** : `cerveau.js` comprend la demande et rend une décision, sans rien toucher ; `actions_cap.js` est la seule frontière vers les tâches (catalogue d'actions, tout est vérifié, action inconnue refusée). Le modèle d'IA est interchangeable (« fournisseurs »).
+  - **Réponses préparées** (`cerveau_prepare.js`, gratuit, sur le téléphone) : « Ajoute dans Écriture : … », « Ajoute … dans Quotidien Courses », « J'ai une idée de scénario… » (sous-catégorie nommée). Range seulement ce qui est nommé ; sinon À trier. Deux catégories citées : une seule question (« Je la range dans Musique ou dans Écriture ? »), la réponse range la tâche. Intitulé mot pour mot, date naturelle comprise, Annuler toujours proposé.
+  - **Réponse parlée** (`voix.js`) : Cap dit ce qu'il a fait, si « Réponse silencieuse » est éteinte.
+  - **Limite** (`limite_ia.js`) : 60 échanges par jour avec une IA payante, alerte à 50, puis retour aux réponses préparées. Inactive tant qu'aucune clé n'est branchée.
+  - Aucune clé branchée. 228 vérifications automatiques réussies. Version du cache : cap-v14.
 
 ### En cours
-- Lot 5 terminé côté code : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
-- Lot 6 (cerveau IA) : V1 en préparation, entièrement fictive. Aucune clé branchée sans l'accord de Max.
+- Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
+- Lot 6 V1 (sans clé) : à tester par Max. Ensuite, avec son accord : brancher Claude Haiku (clé tapée une fois dans Cap, gardée sur le téléphone, jamais dans le code), puis rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
+- Question en attente : le texte des Lots 7 à 16 n'est pas dans le projet, et le Complément 6 interdit le Lot 7 sans validation complète du Lot 6.
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)

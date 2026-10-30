@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_dates.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "limite_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -3531,6 +3531,126 @@ TESTS_JS = r"""
     abandonner(tache.id);
   });
 
+  test('Cerveau préparé : range seulement ce qui est nommé, intitulé mot pour mot, réponse courte', () => {
+    const debut = traiterDemande({ texte: 'Ajoute dans Écriture : relire le chapitre 2 FICTIF', source: 'micro' });
+    attendreEgal([debut.type, debut.tache.intitule, debut.tache.categorie, debut.tache.sous_categorie, debut.tache.origine],
+      ['tache', 'relire le chapitre 2 FICTIF', 'Écriture', 'À classer', 'dictée'], 'catégorie nommée au début');
+    attendreEgal(debut.parole, 'C’est noté dans Écriture, À classer.', 'réponse parlée');
+    const scenario = traiterDemande({ texte: 'J’ai une idée de scénario d’horreur FICTIF', source: 'micro' });
+    attendreEgal([scenario.tache.intitule, scenario.tache.categorie, scenario.tache.sous_categorie],
+      ['J’ai une idée de scénario d’horreur FICTIF', 'Écriture', 'Scénarios'], 'sous-catégorie nommée dans la phrase');
+    const fin = traiterDemande({ texte: 'Ajoute rappeler Paul FICTIF dans Quotidien Courses', source: 'saisie' });
+    attendreEgal([fin.tache.intitule, fin.tache.categorie, fin.tache.sous_categorie, fin.message],
+      ['rappeler Paul FICTIF', 'Quotidien', 'Courses', 'Ajoutée dans Quotidien › Courses : « rappeler Paul FICTIF »'], 'désignation à la fin');
+    const liste = traiterDemande({ texte: 'Ajoute acheter du pain FICTIF à ma to-do', source: 'saisie' });
+    attendreEgal([liste.tache.intitule, liste.tache.categorie, liste.message],
+      ['acheter du pain FICTIF', 'À trier', 'Ajoutée dans À trier : « acheter du pain FICTIF »'], 'à ma to-do');
+    for (const texte of ['Note de frais FICTIF', 'Penser à acheter des cahiers FICTIF', 'Ajoute du sel FICTIF']) {
+      const resultat = traiterDemande({ texte, source: 'saisie' });
+      attendreEgal([resultat.tache.intitule, resultat.tache.categorie], [texte, 'À trier'], `rien de nommé : ${texte}`);
+    }
+    const date = traiterDemande({ texte: 'Ajoute dans Musique : mixer le titre FICTIF dans deux semaines', source: 'micro' });
+    const attendue = new Date();
+    attendue.setDate(attendue.getDate() + 14);
+    attendreEgal([date.tache.categorie, date.tache.echeance],
+      ['Musique', `${attendue.getFullYear()}-${String(attendue.getMonth() + 1).padStart(2, '0')}-${String(attendue.getDate()).padStart(2, '0')}`],
+      'date dite naturellement');
+  });
+
+  test('Cerveau préparé : deux catégories citées, une seule question, puis la réponse range la tâche', () => {
+    const avant = TACHES.length;
+    const texte = 'Idée FICTIF entre musique et écriture';
+    const question = traiterDemande({ texte, source: 'micro' });
+    attendreEgal(question.type, 'question', 'question posée');
+    attendre(/^Je la range dans (Musique|Écriture) ou dans (Musique|Écriture) \?$/.test(question.message)
+      && question.message.includes('Musique') && question.message.includes('Écriture'), `question courte : ${question.message}`);
+    attendreEgal(TACHES.length, avant, 'rien créé avant la réponse');
+    const reponse = traiterDemande({ texte: 'Écriture', source: 'micro' });
+    attendreEgal([reponse.tache.intitule, reponse.tache.categorie], [texte, 'Écriture'], 'rangée après la réponse');
+    traiterDemande({ texte, source: 'micro' });
+    const aTrier = traiterDemande({ texte: 'À trier', source: 'micro' });
+    attendreEgal([aTrier.tache.intitule, aTrier.tache.categorie], [texte, 'À trier'], 'réponse « À trier »');
+    traiterDemande({ texte, source: 'micro' });
+    const autre = traiterDemande({ texte: 'Arroser FICTIF', source: 'micro' });
+    attendreEgal([autre.tache.intitule, autre.tache.categorie, cerveau.questionEnAttente()], ['Arroser FICTIF', 'À trier', false],
+      'une autre demande fait oublier la question');
+  });
+
+  test('Cerveau : frontière des actions, action inconnue refusée, rien de supprimé', () => {
+    const avant = TACHES.length;
+    attendreErreur(() => actionsCap.executer('supprimer_tout', {}), 'ne sait pas');
+    attendreErreur(() => actionsCap.executer('ajouter_tache', { intitule: 'FICTIF', categorie: 'Catégorie inventée FICTIF' }), 'n’existe pas');
+    attendreErreur(() => actionsCap.executer('ajouter_tache', { intitule: 'FICTIF', categorie: 'Musique', sous_categorie: 'Inventée FICTIF' }), 'n’existe pas');
+    cerveau.enregistrerFournisseur('essai', { nom: 'essai', payant: false, comprendre: () => ({ type: 'action', action: 'supprimer_tout' }) });
+    try {
+      cerveau.choisirFournisseur('essai');
+      const resultat = traiterDemande({ texte: 'FICTIF efface tout', source: 'saisie' });
+      attendreEgal([resultat.type, resultat.message], ['question', 'Je n’ai pas compris. Tu peux redire ta demande autrement ?'], 'pas compris');
+    } finally {
+      cerveau.choisirFournisseur('prepare');
+    }
+    attendreEgal(TACHES.length, avant, 'aucune tâche créée ni retirée');
+    attendreEgal(cerveau.fournisseurActif(), 'prepare', 'réponses préparées par défaut');
+  });
+
+  await (async () => {
+    const nom = 'Cerveau : modèle interchangeable en ligne, limite de 60 échanges et alerte à 50';
+    try {
+      reinitialiser();
+      const cle = 'cap_echanges_ia_v1';
+      cerveau.enregistrerFournisseur('essai-en-ligne', {
+        nom: 'essai', payant: true,
+        comprendre: () => Promise.resolve({ type: 'action', action: 'ajouter_tache',
+          parametres: { intitule: 'FICTIF en ligne', categorie: 'Quotidien', sous_categorie: 'Maison' } })
+      });
+      try {
+        cerveau.choisirFournisseur('essai-en-ligne');
+        localStorage.setItem(cle, JSON.stringify({ jour: dateDuJour(), nombre: 49 }));
+        const enCours = traiterDemande({ texte: 'FICTIF en ligne', source: 'saisie' });
+        attendreEgal(enCours.type, 'reflexion', 'réponse attendue');
+        const fini = await enCours.suite;
+        attendreEgal([fini.tache.intitule, fini.tache.categorie, fini.tache.sous_categorie], ['FICTIF en ligne', 'Quotidien', 'Maison'], 'tâche rangée');
+        attendre(fini.message.includes('Attention : 50 échanges'), `alerte à 50 : ${fini.message}`);
+        localStorage.setItem(cle, JSON.stringify({ jour: dateDuJour(), nombre: 60 }));
+        const limite = traiterDemande({ texte: 'FICTIF limite', source: 'saisie' });
+        attendreEgal([limite.type, limite.tache.categorie], ['tache', 'À trier'], 'réponses préparées à la limite');
+        attendre(limite.message.includes('Limite de 60'), `limite annoncée : ${limite.message}`);
+        localStorage.setItem(cle, JSON.stringify({ jour: '2000-01-01', nombre: 60 }));
+        attendreEgal([limiteIA.utilises(), limiteIA.peutEchanger()], [0, true], 'nouveau jour');
+      } finally {
+        cerveau.choisirFournisseur('prepare');
+        localStorage.removeItem(cle);
+      }
+      resultats.push({ nom, ok: true, erreur: '' });
+    } catch (erreur) {
+      resultats.push({ nom, ok: false, erreur: String(erreur && erreur.message ? erreur.message : erreur) });
+    }
+  })();
+
+  test('Voix : silence par défaut, puis Cap dit ce qu’il a fait en français', () => {
+    const dits = [];
+    const vraiConstructeur = window.SpeechSynthesisUtterance;
+    Object.defineProperty(window, 'speechSynthesis', { value: { cancel() {}, speak(enonce) { dits.push([enonce.text, enonce.lang]); } }, configurable: true });
+    window.SpeechSynthesisUtterance = function (texte) { this.text = texte; };
+    try {
+      attendreEgal(voix.dire('FICTIF'), false, 'silencieux par défaut');
+      preferencesClavier.definirSilencieux(false);
+      document.getElementById('ouvrir-clavier').click();
+      document.getElementById('saisie-demande').value = 'Ajoute dans Quotidien : FICTIF parler';
+      document.getElementById('formulaire-demande').requestSubmit();
+      if (document.getElementById('clavier').open) document.getElementById('clavier').close();
+      attendreEgal(dits, [['C’est noté dans Quotidien, À classer.', 'fr-FR']], 'réponse parlée');
+      const tache = TACHES.find(item => item.intitule === 'FICTIF parler');
+      attendre(tache && document.querySelector('#statut .annuler-dictee'), 'Annuler proposé après l’action du cerveau');
+      document.querySelector('#statut .annuler-dictee').click();
+      attendre(tache.abandonnee_le, 'Annuler fonctionne, rien d’effacé');
+    } finally {
+      delete window.speechSynthesis;
+      window.SpeechSynthesisUtterance = vraiConstructeur;
+      preferencesClavier.definirSilencieux(true);
+    }
+  });
+
   await testAsync('Trier : toucher une catégorie, Annuler, puis la voix range la tâche suivante', async c => {
     tachesTuiles(c);
     const ui = preparerInterface(c);
@@ -3812,8 +3932,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v13['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v13")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v14['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v14")
 
 
 def verifier_precache_fichiers_existent():

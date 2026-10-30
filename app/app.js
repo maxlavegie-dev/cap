@@ -1010,7 +1010,8 @@
   function noterDemande(source, texte, resultat) {
     if (resultat.type === 'tache') return;
     const compris = { annuler: 'annuler la dernière action', report: 'reporter la tâche ouverte à demain', 'rendez-vous': 'préparer un rendez-vous',
-      vide: 'rien reçu', pas_compris: 'pas compris', attente_cerveau: 'demande pour plus tard' };
+      vide: 'rien reçu', pas_compris: 'pas compris', attente_cerveau: 'demande pour plus tard',
+      question: 'question posée à Max', reflexion: 'demande envoyée au cerveau' };
     journalActions.consigner({ source, entree: texte, compris: compris[resultat.type] || resultat.type,
       fait: resultat.message || ({ report: 'report demandé', annuler: 'annulation demandée' }[resultat.type] || 'rien') });
   }
@@ -1018,6 +1019,16 @@
   function afficherResultatDemande(resultat, origine) {
     if (resultat.type === 'annuler') {
       annulerParLaParole(origine);
+      return;
+    }
+    if (resultat.type === 'reflexion') {
+      annoncer(resultat.message);
+      resultat.suite.then(suite => afficherResultatDemande(suite, origine)).catch(erreur => signalerErreur(erreur));
+      return;
+    }
+    if (resultat.type === 'question') {
+      annoncer(resultat.message);
+      voix.dire(resultat.parole);
       return;
     }
     if (resultat.type === 'report') {
@@ -1054,6 +1065,7 @@
     }
     proposerAnnulation(resultat.message + texteEcheance(resultat.tache), () => abandonner(resultat.tache.id),
       'Tâche abandonnée : tu la retrouves dans les tâches abandonnées.', origine);
+    voix.dire(resultat.parole);
     proposerEcheance(resultat.tache, resultat.choix_echeance);
   }
 
