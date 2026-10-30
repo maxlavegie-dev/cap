@@ -18,8 +18,16 @@ const journalIA = (() => {
     }
   }
 
+  // Une conversation par ouverture de Cap : elle est repérée par l'heure de son début.
+  let conversation = new Date().toISOString();
+
+  function nouvelleConversation() {
+    conversation = new Date().toISOString();
+    return conversation;
+  }
+
   function noter({ dit, repondu = '', action = '' }) {
-    const entree = { heure: new Date().toISOString(), dit: court(dit), repondu: court(repondu), action: court(action) };
+    const entree = { heure: new Date().toISOString(), conversation, dit: court(dit), repondu: court(repondu), action: court(action) };
     try {
       localStorage.setItem(cle, JSON.stringify([entree, ...lire()].slice(0, REGLAGES_IA.journal_ia_maximum)));
     } catch (erreur) {
@@ -35,5 +43,17 @@ const journalIA = (() => {
     }
   }
 
-  return { lire, noter, effacer };
+  // Les échanges regroupés par conversation, la plus récente d'abord ; dans chacune, les échanges dans l'ordre où ils ont eu lieu.
+  function conversations() {
+    const groupes = new Map();
+    lire().forEach(entree => {
+      const debut = typeof entree.conversation === 'string' ? entree.conversation : entree.heure;
+      if (!groupes.has(debut)) groupes.set(debut, []);
+      groupes.get(debut).unshift(entree);
+    });
+    return [...groupes].map(([debut, echanges]) => ({ debut, echanges }))
+      .sort((a, b) => b.debut.localeCompare(a.debut));
+  }
+
+  return { lire, noter, effacer, conversations, nouvelleConversation };
 })();

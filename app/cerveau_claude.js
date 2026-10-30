@@ -282,6 +282,12 @@ const cerveauClaude = (() => {
     erreurConsignes = '';
   }
 
+  // Nouvelle ouverture de Cap : l'IA repart de zéro (moins de mots envoyés, donc moins cher). La fiche reste chargée.
+  function nouvelleConversation() {
+    historique = [];
+    journalIA.nouvelleConversation();
+  }
+
   // Max a répondu à une proposition sans passer par l'IA (oui / non) : elle le saura au prochain échange.
   function suiteProposition(texteMax, texteCap) {
     retenir(texteMax, texteCap);
@@ -289,5 +295,5 @@ const cerveauClaude = (() => {
 
   const fournisseur = { nom: REGLAGES_IA.nom, payant: true, pret: () => cleIA.presente(), comprendre, suiteProposition };
   cerveau.enregistrerFournisseur('claude', fournisseur);
-  return { ...fournisseur, etatConsignes, oublier, precharger, infoConsignes, maintenantParis, ficheTelephone, enregistrerFiche, retirerFiche, origineFiche };
+  return { ...fournisseur, etatConsignes, oublier, nouvelleConversation, precharger, infoConsignes, maintenantParis, ficheTelephone, enregistrerFiche, retirerFiche, origineFiche };
 })();

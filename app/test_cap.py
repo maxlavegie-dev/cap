@@ -3871,6 +3871,10 @@ TESTS_JS = r"""
       reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'C’est le 06 11 22 33 44.' }] } });
       const donne = await traiterDemande({ texte: 'Retiens le 0611223344 pour le garage FICTIF, et redis-le moi', source: 'micro' }).suite;
       attendreEgal(donne.message, 'C’est le 06 11 22 33 44.', 'numéro donné par Max : répété sans souci');
+      cerveauClaude.nouvelleConversation();
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Bonjour Max.' }] } });
+      await traiterDemande({ texte: 'Bonjour FICTIF', source: 'micro' }).suite;
+      attendreEgal(JSON.parse(envois[envois.length - 1].options.body).messages.length, 1, 'nouvelle ouverture : l’IA repart de zéro');
 
       const lecturesAvant = lecturesFiche;
       await cerveauClaude.enregistrerFiche('  Tu es Cap FICTIF, fiche collée sur le téléphone.  ');
@@ -3945,6 +3949,11 @@ TESTS_JS = r"""
       await new Promise(resolve => setTimeout(resolve, 0));
       ui.parId('formulaire-limite-ia').requestSubmit();
       attendre(ui.parId('liste-journal-ia').textContent.includes('FICTIF salut'), 'historique de l’IA visible');
+      attendre(/Conversation du \d{2}\/\d{2} à \d{1,2} h \d{2} \(1 échange\)/.test(ui.parId('liste-journal-ia').querySelector('summary').textContent), 'conversation datée');
+      journalIA.nouvelleConversation();
+      journalIA.noter({ dit: 'FICTIF deuxième ouverture', repondu: 'FICTIF re' });
+      const groupes = journalIA.conversations();
+      attendreEgal([groupes.length, groupes[0].echanges[0].dit, groupes[1].echanges[0].dit], [2, 'FICTIF deuxième ouverture', 'FICTIF bonjour'], 'une conversation par ouverture, la plus récente d’abord');
       ui.parId('effacer-journal-ia').click();
       attendreEgal([journalIA.lire().length, ui.parId('liste-journal-ia').textContent.includes('FICTIF')], [0, false], 'effacé d’un geste');
       ui.parId('retirer-cle-ia').click();

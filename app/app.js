@@ -1468,15 +1468,28 @@
   });
 
   function afficherJournalIA() {
-    const entrees = journalIA.lire().slice(0, 20);
-    parId('liste-journal-ia').replaceChildren(...entrees.map(entree => {
+    const groupes = journalIA.conversations().slice(0, 15);
+    parId('liste-journal-ia').replaceChildren(...groupes.map((groupe, rang) => {
+      const debut = new Date(groupe.debut);
+      const titre = `Conversation du ${String(debut.getDate()).padStart(2, '0')}/${String(debut.getMonth() + 1).padStart(2, '0')}`
+        + ` à ${debut.getHours()} h ${String(debut.getMinutes()).padStart(2, '0')}`
+        + ` (${groupe.echanges.length} échange${groupe.echanges.length > 1 ? 's' : ''})`;
+      const bloc = element('details', 'conversation-ia');
+      bloc.open = rang === 0;
+      const echanges = element('ol');
+      echanges.append(...groupe.echanges.map(entree => {
+        const ligne = element('li');
+        ligne.append(element('span', 'heure-action', dateCourte(entree.heure)), document.createTextNode(` · Max : ${entree.dit}`));
+        if (entree.repondu) ligne.append(element('br'), document.createTextNode(`Cap : ${entree.repondu}`));
+        if (entree.action) ligne.append(element('br'), document.createTextNode(`Action demandée : ${entree.action}`));
+        return ligne;
+      }));
+      bloc.append(element('summary', '', titre), echanges);
       const ligne = element('li');
-      ligne.append(element('span', 'heure-action', dateCourte(entree.heure)), document.createTextNode(` · Max : ${entree.dit}`));
-      if (entree.repondu) ligne.append(element('br'), document.createTextNode(`Cap : ${entree.repondu}`));
-      if (entree.action) ligne.append(element('br'), document.createTextNode(`Action demandée : ${entree.action}`));
+      ligne.append(bloc);
       return ligne;
     }));
-    if (!entrees.length) parId('liste-journal-ia').append(element('li', '', 'Aucun échange avec l’IA pour l’instant.'));
+    if (!groupes.length) parId('liste-journal-ia').append(element('li', '', 'Aucun échange avec l’IA pour l’instant.'));
   }
 
   parId('effacer-journal-ia').addEventListener('click', () => {
@@ -1501,7 +1514,21 @@
   // La fiche est relue à chaque ouverture (et au retour dans l'appli), en tâche de fond, pour que les premiers mots de Max soient compris.
   const prechargerFiche = () => { if (cleIA.presente()) cerveauClaude.precharger(); };
   prechargerFiche();
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') prechargerFiche(); });
+  // Une conversation par ouverture : revenir dans Cap après plus de 15 minutes compte comme une nouvelle ouverture.
+  const PAUSE_NOUVELLE_CONVERSATION_MS = 15 * 60 * 1000;
+  let cacheLe = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      cacheLe = Date.now();
+      return;
+    }
+    if (cacheLe && Date.now() - cacheLe > PAUSE_NOUVELLE_CONVERSATION_MS) {
+      cerveauClaude.nouvelleConversation();
+      cerveau.oublierProposition();
+    }
+    cacheLe = 0;
+    prechargerFiche();
+  });
 
   function erreurReglagesIA(message) {
     const zone = reglagesIA.querySelector('.erreur');
