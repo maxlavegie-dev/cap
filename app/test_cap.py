@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_dates.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "taches.js", "listes_choix.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "comprendre_dates.js", "comprendre_demande.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -3375,6 +3375,48 @@ TESTS_JS = r"""
     boutons[1].click();
     attendre(!question.open, 'question fermée');
     attendreEgal(TACHES.find(t => t.id === hesite.id).echeance, attendu, 'date choisie');
+  });
+
+  test('Sous-catégories : nommée, contenu proche, sinon À classer, jamais par défaut', () => {
+    const modele = { parente: '', abandonnee_le: '', categorie: 'Écriture' };
+    const taches = [
+      { ...modele, intitule: 'Les jardins suspendus de minuit', sous_categorie: 'Roman' },
+      { ...modele, intitule: 'Relire', sous_categorie: 'Roman', parente: 'X' },
+      { ...modele, intitule: 'Noter l’idée du train qui ne s’arrête jamais', sous_categorie: 'Scénarios' }
+    ];
+    const subs = ['Scénarios', 'Roman'];
+    const t = texte => sousCategories.trouver(texte, 'Écriture', subs, taches).sous_categorie;
+    attendreEgal(t('Relire le chapitre 2 des Jardins suspendus de minuit'), 'Roman', 'contenu proche');
+    attendreEgal(t("J'ai une idée de scénario d'horreur"), 'Scénarios', 'nommée au singulier');
+    attendreEgal(t('Aide-moi en roman à finir de relire tel chapitre'), 'Roman', 'nommée');
+    attendreEgal(t('Penser à acheter des cahiers'), 'À classer', 'pas clair');
+    attendreEgal(t('Commencer à écrire mon livre pour enfants'), 'À classer', 'pas de défaut');
+    attendreEgal(t('Un roman ou un scénario'), 'À classer', 'deux nommées');
+    attendreEgal(t('Relire le train'), 'À classer', 'un seul mot commun ne suffit pas');
+    attendreEgal(sousCategories.trouver('Acheter du pain', 'Quotidien', [], taches).sous_categorie, '', 'sans sous-catégorie');
+    attendreEgal(sousCategories.trouver('rien', 'Écriture', ['À classer'], taches).sous_categorie, '', 'À classer n’est pas une vraie sous-catégorie');
+  });
+
+  await testAsync('Sous-catégories : micro de la tuile Écriture, puis À classer affiché en premier sans pourcentage', async c => {
+    tachesTuiles(c);
+    const modele = { ...c.TACHES[0], fait: false, categorie: 'Écriture' };
+    c.TACHES.push(
+      { ...modele, id: 'FICTIF-T5', intitule: 'Les jardins suspendus de minuit', sous_categorie: 'Roman' },
+      { ...modele, id: 'FICTIF-T6', intitule: 'Noter l’idée du train', sous_categorie: 'Scénarios' },
+      { ...modele, id: 'FICTIF-T7', intitule: 'FICTIF déjà à classer', sous_categorie: 'À classer' });
+    const ui = preparerInterface(c);
+    const micro = () => ui.parId('tuiles').querySelector('.tuile[data-categorie="Écriture"] .micro-tuile');
+    const dicter = texte => { dicteeQuiEntend(ui, texte); micro().click(); return TACHES.find(t => t.intitule === texte); };
+    attendreEgal(dicter('Relire le chapitre 2 des Jardins suspendus de minuit').sous_categorie, 'Roman', 'Roman');
+    attendreEgal(dicter("J'ai une idée de scénario d'horreur").sous_categorie, 'Scénarios', 'Scénarios');
+    const cahiers = dicter('Penser à acheter des cahiers');
+    attendreEgal(cahiers.sous_categorie, 'À classer', 'À classer');
+    attendreEgal(cahiers.categorie, 'Écriture', 'reste dans Écriture');
+    attendre(!ui.listesChoix.categories('Écriture').includes('À classer'), 'À classer ne devient pas une sous-catégorie à choisir');
+    Array.from(ui.parId('tuiles').querySelectorAll('.ouvrir-tuile')).find(b => b.querySelector('.titre-tuile').textContent === 'Écriture').click();
+    const titres = Array.from(ui.parId('liste-taches').querySelectorAll('.sous-categorie h3'), h => h.firstChild.textContent);
+    attendreEgal(titres[0], 'À classer', 'À classer en premier');
+    attendre(!ui.parId('liste-taches').querySelector('.sous-categorie h3').querySelector('.pourcentage'), 'pas de pourcentage');
   });
 
   await testAsync('Trier : toucher une catégorie, Annuler, puis la voix range la tâche suivante', async c => {

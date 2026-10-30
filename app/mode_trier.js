@@ -64,8 +64,10 @@ const modeTrier = (() => {
 
   function ranger(tache, categorie, contexte) {
     let ancienne;
+    let sous = '';
     try {
-      ancienne = journalActions.pendant(contexte, () => classer(tache.id, categorie, ''));
+      sous = sousCategories.trouver(tache.intitule, categorie, listesChoix.categories(categorie), TACHES).sous_categorie;
+      ancienne = journalActions.pendant(contexte, () => classer(tache.id, categorie, sous));
     } catch (erreur) {
       message(erreur instanceof Error ? erreur.message : 'Je n’ai pas pu ranger cette tâche.');
       return;
@@ -73,7 +75,7 @@ const modeTrier = (() => {
     enTete = '';
     rappels.surChangement?.();
     construire();
-    const texte = `« ${tache.intitule} » rangée dans ${categorie}.`;
+    const texte = `« ${tache.intitule} » rangée dans ${[categorie, sous].filter(Boolean).join(' › ')}.`;
     message(texte);
     proposerAnnulation(texte, () => {
       try {

@@ -10,6 +10,7 @@ const FICHIERS_PRECACHE = [
   "stockage.js",
   "taches.js",
   "listes_choix.js",
+  "sous_categories.js",
   "reglages_google.js",
   "google_connexion.js",
   "google_sheets.js",

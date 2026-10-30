@@ -562,13 +562,16 @@
       const section = element('section', 'categorie');
       if (categorie) section.style.setProperty('--couleur-categorie', listesChoix.couleur(categorie));
       section.append(element('h2', '', categorie || 'Sans catégorie'));
-      for (const [sousCategorie, taches] of sousGroupes) {
+      const rangSous = nom => (!nom ? 0 : sousCategories.estAClasser(nom) ? 1 : 2);
+      const sousTries = [...sousGroupes].sort(([a], [b]) => rangSous(a) - rangSous(b));
+      for (const [sousCategorie, taches] of sousTries) {
         const sousSection = element('section', 'sous-categorie');
         if (sousCategorie) {
           const titre = element('h3');
           titre.append(element('span', '', sousCategorie));
-          const pourcentage = avancementSousCategorie(categorie, sousCategorie);
-          titre.append(element('span', 'pourcentage', `${pourcentage} %`));
+          if (!sousCategories.estAClasser(sousCategorie)) {
+            titre.append(element('span', 'pourcentage', `${avancementSousCategorie(categorie, sousCategorie)} %`));
+          }
           sousSection.append(titre);
         }
         const liste = element('ul', 'liste-groupe');
@@ -766,16 +769,19 @@
       }
       let tache;
       const date = comprendreDemande.trouverDate(intitule);
+      const sous = categorie
+        ? sousCategories.trouver(intitule, categorie, listesChoix.categories(categorie), TACHES).sous_categorie : '';
+      const destination = [nom, sous].filter(Boolean).join(' › ');
       try {
-        tache = journalActions.pendant({ source: `micro de la tuile ${nom}`, entree: intitule, compris: `ajouter une tâche dans ${nom}` },
-          () => creerTache({ intitule, categorie, sous_categorie: '', echeance: date.date, origine: 'dictée' }));
+        tache = journalActions.pendant({ source: `micro de la tuile ${nom}`, entree: intitule, compris: `ajouter une tâche dans ${destination}` },
+          () => creerTache({ intitule, categorie, sous_categorie: sous, echeance: date.date, origine: 'dictée' }));
       } catch (erreur) {
         annoncer(`${erreur instanceof Error ? erreur.message : 'Ajout impossible.'} Texte dicté : « ${intitule} »`);
         return;
       }
       retenirTache(tache.id);
       afficher();
-      proposerAnnulation(`Ajoutée dans ${nom} : « ${intitule} »${texteEcheance(tache)}`, () => abandonner(tache.id),
+      proposerAnnulation(`Ajoutée dans ${destination} : « ${intitule} »${texteEcheance(tache)}`, () => abandonner(tache.id),
         'Tâche abandonnée : tu la retrouves dans les tâches abandonnées.', bouton);
       proposerEcheance(tache, date.choix);
     };

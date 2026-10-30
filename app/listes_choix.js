@@ -4,6 +4,7 @@ const listesChoix = (() => {
   const cle = 'cap_listes_v1';
   const cleEnvoi = 'cap_listes_a_envoyer_v1';
   const A_TRIER = 'À trier';
+  const A_CLASSER = 'À classer';
   const depart = [A_TRIER, 'Musique', 'Écriture', 'Quotidien'];
   const palette = ['#2f6f9f', '#a3542b', '#3d7d4a', '#7a4f9a', '#b0811f', '#a33b5c', '#2b7f7a', '#5b6b2e', '#8a5a3c', '#4a5fa8'];
   const gris = '#6f6f6f';
@@ -87,7 +88,7 @@ const listesChoix = (() => {
     for (const tache of TACHES) {
       const parente = texte(tache.categorie).trim();
       const nom = texte(tache.sous_categorie).trim();
-      if (parente && nom && !trouverCategorie(nom, parente)) {
+      if (parente && nom && cleNom(nom) !== cleNom(A_CLASSER) && !trouverCategorie(nom, parente)) {
         donnees.categories.push({ nom, parente, couleur: '', retiree_le: '', modifie_le: '' });
       }
     }
