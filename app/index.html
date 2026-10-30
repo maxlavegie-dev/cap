@@ -59,6 +59,10 @@
         <p id="texte-sauvegarde"></p>
         <button id="sauvegarder-maintenant" type="button">Sauvegarder maintenant</button>
       </section>
+      <section id="zone-cerveau" aria-label="Cerveau de Cap" data-vues="tuiles tout">
+        <p id="texte-cerveau"></p>
+        <button id="ouvrir-reglages-ia" type="button" aria-haspopup="dialog" aria-controls="reglages-ia">Réglages du cerveau</button>
+      </section>
       <section id="rendez-vous" aria-labelledby="titre-rendez-vous" data-vues="tout rendez-vous" hidden>
         <h2 id="titre-rendez-vous">Prochains rendez-vous</h2>
         <ul id="liste-rendez-vous"></ul>
@@ -246,6 +250,23 @@
       </section>
     </div>
   </dialog>
+  <dialog id="reglages-ia" aria-labelledby="titre-reglages-ia">
+    <h2 id="titre-reglages-ia" tabindex="-1">Cerveau de Cap</h2>
+    <p id="etat-ia"></p>
+    <form id="formulaire-cle-ia">
+      <label for="cle-ia">Ta clé Claude (elle reste sur ce téléphone)</label>
+      <input id="cle-ia" type="password" autocomplete="off" spellcheck="false" autocapitalize="off">
+      <button type="submit">Enregistrer la clé</button>
+    </form>
+    <button id="retirer-cle-ia" type="button" hidden>Retirer la clé</button>
+    <form id="formulaire-limite-ia">
+      <label for="limite-ia">Échanges avec l’IA par jour, au maximum</label>
+      <input id="limite-ia" type="number" min="1" max="1000" step="1" inputmode="numeric">
+      <button type="submit">Enregistrer la limite</button>
+    </form>
+    <p id="usage-ia"></p>
+    <p class="erreur" role="alert" hidden></p>
+  </dialog>
   <dialog id="mode-trier" class="fenetre-tri" aria-labelledby="titre-mode-trier">
     <div class="contenu-tri"></div>
   </dialog>
@@ -305,10 +326,13 @@
   <script src="voix.js"></script>
   <script src="comprendre_dates.js"></script>
   <script src="comprendre_demande.js"></script>
+  <script src="reglages_ia.js"></script>
   <script src="limite_ia.js"></script>
+  <script src="cle_ia.js"></script>
   <script src="actions_cap.js"></script>
   <script src="cerveau.js"></script>
   <script src="cerveau_prepare.js"></script>
+  <script src="cerveau_claude.js"></script>
   <script src="demandes.js"></script>
   <script src="recherche.js"></script>
   <script src="journal_actions.js"></script>

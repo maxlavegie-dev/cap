@@ -24,13 +24,16 @@ function executerDecision(decision, source) {
     const message = [decision.alerte, decision.question].filter(Boolean).join(' ');
     return { type: 'question', message, parole: decision.question };
   }
+  if (decision.type === 'reponse') {
+    return { type: 'reponse', message: [decision.alerte, decision.texte].filter(Boolean).join(' '), parole: decision.texte };
+  }
   const { tache, choix } = actionsCap.executer(decision.action, { ...decision.parametres, source });
   const lieu = [tache.categorie, tache.sous_categorie].filter(Boolean);
   const message = `Ajoutée dans ${lieu.join(' › ')} : « ${tache.intitule} »`;
   return {
     type: 'tache', tache, choix_echeance: choix,
     message: decision.alerte ? `${message}. ${decision.alerte}` : message,
-    parole: `C’est noté dans ${lieu.join(', ')}.`
+    parole: decision.parole || `C’est noté dans ${lieu.join(', ')}.`
   };
 }
 
@@ -59,6 +62,8 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
     resultat = executerDecision(suiteQuestion, source);
   } else if (phrase?.id === 'annuler' || (!phrase && annulation.estDemande(texteComplet))) {
     resultat = { type: 'annuler', message: '' };
+  } else if (phrase && !phrase.a_completer && cerveau.fournisseurActif() !== 'prepare') {
+    resultat = demanderAuCerveau(texteComplet, source);
   } else if (phrase && !phrase.a_completer) {
     resultat = {
       type: 'attente_cerveau',

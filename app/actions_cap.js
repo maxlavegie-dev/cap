@@ -11,7 +11,8 @@ const actionsCap = (() => {
       categorie: 'une catégorie existante, ou vide pour À trier',
       sous_categorie: 'une sous-catégorie existante de cette catégorie, « À classer », ou vide pour laisser Cap choisir',
       date_dite: 'la phrase où chercher l’échéance (par défaut, l’intitulé)'
-    }
+    },
+    obligatoires: ['intitule']
   }];
 
   const cle = valeur => String(valeur || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')

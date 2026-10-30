@@ -1604,15 +1604,28 @@ dialog button:hover {
   opacity: 0.92;
 }
 
-#zone-sauvegarde {
+#zone-sauvegarde,
+#zone-cerveau {
   margin: 12px 0;
   padding: 10px 12px;
   border-radius: 10px;
   background: rgba(255, 254, 247, 0.8);
 }
 
-#zone-sauvegarde p {
+#zone-sauvegarde p,
+#zone-cerveau p {
   margin: 0 0 8px;
+}
+
+#reglages-ia form {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+#reglages-ia input {
+  min-height: 44px;
+  font-size: 1rem;
 }
 
 #rendez-vous-du-jour ul {

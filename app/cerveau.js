@@ -10,7 +10,7 @@
 const cerveau = (() => {
   const DUREE_QUESTION_MS = 2 * 60 * 1000;
   const fournisseurs = new Map();
-  let actif = 'prepare';
+  let actif = 'auto';
   let question = null;
 
   // Même longueur que le texte d'origine : les positions trouvées servent à recopier l'intitulé mot pour mot.
@@ -41,20 +41,32 @@ const cerveau = (() => {
     fournisseurs.set(nom, fournisseur);
   }
 
+  // « auto » : l'IA payante si elle est prête (clé tapée par Max), sinon les réponses préparées.
   function choisirFournisseur(nom) {
-    if (!fournisseurs.has(nom)) throw new Error('Ce fournisseur d’IA n’est pas installé.');
+    if (nom !== 'auto' && !fournisseurs.has(nom)) throw new Error('Ce fournisseur d’IA n’est pas installé.');
     actif = nom;
   }
 
   function fournisseurActif() {
-    return fournisseurs.has(actif) ? actif : 'prepare';
+    if (actif !== 'auto') return fournisseurs.has(actif) ? actif : 'prepare';
+    for (const [nom, fournisseur] of fournisseurs) {
+      if (fournisseur.payant && typeof fournisseur.pret === 'function' && fournisseur.pret()) return nom;
+    }
+    return 'prepare';
   }
 
   const PAS_COMPRIS = { type: 'question', question: 'Je n’ai pas compris. Tu peux redire ta demande autrement ?', choix: [] };
 
+  function parole(texte) {
+    return typeof texte === 'string' ? texte.trim().slice(0, 400) : '';
+  }
+
   function valider(decision) {
     if (decision?.type === 'action' && actionsCap.CATALOGUE.some(action => action.nom === decision.action)) {
-      return { type: 'action', action: decision.action, parametres: { ...(decision.parametres || {}) } };
+      return { type: 'action', action: decision.action, parametres: { ...(decision.parametres || {}) }, parole: parole(decision.parole) };
+    }
+    if (decision?.type === 'reponse' && parole(decision.texte)) {
+      return { type: 'reponse', texte: parole(decision.texte) };
     }
     if (decision?.type === 'question' && typeof decision.question === 'string' && decision.question.trim()) {
       const choix = Array.isArray(decision.choix) ? decision.choix.filter(item => item && typeof item.libelle === 'string').slice(0, 3) : [];
@@ -70,25 +82,32 @@ const cerveau = (() => {
   }
 
   // demande : { texte, source }. Renvoie une décision, ou une promesse de décision (IA en ligne).
+  // Un échange payant n'est compté que s'il a vraiment eu lieu. En cas d'échec, Cap repasse aux réponses préparées et le dit.
   function comprendre(demande) {
     question = null;
-    let fournisseur = fournisseurs.get(fournisseurActif());
-    let alerte = '';
-    if (fournisseur.payant) {
-      if (limiteIA.peutEchanger()) {
-        alerte = limiteIA.compter().alerte;
-      } else {
-        fournisseur = fournisseurs.get('prepare');
-        alerte = `Limite de ${limiteIA.MAXIMUM} échanges avec l’IA atteinte aujourd’hui : j’utilise les réponses préparées.`;
-      }
-    }
-    const finir = brut => {
+    const entree = { texte: String(demande?.texte || ''), source: demande?.source || '' };
+    const prepare = fournisseurs.get('prepare');
+    const fournisseur = fournisseurs.get(fournisseurActif());
+    const finir = (brut, alerte = '') => {
       const decision = retenir(valider(brut));
       if (alerte) decision.alerte = alerte;
       return decision;
     };
-    const brut = fournisseur.comprendre({ texte: String(demande?.texte || ''), source: demande?.source || '' }, contexte());
-    return brut && typeof brut.then === 'function' ? brut.then(finir, () => finir(null)) : finir(brut);
+    if (!fournisseur.payant) return finir(fournisseur.comprendre(entree, contexte()));
+    if (!limiteIA.peutEchanger()) {
+      return finir(prepare.comprendre(entree, contexte()), 'J’ai atteint ma limite pour aujourd’hui : je reprends les réponses préparées.');
+    }
+    let brut;
+    try {
+      brut = Promise.resolve(fournisseur.comprendre(entree, contexte()));
+    } catch (erreur) {
+      brut = Promise.reject(erreur);
+    }
+    return brut.then(
+      resultat => finir(resultat, limiteIA.compter().alerte),
+      erreur => finir(prepare.comprendre(entree, contexte()),
+        `${erreur instanceof Error && erreur.message ? erreur.message : 'L’IA n’a pas répondu.'} Réponse préparée à la place.`)
+    );
   }
 
   // Réponse à la question en attente. Renvoie la décision complétée, ou null (la question est alors oubliée).

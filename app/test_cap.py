@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "limite_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -3587,7 +3587,7 @@ TESTS_JS = r"""
       const resultat = traiterDemande({ texte: 'FICTIF efface tout', source: 'saisie' });
       attendreEgal([resultat.type, resultat.message], ['question', 'Je n’ai pas compris. Tu peux redire ta demande autrement ?'], 'pas compris');
     } finally {
-      cerveau.choisirFournisseur('prepare');
+      cerveau.choisirFournisseur('auto');
     }
     attendreEgal(TACHES.length, avant, 'aucune tâche créée ni retirée');
     attendreEgal(cerveau.fournisseurActif(), 'prepare', 'réponses préparées par défaut');
@@ -3614,11 +3614,11 @@ TESTS_JS = r"""
         localStorage.setItem(cle, JSON.stringify({ jour: dateDuJour(), nombre: 60 }));
         const limite = traiterDemande({ texte: 'FICTIF limite', source: 'saisie' });
         attendreEgal([limite.type, limite.tache.categorie], ['tache', 'À trier'], 'réponses préparées à la limite');
-        attendre(limite.message.includes('Limite de 60'), `limite annoncée : ${limite.message}`);
+        attendre(limite.message.includes('J’ai atteint ma limite pour aujourd’hui'), `limite annoncée : ${limite.message}`);
         localStorage.setItem(cle, JSON.stringify({ jour: '2000-01-01', nombre: 60 }));
         attendreEgal([limiteIA.utilises(), limiteIA.peutEchanger()], [0, true], 'nouveau jour');
       } finally {
-        cerveau.choisirFournisseur('prepare');
+        cerveau.choisirFournisseur('auto');
         localStorage.removeItem(cle);
       }
       resultats.push({ nom, ok: true, erreur: '' });
@@ -3626,6 +3626,157 @@ TESTS_JS = r"""
       resultats.push({ nom, ok: false, erreur: String(erreur && erreur.message ? erreur.message : erreur) });
     }
   })();
+
+  test('Limite IA réglable par Max, alerte avant la limite, dépense du mois', () => {
+    try {
+      attendreEgal([limiteIA.maximum(), limiteIA.seuilAlerte()], [60, 50], 'réglage par défaut');
+      attendreEgal(limiteIA.definirMaximum('100'), 100, 'limite changée');
+      attendreEgal([limiteIA.maximum(), limiteIA.seuilAlerte()], [100, 83], 'nouvelle limite et alerte');
+      for (const mauvais of ['0', '-3', '2.5', 'beaucoup', '5000']) attendreErreur(() => limiteIA.definirMaximum(mauvais), 'entier');
+      attendreEgal(limiteIA.maximum(), 100, 'mauvaise valeur refusée sans rien changer');
+      localStorage.setItem('cap_echanges_ia_v1', JSON.stringify({ jour: dateDuJour(), nombre: 99 }));
+      const dernier = limiteIA.compter();
+      attendreEgal([dernier.nombre, dernier.restants, limiteIA.peutEchanger()], [100, 0, false], 'limite atteinte');
+      attendre(dernier.alerte.includes('dernier échange'), `prévenu : ${dernier.alerte}`);
+      attendreEgal(limiteIA.depenseDuMois(), 0, 'rien dépensé');
+      const euros = limiteIA.ajouterDepense(1000000, 0);
+      attendre(Math.abs(euros - 0.92) < 1e-9 && Math.abs(limiteIA.depenseDuMois() - 0.92) < 1e-9, `dépense : ${euros}`);
+      localStorage.setItem('cap_depense_ia_v1', JSON.stringify({ mois: '2000-01', euros: 5 }));
+      attendreEgal(limiteIA.depenseDuMois(), 0, 'nouveau mois');
+    } finally {
+      ['cap_echanges_ia_v1', 'cap_reglages_ia_v1', 'cap_depense_ia_v1'].forEach(nom => localStorage.removeItem(nom));
+    }
+  });
+
+  test('Clé de l’IA : vérifiée, gardée sur le téléphone, jamais affichée en entier', () => {
+    try {
+      attendreEgal([cleIA.presente(), cleIA.apercu()], [false, ''], 'pas de clé au départ');
+      attendreEgal(cerveau.fournisseurActif(), 'prepare', 'sans clé : réponses préparées');
+      for (const mauvaise of ['', 'bonjour', 'sk-ant-court', 'sk-ant-FICTIF avec des espaces dedans 0000']) {
+        attendreErreur(() => cleIA.enregistrer(mauvaise), 'Rien n’a été enregistré');
+      }
+      attendreEgal(cleIA.presente(), false, 'mauvaise clé refusée');
+      cleIA.enregistrer('  sk-ant-FICTIF-0000000000000000000000abcd  ');
+      attendreEgal([cleIA.lire(), cleIA.apercu()], ['sk-ant-FICTIF-0000000000000000000000abcd', '…abcd'], 'clé gardée, aperçu court');
+      attendreEgal(cerveau.fournisseurActif(), 'claude', 'avec clé : Claude');
+      cleIA.retirer();
+      attendreEgal([cleIA.presente(), cerveau.fournisseurActif()], [false, 'prepare'], 'clé retirée');
+    } finally {
+      cleIA.retirer();
+    }
+  });
+
+  await (async () => {
+    const nom = 'Claude : consignes BROUILLON jamais envoyées, dialogue, action mot pour mot, clé seulement dans l’en-tête';
+    const vraiFetch = window.fetch;
+    const CLE_FICTIVE = 'sk-ant-FICTIF-0000000000000000000000wxyz';
+    const envois = [];
+    let consignes = 'BROUILLON : pas encore validé par Max.\nTu es Cap FICTIF.';
+    let reponses = [];
+    window.fetch = (adresse, options = {}) => {
+      if (adresse === REGLAGES_IA.fichier_consignes) {
+        return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(consignes) });
+      }
+      envois.push({ adresse, options });
+      const suivante = reponses.shift();
+      return Promise.resolve({ ok: suivante.statut === 200, status: suivante.statut, json: () => Promise.resolve(suivante.corps) });
+    };
+    try {
+      reinitialiser();
+      cleIA.enregistrer(CLE_FICTIVE);
+      cerveauClaude.oublier();
+      attendreEgal(cerveau.fournisseurActif(), 'claude', 'Claude choisi avec la clé');
+      const brouillon = await traiterDemande({ texte: 'Ajoute dans Quotidien : FICTIF brouillon', source: 'saisie' }).suite;
+      attendreEgal([brouillon.type, brouillon.tache.categorie, envois.length], ['tache', 'Quotidien', 0], 'brouillon : rien envoyé, réponses préparées');
+      attendre(brouillon.message.includes('pas encore validé par Max') && brouillon.message.includes('Réponse préparée'), `prévenu : ${brouillon.message}`);
+      attendreEgal(limiteIA.utilises(), 0, 'échange non compté');
+      attendre((await cerveauClaude.etatConsignes()).includes('pas encore validé'), 'état des consignes');
+
+      consignes = 'Tu es Cap FICTIF.';
+      cerveauClaude.oublier();
+      attendreEgal(await cerveauClaude.etatConsignes(), 'pret', 'consignes validées');
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Salut Max, ça va bien. Et toi ?' }], usage: { input_tokens: 1000, output_tokens: 20 } } });
+      const conversation = await traiterDemande({ texte: 'Salut Cap, ça va ?', source: 'micro' }).suite;
+      attendreEgal([conversation.type, conversation.message, conversation.parole],
+        ['reponse', 'Salut Max, ça va bien. Et toi ?', 'Salut Max, ça va bien. Et toi ?'], 'vraie conversation');
+      const envoi = envois[0];
+      const corps = JSON.parse(envoi.options.body);
+      attendreEgal([envoi.adresse, envoi.options.method, envoi.options.headers['x-api-key'], envoi.options.headers['anthropic-version'],
+        envoi.options.headers['anthropic-dangerous-direct-browser-access']],
+        [REGLAGES_IA.adresse, 'POST', CLE_FICTIVE, '2023-06-01', 'true'], 'en-têtes');
+      attendre(!envoi.options.body.includes(CLE_FICTIVE), 'la clé n’est jamais dans le corps');
+      attendreEgal([corps.model, corps.messages.length, corps.messages[0].content], [REGLAGES_IA.modele, 1, 'Salut Cap, ça va ?'], 'message envoyé');
+      attendre(corps.system.startsWith('Tu es Cap FICTIF.') && corps.system.includes('Quotidien'), 'consignes et catégories envoyées');
+      attendreEgal([corps.tools[0].name, corps.tools[0].input_schema.required], ['ajouter_tache', ['intitule']], 'outils du catalogue');
+      attendreEgal(limiteIA.utilises(), 1, 'échange compté');
+      attendre(limiteIA.depenseDuMois() > 0, 'dépense comptée');
+
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'C’est noté dans Quotidien, Maison.' },
+        { type: 'tool_use', name: 'ajouter_tache', input: { intitule: 'arroser les plantes FICTIF', categorie: 'Quotidien', sous_categorie: 'Maison' } }],
+        usage: { input_tokens: 1000, output_tokens: 40 } } });
+      const action = await traiterDemande({ texte: 'Pense à arroser les plantes FICTIF', source: 'micro' }).suite;
+      attendreEgal([action.type, action.tache.intitule, action.tache.categorie, action.tache.sous_categorie, action.parole],
+        ['tache', 'arroser les plantes FICTIF', 'Quotidien', 'Maison', 'C’est noté dans Quotidien, Maison.'], 'action exécutée et dite');
+      attendreEgal(JSON.parse(envois[1].options.body).messages.length, 3, 'la conversation est retenue');
+
+      const avant = TACHES.length;
+      reponses.push({ statut: 200, corps: { content: [{ type: 'tool_use', name: 'ajouter_tache', input: { intitule: 'Acheter du lait FICTIF' } }] } });
+      const reformulee = await traiterDemande({ texte: 'Il faudrait du lait FICTIF', source: 'micro' }).suite;
+      attendreEgal([reformulee.type, TACHES.length], ['reponse', avant], 'reformulation refusée, rien créé');
+      attendre(reformulee.message.includes('mots exacts'), reformulee.message);
+      reponses.push({ statut: 200, corps: { content: [
+        { type: 'tool_use', name: 'ajouter_tache', input: { intitule: 'un FICTIF' } },
+        { type: 'tool_use', name: 'ajouter_tache', input: { intitule: 'deux FICTIF' } }] } });
+      const plusieurs = await traiterDemande({ texte: 'Ajoute un FICTIF et deux FICTIF', source: 'micro' }).suite;
+      attendreEgal([plusieurs.type, TACHES.length], ['reponse', avant], 'plusieurs actions d’un coup refusées');
+      reponses.push({ statut: 200, corps: { content: [{ type: 'tool_use', name: 'supprimer_tout', input: { intitule: 'tout FICTIF' } }] } });
+      const inconnue = await traiterDemande({ texte: 'Efface tout FICTIF', source: 'micro' }).suite;
+      attendreEgal([inconnue.type, TACHES.length], ['question', avant], 'action inconnue refusée');
+
+      const utilises = limiteIA.utilises();
+      reponses.push({ statut: 401, corps: {} });
+      const refusee = await traiterDemande({ texte: 'Ajoute dans Quotidien : FICTIF clé refusée', source: 'saisie' }).suite;
+      attendreEgal([refusee.type, refusee.tache.categorie, limiteIA.utilises()], ['tache', 'Quotidien', utilises], 'clé refusée : réponses préparées, non compté');
+      attendre(refusee.message.includes('clé n’est pas acceptée'), refusee.message);
+      resultats.push({ nom, ok: true, erreur: '' });
+    } catch (erreur) {
+      resultats.push({ nom, ok: false, erreur: String(erreur && erreur.message ? erreur.message : erreur) });
+    } finally {
+      window.fetch = vraiFetch;
+      cleIA.retirer();
+      cerveauClaude.oublier();
+      ['cap_echanges_ia_v1', 'cap_depense_ia_v1'].forEach(cle => localStorage.removeItem(cle));
+    }
+  })();
+
+  await testAsync('Réglages du cerveau : clé tapée dans Cap, limite changée, champ vidé', async c => {
+    const ui = preparerInterface(c);
+    const vraiFetch = window.fetch;
+    window.fetch = () => Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('BROUILLON FICTIF\nTu es Cap.') });
+    try {
+      ui.parId('ouvrir-reglages-ia').click();
+      const fenetre = ui.parId('reglages-ia');
+      attendre(fenetre.open, 'fenêtre ouverte');
+      ui.parId('cle-ia').value = 'pas une clé';
+      ui.parId('formulaire-cle-ia').requestSubmit();
+      attendre(!fenetre.querySelector('.erreur').hidden && !cleIA.presente(), 'mauvaise clé refusée et expliquée');
+      ui.parId('cle-ia').value = 'sk-ant-FICTIF-0000000000000000000000abcd';
+      ui.parId('formulaire-cle-ia').requestSubmit();
+      attendreEgal([cleIA.presente(), ui.parId('cle-ia').value], [true, ''], 'clé enregistrée, champ vidé');
+      attendre(ui.parId('texte-cerveau').textContent.includes(REGLAGES_IA.nom), 'tuile du cerveau à jour');
+      ui.parId('limite-ia').value = '100';
+      ui.parId('formulaire-limite-ia').requestSubmit();
+      attendreEgal(limiteIA.maximum(), 100, 'limite changée par Max');
+      ui.parId('retirer-cle-ia').click();
+      attendreEgal(cleIA.presente(), false, 'clé retirée');
+      await new Promise(resolve => setTimeout(resolve, 0));
+    } finally {
+      window.fetch = vraiFetch;
+      cleIA.retirer();
+      cerveauClaude.oublier();
+      localStorage.removeItem('cap_reglages_ia_v1');
+    }
+  });
 
   test('Voix : silence par défaut, puis Cap dit ce qu’il a fait en français', () => {
     const dits = [];
@@ -3932,8 +4083,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v14['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v14")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v15['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v15")
 
 
 def verifier_precache_fichiers_existent():

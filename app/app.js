@@ -1011,7 +1011,7 @@
     if (resultat.type === 'tache') return;
     const compris = { annuler: 'annuler la dernière action', report: 'reporter la tâche ouverte à demain', 'rendez-vous': 'préparer un rendez-vous',
       vide: 'rien reçu', pas_compris: 'pas compris', attente_cerveau: 'demande pour plus tard',
-      question: 'question posée à Max', reflexion: 'demande envoyée au cerveau' };
+      question: 'question posée à Max', reflexion: 'demande envoyée au cerveau', reponse: 'conversation' };
     journalActions.consigner({ source, entree: texte, compris: compris[resultat.type] || resultat.type,
       fait: resultat.message || ({ report: 'report demandé', annuler: 'annulation demandée' }[resultat.type] || 'rien') });
   }
@@ -1023,10 +1023,11 @@
     }
     if (resultat.type === 'reflexion') {
       annoncer(resultat.message);
-      resultat.suite.then(suite => afficherResultatDemande(suite, origine)).catch(erreur => signalerErreur(erreur));
+      resultat.suite.then(suite => afficherResultatDemande(suite, origine)).catch(erreur => signalerErreur(erreur))
+        .finally(() => afficherCerveau());
       return;
     }
-    if (resultat.type === 'question') {
+    if (resultat.type === 'question' || resultat.type === 'reponse') {
       annoncer(resultat.message);
       voix.dire(resultat.parole);
       return;
@@ -1399,6 +1400,74 @@
   });
   window.addEventListener('cap-sauvegarde-etat', afficherSauvegarde);
 
+  const reglagesIA = parId('reglages-ia');
+  fermetureFenetres.installer(reglagesIA);
+  const formatEuros = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  async function afficherCerveau() {
+    const cle = cleIA.presente();
+    const usage = `Aujourd’hui : ${limiteIA.utilises()} échange(s) sur ${limiteIA.maximum()}. Dépensé ce mois-ci : environ ${formatEuros.format(limiteIA.depenseDuMois())}.`;
+    parId('texte-cerveau').textContent = cle
+      ? `Cerveau : ${REGLAGES_IA.nom}. ${usage}`
+      : 'Cerveau : réponses préparées (gratuites). Aucune clé d’IA enregistrée.';
+    parId('usage-ia').textContent = usage;
+    parId('retirer-cle-ia').hidden = !cle;
+    if (reglagesIA.open && document.activeElement !== parId('limite-ia')) parId('limite-ia').value = String(limiteIA.maximum());
+    let etat = cle ? `Clé enregistrée sur ce téléphone (${cleIA.apercu()}).` : 'Aucune clé : Cap utilise les réponses préparées, gratuites.';
+    if (cle) {
+      const consignes = await cerveauClaude.etatConsignes();
+      etat += consignes === 'pret' ? ` Cap parle avec ${REGLAGES_IA.nom}.` : ` ${consignes} En attendant, Cap utilise les réponses préparées.`;
+    }
+    parId('etat-ia').textContent = etat;
+  }
+
+  function erreurReglagesIA(message) {
+    const zone = reglagesIA.querySelector('.erreur');
+    zone.textContent = message;
+    zone.hidden = !message;
+  }
+
+  parId('ouvrir-reglages-ia').addEventListener('click', event => {
+    ouvrir(reglagesIA, parId('titre-reglages-ia'), event.currentTarget);
+    afficherCerveau();
+  });
+  parId('formulaire-cle-ia').addEventListener('submit', event => {
+    event.preventDefault();
+    const champ = parId('cle-ia');
+    try {
+      cleIA.enregistrer(champ.value);
+      champ.value = '';
+      erreurReglagesIA('');
+      cerveauClaude.oublier();
+      annoncer('Clé enregistrée sur ce téléphone.', true);
+    } catch (erreur) {
+      erreurReglagesIA(erreur.message);
+    }
+    afficherCerveau();
+  });
+  parId('retirer-cle-ia').addEventListener('click', () => {
+    cleIA.retirer();
+    cerveauClaude.oublier();
+    erreurReglagesIA('');
+    annoncer('Clé retirée de ce téléphone : Cap reprend les réponses préparées.', true);
+    afficherCerveau();
+  });
+  parId('formulaire-limite-ia').addEventListener('submit', event => {
+    event.preventDefault();
+    try {
+      const limite = limiteIA.definirMaximum(parId('limite-ia').value);
+      erreurReglagesIA('');
+      annoncer(`Limite enregistrée : ${limite} échanges par jour.`, true);
+    } catch (erreur) {
+      erreurReglagesIA(erreur.message);
+    }
+    afficherCerveau();
+  });
+  reglagesIA.addEventListener('close', () => {
+    parId('cle-ia').value = '';
+    parId('limite-ia').value = '';
+  });
+
   basculerVue.addEventListener('click', () => changerVue(ecranComplet.hidden));
   let debutGlissement = null;
   const surface = document.querySelector('.ecran');
@@ -1489,6 +1558,7 @@
   });
   afficherEtatGoogle();
   afficherSauvegarde();
+  afficherCerveau();
   tenterReconnexionSilencieuse();
   if (googleConnexion.connecte()) {
     void synchronisation.demarrer().then(() => {
