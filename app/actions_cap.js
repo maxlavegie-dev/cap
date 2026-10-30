@@ -39,6 +39,24 @@ const actionsCap = (() => {
       lieu: 'le lieu ou l’adresse, vide sinon'
     },
     obligatoires: ['titre', 'date']
+  }, {
+    nom: 'lire_taches',
+    lecture: true,
+    description: 'Lecture seule : compte et liste les tâches de Cap, pour répondre à une question de Max. Ne modifie rien.',
+    parametres: {
+      etat: '« a_faire » (par défaut), « terminees » ou « toutes »',
+      categorie: 'une catégorie existante pour filtrer, ou vide pour toutes'
+    },
+    obligatoires: []
+  }, {
+    nom: 'lire_rendez_vous',
+    lecture: true,
+    description: 'Lecture seule : compte et liste les rendez-vous de l’agenda Cap entre deux dates. Ne modifie rien.',
+    parametres: {
+      du: 'date de début AAAA-MM-JJ (par défaut aujourd’hui)',
+      au: 'date de fin AAAA-MM-JJ incluse (par défaut dans 30 jours)'
+    },
+    obligatoires: []
   }];
 
   const cle = valeur => String(valeur || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -204,6 +222,57 @@ const actionsCap = (() => {
     });
   }
 
+  const LECTURE_MAXIMUM = 25;
+
+  // Lecture seule : une copie réduite (jamais les tâches elles-mêmes), limitée au strict nécessaire pour répondre.
+  function lireTaches({ etat = 'a_faire', categorie = '' } = {}) {
+    const nomCategorie = chaine(categorie) ? categorieExistante(categorie) : '';
+    if (chaine(categorie) && !nomCategorie) return { erreur: `La catégorie « ${categorie} » n’existe pas.` };
+    const choix = ['a_faire', 'terminees', 'toutes'].includes(etat) ? etat : 'a_faire';
+    const retenues = TACHES.filter(tache => !tache.abandonnee_le
+      && (choix === 'toutes' || (choix === 'terminees' ? tache.fait : !tache.fait))
+      && (!nomCategorie || tache.categorie === nomCategorie));
+    return {
+      etat: choix, categorie: nomCategorie || 'toutes', nombre: retenues.length,
+      taches: retenues.slice(0, LECTURE_MAXIMUM).map(tache => ({
+        intitule: tache.intitule, categorie: tache.categorie, sous_categorie: tache.sous_categorie || '',
+        echeance: tache.echeance || '', fait: Boolean(tache.fait)
+      }))
+    };
+  }
+
+  function decaler(date, jours) {
+    const jour = new Date(`${date}T12:00:00Z`);
+    jour.setUTCDate(jour.getUTCDate() + jours);
+    return jour.toISOString().slice(0, 10);
+  }
+
+  function lireRendezVous({ du = '', au = '' } = {}) {
+    const debut = dateValide(chaine(du)) ? chaine(du) : dateDuJour();
+    const fin = dateValide(chaine(au)) && chaine(au) >= debut ? chaine(au) : decaler(debut, 30);
+    const connu = googleAgenda.lireCache();
+    const retenus = (connu || []).filter(rendezVous => rendezVous.date >= debut && rendezVous.date <= fin
+      && !String(rendezVous.titre || '').startsWith('ANNULÉ'));
+    return {
+      du: debut, au: fin, agenda_charge: Boolean(connu), nombre: retenus.length,
+      rendez_vous: retenus.slice(0, LECTURE_MAXIMUM).map(rendezVous => ({
+        titre: rendezVous.titre, date: rendezVous.date, heure: rendezVous.journee_entiere ? 'journée entière' : rendezVous.heure,
+        heure_fin: rendezVous.heure_fin || '', lieu: rendezVous.lieu || ''
+      }))
+    };
+  }
+
+  const LECTURES = { lire_taches: lireTaches, lire_rendez_vous: lireRendezVous };
+
+  function lire(nom, parametres) {
+    if (!Object.prototype.hasOwnProperty.call(LECTURES, nom)) return { erreur: 'Cette lecture n’existe pas.' };
+    return LECTURES[nom](parametres && typeof parametres === 'object' ? parametres : {});
+  }
+
+  function estLecture(nom) {
+    return Object.prototype.hasOwnProperty.call(LECTURES, nom);
+  }
+
   const EXECUTANTS = { ajouter_tache: ajouterTache, proposer_rangement: ajouterTache, proposer_rendez_vous: ajouterRendezVous };
 
   function executer(nom, parametres) {
@@ -217,5 +286,5 @@ const actionsCap = (() => {
     return CATALOGUE.some(action => action.nom === nom && action.confirmation);
   }
 
-  return { CATALOGUE, executer, categorieExistante, demandeConfirmation, preparerProposition, completerProposition, heureDite, dateDite };
+  return { CATALOGUE, executer, lire, estLecture, categorieExistante, demandeConfirmation, preparerProposition, completerProposition, heureDite, dateDite };
 })();

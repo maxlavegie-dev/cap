@@ -3876,6 +3876,24 @@ TESTS_JS = r"""
       await traiterDemande({ texte: 'Bonjour FICTIF', source: 'micro' }).suite;
       attendreEgal(JSON.parse(envois[envois.length - 1].options.body).messages.length, 1, 'nouvelle ouverture : l’IA repart de zéro');
 
+      const aFaire = TACHES.filter(tache => !tache.fait && !tache.abandonnee_le).length;
+      const empreinteTaches = JSON.stringify(TACHES);
+      reponses.push({ statut: 200, corps: { content: [{ type: 'tool_use', id: 'lecture1', name: 'lire_taches', input: { etat: 'a_faire' } }] } });
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: `Tu as ${aFaire} tâches à faire.` }] } });
+      const envoisLecture = envois.length;
+      const compte = await traiterDemande({ texte: 'Combien ai-je de tâches à faire FICTIF ?', source: 'micro' }).suite;
+      attendreEgal([compte.type, compte.message, envois.length - envoisLecture], ['reponse', `Tu as ${aFaire} tâches à faire.`, 2], 'lecture : deux appels, réponse dite');
+      const second = JSON.parse(envois[envois.length - 1].options.body).messages;
+      const resultat = second[second.length - 1].content[0];
+      const lu = JSON.parse(resultat.content);
+      attendreEgal([resultat.type, resultat.tool_use_id, lu.nombre, lu.taches.length <= 25], ['tool_result', 'lecture1', aFaire, true], 'Cap a lu les tâches et renvoyé le nombre exact');
+      attendre(lu.taches.every(tache => Object.keys(tache).join() === 'intitule,categorie,sous_categorie,echeance,fait'), 'strict nécessaire : copie réduite');
+      attendreEgal(JSON.stringify(TACHES), empreinteTaches, 'lecture seule : rien modifié');
+      attendreEgal(actionsCap.lire('lire_taches', { categorie: 'Inconnue FICTIF' }).erreur, 'La catégorie « Inconnue FICTIF » n’existe pas.', 'catégorie inconnue signalée');
+      const rdv = actionsCap.lire('lire_rendez_vous', { du: '2027-01-01', au: '2027-01-31' });
+      attendreEgal([rdv.du, rdv.au, typeof rdv.nombre], ['2027-01-01', '2027-01-31', 'number'], 'lecture des rendez-vous');
+      attendreEgal(cerveau.proposer({ type: 'action', action: 'lire_taches', parametres: {} }).type, 'question', 'une lecture n’est jamais exécutée comme une action');
+
       const lecturesAvant = lecturesFiche;
       await cerveauClaude.enregistrerFiche('  Tu es Cap FICTIF, fiche collée sur le téléphone.  ');
       attendreEgal([cerveauClaude.ficheTelephone(), cerveauClaude.origineFiche(), cerveauClaude.infoConsignes().origine],

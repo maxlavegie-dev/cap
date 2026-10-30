@@ -167,7 +167,7 @@ const cerveauClaude = (() => {
       maintenantParis(),
       texteConsignes,
       `Catégories de Cap : ${categories.join(' ; ')}. « ${contexte.a_trier} » si aucune ne convient clairement.`,
-      'Pour agir, utilise un outil, une seule action par réponse. Ordre clair : ajouter_tache avec les mots de Max. Idée, note ou chose à garder que tu reformules : proposer_rangement (Cap demande son accord à Max). Rendez-vous : proposer_rendez_vous ; s’il manque l’heure, demande-la en une question courte. Ne demande jamais à Max de répéter ses mots.',
+      'Pour agir, utilise un outil, une seule action par réponse. Ordre clair : ajouter_tache avec les mots de Max. Idée, note ou chose à garder que tu reformules : proposer_rangement (Cap demande son accord à Max). Rendez-vous : proposer_rendez_vous ; s’il manque l’heure, demande-la en une question courte. Ne demande jamais à Max de répéter ses mots. Question sur ses tâches ou ses rendez-vous : lire_taches ou lire_rendez_vous (lecture seule), puis réponds avec les chiffres exacts lus, sans rien inventer.',
       'Tu ne connais aucun numéro, adresse ou coordonnée que Max ne t’a pas donné dans cette conversation : dans ce cas, réponds « Je ne sais pas. » sans rien inventer.'
     ].join('\n');
   }
@@ -212,10 +212,8 @@ const cerveauClaude = (() => {
     return 'Claude n’a pas compris la demande de Cap.';
   }
 
-  async function comprendre({ texte }, contexte) {
-    const cle = cleIA.lire();
-    if (!cle) throw new Error('Aucune clé n’est enregistrée.');
-    const texteConsignes = await chargerConsignes();
+  // Un appel à Claude. La clé ne va que dans l'en-tête, jamais dans le corps ni dans un message d'erreur.
+  async function appeler(cle, system, tools, messages) {
     const controle = typeof AbortController === 'function' ? new AbortController() : null;
     const minuteur = controle ? setTimeout(() => controle.abort(), REGLAGES_IA.delai_ms) : null;
     let reponse;
@@ -228,13 +226,7 @@ const cerveauClaude = (() => {
           'anthropic-version': REGLAGES_IA.version_api,
           'anthropic-dangerous-direct-browser-access': 'true'
         },
-        body: JSON.stringify({
-          model: REGLAGES_IA.modele,
-          max_tokens: REGLAGES_IA.reponse_max_jetons,
-          system: systeme(texteConsignes, contexte),
-          tools: outils(contexte),
-          messages: [...historique, { role: 'user', content: texte }]
-        }),
+        body: JSON.stringify({ model: REGLAGES_IA.modele, max_tokens: REGLAGES_IA.reponse_max_jetons, system, tools, messages }),
         signal: controle?.signal
       });
     } catch (erreur) {
@@ -245,8 +237,24 @@ const cerveauClaude = (() => {
     if (!reponse.ok) throw new Error(erreurHttp(reponse.status));
     const donnees = await reponse.json();
     limiteIA.ajouterDepense(donnees?.usage?.input_tokens, donnees?.usage?.output_tokens);
-    const contenu = Array.isArray(donnees?.content) ? donnees.content : [];
-    const appels = contenu.filter(bloc => bloc.type === 'tool_use');
+    return Array.isArray(donnees?.content) ? donnees.content : [];
+  }
+
+  async function comprendre({ texte }, contexte) {
+    const cle = cleIA.lire();
+    if (!cle) throw new Error('Aucune clé n’est enregistrée.');
+    const texteConsignes = await chargerConsignes();
+    let messages = [...historique, { role: 'user', content: texte }];
+    let contenu = await appeler(cle, systeme(texteConsignes, contexte), outils(contexte), messages);
+    let appels = contenu.filter(bloc => bloc.type === 'tool_use');
+    // Lecture seule (tâches, agenda) : Cap lit lui-même une copie réduite et la renvoie à Claude, qui répond (deuxième appel).
+    if (appels.length && appels.every(bloc => actionsCap.estLecture(bloc.name))) {
+      const resultats = appels.map(bloc => ({ type: 'tool_result', tool_use_id: bloc.id, content: JSON.stringify(actionsCap.lire(bloc.name, bloc.input)) }));
+      messages = [...messages, { role: 'assistant', content: contenu }, { role: 'user', content: resultats }];
+      contenu = await appeler(cle, systeme(texteConsignes, contexte), outils(contexte), messages);
+      appels = contenu.filter(bloc => bloc.type === 'tool_use');
+      if (appels.some(bloc => actionsCap.estLecture(bloc.name))) appels = [];
+    }
     let paroles = contenu.filter(bloc => bloc.type === 'text').map(bloc => String(bloc.text || '').trim()).filter(Boolean).join(' ');
     if (numeroInvente(paroles, texte)) {
       paroles = 'Je ne sais pas : tu ne m’as jamais donné ce numéro.';

@@ -82,7 +82,7 @@ const cerveau = (() => {
     if (decision?.type === 'action' && actionsCap.demandeConfirmation(decision.action)) {
       return proposition(decision.action, { ...(decision.parametres || {}) });
     }
-    if (decision?.type === 'action' && actionsCap.CATALOGUE.some(action => action.nom === decision.action)) {
+    if (decision?.type === 'action' && actionsCap.CATALOGUE.some(action => action.nom === decision.action && !action.lecture)) {
       return { type: 'action', action: decision.action, parametres: { ...(decision.parametres || {}) }, parole: parole(decision.parole) };
     }
     if (decision?.type === 'reponse' && parole(decision.texte)) {
