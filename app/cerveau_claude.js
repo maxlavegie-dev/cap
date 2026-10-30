@@ -3,25 +3,76 @@
 // Fournisseur « Claude Haiku » : payant, utilisé seulement si Max a tapé sa clé dans Cap
 // ET si le document de consignes est validé (pas de mot BROUILLON sur sa première ligne).
 // Il ne reçoit que la phrase de Max, les noms des catégories fictives et les derniers échanges de la conversation.
+// La fiche de consignes est lue à chaque ouverture de Cap, en tâche de fond : sans elle, l'IA n'est jamais appelée.
 const cerveauClaude = (() => {
+  const cleFiche = 'cap_consignes_v1';
   let consignes = null;
+  let erreurConsignes = '';
+  let chargement = null;
   let historique = [];
 
-  async function chargerConsignes() {
-    if (consignes !== null) return consignes;
-    let reponse;
+  function empreinte(texte) {
+    let valeur = 5381;
+    for (let i = 0; i < texte.length; i += 1) valeur = ((valeur * 33) ^ texte.charCodeAt(i)) >>> 0;
+    return valeur.toString(16).padStart(8, '0');
+  }
+
+  // { empreinte, lue_le, version_du } : quand la fiche a été lue, et depuis quand elle n'a pas changé.
+  function infoConsignes() {
     try {
-      reponse = await fetch(REGLAGES_IA.fichier_consignes, { cache: 'no-cache' });
+      const info = JSON.parse(localStorage.getItem(cleFiche));
+      return info && typeof info.empreinte === 'string' ? info : null;
     } catch (erreur) {
-      throw new Error('Je n’ai pas pu lire mon document de consignes.');
+      return null;
     }
-    if (!reponse.ok) throw new Error('Je n’ai pas pu lire mon document de consignes.');
-    const texte = (await reponse.text()).trim();
+  }
+
+  function retenirLecture(texte) {
+    const avant = infoConsignes();
+    const nouvelle = empreinte(texte);
+    const maintenant = new Date().toISOString();
+    const changee = Boolean(avant && avant.empreinte !== nouvelle);
+    const info = { empreinte: nouvelle, lue_le: maintenant, version_du: avant && !changee ? avant.version_du : maintenant };
+    try {
+      localStorage.setItem(cleFiche, JSON.stringify(info));
+    } catch (erreur) {
+      // Rien de grave : la fiche reste chargée pour cette ouverture.
+    }
+    if (changee && typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('cap-consignes-changees', { detail: info }));
+  }
+
+  async function lireFiche() {
+    let texte;
+    try {
+      const reponse = await fetch(REGLAGES_IA.fichier_consignes, { cache: 'no-cache' });
+      if (!reponse.ok) throw new Error('illisible');
+      texte = String(await reponse.text()).trim();
+    } catch (erreur) {
+      // Une copie déjà lue à cette ouverture reste valable (réseau coupé entre-temps).
+      if (!consignes) erreurConsignes = 'Je n’ai pas pu lire ma fiche de consignes.';
+      return;
+    }
     const premiereLigne = texte.split('\n', 1)[0];
     if (!texte || premiereLigne.toLocaleUpperCase('fr').includes(REGLAGES_IA.marqueur_brouillon)) {
-      throw new Error('Mon document de consignes n’est pas encore validé par Max.');
+      consignes = null;
+      erreurConsignes = 'Ma fiche de consignes n’est pas encore validée par Max.';
+      return;
     }
     consignes = texte;
+    erreurConsignes = '';
+    retenirLecture(texte);
+  }
+
+  function precharger() {
+    if (!chargement) chargement = lireFiche().finally(() => { chargement = null; });
+    return chargement;
+  }
+
+  async function chargerConsignes() {
+    if (!consignes) {
+      await Promise.race([precharger(), new Promise(resolve => setTimeout(resolve, REGLAGES_IA.attente_consignes_ms))]);
+    }
+    if (!consignes) throw new Error(erreurConsignes || 'Ma fiche de consignes n’est pas encore chargée.');
     return consignes;
   }
 
@@ -32,6 +83,14 @@ const cerveauClaude = (() => {
     } catch (erreur) {
       return erreur.message;
     }
+  }
+
+  // « Nous sommes le vendredi 30 octobre 2026, il est 10 h 37. », à l'heure de Paris.
+  function maintenantParis(date = new Date()) {
+    const jour = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+    const parties = Object.fromEntries(new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+      .formatToParts(date).map(partie => [partie.type, partie.value]));
+    return `Nous sommes le ${jour}, il est ${Number(parties.hour)} h ${parties.minute}.`;
   }
 
   function outils(contexte) {
@@ -49,16 +108,18 @@ const cerveauClaude = (() => {
   function systeme(texteConsignes, contexte) {
     const categories = contexte.categories.map(({ nom, sous_categories: sous }) => (sous.length ? `${nom} (${sous.join(', ')})` : nom));
     return [
+      maintenantParis(),
       texteConsignes,
-      `Aujourd’hui : ${dateDuJour()}.`,
       `Catégories de Cap : ${categories.join(' ; ')}. « ${contexte.a_trier} » si aucune ne convient clairement.`,
       'Pour agir, utilise un outil ; recopie l’intitulé de Max mot pour mot. Une seule action par réponse.'
     ].join('\n');
   }
 
-  function retenir(texteMax, texteCap) {
-    historique.push({ role: 'user', content: texteMax }, { role: 'assistant', content: texteCap || '…' });
+  function retenir(texteMax, texteCap, appel = null) {
+    const action = appel ? `${appel.name} : ${Object.entries(appel.input || {}).map(([nom, valeur]) => `${nom} = ${valeur}`).join(', ')}` : '';
+    historique.push({ role: 'user', content: texteMax }, { role: 'assistant', content: `${texteCap || ''}${action ? ` [action ${action}]` : ''}`.trim() || '…' });
     historique = historique.slice(-2 * REGLAGES_IA.echanges_retenus);
+    journalIA.noter({ dit: texteMax, repondu: texteCap, action });
   }
 
   // Zéro reformulation : l'intitulé doit se trouver tel quel dans ce que Max a dit (maintenant ou juste avant).
@@ -124,7 +185,7 @@ const cerveauClaude = (() => {
       return { type: 'reponse', texte: texteCap };
     }
     if (appels.length === 1) {
-      retenir(texte, `${paroles} [action ${appels[0].name} : ${JSON.stringify(appels[0].input || {})}]`.trim());
+      retenir(texte, paroles, appels[0]);
       return { type: 'action', action: appels[0].name, parametres: appels[0].input || {}, parole: paroles };
     }
     retenir(texte, paroles);
@@ -134,9 +195,10 @@ const cerveauClaude = (() => {
   function oublier() {
     historique = [];
     consignes = null;
+    erreurConsignes = '';
   }
 
   const fournisseur = { nom: REGLAGES_IA.nom, payant: true, pret: () => cleIA.presente(), comprendre };
   cerveau.enregistrerFournisseur('claude', fournisseur);
-  return { ...fournisseur, etatConsignes, oublier };
+  return { ...fournisseur, etatConsignes, oublier, precharger, infoConsignes, maintenantParis };
 })();

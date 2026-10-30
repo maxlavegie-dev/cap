@@ -86,11 +86,18 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Document de consignes** `app/consignes_cap.txt` : modifiable, envoyé à chaque échange (environ 450 jetons, soit environ 0,04 centime par échange). Contient le premier jet de Max, marqué BROUILLON sur la première ligne : tant que ce mot y est, il n'est jamais envoyé et Cap reste sur les réponses préparées.
   - **Dictée dans Écriture** : nouveau `indices_rangement.js` (scène, séquence, dialogue, scénario → Scénarios ; chapitre, personnage, roman, « Les jardins suspendus de minuit » → Roman). Un seul indice : rangé ; plusieurs : « À classer ». Aussi pour le micro général (sans catégorie nommée). L'intitulé « À classer » s'affiche maintenant au-dessus des anciennes tâches sans sous-catégorie, dans toutes les tuiles.
   - **Dernières actions cliquables** : toucher une ligne ouvre la liste sur la tâche (surlignée). Pour l'instant seules les tâches sont notées dans ce journal ; rendez-vous et notes viendront avec leurs lots.
-  - 234 vérifications automatiques réussies. Version du cache : cap-v16.
+  - 234 vérifications automatiques réussies. Version du cache : cap-v16. Publié (`a541eef`).
+- 30/10/2026 : Max remplace le premier jet par sa fiche de consignes complète (sept paragraphes), copiée telle quelle dans `app/consignes_cap.txt`, sans la ligne BROUILLON. Elle n'est pas encore publiée : elle contient le prénom de la fille de Max et le dépôt est public (question posée à Max). Rien n'est branché tant que Max n'a pas dit que la clé est prête. Mécanique ajoutée :
+  - **Fiche lue à chaque ouverture**, en tâche de fond (et au retour dans l'appli) dès qu'une clé est enregistrée. Fiche introuvable, illisible ou en brouillon : Claude n'est jamais appelé, Cap le dit en une phrase et prend les réponses préparées. Si elle n'est pas encore chargée quand Max parle, Cap attend au plus 1,5 seconde puis le dit, sans bloquer. « Réglages du cerveau » affiche la date de dernière lecture, la date de la version et un repère ; si la fiche change, Cap prévient Max.
+  - **Date et heure** de Paris en première ligne de chaque échange (« Nous sommes le vendredi 30 octobre 2026, il est 10 h 37. »).
+  - **Plafond de dépense du mois** en euros, réglable par Max (10 € par défaut) : alerte à 80 %, arrêt net au plafond, retour aux réponses préparées.
+  - **Historique de l'IA** (`journal_ia.js`) : ce que Max a dit, ce que Claude a répondu ou proposé, l'action demandée ; visible dans « Réglages du cerveau », effaçable d'un geste. La clé n'y est jamais écrite (vérifié par les tests), ni dans les messages d'erreur.
+  - Sauvegarde avant ce travail : tag `sauvegarde-avant-fiche-haiku`. 234 vérifications automatiques réussies. Version du cache : cap-v17.
+  - Pas encore fait : recherche sur Internet (attend l'accord de Max sur le coût), fiche des mots propres à Max (plus tard), sauvegarde exhaustive et restauration, verrouillage par empreinte.
 
 ### En cours
 - Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
-- Lot 6 : Haiku prêt, en attente de la validation du texte des consignes par Max (retirer alors la ligne BROUILLON) et de sa clé. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
+- Lot 6 : Haiku prêt, fiche de consignes installée en local ; en attente de la réponse de Max sur le prénom dans le dépôt public, puis de sa clé. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
 - Question en attente : le texte des Lots 7 à 16 n'est pas dans le projet, et le Complément 6 interdit le Lot 7 sans validation complète du Lot 6.
 - Plus tard : mode conversation continue (pas commencé).
 

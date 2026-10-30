@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -3699,6 +3699,15 @@ TESTS_JS = r"""
       attendre(Math.abs(euros - 0.92) < 1e-9 && Math.abs(limiteIA.depenseDuMois() - 0.92) < 1e-9, `dépense : ${euros}`);
       localStorage.setItem('cap_depense_ia_v1', JSON.stringify({ mois: '2000-01', euros: 5 }));
       attendreEgal(limiteIA.depenseDuMois(), 0, 'nouveau mois');
+      localStorage.removeItem('cap_echanges_ia_v1');
+      attendreEgal(limiteIA.plafondMensuel(), 10, 'plafond du mois par défaut : 10 €');
+      attendreEgal(limiteIA.definirPlafond('2,50'), 2.5, 'plafond réglé par Max, virgule acceptée');
+      for (const mauvais of ['0', '-1', 'cher', '2,555', '5000']) attendreErreur(() => limiteIA.definirPlafond(mauvais), 'euros');
+      attendreEgal([limiteIA.plafondMensuel(), limiteIA.maximum()], [2.5, 100], 'mauvais plafond refusé, limite du jour gardée');
+      localStorage.setItem('cap_depense_ia_v1', JSON.stringify({ mois: dateDuJour().slice(0, 7), euros: 2.1 }));
+      attendre(limiteIA.peutEchanger() && limiteIA.compter().alerte.includes('plafond de 2,50 €'), 'prévenu à 80 % du plafond');
+      localStorage.setItem('cap_depense_ia_v1', JSON.stringify({ mois: dateDuJour().slice(0, 7), euros: 2.5 }));
+      attendre(!limiteIA.peutEchanger() && limiteIA.raisonArret().includes('plafond de dépense du mois'), 'arrêt net au plafond');
     } finally {
       ['cap_echanges_ia_v1', 'cap_reglages_ia_v1', 'cap_depense_ia_v1'].forEach(nom => localStorage.removeItem(nom));
     }
@@ -3731,8 +3740,10 @@ TESTS_JS = r"""
     let reponses = [];
     window.fetch = (adresse, options = {}) => {
       if (adresse === REGLAGES_IA.fichier_consignes) {
+        if (consignes === null) return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('') });
         return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(consignes) });
       }
+      if (adresse !== REGLAGES_IA.adresse) return Promise.reject(new Error('Hors de ce test.'));
       envois.push({ adresse, options });
       const suivante = reponses.shift();
       return Promise.resolve({ ok: suivante.statut === 200, status: suivante.statut, json: () => Promise.resolve(suivante.corps) });
@@ -3744,13 +3755,36 @@ TESTS_JS = r"""
       attendreEgal(cerveau.fournisseurActif(), 'claude', 'Claude choisi avec la clé');
       const brouillon = await traiterDemande({ texte: 'Ajoute dans Quotidien : FICTIF brouillon', source: 'saisie' }).suite;
       attendreEgal([brouillon.type, brouillon.tache.categorie, envois.length], ['tache', 'Quotidien', 0], 'brouillon : rien envoyé, réponses préparées');
-      attendre(brouillon.message.includes('pas encore validé par Max') && brouillon.message.includes('Réponse préparée'), `prévenu : ${brouillon.message}`);
+      attendre(brouillon.message.includes('pas encore validée par Max') && brouillon.message.includes('Réponse préparée'), `prévenu : ${brouillon.message}`);
       attendreEgal(limiteIA.utilises(), 0, 'échange non compté');
       attendre((await cerveauClaude.etatConsignes()).includes('pas encore validé'), 'état des consignes');
 
+      consignes = null;
+      cerveauClaude.oublier();
+      const sansFiche = await traiterDemande({ texte: 'Ajoute dans Quotidien : FICTIF sans fiche', source: 'saisie' }).suite;
+      attendreEgal([sansFiche.type, envois.length], ['tache', 0], 'fiche introuvable : Claude jamais appelé');
+      attendre(sansFiche.message.includes('pas pu lire ma fiche'), `prévenu : ${sansFiche.message}`);
+
+      localStorage.removeItem('cap_consignes_v1');
+      let changements = 0;
+      const surChangement = () => { changements += 1; };
+      window.addEventListener('cap-consignes-changees', surChangement);
       consignes = 'Tu es Cap FICTIF.';
       cerveauClaude.oublier();
       attendreEgal(await cerveauClaude.etatConsignes(), 'pret', 'consignes validées');
+      const info = cerveauClaude.infoConsignes();
+      attendre(info && /^[0-9a-f]{8}$/.test(info.empreinte) && info.lue_le && info.version_du, 'date de lecture et version retenues');
+      consignes = 'Tu es Cap FICTIF, version 2.';
+      cerveauClaude.oublier();
+      await cerveauClaude.precharger();
+      attendre(changements === 1 && cerveauClaude.infoConsignes().empreinte !== info.empreinte, 'Max prévenu quand la fiche change');
+      cerveauClaude.oublier();
+      await cerveauClaude.precharger();
+      window.removeEventListener('cap-consignes-changees', surChangement);
+      attendreEgal(changements, 1, 'même fiche relue : pas de nouvelle alerte');
+      consignes = 'Tu es Cap FICTIF.';
+      cerveauClaude.oublier();
+      journalIA.effacer();
       reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Salut Max, ça va bien. Et toi ?' }], usage: { input_tokens: 1000, output_tokens: 20 } } });
       const conversation = await traiterDemande({ texte: 'Salut Cap, ça va ?', source: 'micro' }).suite;
       attendreEgal([conversation.type, conversation.message, conversation.parole],
@@ -3762,7 +3796,8 @@ TESTS_JS = r"""
         [REGLAGES_IA.adresse, 'POST', CLE_FICTIVE, '2023-06-01', 'true'], 'en-têtes');
       attendre(!envoi.options.body.includes(CLE_FICTIVE), 'la clé n’est jamais dans le corps');
       attendreEgal([corps.model, corps.messages.length, corps.messages[0].content], [REGLAGES_IA.modele, 1, 'Salut Cap, ça va ?'], 'message envoyé');
-      attendre(corps.system.startsWith('Tu es Cap FICTIF.') && corps.system.includes('Quotidien'), 'consignes et catégories envoyées');
+      attendre(/^Nous sommes le \S+ \d{1,2} \S+ \d{4}, il est \d{1,2} h \d{2}\.\nTu es Cap FICTIF\./.test(corps.system) && corps.system.includes('Quotidien'),
+        `date et heure, puis consignes et catégories envoyées : ${corps.system.slice(0, 80)}`);
       attendreEgal([corps.tools[0].name, corps.tools[0].input_schema.required], ['ajouter_tache', ['intitule']], 'outils du catalogue');
       attendreEgal(limiteIA.utilises(), 1, 'échange compté');
       attendre(limiteIA.depenseDuMois() > 0, 'dépense comptée');
@@ -3774,6 +3809,10 @@ TESTS_JS = r"""
       attendreEgal([action.type, action.tache.intitule, action.tache.categorie, action.tache.sous_categorie, action.parole],
         ['tache', 'arroser les plantes FICTIF', 'Quotidien', 'Maison', 'C’est noté dans Quotidien, Maison.'], 'action exécutée et dite');
       attendreEgal(JSON.parse(envois[1].options.body).messages.length, 3, 'la conversation est retenue');
+      const journal = journalIA.lire();
+      attendreEgal([journal.length, journal[1].dit, journal[1].repondu, journal[0].dit], [2, 'Salut Cap, ça va ?', 'Salut Max, ça va bien. Et toi ?', 'Pense à arroser les plantes FICTIF'], 'historique de l’IA');
+      attendre(journal[0].action.includes('arroser les plantes FICTIF'), `action notée : ${journal[0].action}`);
+      attendre(!localStorage.getItem('cap_journal_ia_v1').includes(CLE_FICTIVE), 'la clé n’est jamais dans l’historique');
 
       const avant = TACHES.length;
       reponses.push({ statut: 200, corps: { content: [{ type: 'tool_use', name: 'ajouter_tache', input: { intitule: 'Acheter du lait FICTIF' } }] } });
@@ -3794,6 +3833,15 @@ TESTS_JS = r"""
       const refusee = await traiterDemande({ texte: 'Ajoute dans Quotidien : FICTIF clé refusée', source: 'saisie' }).suite;
       attendreEgal([refusee.type, refusee.tache.categorie, limiteIA.utilises()], ['tache', 'Quotidien', utilises], 'clé refusée : réponses préparées, non compté');
       attendre(refusee.message.includes('clé n’est pas acceptée'), refusee.message);
+      attendre(!refusee.message.includes(CLE_FICTIVE), 'la clé n’est jamais dans un message d’erreur');
+
+      localStorage.setItem('cap_depense_ia_v1', JSON.stringify({ mois: dateDuJour().slice(0, 7), euros: 10 }));
+      const envoisAvant = envois.length;
+      const immediat = traiterDemande({ texte: 'Ajoute dans Quotidien : FICTIF plafond', source: 'saisie' });
+      const plafond = immediat.suite ? await immediat.suite : immediat;
+      attendreEgal([plafond.type, envois.length], ['tache', envoisAvant], 'plafond du mois atteint : Claude n’est plus appelé');
+      attendre(plafond.message.includes('plafond de dépense du mois'), plafond.message);
+      attendreEgal(cerveauClaude.maintenantParis(new Date('2026-10-30T09:37:00Z')), 'Nous sommes le vendredi 30 octobre 2026, il est 10 h 37.', 'date et heure de Paris');
       resultats.push({ nom, ok: true, erreur: '' });
     } catch (erreur) {
       resultats.push({ nom, ok: false, erreur: String(erreur && erreur.message ? erreur.message : erreur) });
@@ -3801,7 +3849,7 @@ TESTS_JS = r"""
       window.fetch = vraiFetch;
       cleIA.retirer();
       cerveauClaude.oublier();
-      ['cap_echanges_ia_v1', 'cap_depense_ia_v1'].forEach(cle => localStorage.removeItem(cle));
+      ['cap_echanges_ia_v1', 'cap_depense_ia_v1', 'cap_journal_ia_v1', 'cap_consignes_v1'].forEach(cle => localStorage.removeItem(cle));
     }
   })();
 
@@ -3823,6 +3871,15 @@ TESTS_JS = r"""
       ui.parId('limite-ia').value = '100';
       ui.parId('formulaire-limite-ia').requestSubmit();
       attendreEgal(limiteIA.maximum(), 100, 'limite changée par Max');
+      ui.parId('plafond-ia').value = '7,5';
+      ui.parId('formulaire-plafond-ia').requestSubmit();
+      attendreEgal(limiteIA.plafondMensuel(), 7.5, 'plafond changé par Max');
+      journalIA.noter({ dit: 'FICTIF bonjour', repondu: 'FICTIF salut' });
+      await new Promise(resolve => setTimeout(resolve, 0));
+      ui.parId('formulaire-limite-ia').requestSubmit();
+      attendre(ui.parId('liste-journal-ia').textContent.includes('FICTIF salut'), 'historique de l’IA visible');
+      ui.parId('effacer-journal-ia').click();
+      attendreEgal([journalIA.lire().length, ui.parId('liste-journal-ia').textContent.includes('FICTIF')], [0, false], 'effacé d’un geste');
       ui.parId('retirer-cle-ia').click();
       attendreEgal(cleIA.presente(), false, 'clé retirée');
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -3830,7 +3887,7 @@ TESTS_JS = r"""
       window.fetch = vraiFetch;
       cleIA.retirer();
       cerveauClaude.oublier();
-      localStorage.removeItem('cap_reglages_ia_v1');
+      ['cap_reglages_ia_v1', 'cap_journal_ia_v1', 'cap_consignes_v1'].forEach(cle => localStorage.removeItem(cle));
     }
   });
 
@@ -4139,8 +4196,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v16['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v16")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v17['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v17")
 
 
 def verifier_precache_fichiers_existent():

@@ -95,7 +95,7 @@ const cerveau = (() => {
     };
     if (!fournisseur.payant) return finir(fournisseur.comprendre(entree, contexte()));
     if (!limiteIA.peutEchanger()) {
-      return finir(prepare.comprendre(entree, contexte()), 'J’ai atteint ma limite pour aujourd’hui : je reprends les réponses préparées.');
+      return finir(prepare.comprendre(entree, contexte()), limiteIA.raisonArret());
     }
     let brut;
     try {

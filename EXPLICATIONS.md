@@ -38,8 +38,9 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `reglages_ia.js` | Les réglages de l'IA : modèle (Claude Haiku), limite par défaut (60), prix, nom du fichier de consignes. Aucune clé. |
 | `cle_ia.js` | Garde la clé d'IA tapée par Max, sur le téléphone seulement ; n'en montre que les 4 derniers caractères. |
 | `consignes_cap.txt` | Le document de consignes envoyé à l'IA à chaque échange (qui est Cap, comment il parle, ce qu'il ne fait jamais). Tant que la première ligne contient « BROUILLON », il n'est jamais envoyé. |
-| `cerveau_claude.js` | Le fournisseur Claude Haiku : utilisé seulement avec une clé et des consignes validées. Une action à la fois, intitulé mot pour mot. |
-| `limite_ia.js` | Compte les échanges avec une IA payante, jour par jour : limite réglable par Max (60 par défaut), alerte aux 5/6, puis retour aux réponses préparées. Calcule la dépense du mois. |
+| `cerveau_claude.js` | Le fournisseur Claude Haiku : utilisé seulement avec une clé et une fiche de consignes lue à l'ouverture. Ajoute la date et l'heure de Paris à chaque échange. Une action à la fois, intitulé mot pour mot. |
+| `journal_ia.js` | L'historique des échanges avec l'IA (ce que Max a dit, ce que l'IA a répondu ou proposé), effaçable d'un geste. Jamais la clé. |
+| `limite_ia.js` | Compte les échanges avec une IA payante : limite par jour (60 par défaut) et plafond de dépense du mois en euros (10 € par défaut), tous deux réglables par Max. Prévient avant, s'arrête net au plafond. |
 | `actions_cap.js` | La frontière entre le cerveau et Cap : la liste des actions permises, et la vérification de chacune. Le cerveau ne touche jamais aux tâches lui-même. |
 | `cerveau.js` | Le cerveau : comprend la demande et rend une décision (une action, ou une seule question courte). Le modèle d'IA est interchangeable. |
 | `cerveau_prepare.js` | Les réponses préparées, gratuites et sans clé : range une tâche seulement si la catégorie est nommée, sinon dans À trier ; pose une question s'il hésite. |
@@ -60,7 +61,7 @@ C'est une page web qui pourra s'installer sur le téléphone comme une vraie app
 | `service-worker.js` | Garde une copie de l'appli sur le téléphone pour qu'elle s'ouvre même sans internet. |
 | `installation.js` | Active cette copie hors connexion. |
 | `icones/` | L'icône aux différentes tailles demandées par Android. Elles sont fabriquées par `outils/fabriquer_icones.py` à partir de l'icône validée. |
-| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout, des tuiles, du mode Trier, du journal, de la sauvegarde, de l'annulation, du cerveau et de l'installation (234 essais). |
+| `test_cap.py` | Des vérifications automatiques des règles, de la dictée, du clavier, de la connexion Google (simulée), de la recherche, de la fiche de rendez-vous, de l'accueil, de la fenêtre d'ajout, des tuiles, du mode Trier, du journal, de la sauvegarde, de l'annulation, du cerveau et de l'installation (234 essais, dont des vérifications plus complètes du cerveau). |
 
 ## L'écran d'accueil (Lot 1, 29/10/2026)
 - En haut : seulement la date du jour, centrée. Pas d'heure : la barre du haut du téléphone (heure, Wi-Fi, réseau, batterie) reste visible, car Cap installée s'ouvre en mode « standalone » (comme une appli, mais sans cacher cette barre).

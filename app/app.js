@@ -1423,16 +1423,66 @@
     parId('texte-cerveau').textContent = cle
       ? `Cerveau : ${REGLAGES_IA.nom}. ${usage}`
       : 'Cerveau : réponses préparées (gratuites). Aucune clé d’IA enregistrée.';
-    parId('usage-ia').textContent = usage;
+    parId('usage-ia').textContent = `${usage} Plafond du mois : ${formatEuros.format(limiteIA.plafondMensuel())}.`;
     parId('retirer-cle-ia').hidden = !cle;
     if (reglagesIA.open && document.activeElement !== parId('limite-ia')) parId('limite-ia').value = String(limiteIA.maximum());
+    if (reglagesIA.open && document.activeElement !== parId('plafond-ia')) parId('plafond-ia').value = String(limiteIA.plafondMensuel()).replace('.', ',');
+    afficherJournalIA();
     let etat = cle ? `Clé enregistrée sur ce téléphone (${cleIA.apercu()}).` : 'Aucune clé : Cap utilise les réponses préparées, gratuites.';
     if (cle) {
       const consignes = await cerveauClaude.etatConsignes();
       etat += consignes === 'pret' ? ` Cap parle avec ${REGLAGES_IA.nom}.` : ` ${consignes} En attendant, Cap utilise les réponses préparées.`;
     }
     parId('etat-ia').textContent = etat;
+    parId('fiche-ia').textContent = texteFiche();
   }
+
+  function dateCourte(iso) {
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime()) ? '' : `${date.toLocaleDateString('fr-FR')} à ${formatHeure.format(date)}`;
+  }
+
+  function texteFiche() {
+    const info = cerveauClaude.infoConsignes();
+    return info ? `Fiche de consignes lue le ${dateCourte(info.lue_le)}, version du ${dateCourte(info.version_du)} (repère ${info.empreinte}).`
+      : 'Fiche de consignes : pas encore lue.';
+  }
+
+  function afficherJournalIA() {
+    const entrees = journalIA.lire().slice(0, 20);
+    parId('liste-journal-ia').replaceChildren(...entrees.map(entree => {
+      const ligne = element('li');
+      ligne.append(element('span', 'heure-action', dateCourte(entree.heure)), document.createTextNode(` · Max : ${entree.dit}`));
+      if (entree.repondu) ligne.append(element('br'), document.createTextNode(`Cap : ${entree.repondu}`));
+      if (entree.action) ligne.append(element('br'), document.createTextNode(`Action demandée : ${entree.action}`));
+      return ligne;
+    }));
+    if (!entrees.length) parId('liste-journal-ia').append(element('li', '', 'Aucun échange avec l’IA pour l’instant.'));
+  }
+
+  parId('effacer-journal-ia').addEventListener('click', () => {
+    journalIA.effacer();
+    annoncer('Historique de l’IA effacé.', true);
+    afficherJournalIA();
+  });
+  parId('formulaire-plafond-ia').addEventListener('submit', event => {
+    event.preventDefault();
+    try {
+      const plafond = limiteIA.definirPlafond(parId('plafond-ia').value);
+      erreurReglagesIA('');
+      annoncer(`Plafond enregistré : ${formatEuros.format(plafond)} par mois.`, true);
+    } catch (erreur) {
+      erreurReglagesIA(erreur.message);
+    }
+    afficherCerveau();
+  });
+  window.addEventListener('cap-consignes-changees', () => {
+    annoncer(`Ma fiche de consignes a changé : je suis maintenant la version du ${dateCourte(cerveauClaude.infoConsignes()?.version_du)}.`, true);
+  });
+  // La fiche est relue à chaque ouverture (et au retour dans l'appli), en tâche de fond, pour que les premiers mots de Max soient compris.
+  const prechargerFiche = () => { if (cleIA.presente()) cerveauClaude.precharger(); };
+  prechargerFiche();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') prechargerFiche(); });
 
   function erreurReglagesIA(message) {
     const zone = reglagesIA.querySelector('.erreur');
@@ -1479,6 +1529,7 @@
   reglagesIA.addEventListener('close', () => {
     parId('cle-ia').value = '';
     parId('limite-ia').value = '';
+    parId('plafond-ia').value = '';
   });
 
   basculerVue.addEventListener('click', () => changerVue(ecranComplet.hidden));

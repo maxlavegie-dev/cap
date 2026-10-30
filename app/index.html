@@ -264,8 +264,17 @@
       <input id="limite-ia" type="number" min="1" max="1000" step="1" inputmode="numeric">
       <button type="submit">Enregistrer la limite</button>
     </form>
+    <form id="formulaire-plafond-ia">
+      <label for="plafond-ia">Dépense avec l’IA par mois, au maximum (en euros)</label>
+      <input id="plafond-ia" type="text" inputmode="decimal" autocomplete="off">
+      <button type="submit">Enregistrer le plafond</button>
+    </form>
     <p id="usage-ia"></p>
+    <p id="fiche-ia"></p>
     <p class="erreur" role="alert" hidden></p>
+    <h3>Historique de l’IA</h3>
+    <ol id="liste-journal-ia"></ol>
+    <button id="effacer-journal-ia" type="button">Effacer l’historique de l’IA</button>
   </dialog>
   <dialog id="mode-trier" class="fenetre-tri" aria-labelledby="titre-mode-trier">
     <div class="contenu-tri"></div>
@@ -333,6 +342,7 @@
   <script src="actions_cap.js"></script>
   <script src="cerveau.js"></script>
   <script src="cerveau_prepare.js"></script>
+  <script src="journal_ia.js"></script>
   <script src="cerveau_claude.js"></script>
   <script src="demandes.js"></script>
   <script src="recherche.js"></script>
