@@ -163,6 +163,9 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - Demande de Max, faite en local (pas publiée, cache cap-v24) : confirmation visible tout de suite. « Valider ce nom » affiche « Nom enregistré : … .pdf » et « Garder le nom provisoire » affiche « Nom provisoire enregistré … », dans la zone du nom et dans le message du scanner. Testé (48 pour le scanner, 236 pour le reste).
   - Erreurs de lecture vues par Max sur des fiches de recettes (un plat lu pour un autre, un mot lu pour un autre, sans [?]) : analyse faite, rien codé, en attente du feu vert de Max (voir le compte rendu).
   - Hors connexion : Cap se fie à `navigator.onLine` ; « pas de Wi-Fi mais réseau mobile » compte comme en ligne, seul « aucun réseau » (mode avion) déclenche les messages hors connexion. Max refera le test en mode avion.
+  - Confirmations publiées (commit `8d00ce9`, accord de Max).
+  - Consigne de lecture plus stricte (local, pas publiée, cache cap-v25) : [?] obligatoire sur tout nom propre, nom de plat, nom de lieu, mot rare ou en police fantaisie ; « préférer le doute à la devinette ». Test automatique : mécanique seulement (l'IA est simulée) ; l'effet réel sera jugé par Max sur ses fiches de recettes avant toute publication.
+  - Piste à vérifier avant de payer un modèle plus fort : l'IA lit aujourd'hui l'image AMÉLIORÉE (fond blanchi, noir renforcé), qui peut abîmer polices fantaisie et photos. Proposition en attente du feu vert de Max : garder en mémoire l'image redressée non retouchée et offrir un test A/B (lire la même page avec l'une puis l'autre).
   - Reste à tester par Max : document sans date lisible, mode avion avec l'indicateur « en attente », lecture d'autres types de documents.
 
 ### En cours

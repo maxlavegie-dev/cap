@@ -845,6 +845,10 @@ TESTS_JS = r"""
     egal(scanLecture.separer('Texte' + bloc, true).identification, null, 'réponse coupée');
     egal(scanLecture.separer('Texte\n=== IDENTIFICATION ===\nTYPE: Facture', false).identification, null, 'bloc incomplet');
     attendre(scanLecture.consigne.includes('inconnu') && scanLecture.consigne.includes('N’invente jamais un type'), 'consigne d’honnêteté');
+    for (const phrase of ['est OBLIGATOIRE', 'nom de plat', 'nom de lieu', 'mot rare', 'plausible ou courant', 'le doute à la devinette']) {
+      attendre(scanLecture.consigne.includes(phrase), 'consigne stricte sans : ' + phrase);
+    }
+    attendre(scanLecture.consigne.length < 4000, 'consigne trop longue : ' + scanLecture.consigne.length);
     nettoyerIA(); cleFictive();
     await avecFauxClaude(reponseTexte('Courrier FICTIF' + bloc), async () => {
       const lu = await scanLecture.lire([{ jpeg: new Uint8Array([1, 2]) }], { accord: true });
