@@ -22,6 +22,7 @@
     <button id="basculer-vue" class="visuellement-cache" type="button" aria-expanded="false" aria-controls="ecran-complet">Afficher tout</button>
     <div id="accueil"></div>
     <button id="ouvrir-scanner" class="bouton-scanner" type="button" aria-haspopup="dialog" aria-controls="scanner">Scanner</button>
+    <p id="scans-en-attente" class="scans-en-attente" role="status" aria-live="polite" hidden></p>
     <section id="zone-recherche" aria-label="Recherche">
       <ul id="resultats-recherche" aria-label="Résultats de recherche" hidden></ul>
       <div class="barre-recherche">
@@ -316,7 +317,19 @@
         <button id="scanner-page-suivante" type="button">Page suivante</button>
         <button id="scanner-terminer" type="button">Terminé</button>
         <button id="scanner-reprendre" type="button">Reprendre la photo</button>
+        <button id="scanner-lire" type="button">Lire le texte (IA)</button>
       </div>
+    </section>
+    <section id="scanner-accord" aria-label="Accord pour la lecture du texte" hidden>
+      <p id="scanner-accord-texte" role="alert"></p>
+      <div class="actions-scanner">
+        <button id="scanner-accord-oui" type="button">Oui, lire</button>
+        <button id="scanner-accord-non" type="button">Non</button>
+      </div>
+    </section>
+    <section id="scanner-texte-zone" aria-label="Texte lu par l’IA" hidden>
+      <h3>Texte lu par l’IA</h3>
+      <p id="scanner-texte"></p>
     </section>
     <ol id="scanner-pages" aria-label="Pages du document"></ol>
     <p id="scanner-etat" role="status"></p>
@@ -402,6 +415,7 @@
   <script src="scan_documents.js"></script>
   <script src="scan_file.js"></script>
   <script src="scan_depot.js"></script>
+  <script src="scan_lecture.js"></script>
   <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>

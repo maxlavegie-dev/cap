@@ -16,10 +16,22 @@ const scanDocuments = (() => {
     return nom;
   }
 
-  function messageEnregistre(nombrePages) {
-    return nombrePages === 1
-      ? '1 page enregistrée, en cours de classement.'
-      : `${nombrePages} pages enregistrées, en cours de classement.`;
+  // horsLigne : '' (réseau et Google prêts), 'reseau' (pas de réseau) ou 'google' (pas connecté à Google).
+  function messageEnregistre(nombrePages, horsLigne = '') {
+    const pages = nombrePages === 1 ? '1 page enregistrée' : `${nombrePages} pages enregistrées`;
+    if (horsLigne === 'reseau') return `${pages}. Pas de réseau : le scan est gardé sur le téléphone et partira tout seul au retour du réseau.`;
+    if (horsLigne === 'google') return `${pages}. Cap n’est pas connecté à Google : le scan est gardé sur le téléphone et partira après la connexion.`;
+    return `${pages}, en cours de classement.`;
+  }
+
+  // Phrase de l'indicateur « scans en attente » : jamais vide si quelque chose attend d'être envoyé.
+  function messageEnAttente(nombre, horsLigne = '') {
+    if (!nombre) return '';
+    const un = nombre === 1;
+    const tete = `${un ? '1 scan en attente' : `${nombre} scans en attente`} d’envoi : ${un ? 'gardé' : 'gardés'} sur le téléphone, `;
+    if (horsLigne === 'reseau') return `${tete}${un ? 'il partira' : 'ils partiront'} au retour du réseau.`;
+    if (horsLigne === 'google') return `${tete}${un ? 'il partira' : 'ils partiront'} après la connexion à Google.`;
+    return `${tete}envoi en cours.`;
   }
 
   function creerSession() {
@@ -102,5 +114,5 @@ const scanDocuments = (() => {
     return { demarrer, arreter, toucher, expiree, noter, compteRendu, active: () => active, compte: () => ({ ...compte }) };
   }
 
-  return { nomFichier, messageEnregistre, creerSession, creerRafale, inactivite_rafale_ms };
+  return { nomFichier, messageEnregistre, messageEnAttente, creerSession, creerRafale, inactivite_rafale_ms };
 })();

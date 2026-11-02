@@ -135,9 +135,21 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - (a) Image trop sombre : cause non prouvée avec le téléphone virtuel. Deux causes probables corrigées : l'ancien étirement global laissait la page grise quand l'éclairage est inégal, et l'image vidéo est plus sombre qu'une vraie photo. Cap prend maintenant une vraie photo fixe (`ImageCapture`) si le téléphone le permet, sinon l'image vidéo. À confirmer sur le téléphone de Max.
   - (b) Amélioration automatique : fond estimé par petits blocs, puis mode « texte » (fond blanchi et uniforme, noir renforcé) ou mode « doux » (couleurs gardées), choisi tout seul. Pas d'IA, aucun réglage.
   - Tests : 31 pour le scanner, 236 pour le reste. Cache : cap-v21.
+  - Publiées avec l'accord de Max (commit `b94a73e`) ; Max les a testées sur son téléphone et les valide toutes (image, lisibilité, table en bois, couleurs, recto-verso, verso vide, rafale).
+
+- 02/11/2026 : **hors connexion rendu visible (demande de Max) et lot 3.2 (lecture du texte par l'IA, option a)** — codés et testés en local, pas encore publiés.
+  - Hors connexion, messages : sans réseau « … Pas de réseau : le scan est gardé sur le téléphone et partira tout seul au retour du réseau. » ; réseau présent mais Cap pas connecté à Google « … Cap n’est pas connecté à Google : … partira après la connexion. » ; en ligne « … en cours de classement ». Au retour du réseau : « Tous les scans sont déposés dans 00_A_CLASSER. » (10 s).
+  - Indicateur sur l'accueil sous le bouton Scanner : « N scan(s) en attente d’envoi : gardé(s) sur le téléphone, il(s) partira(ont) au retour du réseau / après la connexion à Google » ; il se met à jour au démarrage, au retour du réseau et après chaque dépôt.
+  - Lot 3.2 : nouveau `scan_lecture.js` (sans DOM). Bouton « Lire le texte (IA) » dans l'aperçu du scanner. Cap annonce d'abord ce qui partirait (nombre de pages, envoi à Anthropic, coût approximatif, dépense du mois sur le plafond) et attend le « oui » de Max, redemandé à CHAQUE lecture ; « Non » n'envoie rien. Verrou dans le code : `lire` refuse tout sauf `accord: true`.
+  - Garde-fous : pas de clé, pas de réseau, plus de 5 pages, plafond mensuel ou limite du jour atteints = aucune lecture, avec une phrase claire. Message neutre envoyé avec les images (jamais la fiche de Max, jamais la mémoire personnelle, aucun outil). Le texte du document est traité comme une donnée. Mots incertains marqués [?] ou [illisible] ; texte coupé signalé « je ne suis pas sûr de la fin ». Dépense réelle comptée avec les jetons rendus par l'IA.
+  - Le texte lu est gardé avec le scan sur le téléphone (champ `texte`), il n'est pas encore envoyé dans le Drive. Un échec de lecture ne touche jamais le scan.
+  - Coût approximatif : environ 0,5 centime par page (≈1 800 jetons d'image en entrée, ≈800 en sortie), soit environ 800 pages par mois pour le plafond de 4 €. À confirmer avec la vraie facture.
+  - Tests : 39 pour le scanner (appel IA toujours simulé, images fictives), 236 pour le reste. Cache : cap-v22.
+  - Qui a fait quoi : le modèle principal a tout fait (conception, code, tests, relecture) ; aucun subagent cette fois.
+  - Pas de détection en direct des bords pour l'instant (décision de Max).
 
 ### En cours
-- Lot 3.1 (scanner) publié ; trois corrections faites et testées, à publier avec l'accord de Max puis à essayer sur son téléphone.
+- Lot 3.1 publié et validé ; hors connexion et lot 3.2 faits en local, à publier avec l'accord de Max puis à essayer sur son téléphone.
 - Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
 - Lot 6 : Haiku prêt, fiche à coller par Max dans Cap ; en attente de son feu vert sur la clé. Étape suivante : verrouillage par empreinte, obligatoire avant toute vraie donnée. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
 - Question en attente : le texte des Lots 7 à 16 n'est pas dans le projet, et le Complément 6 interdit le Lot 7 sans validation complète du Lot 6.

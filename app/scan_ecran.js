@@ -30,6 +30,18 @@ const scanEcran = (() => {
     const boutonCapturer = parId('scanner-capturer');
     const camera = parId('scanner-camera');
 
+    const boutonLire = parId('scanner-lire');
+    const zoneAccord = parId('scanner-accord');
+    const texteAccord = parId('scanner-accord-texte');
+    const zoneTexte = parId('scanner-texte-zone');
+    const texteLu = parId('scanner-texte');
+    let pagesProposees = null;
+    let texteDocument = '';
+    let lectureEnCours = false;
+
+    const indicateur = parId('scans-en-attente');
+    let minuteurIndicateur = null;
+    let dernierNombre = 0;
     let flux = null;
     let enAttente = null;
     let minuteur = null;
@@ -47,6 +59,8 @@ const scanEcran = (() => {
     }
 
     function montrerCamera() {
+      pagesProposees = null;
+      zoneAccord.hidden = true;
       revue.hidden = true;
       camera.hidden = false;
       boutonCapturer.hidden = false;
@@ -228,12 +242,35 @@ const scanEcran = (() => {
       await recevoirImage(contexte.getImageData(0, 0, travail.width, travail.height));
     }
 
+    function raisonHorsLigne() {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'reseau';
+      if (typeof depot.pret === 'function' && !depot.pret()) return 'google';
+      return '';
+    }
+
+    function afficherIndicateur(nombre) {
+      if (!indicateur) return;
+      clearTimeout(minuteurIndicateur);
+      if (nombre > 0) {
+        indicateur.textContent = scanDocuments.messageEnAttente(nombre, raisonHorsLigne());
+        indicateur.hidden = false;
+      } else if (dernierNombre > 0) {
+        indicateur.textContent = 'Tous les scans sont déposés dans 00_A_CLASSER.';
+        indicateur.hidden = false;
+        minuteurIndicateur = setTimeout(() => { indicateur.hidden = true; }, 10000);
+      } else {
+        indicateur.hidden = true;
+      }
+      dernierNombre = nombre;
+    }
+
     async function afficherEtat() {
       try {
         const attente = await file.enAttente();
         etat.textContent = attente.length
-          ? `${attente.length} scan${attente.length > 1 ? 's' : ''} gardé${attente.length > 1 ? 's' : ''} sur le téléphone, pas encore déposé${attente.length > 1 ? 's' : ''} dans Google Drive.`
+          ? scanDocuments.messageEnAttente(attente.length, raisonHorsLigne())
           : 'Tous les scans sont déposés dans 00_A_CLASSER.';
+        afficherIndicateur(attente.length);
       } catch (erreur) {
         etat.textContent = erreur.message;
       }
@@ -257,6 +294,66 @@ const scanEcran = (() => {
       return execution;
     }
 
+    function effacerLecture() {
+      pagesProposees = null;
+      texteDocument = '';
+      zoneAccord.hidden = true;
+      zoneTexte.hidden = true;
+      texteLu.textContent = '';
+    }
+
+    // Pages que la lecture enverrait : celles déjà gardées, plus celle en aperçu (qui remplace l'ancienne si on reprend une page).
+    function pagesALire() {
+      const gardees = session.pages().map(page => ({ id: page.id, jpeg: page.jpeg }));
+      if (!enRevue) return gardees;
+      const neuve = { id: pageARefaire, jpeg: enRevue.page.jpeg };
+      if (pageARefaire === null) return [...gardees, neuve];
+      return gardees.map(page => (page.id === pageARefaire ? neuve : page));
+    }
+
+    // Étape 1 : Cap annonce ce qui partirait, et attend le « oui » de Max. Rien n'est envoyé ici.
+    function demanderLecture() {
+      if (lectureEnCours) return;
+      zoneAccord.hidden = true;
+      const pages = pagesALire();
+      const raison = scanLecture.verifier(pages.length);
+      if (raison) { dire(raison); return; }
+      pagesProposees = pages;
+      texteAccord.textContent = scanLecture.phraseAccord(pages.length);
+      zoneAccord.hidden = false;
+    }
+
+    function refuserLecture() {
+      pagesProposees = null;
+      zoneAccord.hidden = true;
+      dire('D’accord : rien n’a été envoyé.');
+    }
+
+    // Étape 2 : seulement après le « oui ». Les mêmes pages que celles annoncées, jamais d'autres.
+    async function accepterLecture() {
+      const pages = pagesProposees;
+      pagesProposees = null;
+      zoneAccord.hidden = true;
+      if (!pages || lectureEnCours) return null;
+      lectureEnCours = true;
+      boutonLire.disabled = true;
+      dire('Lecture du texte en cours…');
+      try {
+        const resultat = await scanLecture.lire(pages, { accord: true });
+        texteDocument = resultat.texte;
+        texteLu.textContent = resultat.texte;
+        zoneTexte.hidden = false;
+        dire('Texte lu. Relis-le : l’IA peut se tromper, les mots incertains sont marqués [?] ou [illisible].');
+        return resultat;
+      } catch (erreur) {
+        dire(erreur.message);
+        return null;
+      } finally {
+        lectureEnCours = false;
+        boutonLire.disabled = false;
+      }
+    }
+
     async function terminerDocument() {
       validerPage();
       if (!session.nombre()) { dire('Aucune page prise.'); return null; }
@@ -266,7 +363,7 @@ const scanEcran = (() => {
       try {
         const pdf = scanPdf.assembler(pages.map(p => ({ jpeg: p.jpeg, largeur: p.largeur, hauteur: p.hauteur })));
         const existants = (await file.lister()).map(f => f.nom);
-        fiche = { nom: scanDocuments.nomFichier(maintenant(), existants), pdf: new Blob([pdf], { type: 'application/pdf' }), pages: nombre };
+        fiche = { nom: scanDocuments.nomFichier(maintenant(), existants), pdf: new Blob([pdf], { type: 'application/pdf' }), pages: nombre, texte: texteDocument };
         await file.ajouter(fiche);
       } catch (erreur) {
         dire(`Le scan n’a pas pu être enregistré : ${erreur.message} Tes pages sont toujours là.`);
@@ -276,10 +373,13 @@ const scanEcran = (() => {
       const ignorees = session.ignorees();
       session.vider();
       pageARefaire = null;
+      effacerLecture();
       afficherPages();
       rafale.noter(true, false);
-      const texte = scanDocuments.messageEnregistre(nombre) + (ignorees ? ` ${ignorees} page${ignorees > 1 ? 's' : ''} blanche${ignorees > 1 ? 's' : ''} ignorée${ignorees > 1 ? 's' : ''}.` : '');
-      annoncer(texte, true);
+      const horsLigne = raisonHorsLigne();
+      await afficherEtat();
+      const texte = scanDocuments.messageEnregistre(nombre, horsLigne) + (ignorees ? ` ${ignorees} page${ignorees > 1 ? 's' : ''} blanche${ignorees > 1 ? 's' : ''} ignorée${ignorees > 1 ? 's' : ''}.` : '');
+      annoncer(texte, !horsLigne);
       dire(texte);
       void lancerDepot();
       return fiche;
@@ -323,6 +423,7 @@ const scanEcran = (() => {
       session.vider();
       enRevue = null;
       pageARefaire = null;
+      effacerLecture();
       dire('');
       afficherPages();
       montrerCamera();
@@ -356,6 +457,9 @@ const scanEcran = (() => {
       montrerCamera();
       void demarrerCamera();
     });
+    boutonLire.addEventListener('click', demanderLecture);
+    parId('scanner-accord-oui').addEventListener('click', () => { void accepterLecture(); });
+    parId('scanner-accord-non').addEventListener('click', refuserLecture);
     interrupteur.addEventListener('change', () => {
       if (interrupteur.checked) rafale.demarrer();
       else void finRafale();
@@ -365,12 +469,13 @@ const scanEcran = (() => {
     fenetre.addEventListener('close', () => { arreterCamera(); });
 
     window.addEventListener('online', () => { void lancerDepot(); });
+    window.addEventListener('offline', () => { void afficherEtat(); });
     window.addEventListener('cap-google-etat', () => { void lancerDepot(); });
     void lancerDepot();
 
     return {
       ouvrir, fermer, recevoirImage, terminerDocument, validerPage, lancerDepot, finRafale, afficherEtat,
-      session, rafale, reprendrePage
+      session, rafale, reprendrePage, demanderLecture, accepterLecture, refuserLecture
     };
   }
 

@@ -19,6 +19,9 @@ const REGLAGES_IA = {
   reponse_max_jetons: 300,
   echanges_retenus: 6,
   delai_ms: 20000,
+  lecture_max_jetons: 3000,
+  lecture_pages_max: 5,
+  lecture_delai_ms: 60000,
   dollars_par_million_entree: 1,
   dollars_par_million_sortie: 5,
   euros_par_dollar: 0.92

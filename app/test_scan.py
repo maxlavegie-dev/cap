@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["reglages_google.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_ecran.js"]
+SOURCES = ["reglages_google.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_ecran.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -557,21 +557,68 @@ TESTS_JS = r"""
 
   await test('écran : hors connexion, le scan reste sur le téléphone et part au retour du réseau', async () => {
     let enLigne = false;
-    const depot = { deposerEnAttente: async f => { const a = await f.enAttente(); if (!enLigne) return { deposes: 0, restants: a.length, erreur: '' }; for (const x of a) await f.marquerDepose(x.id, 'ok'); return { deposes: a.length, restants: 0, erreur: '' }; } };
+    Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => enLigne });
+    try {
+      const depot = {
+        pret: () => enLigne,
+        deposerEnAttente: async f => { const a = await f.enAttente(); if (!enLigne) return { deposes: 0, restants: a.length, erreur: '' }; for (const x of a) await f.marquerDepose(x.id, 'ok'); return { deposes: a.length, restants: 0, erreur: '' }; }
+      };
+      const e = await demarrerEcran({ depot });
+      const indicateur = e.id('scans-en-attente');
+      await pause(300);
+      attendre(indicateur && indicateur.hidden, 'indicateur visible sans scan en attente : ' + indicateur.textContent);
+      cliquer(e.id('ouvrir-scanner'));
+      await pause(200);
+      await e.ecran.recevoirImage(scene());
+      cliquer(e.id('scanner-terminer'));
+      await pause(1500);
+      const attente = await e.file.enAttente();
+      egal(attente.length, 1, 'en attente');
+      attendre(attente[0].pdf.size > 500, 'PDF absent');
+      const horsLigne = 'Pas de réseau : le scan est gardé sur le téléphone et partira tout seul au retour du réseau.';
+      attendre(e.annonces.some(t => t.includes(horsLigne)), 'message hors connexion : ' + e.annonces.join('|'));
+      attendre(e.id('scanner-message').textContent.includes(horsLigne), 'message dans la fenêtre : ' + e.id('scanner-message').textContent);
+      attendre(e.id('scanner-etat').textContent.includes('1 scan en attente d’envoi : gardé sur le téléphone, il partira au retour du réseau'), 'état : ' + e.id('scanner-etat').textContent);
+      attendre(!indicateur.hidden && indicateur.textContent.includes('1 scan en attente') && indicateur.textContent.includes('retour du réseau'), 'indicateur : ' + indicateur.textContent);
+      await e.ecran.recevoirImage(scene());
+      cliquer(e.id('scanner-terminer'));
+      await pause(1500);
+      egal((await e.file.enAttente()).length, 2, 'deux scans en attente');
+      attendre(indicateur.textContent.includes('2 scans en attente') && indicateur.textContent.includes('gardés') && indicateur.textContent.includes('ils partiront'), 'indicateur pluriel : ' + indicateur.textContent);
+      enLigne = true;
+      window.dispatchEvent(new Event('online'));
+      await pause(600);
+      egal((await e.file.enAttente()).length, 0, 'déposé au retour du réseau');
+      attendre(!indicateur.hidden && indicateur.textContent.includes('Tous les scans sont déposés'), 'indicateur après dépôt : ' + indicateur.textContent);
+      attendre(e.id('scanner-etat').textContent.includes('Tous les scans sont déposés'), 'état après dépôt');
+    } finally {
+      delete navigator.onLine;
+    }
+  });
+
+  await test('écran : réseau présent mais Cap non connecté à Google, le scan attend la connexion', async () => {
+    let connecte = false;
+    const depot = { pret: () => connecte, deposerEnAttente: async f => { const a = await f.enAttente(); if (!connecte) return { deposes: 0, restants: a.length, erreur: '' }; for (const x of a) await f.marquerDepose(x.id, 'ok'); return { deposes: a.length, restants: 0, erreur: '' }; } };
     const e = await demarrerEcran({ depot });
     cliquer(e.id('ouvrir-scanner'));
     await pause(200);
     await e.ecran.recevoirImage(scene());
     cliquer(e.id('scanner-terminer'));
     await pause(1500);
-    const attente = await e.file.enAttente();
-    egal(attente.length, 1, 'en attente');
-    attendre(attente[0].pdf.size > 500, 'PDF absent');
-    attendre(e.id('scanner-etat').textContent.includes('1 scan gardé sur le téléphone'), 'état : ' + e.id('scanner-etat').textContent);
-    enLigne = true;
-    window.dispatchEvent(new Event('online'));
-    await pause(500);
-    egal((await e.file.enAttente()).length, 0, 'déposé au retour du réseau');
+    attendre(e.annonces.some(t => t.includes('Cap n’est pas connecté à Google : le scan est gardé sur le téléphone et partira après la connexion.')), 'message : ' + e.annonces.join('|'));
+    attendre(e.id('scans-en-attente').textContent.includes('connexion à Google'), 'indicateur : ' + e.id('scans-en-attente').textContent);
+    egal((await e.file.enAttente()).length, 1, 'scan perdu');
+  });
+
+  await test('écran : au démarrage, des scans restés en attente sont signalés', async () => {
+    const base = 'test_demarrage_' + Math.random().toString(36).slice(2);
+    const file = scanFile.creer(base);
+    await file.ajouter({ nom: 'SCAN-2026-11-02-09h00m00.pdf', pdf: new Blob([new Uint8Array(600)], { type: 'application/pdf' }), pages: 1 });
+    const depot = { pret: () => false, deposerEnAttente: async f => ({ deposes: 0, restants: (await f.enAttente()).length, erreur: '' }) };
+    scanEcran.initialiser({ annoncer: () => {}, file, depot });
+    await pause(400);
+    const indicateur = document.getElementById('scans-en-attente');
+    attendre(!indicateur.hidden && indicateur.textContent.includes('1 scan en attente'), 'indicateur : ' + indicateur.textContent);
   });
 
   await test('écran : mode rafale, la caméra se rouvre, compte rendu à la fin', async () => {
@@ -595,6 +642,152 @@ TESTS_JS = r"""
     await pause(800);
     attendre(e.annonces.includes('3 scannés, 3 déposés, 0 en attente.'), 'compte rendu : ' + e.annonces.join('|'));
     attendre(!e.id('scanner').open, 'fenêtre ouverte');
+  });
+
+  // ---------- Lecture du texte par l'IA (lot 3.2) : l'appel est toujours simulé, images fictives ----------
+  window.dateDuJour = () => new Date().toISOString().slice(0, 10);
+  const nettoyerIA = () => { for (const k of ['cap_cle_ia_v1', 'cap_depense_ia_v1', 'cap_echanges_ia_v1', 'cap_reglages_ia_v1']) localStorage.removeItem(k); };
+  async function avecFauxClaude(reponse, action) {
+    const vrai = window.fetch;
+    const appels = [];
+    window.fetch = async (adresse, options) => {
+      appels.push({ adresse, options, corps: JSON.parse(options.body) });
+      return reponse();
+    };
+    try { await action(appels); } finally { window.fetch = vrai; nettoyerIA(); }
+  }
+  const reponseTexte = (texte, extra = {}) => () => ({ ok: true, status: 200, json: async () => ({ content: [{ type: 'text', text: texte }], usage: { input_tokens: 1700, output_tokens: 400 }, ...extra }) });
+  const cleFictive = () => localStorage.setItem('cap_cle_ia_v1', 'sk-ant-' + 'x'.repeat(40));
+
+  await test('lecture : sans « oui » explicite, rien n’est envoyé', async () => {
+    nettoyerIA(); cleFictive();
+    await avecFauxClaude(reponseTexte('texte'), async appels => {
+      const page = { jpeg: new Uint8Array([1, 2, 3]) };
+      for (const accord of [undefined, false, 'oui', 1]) {
+        let erreur = '';
+        try { await scanLecture.lire([page], { accord }); } catch (e) { erreur = e.message; }
+        attendre(erreur.includes('Pas de « oui »'), 'lecture sans accord strict : ' + erreur);
+      }
+      egal(appels.length, 0, 'requêtes envoyées sans accord');
+    });
+  });
+
+  await test('lecture : pas de clé, trop de pages ou plafond atteint, aucune lecture', async () => {
+    nettoyerIA();
+    attendre(scanLecture.verifier(1).includes('clé'), 'sans clé : ' + scanLecture.verifier(1));
+    cleFictive();
+    egal(scanLecture.verifier(1), '', 'avec clé');
+    attendre(scanLecture.verifier(6).includes('5 pages'), 'trop de pages');
+    attendre(scanLecture.verifier(0) !== '', 'zéro page');
+    limiteIA.ajouterDepense(5e6, 0);
+    attendre(scanLecture.verifier(1).includes('plafond'), 'plafond : ' + scanLecture.verifier(1));
+    nettoyerIA();
+  });
+
+  await test('lecture : requête neutre, images seules, sans fiche ni clé dans le corps', async () => {
+    nettoyerIA(); cleFictive();
+    await avecFauxClaude(reponseTexte('Facture FICTIF 12 [?]'), async appels => {
+      const r = await scanLecture.lire([{ jpeg: new Uint8Array([255, 216, 255, 217]) }, { jpeg: new Uint8Array([255, 216, 255, 217]) }], { accord: true });
+      egal(appels.length, 1, 'une seule requête pour deux pages');
+      const { corps, options } = appels[0];
+      egal(corps.messages[0].content.filter(b => b.type === 'image').length, 2, 'images');
+      egal(corps.messages[0].content[0].source.media_type, 'image/jpeg', 'type');
+      attendre(corps.messages[0].content[0].source.data === btoa(String.fromCharCode(255, 216, 255, 217)), 'base64');
+      attendre(options.headers['x-api-key'].startsWith('sk-ant-'), 'clé dans l’en-tête');
+      attendre(!options.body.includes('sk-ant-'), 'clé dans le corps');
+      attendre(!('tools' in corps), 'outils donnés à la lecture');
+      attendre(corps.system.includes('invente jamais') && corps.system.includes('[illisible]'), 'consigne d’honnêteté');
+      egal(r.texte, 'Facture FICTIF 12 [?]', 'texte');
+      egal(r.pages, 2, 'pages');
+      attendre(r.euros > 0 && limiteIA.depenseDuMois() > 0, 'dépense non comptée');
+    });
+  });
+
+  await test('lecture : erreur de clé ou réseau coupé, message clair, rien d’inventé', async () => {
+    nettoyerIA(); cleFictive();
+    await avecFauxClaude(() => ({ ok: false, status: 401, json: async () => ({}) }), async () => {
+      let erreur = '';
+      try { await scanLecture.lire([{ jpeg: new Uint8Array([1]) }], { accord: true }); } catch (e) { erreur = e.message; }
+      attendre(erreur.includes('expiré'), 'erreur 401 : ' + erreur);
+    });
+    cleFictive();
+    await avecFauxClaude(() => { throw new TypeError('réseau'); }, async () => {
+      let erreur = '';
+      try { await scanLecture.lire([{ jpeg: new Uint8Array([1]) }], { accord: true }); } catch (e) { erreur = e.message; }
+      attendre(erreur.includes('gardé sur le téléphone'), 'réseau coupé : ' + erreur);
+    });
+    cleFictive();
+    await avecFauxClaude(reponseTexte('Début du texte', { stop_reason: 'max_tokens' }), async () => {
+      const r = await scanLecture.lire([{ jpeg: new Uint8Array([1]) }], { accord: true });
+      attendre(r.texte.includes('je ne suis pas sûr de la fin'), 'texte coupé non signalé');
+    });
+  });
+
+  await test('écran : la lecture demande l’accord à chaque fois, « non » n’envoie rien', async () => {
+    nettoyerIA(); cleFictive();
+    await avecFauxClaude(reponseTexte('Courrier FICTIF'), async appels => {
+      const e = await demarrerEcran();
+      cliquer(e.id('ouvrir-scanner'));
+      await pause(200);
+      await e.ecran.recevoirImage(scene());
+      cliquer(e.id('scanner-lire'));
+      attendre(!e.id('scanner-accord').hidden, 'accord non demandé');
+      const demande = e.id('scanner-accord-texte').textContent;
+      attendre(demande.includes('1 page') && demande.includes('Anthropic') && demande.includes('sur 4,00 €'), 'phrase d’accord : ' + demande);
+      egal(appels.length, 0, 'envoi avant le oui');
+      cliquer(e.id('scanner-accord-non'));
+      attendre(e.id('scanner-accord').hidden, 'accord resté ouvert');
+      attendre(e.id('scanner-message').textContent.includes('rien n’a été envoyé'), 'message refus : ' + e.id('scanner-message').textContent);
+      egal(appels.length, 0, 'envoi après non');
+      cliquer(e.id('scanner-lire'));
+      cliquer(e.id('scanner-accord-oui'));
+      await pause(300);
+      egal(appels.length, 1, 'une lecture');
+      attendre(!e.id('scanner-texte-zone').hidden && e.id('scanner-texte').textContent === 'Courrier FICTIF', 'texte affiché');
+      attendre(e.id('scanner-message').textContent.includes('peut se tromper'), 'avertissement');
+      cliquer(e.id('scanner-lire'));
+      attendre(!e.id('scanner-accord').hidden, 'accord non redemandé pour la deuxième lecture');
+      egal(appels.length, 1, 'envoi sans nouveau oui');
+      cliquer(e.id('scanner-accord-non'));
+      cliquer(e.id('scanner-terminer'));
+      await pause(1500);
+      const fiche = (await e.file.lister())[0];
+      egal(fiche.texte, 'Courrier FICTIF', 'texte gardé avec le scan');
+      attendre(fiche.pdf === null || fiche.pdf.size > 500, 'scan abîmé');
+      attendre(e.id('scanner-texte-zone').hidden && e.id('scanner-texte').textContent === '', 'texte pas effacé pour le document suivant');
+    });
+  });
+
+  await test('écran : lecture impossible (pas de clé, erreur), le scan et les pages restent intacts', async () => {
+    nettoyerIA();
+    await avecFauxClaude(reponseTexte('inutile'), async appels => {
+      const e = await demarrerEcran();
+      cliquer(e.id('ouvrir-scanner'));
+      await pause(200);
+      await e.ecran.recevoirImage(scene());
+      cliquer(e.id('scanner-lire'));
+      attendre(e.id('scanner-accord').hidden, 'accord proposé sans clé');
+      attendre(e.id('scanner-message').textContent.includes('clé'), 'message sans clé : ' + e.id('scanner-message').textContent);
+      cleFictive();
+    });
+    nettoyerIA(); cleFictive();
+    await avecFauxClaude(() => ({ ok: false, status: 500, json: async () => ({}) }), async appels => {
+      const e = await demarrerEcran();
+      cliquer(e.id('ouvrir-scanner'));
+      await pause(200);
+      await e.ecran.recevoirImage(scene());
+      cliquer(e.id('scanner-lire'));
+      cliquer(e.id('scanner-accord-oui'));
+      await pause(300);
+      attendre(e.id('scanner-message').textContent.includes('ne répond pas'), 'message erreur : ' + e.id('scanner-message').textContent);
+      attendre(e.id('scanner-texte-zone').hidden, 'texte affiché malgré l’erreur');
+      attendre(!e.id('scanner-lire').disabled, 'bouton resté bloqué');
+      cliquer(e.id('scanner-terminer'));
+      await pause(1500);
+      const fiche = (await e.file.lister())[0];
+      egal(fiche.texte, '', 'texte inventé');
+      egal((await e.file.lister()).length, 1, 'scan perdu');
+    });
   });
 
   const erreursPage = window.erreursPage || [];
