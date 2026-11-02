@@ -331,6 +331,20 @@
       <h3>Texte lu par l’IA</h3>
       <p id="scanner-texte"></p>
     </section>
+    <section id="scanner-nom-zone" aria-label="Nom proposé pour le document" hidden>
+      <h3>Nom proposé pour le document</h3>
+      <p id="scanner-nom-manque" role="status"></p>
+      <label class="champ-nom-scan" for="scanner-nom">
+        <input id="scanner-nom" type="text" autocomplete="off" spellcheck="false">
+        <span>.pdf</span>
+      </label>
+      <p id="scanner-nom-erreur" role="alert" hidden></p>
+      <div class="actions-scanner">
+        <button id="scanner-nom-valider" type="button">Valider ce nom</button>
+        <button id="scanner-nom-provisoire" type="button">Garder le nom provisoire</button>
+      </div>
+      <p id="scanner-nom-statut" role="status"></p>
+    </section>
     <ol id="scanner-pages" aria-label="Pages du document"></ol>
     <p id="scanner-etat" role="status"></p>
     <button id="scanner-fermer" type="button">Fermer</button>
@@ -416,6 +430,7 @@
   <script src="scan_file.js"></script>
   <script src="scan_depot.js"></script>
   <script src="scan_lecture.js"></script>
+  <script src="scan_nommage.js"></script>
   <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>

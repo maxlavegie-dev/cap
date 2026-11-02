@@ -72,17 +72,27 @@ const scanDepot = (() => {
     return aClasser;
   }
 
-  async function dejaPresent(nom, dossier) {
+  // Reprise sans doublon : on reconnaît le scan par son nom d'origine (unique), jamais par le nom choisi par Max,
+  // pour qu'un autre document du même nom ne soit pas pris à tort pour déjà déposé.
+  async function dejaPresent(nom, dossier, origine = '') {
+    const critere = origine
+      ? `appProperties has { key='cap_origine' and value='${echapper(origine)}' }`
+      : `name='${echapper(nom)}'`;
     const parametres = new URLSearchParams({
-      q: `name='${echapper(nom)}' and '${echapper(dossier)}' in parents and trashed=false`,
+      q: `${critere} and '${echapper(dossier)}' in parents and trashed=false`,
       fields: 'files(id)', pageSize: '1'
     });
     return (await demander(`${drive}?${parametres}`)).files?.[0]?.id || '';
   }
 
-  async function televerser(nom, pdf, dossier) {
+  async function televerser(nom, pdf, dossier, origine = '') {
     const limite = `cap${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
-    const meta = JSON.stringify({ name: nom, parents: [dossier], mimeType: 'application/pdf' });
+    const infos = { name: nom, parents: [dossier], mimeType: 'application/pdf' };
+    if (origine) {
+      infos.description = `Nom d’origine : ${origine}`;
+      infos.appProperties = { cap_origine: origine };
+    }
+    const meta = JSON.stringify(infos);
     const corps = new Blob([
       `--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n`,
       `--${limite}\r\nContent-Type: application/pdf\r\n\r\n`, pdf, `\r\n--${limite}--`
@@ -96,8 +106,10 @@ const scanDepot = (() => {
 
   async function deposerUn(fiche, file) {
     const dossier = await dossierAClasser();
-    let id = await dejaPresent(fiche.nom, dossier);
-    if (!id) id = await televerser(fiche.nom, fiche.pdf, dossier);
+    const nomDepose = fiche.nom_valide || fiche.nom;
+    const origine = fiche.nom_valide ? fiche.nom : '';
+    let id = await dejaPresent(nomDepose, dossier, origine);
+    if (!id) id = await televerser(nomDepose, fiche.pdf, dossier, origine);
     await file.marquerDepose(fiche.id, id);
     return id;
   }

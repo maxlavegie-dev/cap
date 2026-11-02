@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["reglages_google.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_ecran.js"]
+SOURCES = ["reglages_google.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -787,6 +787,169 @@ TESTS_JS = r"""
       const fiche = (await e.file.lister())[0];
       egal(fiche.texte, '', 'texte inventé');
       egal((await e.file.lister()).length, 1, 'scan perdu');
+    });
+  });
+
+  // ---------- Lot 3.3 : nommage (noms fictifs seulement) ----------
+  await test('nommage : accents, majuscules, séparateurs, morceaux manquants', () => {
+    const p = scanNommage.proposer({ type: 'Ordonnance', organisme: 'Dr Dupont (FICTIF)', personne: 'Zoe Test', date: '2026-05-14', description: 'Antibiotique à prendre' });
+    egal(p.base, '2026-05-14 - ORDONNANCE - DR DUPONT FICTIF - ZOE TEST - ANTIBIOTIQUE A PRENDRE', 'exemple du document');
+    egal(p.nom, p.base + '.pdf', 'extension');
+    egal([p.dateValide, p.manques], [true, []], 'rien ne manque');
+    const q = scanNommage.proposer({ type: 'Fiche de paie', organisme: 'Société Œuvre-Test', personne: '', date: '2026-09', description: '' });
+    egal(q.base, '2026-09 - FICHE DE PAIE - SOCIETE OEUVRE TEST', 'mois seul, morceaux vides omis, sans accent');
+    attendre(/^[A-Z0-9 -]+$/.test(q.base), 'caractères spéciaux : ' + q.base);
+  });
+
+  await test('nommage : date absente ou invalide = « DATE A PRECISER », jamais inventée', () => {
+    for (const date of ['', 'inconnu', '2026-13-01', '2026-02-30', '14/05/2026', '1850-01-01']) {
+      const p = scanNommage.proposer({ type: 'Facture', organisme: 'Banque FICTIF', date });
+      attendre(p.base.startsWith('DATE A PRECISER - FACTURE'), 'date « ' + date + ' » : ' + p.base);
+      egal(p.dateValide, false, 'dateValide pour ' + date);
+      attendre(p.manques.some(m => m.includes('date')), 'manque non signalé pour ' + date);
+      egal(scanNommage.verifier(p.base).ok, false, 'validation sans date pour ' + date);
+    }
+    const sans = scanNommage.proposer(null);
+    egal(sans.base, 'DATE A PRECISER - DOCUMENT', 'identification absente');
+    egal(sans.manques.length, 3, 'manques');
+    egal(scanNommage.proposer({ type: 'X', date: '2024-02-29' }).dateValide, true, 'année bissextile');
+    egal(scanNommage.proposer({ type: 'X', date: '2026-02-29' }).dateValide, false, 'pas bissextile');
+  });
+
+  await test('nommage : longueurs limitées et noms uniques', () => {
+    const long = 'MOT '.repeat(100);
+    const p = scanNommage.proposer({ type: long, organisme: long, personne: long, date: '2026-01-01', description: long });
+    attendre(p.base.length <= 150, 'trop long : ' + p.base.length);
+    attendre(p.base.startsWith('2026-01-01 - MOT'), 'début : ' + p.base);
+    const base = '2026-05-14 - FACTURE - EDF FICTIF';
+    const a = scanNommage.uniqueAvecExtension(base, []);
+    const b = scanNommage.uniqueAvecExtension(base, [a]);
+    const c = scanNommage.uniqueAvecExtension(base, [a, b.toUpperCase()]);
+    egal([a, b, c], [base + '.pdf', base + '-2.pdf', base + '-3.pdf'], 'suffixes');
+  });
+
+  await test('nommage : vérification du nom tapé par Max', () => {
+    egal(scanNommage.verifier('2026-05-14 - facture - Électricité FICTIF.pdf').base, '2026-05-14 - FACTURE - ELECTRICITE FICTIF', 'nettoyage');
+    egal(scanNommage.verifier('2026-05 - magazine - métropole édition lyon').ok, true, 'mois seul');
+    egal(scanNommage.verifier('facture sans date').ok, false, 'sans date');
+    egal(scanNommage.verifier('2026-05-14').ok, false, 'date seule');
+    egal(scanNommage.verifier('').ok, false, 'vide');
+  });
+
+  await test('lecture : le bloc d’identification est séparé du texte, absent ou coupé = null', async () => {
+    const bloc = '\n=== IDENTIFICATION ===\nTYPE: Magazine\nORGANISME: Métropole FICTIF\nPERSONNE: inconnu\nDATE: 2026-10\nDESCRIPTION: Numéro 65 édition Lyon';
+    const r = scanLecture.separer('Texte du magazine FICTIF' + bloc, false);
+    egal(r.transcription, 'Texte du magazine FICTIF', 'transcription sans le bloc');
+    egal(r.identification, { type: 'Magazine', organisme: 'Métropole FICTIF', personne: '', date: '2026-10', description: 'Numéro 65 édition Lyon' }, 'identification');
+    egal(scanLecture.separer('Texte seul', false).identification, null, 'bloc absent');
+    egal(scanLecture.separer('Texte' + bloc, true).identification, null, 'réponse coupée');
+    egal(scanLecture.separer('Texte\n=== IDENTIFICATION ===\nTYPE: Facture', false).identification, null, 'bloc incomplet');
+    attendre(scanLecture.consigne.includes('inconnu') && scanLecture.consigne.includes('N’invente jamais un type'), 'consigne d’honnêteté');
+    nettoyerIA(); cleFictive();
+    await avecFauxClaude(reponseTexte('Courrier FICTIF' + bloc), async () => {
+      const lu = await scanLecture.lire([{ jpeg: new Uint8Array([1, 2]) }], { accord: true });
+      egal([lu.texte, lu.identification.date], ['Courrier FICTIF', '2026-10'], 'lire');
+    });
+  });
+
+  await test('dépôt : nom validé utilisé, nom d’origine gardé dans Drive, reprise sans doublon', async () => {
+    const etat = {};
+    const m = monterDepot({ reponses: reponsesDrive(etat) });
+    const f = scanFile.creer('test_depot_nom_' + Math.random().toString(36).slice(2));
+    const pdf = () => new Blob([new Uint8Array([37, 80, 68, 70, 9])], { type: 'application/pdf' });
+    await f.ajouter({ nom: 'SCAN-origine.pdf', pdf: pdf(), pages: 1, nom_propose: '2026-10 - MAGAZINE FICTIF.pdf', nom_valide: '2026-10 - MAGAZINE FICTIF.pdf' });
+    await f.ajouter({ nom: 'SCAN-provisoire.pdf', pdf: pdf(), pages: 1, nom_propose: '2026-10 - AUTRE FICTIF.pdf' });
+    const res = await m.depot.deposerEnAttente(f);
+    egal([res.deposes, res.restants], [2, 0], 'résultat');
+    const corps0 = await etat.envoyes[0].corps.text();
+    attendre(corps0.includes('"name":"2026-10 - MAGAZINE FICTIF.pdf"'), 'nom validé non utilisé');
+    attendre(corps0.includes('"cap_origine":"SCAN-origine.pdf"') && corps0.includes('Nom d’origine : SCAN-origine.pdf'), 'nom d’origine perdu');
+    const corps1 = await etat.envoyes[1].corps.text();
+    attendre(corps1.includes('"name":"SCAN-provisoire.pdf"') && !corps1.includes('cap_origine'), 'nom provisoire non gardé quand rien n’est validé');
+    const requeteReprise = m.requetes.find(r => r.q.includes('cap_origine'));
+    attendre(requeteReprise && requeteReprise.q.includes('SCAN-origine.pdf'), 'reprise non basée sur le nom d’origine');
+    const fiches = await f.lister();
+    egal(fiches.map(x => x.nom), ['SCAN-origine.pdf', 'SCAN-provisoire.pdf'], 'nom d’origine jamais modifié');
+    egal(fiches[1].nom_propose, '2026-10 - AUTRE FICTIF.pdf', 'proposition gardée pour le lot 3.4');
+    const etat2 = { archives: true, aclasser: true, existant: true };
+    const m2 = monterDepot({ reponses: reponsesDrive(etat2) });
+    const g = scanFile.creer('test_depot_nom2_' + Math.random().toString(36).slice(2));
+    await g.ajouter({ nom: 'SCAN-x.pdf', pdf: pdf(), pages: 1, nom_valide: '2026-01 - TEST FICTIF.pdf' });
+    egal((await m2.depot.deposerEnAttente(g)).deposes, 1, 'reprise');
+    attendre(!etat2.envoyes, 'fichier renvoyé en double');
+  });
+
+  const lireIdentification = async (e, appels) => {
+    cliquer(e.id('scanner-lire'));
+    cliquer(e.id('scanner-accord-oui'));
+    await pause(400);
+  };
+  const blocMagazine = '\n=== IDENTIFICATION ===\nTYPE: Magazine\nORGANISME: Métropole FICTIF\nPERSONNE: inconnu\nDATE: 2026-10\nDESCRIPTION: Numéro 65 édition Lyon';
+  const saisir = (e, valeur) => { const champ = e.id('scanner-nom'); champ.value = valeur; champ.dispatchEvent(new Event('input')); };
+
+  await test('écran : le nom est proposé, rien n’est renommé sans « Valider », puis le nom validé est gardé', async () => {
+    nettoyerIA(); cleFictive();
+    await avecFauxClaude(reponseTexte('Magazine FICTIF' + blocMagazine), async appels => {
+      const e = await demarrerEcran();
+      cliquer(e.id('ouvrir-scanner'));
+      await pause(200);
+      await e.ecran.recevoirImage(scene());
+      attendre(e.id('scanner-nom-zone').hidden, 'nom proposé avant la lecture');
+      await lireIdentification(e, appels);
+      attendre(!e.id('scanner-nom-zone').hidden, 'zone du nom absente');
+      egal(e.id('scanner-nom').value, '2026-10 - MAGAZINE - METROPOLE FICTIF - NUMERO 65 EDITION LYON', 'nom proposé');
+      attendre(!e.id('scanner-texte').textContent.includes('IDENTIFICATION'), 'bloc d’identification affiché à Max');
+      attendre(e.id('scanner-nom-statut').textContent.includes('Rien n’est renommé'), 'statut');
+      saisir(e, '2026-10 - magazine - métropole fictif - numéro 65');
+      cliquer(e.id('scanner-nom-valider'));
+      attendre(e.id('scanner-nom-statut').textContent.includes('Nom validé : 2026-10 - MAGAZINE - METROPOLE FICTIF - NUMERO 65.pdf'), 'validation : ' + e.id('scanner-nom-statut').textContent);
+      cliquer(e.id('scanner-terminer'));
+      await pause(1500);
+      const fiche = (await e.file.lister())[0];
+      egal(fiche.nom_valide, '2026-10 - MAGAZINE - METROPOLE FICTIF - NUMERO 65.pdf', 'nom validé gardé');
+      attendre(fiche.nom.startsWith('SCAN-'), 'nom d’origine perdu : ' + fiche.nom);
+      egal(fiche.nom_propose, '2026-10 - MAGAZINE - METROPOLE FICTIF - NUMERO 65 EDITION LYON.pdf', 'proposition gardée');
+      attendre(e.id('scanner-nom-zone').hidden && e.id('scanner-nom').value === '', 'nom pas effacé pour le document suivant');
+    });
+  });
+
+  await test('écran : « Garder le nom provisoire », ou nom sans date, rien n’est renommé', async () => {
+    nettoyerIA(); cleFictive();
+    await avecFauxClaude(reponseTexte('Courrier FICTIF' + blocMagazine), async appels => {
+      const e = await demarrerEcran();
+      cliquer(e.id('ouvrir-scanner'));
+      await pause(200);
+      await e.ecran.recevoirImage(scene());
+      await lireIdentification(e, appels);
+      saisir(e, 'facture sans date');
+      cliquer(e.id('scanner-nom-valider'));
+      attendre(!e.id('scanner-nom-erreur').hidden && e.id('scanner-nom-erreur').textContent.includes('date'), 'validation sans date acceptée');
+      cliquer(e.id('scanner-nom-provisoire'));
+      attendre(e.id('scanner-nom-statut').textContent.includes('provisoire gardé'), 'statut provisoire');
+      cliquer(e.id('scanner-terminer'));
+      await pause(1500);
+      const fiche = (await e.file.lister())[0];
+      egal(fiche.nom_valide, '', 'nom validé sans clic');
+      attendre(fiche.nom.startsWith('SCAN-') && fiche.nom_propose.startsWith('2026-10'), 'nom provisoire ou proposition perdus');
+    });
+  });
+
+  await test('écran : sans date lue, la validation reste bloquée', async () => {
+    nettoyerIA(); cleFictive();
+    const sansDate = '\n=== IDENTIFICATION ===\nTYPE: Facture\nORGANISME: Banque FICTIF\nPERSONNE: inconnu\nDATE: inconnu\nDESCRIPTION: inconnu';
+    await avecFauxClaude(reponseTexte('Facture FICTIF' + sansDate), async appels => {
+      const e = await demarrerEcran();
+      cliquer(e.id('ouvrir-scanner'));
+      await pause(200);
+      await e.ecran.recevoirImage(scene());
+      await lireIdentification(e, appels);
+      egal(e.id('scanner-nom').value, 'DATE A PRECISER - FACTURE - BANQUE FICTIF', 'nom proposé');
+      attendre(e.id('scanner-nom-manque').textContent.includes('la date'), 'manque non dit : ' + e.id('scanner-nom-manque').textContent);
+      cliquer(e.id('scanner-nom-valider'));
+      attendre(!e.id('scanner-nom-erreur').hidden, 'validation sans date');
+      cliquer(e.id('scanner-terminer'));
+      await pause(1500);
+      egal((await e.file.lister())[0].nom_valide, '', 'nom validé sans date');
     });
   });
 

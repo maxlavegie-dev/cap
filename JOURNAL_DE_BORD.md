@@ -148,6 +148,17 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - Qui a fait quoi : le modèle principal a tout fait (conception, code, tests, relecture) ; aucun subagent cette fois.
   - Pas de détection en direct des bords pour l'instant (décision de Max).
 
+- 02/11/2026 : **lot 3.2 publié (commit `d05fe7f`, testé par Max sur une vraie page de magazine : la lecture marche) et lot 3.3 (nommage des scans) codé en local, pas encore publié.**
+  - Clé de Haiku : une clé est déjà en place dans Cap sur le téléphone de Max (la lecture a fonctionné). Je m'étais trompé en disant qu'il fallait la valider d'abord. Elle s'enregistre uniquement dans « Réglages du cerveau » ; Cap n'en montre que les 4 derniers caractères, donc je ne peux pas confirmer que c'est celle qui expire le 29/11/2026. Reste à faire avant cette date : créer une nouvelle clé, la taper dans les réglages, vérifier le plafond de 4 €/mois, puis feu vert de Max.
+  - Règle de nommage (Instructions de Cap, 6.15 A à D) : DATE - TYPE - ORGANISME - PERSONNE (santé ou famille seulement) - DESCRIPTION.pdf, sans accent, majuscules, date écrite sur le document (AAAA-MM-JJ ou AAAA-MM), jamais celle du scan.
+  - Même appel IA que la lecture (un seul accord de Max) : après le texte, un bloc d'identification (TYPE, ORGANISME, PERSONNE, DATE, DESCRIPTION, « inconnu » si pas sûr). Il est retiré du texte montré à Max. Absent ou coupé : aucune proposition inventée.
+  - Nouveau `scan_nommage.js` (sans DOM) : propose le nom, limite les longueurs, ajoute -2, -3 si le nom existe. Sans date valide : « DATE A PRECISER », et la validation est refusée tant que Max n'a pas mis une date.
+  - Écran : zone « Nom proposé » après la lecture, champ modifiable, « Valider ce nom » ou « Garder le nom provisoire ». Rien n'est renommé sans clic.
+  - Zéro perte : la fiche garde toujours le nom d'origine (`SCAN-…`), la proposition et le nom validé. Au dépôt, Drive reçoit le nom validé, avec le nom d'origine dans la description et dans une propriété cachée ; la reprise sans doublon se fait par ce nom d'origine (jamais par le nom choisi, pour ne pas confondre deux documents du même nom). Si Max ne valide pas, le nom provisoire est déposé et la proposition reste pour le lot 3.4.
+  - Limite connue : si Max change les pages après la lecture, le texte et le nom proposé peuvent être périmés (relire).
+  - Tests : 48 pour le scanner, 236 pour le reste. Cache : cap-v23. Qui a fait quoi : le modèle principal a tout fait, aucun subagent.
+  - Pas de lot 3.4 ni de détection en direct des bords sans accord de Max.
+
 ### En cours
 - Lot 3.1 publié et validé ; hors connexion et lot 3.2 faits en local, à publier avec l'accord de Max puis à essayer sur son téléphone.
 - Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).

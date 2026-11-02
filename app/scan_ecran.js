@@ -35,8 +35,15 @@ const scanEcran = (() => {
     const texteAccord = parId('scanner-accord-texte');
     const zoneTexte = parId('scanner-texte-zone');
     const texteLu = parId('scanner-texte');
+    const zoneNom = parId('scanner-nom-zone');
+    const champNom = parId('scanner-nom');
+    const nomManque = parId('scanner-nom-manque');
+    const nomErreur = parId('scanner-nom-erreur');
+    const nomStatut = parId('scanner-nom-statut');
     let pagesProposees = null;
     let texteDocument = '';
+    let nomPropose = '';
+    let nomValide = '';
     let lectureEnCours = false;
 
     const indicateur = parId('scans-en-attente');
@@ -297,9 +304,57 @@ const scanEcran = (() => {
     function effacerLecture() {
       pagesProposees = null;
       texteDocument = '';
+      nomPropose = '';
+      nomValide = '';
       zoneAccord.hidden = true;
       zoneTexte.hidden = true;
       texteLu.textContent = '';
+      zoneNom.hidden = true;
+      champNom.value = '';
+      nomManque.textContent = '';
+      nomStatut.textContent = '';
+      nomErreur.hidden = true;
+      nomErreur.textContent = '';
+    }
+
+    function nomsDejaPris(fiches) {
+      return fiches.flatMap(f => [f.nom, f.nom_valide].filter(Boolean));
+    }
+
+    // Cap propose un nom à partir de ce que l'IA a lu. Rien n'est retenu tant que Max n'a pas cliqué.
+    async function proposerNom(identification) {
+      const proposition = scanNommage.proposer(identification, nomsDejaPris(await file.lister()));
+      nomPropose = proposition.nom;
+      nomValide = '';
+      champNom.value = proposition.base;
+      nomErreur.hidden = true;
+      nomStatut.textContent = 'Rien n’est renommé tant que tu n’as pas validé.';
+      nomManque.textContent = !identification
+        ? 'Je n’ai pas pu lire l’identité du document : complète le nom toi-même, ou garde le nom provisoire.'
+        : proposition.manques.length
+          ? `Je ne suis pas sûr : il me manque ${proposition.manques.join(', ')}. Complète le nom, ou garde le nom provisoire.`
+          : 'Relis ce nom : l’IA peut se tromper.';
+      zoneNom.hidden = false;
+    }
+
+    function validerNomPropose() {
+      const verdict = scanNommage.verifier(champNom.value);
+      if (!verdict.ok) {
+        nomValide = '';
+        nomErreur.textContent = verdict.raison;
+        nomErreur.hidden = false;
+        return;
+      }
+      nomErreur.hidden = true;
+      nomValide = verdict.base;
+      champNom.value = verdict.base;
+      nomStatut.textContent = `Nom validé : ${verdict.base}.pdf. Il sera utilisé au dépôt ; le nom d’origine est gardé.`;
+    }
+
+    function garderNomProvisoire() {
+      nomValide = '';
+      nomErreur.hidden = true;
+      nomStatut.textContent = 'Nom provisoire gardé. La proposition reste enregistrée avec le scan.';
     }
 
     // Pages que la lecture enverrait : celles déjà gardées, plus celle en aperçu (qui remplace l'ancienne si on reprend une page).
@@ -343,6 +398,7 @@ const scanEcran = (() => {
         texteDocument = resultat.texte;
         texteLu.textContent = resultat.texte;
         zoneTexte.hidden = false;
+        await proposerNom(resultat.identification);
         dire('Texte lu. Relis-le : l’IA peut se tromper, les mots incertains sont marqués [?] ou [illisible].');
         return resultat;
       } catch (erreur) {
@@ -362,8 +418,16 @@ const scanEcran = (() => {
       let fiche;
       try {
         const pdf = scanPdf.assembler(pages.map(p => ({ jpeg: p.jpeg, largeur: p.largeur, hauteur: p.hauteur })));
-        const existants = (await file.lister()).map(f => f.nom);
-        fiche = { nom: scanDocuments.nomFichier(maintenant(), existants), pdf: new Blob([pdf], { type: 'application/pdf' }), pages: nombre, texte: texteDocument };
+        const existants = nomsDejaPris(await file.lister());
+        const base = nomValide ? scanNommage.verifier(nomValide) : null;
+        fiche = {
+          nom: scanDocuments.nomFichier(maintenant(), existants),
+          pdf: new Blob([pdf], { type: 'application/pdf' }),
+          pages: nombre,
+          texte: texteDocument,
+          nom_propose: nomPropose,
+          nom_valide: base && base.ok ? scanNommage.uniqueAvecExtension(base.base, existants) : ''
+        };
         await file.ajouter(fiche);
       } catch (erreur) {
         dire(`Le scan n’a pas pu être enregistré : ${erreur.message} Tes pages sont toujours là.`);
@@ -378,7 +442,8 @@ const scanEcran = (() => {
       rafale.noter(true, false);
       const horsLigne = raisonHorsLigne();
       await afficherEtat();
-      const texte = scanDocuments.messageEnregistre(nombre, horsLigne) + (ignorees ? ` ${ignorees} page${ignorees > 1 ? 's' : ''} blanche${ignorees > 1 ? 's' : ''} ignorée${ignorees > 1 ? 's' : ''}.` : '');
+      const retenu = fiche.nom_valide ? ` Nom retenu : ${fiche.nom_valide}.` : '';
+      const texte = scanDocuments.messageEnregistre(nombre, horsLigne) + retenu + (ignorees ? ` ${ignorees} page${ignorees > 1 ? 's' : ''} blanche${ignorees > 1 ? 's' : ''} ignorée${ignorees > 1 ? 's' : ''}.` : '');
       annoncer(texte, !horsLigne);
       dire(texte);
       void lancerDepot();
@@ -460,6 +525,13 @@ const scanEcran = (() => {
     boutonLire.addEventListener('click', demanderLecture);
     parId('scanner-accord-oui').addEventListener('click', () => { void accepterLecture(); });
     parId('scanner-accord-non').addEventListener('click', refuserLecture);
+    champNom.addEventListener('input', () => {
+      nomValide = '';
+      nomErreur.hidden = true;
+      nomStatut.textContent = 'Nom modifié : appuie sur « Valider ce nom » pour le retenir.';
+    });
+    parId('scanner-nom-valider').addEventListener('click', validerNomPropose);
+    parId('scanner-nom-provisoire').addEventListener('click', garderNomProvisoire);
     interrupteur.addEventListener('change', () => {
       if (interrupteur.checked) rafale.demarrer();
       else void finRafale();

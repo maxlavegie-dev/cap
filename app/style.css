@@ -2175,7 +2175,8 @@ dialog .micro-tri[aria-pressed="true"] {
 }
 
 #scanner-accord,
-#scanner-texte-zone {
+#scanner-texte-zone,
+#scanner-nom-zone {
   margin: 0 0 14px;
   padding: 12px;
   border: 1px solid #b9d7e6;
@@ -2183,8 +2184,25 @@ dialog .micro-tri[aria-pressed="true"] {
 }
 
 #scanner-accord[hidden],
-#scanner-texte-zone[hidden] {
+#scanner-texte-zone[hidden],
+#scanner-nom-zone[hidden],
+#scanner-nom-erreur[hidden] {
   display: none;
+}
+
+.champ-nom-scan {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+#scanner-nom {
+  flex: 1;
+  min-width: 0;
+  min-height: 48px;
+  font-size: 1rem;
+  padding: 6px 10px;
 }
 
 #scanner-accord-texte {

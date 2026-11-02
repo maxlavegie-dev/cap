@@ -37,9 +37,13 @@ const scanFile = (() => {
     let ouverte = null;
     const base = () => (ouverte ||= ouvrir(nomBase));
 
-    async function ajouter({ nom, pdf, pages, texte }) {
+    // nom = nom d'origine (provisoire, jamais modifié). nom_propose : proposition de Cap. nom_valide : nom accepté par Max ('' sinon).
+    async function ajouter({ nom, pdf, pages, texte, nom_propose, nom_valide }) {
       if (!nom || !(pdf instanceof Blob) || !pdf.size) throw new Error('Scan vide : rien à enregistrer.');
-      const fiche = { nom, pdf, pages: pages || 0, cree: new Date().toISOString(), etat: 'attente', drive_id: '', depose_le: '', erreur: '', texte: String(texte || '') };
+      const fiche = {
+        nom, pdf, pages: pages || 0, cree: new Date().toISOString(), etat: 'attente', drive_id: '', depose_le: '', erreur: '',
+        texte: String(texte || ''), nom_propose: String(nom_propose || ''), nom_valide: String(nom_valide || '')
+      };
       return transaction(await base(), 'readwrite', s => s.add(fiche));
     }
 
