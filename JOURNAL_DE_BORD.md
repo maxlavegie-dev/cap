@@ -103,8 +103,35 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - **Clé expirée** (la clé de Max expire le 29/11/2026) : Cap dit « Ma clé n'est plus acceptée par Claude : elle a sans doute expiré. Il faut en créer une nouvelle… » et repasse aux réponses préparées.
   - 235 vérifications automatiques réussies. Version du cache : cap-v18.
 - **Règle de publication (Max, 30/10/2026)** : ne jamais publier de vraie donnée, de prénom de proche, de clé, ni le contenu de la fiche de Haiku ou de la future fiche des mots propres à Max (qui suivra le même chemin : tapée dans Cap, jamais publiée). Au moindre doute : demander à Max avant de publier.
+- 02/11/2026 : **téléphone Android virtuel installé** pour tester Cap dans le vrai Chrome Android (choix de Max : émulateur officiel + adb). Tout est dans `C:\Android` (hors projet, rien de publié). Points à retenir pour les prochaines séances :
+  - **Contenu** : Java 17 (winget), outils en ligne de commande Android, émulateur, image Android 14 « Google APIs » x86_64, appareil `cap_pixel` (Pixel 6, écran réel 1080x2400). Accélération WHPX active, démarrage environ 1 min. Environ 6 à 8 Go.
+  - **Scripts prêts** dans `C:\Android` : `env.bat` (à appeler d'abord, il règle JAVA_HOME et le PATH), `attendre.bat` (attend la fin du démarrage), `ouvrir_cap.bat` (ouvre Cap en ligne dans Chrome), `toucher.bat` (modèle : appui + capture).
+  - **Démarrer** (si éteint) : `call C:\Android\env.bat && emulator.exe -avd cap_pixel -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect` (fenêtre visible, sans `-no-window`), en tâche de fond, puis `C:\Android\attendre.bat`. **Éteindre** : `adb emu kill`. Laissé allumé le 02/11/2026 à la demande de Max ; il s'éteint pourtant à la fermeture de la session : toujours vérifier avec `adb devices`.
+  - **Piloter** : `adb shell input tap X Y` (appui), `adb shell input swipe X1 Y1 X2 Y2 durée` (glisser, appui long avec les mêmes points et une durée), `adb shell input text`, `adb exec-out screencap -p > fichier.png` puis lire l'image. Les captures sont réduites : multiplier les coordonnées vues par 1,53 pour obtenir celles de l'écran réel.
+  - **Chrome** : l'écran de bienvenue est évité par `/data/local/tmp/chrome-command-line` (obtenu avec `adb root`). Après un `pm clear`, une fenêtre de notifications peut apparaître : « No thanks ».
+  - **Pièges du shell cmd** : `$` et les guillemets sont mal gérés, passer par des fichiers `.bat` ou `.ps1` ; chemins complets avec `C:\...`. `wmic` n'existe plus.
+  - **Limites** : la dictée vocale reste à vérifier sur le vrai téléphone de Max ; aucun compte Google réel dans l'émulateur (fictif seulement) ; le bouton « Se connecter à Google » ne doit pas être utilisé avec les vraies données sans l'accord de Max.
+  - **Premier essai réussi** : Cap en ligne s'affiche, le bouton « + » ouvre « Ajouter une tâche », et Chrome propose « Add Cap to Home screen » (installation détectée).
+  - **Téléphone virtuel visible** (demande de Max, 02/11/2026) : l'émulateur `cap_pixel` est relancé avec sa fenêtre (sans `-no-window`), pour voir ce qui est touché. Démarrage : `emulator.exe -avd cap_pixel -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect`. Cap en ligne ouvert dans Chrome (accueil visible, notifications refusées).
+
+- 02/11/2026 : **Numérisation, lot 3.1 construit (pas encore publié)**. Décision de Max : la numérisation passe avant tout le reste ; feu vert au lot 3.1 seulement, plafond de 200 premiums.
+  - Bouton Scanner sur l'accueil : caméra arrière avec mise au point continue si le téléphone l'accepte, repli par l'appareil photo du téléphone, « Page suivante », « Terminé », compteur de pages, « Reprendre la photo », alertes flou / trop sombre / coupé, monter, descendre, supprimer, verso vide ignoré (jamais la première page), un seul PDF par document, mode rafale (compte rendu à la fin, arrêt après 5 minutes sans scan).
+  - Détection des bords et redressement faits dans Cap (pas le module de Google) : il faut un papier clair sur un fond plus sombre ; sinon la photo est gardée entière sans déformation.
+  - Zéro perte : le scan est gardé sur le téléphone (IndexedDB) avant tout envoi et n'en sort qu'après confirmation du dépôt. « Fermer » enregistre d'abord les pages en cours. Un brouillon non terminé n'est gardé qu'en mémoire.
+  - Dépôt dans le faux dossier « ARCHIVES_PERSONNELLES - FICTIF » puis « 00_A_CLASSER », créés par Cap ; jamais de suppression ni de doublon. Nom provisoire `SCAN-AAAA-MM-JJ-HHhMMmSS.pdf` (le vrai nommage viendra au lot 3.3).
+  - Mots privés : 13 mots ajoutés à `mots_prives.txt` (ignoré).
+  - Tests : nouveau `python app\test_scan.py` (26 tests : image synthétique, PDF, règles, file, dépôt simulé, écran) et `python app\test_cap.py` (236). Budget de temps d'Edge porté à 20000 dans `test_cap.py`. Cache : cap-v20.
+  - Seuil de flou à 60, calibré seulement sur des images synthétiques : à régler avec un vrai document sur le téléphone de Max. La netteté de la caméra n'est pas jugée avec le téléphone virtuel (décision de Max).
+  - Qui a fait quoi : `claude-haiku-5-5` a écrit le HTML et le CSS de l'écran du scanner ; le modèle principal a écrit toute la logique, l'intégration et les tests, et relu le tout.
+- **Notes pour plus tard (Max, 02/11/2026)** :
+  - Commandes « liste, retire » et « à faire, retire » : ne jamais effacer la ligne, la marquer retirée avec la date du jour et la masquer à l'affichage (ne concerne pas la numérisation).
+  - Défaut vu dans les réglages du cerveau : pas de bouton « Enregistrer » bien visible, et il faut descendre tout en bas pour sortir (« garder » ou « effacer »).
+  - Le message « Terminée » reste trop longtemps affiché.
+  - Avant le lot 3.2 : rappeler à Max ce qu'il reste à valider sur la clé de Haiku (expire le 29/11/2026) et sur le plafond de 4 € par mois, et reposer la question « application Android native ou non ».
+  - La copie de « Instructions de Cap.md » est ancienne : le Drive a reçu « Brouillon » dans les fichiers copiés en Markdown, la Fonction 10 (choix du modèle d'IA) et la Fonction 11 (lecture du Dictionnaire général). À relire quand Max remplacera le fichier.
 
 ### En cours
+- Lot 3.1 (scanner) prêt côté code et testé ; à publier avec l'accord de Max, puis à essayer sur son téléphone avec un vrai document.
 - Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
 - Lot 6 : Haiku prêt, fiche à coller par Max dans Cap ; en attente de son feu vert sur la clé. Étape suivante : verrouillage par empreinte, obligatoire avant toute vraie donnée. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
 - Question en attente : le texte des Lots 7 à 16 n'est pas dans le projet, et le Complément 6 interdit le Lot 7 sans validation complète du Lot 6.

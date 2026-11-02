@@ -1830,6 +1830,11 @@
     void afficherRendezVous();
     void journalActions.envoyer();
   });
+  try {
+    scanEcran.initialiser({ annoncer });
+  } catch (erreur) {
+    signalerErreur(erreur);
+  }
   afficherEtatGoogle();
   afficherSauvegarde();
   afficherCerveau();

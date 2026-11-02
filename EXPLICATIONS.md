@@ -140,5 +140,15 @@ Identifiant, intitulé, catégorie, sous-catégorie, fait ou pas fait, date d'en
 ## Comment voir l'application sur l'ordinateur
 Double-cliquer sur `app/index.html`.
 
+## Le scanner (numérisation, lot 3.1, 02/11/2026)
+Le bouton « Scanner » ouvre la caméra. Chaque photo est redressée et éclaircie, puis tu touches « Page suivante » ou « Terminé ». Les pages d'un document deviennent un seul PDF, gardé d'abord sur le téléphone, puis déposé dans le dossier `00_A_CLASSER` (ici un faux dossier « ARCHIVES_PERSONNELLES - FICTIF »). Rien n'est supprimé.
+- `scan_image.js` : bords du papier, redressement, flou, trop sombre, coupé, verso vide.
+- `scan_pdf.js` : assemblage des pages en un PDF.
+- `scan_documents.js` : ordre des pages, nom du fichier, mode rafale.
+- `scan_file.js` : file d'attente sur le téléphone (marche sans réseau).
+- `scan_depot.js` : dépôt dans le Drive, sans doublon ni suppression.
+- `scan_ecran.js` : l'écran, la caméra et les boutons.
+Limites : il faut un papier clair sur un fond plus sombre ; la mise au point ne peut pas être forcée par une page web ; la précision reste en dessous du module de scan de Google.
+
 ## Comment lancer les vérifications automatiques
-Dans un terminal ouvert dans le dossier du projet, taper `python app\test_cap.py`. Il faut que Microsoft Edge soit installé.
+Dans un terminal ouvert dans le dossier du projet, taper `python app\test_cap.py` (application) puis `python app\test_scan.py` (scanner). Il faut que Microsoft Edge soit installé.

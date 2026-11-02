@@ -21,6 +21,7 @@
     </div>
     <button id="basculer-vue" class="visuellement-cache" type="button" aria-expanded="false" aria-controls="ecran-complet">Afficher tout</button>
     <div id="accueil"></div>
+    <button id="ouvrir-scanner" class="bouton-scanner" type="button" aria-haspopup="dialog" aria-controls="scanner">Scanner</button>
     <section id="zone-recherche" aria-label="Recherche">
       <ul id="resultats-recherche" aria-label="Résultats de recherche" hidden></ul>
       <div class="barre-recherche">
@@ -290,6 +291,38 @@
   <dialog id="mode-trier" class="fenetre-tri" aria-labelledby="titre-mode-trier">
     <div class="contenu-tri"></div>
   </dialog>
+  <dialog id="scanner" class="fenetre-scanner" aria-labelledby="titre-scanner">
+    <header class="entete-scanner">
+      <h2 id="titre-scanner">Scanner un document</h2>
+      <span id="scanner-compteur" role="status">Page 1</span>
+    </header>
+    <label class="interrupteur-rafale">
+      <input id="scanner-rafale" type="checkbox">
+      <span>Mode rafale</span>
+    </label>
+    <div id="scanner-camera">
+      <video id="scanner-video" playsinline muted autoplay></video>
+      <p id="scanner-aide">Place le document dans le cadre, bien à plat, sur un fond plus sombre.</p>
+    </div>
+    <p id="scanner-message" role="status" aria-live="polite" hidden></p>
+    <button id="scanner-capturer" type="button">Prendre la photo</button>
+    <label class="bouton-fichier">
+      <span>Utiliser l’appareil photo du téléphone</span>
+      <input id="scanner-fichier" class="visuellement-cache" type="file" accept="image/*" capture="environment">
+    </label>
+    <section id="scanner-revue" aria-label="Aperçu de la page" hidden>
+      <canvas id="scanner-apercu"></canvas>
+      <div class="actions-scanner">
+        <button id="scanner-page-suivante" type="button">Page suivante</button>
+        <button id="scanner-terminer" type="button">Terminé</button>
+        <button id="scanner-reprendre" type="button">Reprendre la photo</button>
+      </div>
+    </section>
+    <ol id="scanner-pages" aria-label="Pages du document"></ol>
+    <p id="scanner-etat" role="status"></p>
+    <button id="scanner-fermer" type="button">Fermer</button>
+    <canvas id="scanner-travail" hidden></canvas>
+  </dialog>
   <dialog id="aide" class="fenetre-aide" aria-labelledby="titre-aide">
     <h2 id="titre-aide" tabindex="-1">Aide : les gestes de Cap</h2>
     <ul class="liste-aide">
@@ -364,6 +397,12 @@
   <script src="fenetres_listes.js"></script>
   <script src="synchro_listes.js"></script>
   <script src="sauvegarde_drive.js"></script>
+  <script src="scan_image.js"></script>
+  <script src="scan_pdf.js"></script>
+  <script src="scan_documents.js"></script>
+  <script src="scan_file.js"></script>
+  <script src="scan_depot.js"></script>
+  <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>
   <script src="app.js"></script>
