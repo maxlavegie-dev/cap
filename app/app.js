@@ -749,6 +749,7 @@
         { id: 'actions', titre: 'Dernières actions', compteur: journalActions.lire().length },
         { id: 'rendez-vous', titre: 'Prochains rendez-vous', compteur: (googleAgenda.lireCache() || []).length },
         { id: 'aujourdhui', titre: 'Aujourd’hui', compteur: actives.filter(estPourAujourdhui).length + rendezVousDuJour().length },
+        { id: 'annuaire', titre: 'Annuaire', compteur: annuaire.tous().length },
         { id: 'trier', titre: 'Trier', compteur: aTrier }
       ],
       categories: [...noms, ...autres].map(nom => ({
@@ -772,6 +773,10 @@
   }
 
   function ouvrirTuile(id, categorie) {
+    if (id === 'annuaire') {
+      ficheContact.ouvrirListe();
+      return;
+    }
     if (id === 'trier') {
       modeTrier.ouvrir(parId('mode-trier'), { surChangement: afficher, gererCategories: fenetresListes.gererCategories });
       return;

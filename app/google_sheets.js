@@ -10,6 +10,7 @@ const googleSheets = (() => {
   const entetesModeles = ['Modèle', 'Étape', 'Retirée le', 'Modifiée le'];
   const entetesCategories = ['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le', 'Ordre'];
   const entetesJournal = ['Date et heure', 'Venu de', 'Ce que Max a dit ou touché', 'Ce que Cap a compris', 'Ce que Cap a fait'];
+  const entetesAnnuaire = ['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique'];
   let fichier = '';
   let ouverture = null;
 
@@ -79,7 +80,8 @@ const googleSheets = (() => {
         { range: plage(REGLAGES_GOOGLE.onglets.journal, 'A1:E'), values: [entetesJournal] },
         { range: plage(REGLAGES_GOOGLE.onglets.phrases_clavier, 'A1:E'),
           values: [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'],
-            ...PHRASES_CLAVIER.map(phrase => [phrase.id, phrase.categorie, phrase.debut, phrase.a_completer, phrase.action])] }
+            ...PHRASES_CLAVIER.map(phrase => [phrase.id, phrase.categorie, phrase.debut, phrase.a_completer, phrase.action])] },
+        { range: plage(REGLAGES_GOOGLE.onglets.annuaire, 'A1:K'), values: [entetesAnnuaire] }
       ]
     });
     await poster(adresse(':batchUpdate'), {
@@ -247,6 +249,44 @@ const googleSheets = (() => {
     ] });
   }
 
+  function contactValeurs(contact) {
+    return ['id', 'nom', 'surnom', 'telephone', 'adresse', 'mail', 'anniversaire', 'note', 'supprime_le', 'modifie_le']
+      .map(champ => contact[champ]).concat([JSON.stringify(contact.historique)]);
+  }
+
+  async function lireAnnuaire() {
+    const titres = ((await lire(adresse('?fields=sheets.properties.title'))).sheets || []).map(feuille => feuille.properties?.title);
+    const nom = REGLAGES_GOOGLE.onglets.annuaire;
+    if (!titres.includes(nom)) return { contacts: [], lignes: 0, manquant: true };
+    const onglet = await lireOnglet(nom, 'A:K', entetesAnnuaire, [11]);
+    const contacts = onglet.contenu.map(([id, nomContact, surnom, telephone, adresse, mail, anniversaire, note, supprime, modifie, historiqueTexte]) => {
+      let historique;
+      try {
+        historique = JSON.parse(historiqueTexte || '[]');
+        if (!Array.isArray(historique)) throw new Error('historique illisible');
+      } catch (erreur) {
+        throw new Error(`Une ligne de l’onglet « ${nom} » est illisible. Je n’y touche pas.`);
+      }
+      return { id, nom: nomContact, surnom, telephone, adresse, mail, anniversaire, note,
+        supprime_le: supprime, modifie_le: modifie, historique };
+    });
+    return { contacts, lignes: onglet.lignes, manquant: false };
+  }
+
+  async function ecrireAnnuaire(donnees) {
+    const lecture = await lireAnnuaire();
+    if (lecture.manquant) {
+      await poster(adresse(':batchUpdate'), { requests: [{
+        addSheet: { properties: { title: REGLAGES_GOOGLE.onglets.annuaire, gridProperties: { frozenRowCount: 1 } } }
+      }] });
+    }
+    const lignes = [entetesAnnuaire, ...donnees.contacts.map(contactValeurs)];
+    while (lignes.length < lecture.lignes) lignes.push(Array(11).fill(''));
+    await poster(adresse('/values:batchUpdate'), { valueInputOption: 'RAW', data: [
+      { range: plage(REGLAGES_GOOGLE.onglets.annuaire, 'A1:K'), values: lignes }
+    ] });
+  }
+
   async function ajouterJournal(lignes) {
     if (!fichier) await trouverOuCreer();
     const nom = REGLAGES_GOOGLE.onglets.journal;
@@ -264,5 +304,5 @@ const googleSheets = (() => {
     });
   }
 
-  return { trouverOuCreer, lireTaches, ecrireTaches, lireListes, ecrireListes, ajouterJournal };
+  return { trouverOuCreer, lireTaches, ecrireTaches, lireListes, ecrireListes, lireAnnuaire, ecrireAnnuaire, ajouterJournal };
 })();

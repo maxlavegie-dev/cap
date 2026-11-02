@@ -15,7 +15,8 @@ const REGLAGES_GOOGLE = Object.freeze({
     etapes_par_defaut: 'Étapes par défaut',
     phrases_clavier: 'Phrases du clavier',
     categories: 'Catégories',
-    journal: 'Journal'
+    journal: 'Journal',
+    annuaire: 'Annuaire'
   }),
   dossier_sauvegardes: 'Cap – FICTIF – Sauvegardes',
   sauvegardes_a_garder: 5,

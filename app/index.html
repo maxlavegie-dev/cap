@@ -257,6 +257,78 @@
       </section>
     </div>
   </dialog>
+  <dialog id="annuaire" aria-labelledby="titre-annuaire">
+    <header class="entete-fiche-rdv">
+      <button id="retour-annuaire" type="button">Retour</button>
+      <h2 id="titre-annuaire">Annuaire</h2>
+    </header>
+    <div id="contenu-annuaire">
+      <p id="erreur-annuaire" class="erreur" role="alert" hidden></p>
+      <p id="statut-annuaire" role="status" aria-live="polite" hidden></p>
+      <section id="liste-contacts-vue" aria-label="Liste des contacts">
+        <input id="recherche-contacts" type="search" placeholder="Chercher un contact…" autocomplete="off">
+        <ul id="liste-contacts"></ul>
+        <button id="nouveau-contact" class="action-principale-rdv" type="button">+ Nouveau contact</button>
+        <button id="basculer-contacts-supprimes" type="button" aria-expanded="false" aria-controls="liste-contacts-supprimes" hidden>Contacts supprimés (0)</button>
+        <ul id="liste-contacts-supprimes" hidden></ul>
+      </section>
+      <section id="consultation-contact" aria-label="Détails du contact" hidden>
+        <div id="cartes-contact"></div>
+        <button id="modifier-contact" class="action-principale-rdv" type="button">Modifier</button>
+        <button id="supprimer-contact" type="button">Supprimer</button>
+      </section>
+      <form id="formulaire-contact" hidden novalidate>
+        <label for="contact-nom">Nom (obligatoire)</label>
+        <input id="contact-nom" name="nom" required autocomplete="off">
+        <label for="contact-surnom">Surnom</label>
+        <input id="contact-surnom" name="surnom" autocomplete="off">
+        <label for="contact-telephone">Téléphone</label>
+        <input id="contact-telephone" name="telephone" type="tel" inputmode="tel" autocomplete="off">
+        <div class="actions-entree-vocale">
+          <button id="dire-telephone" type="button" hidden>Dire le numéro</button>
+          <button id="clavier-telephone" type="button">Clavier numérique</button>
+        </div>
+        <div id="pave-telephone" class="pave-numerique" hidden>
+          <div class="touches-pave"></div>
+          <div class="actions-pave">
+            <button id="pave-effacer" type="button">Effacer</button>
+            <button id="pave-fermer" type="button">OK</button>
+          </div>
+        </div>
+        <label for="contact-adresse">Adresse</label>
+        <textarea id="contact-adresse" name="adresse" rows="2"></textarea>
+        <button id="dire-adresse" type="button" hidden>Dire l’adresse</button>
+        <label for="contact-mail">Mail</label>
+        <input id="contact-mail" name="mail" type="email" autocomplete="off">
+        <label for="contact-anniversaire">Anniversaire (JJ-MM)</label>
+        <input id="contact-anniversaire" name="anniversaire" placeholder="JJ-MM" autocomplete="off">
+        <label for="contact-note">Note</label>
+        <textarea id="contact-note" name="note" rows="3"></textarea>
+        <p class="erreur" role="alert" hidden></p>
+        <div class="actions-dialogue">
+          <button id="annuler-edition-contact" type="button">Annuler</button>
+          <button id="enregistrer-contact" class="action-principale-rdv" type="submit">Enregistrer</button>
+        </div>
+      </form>
+      <section id="recapitulatif-contact" aria-labelledby="titre-recapitulatif-contact" hidden>
+        <h3 id="titre-recapitulatif-contact" tabindex="-1">Ce qui va changer</h3>
+        <div id="changements-contact"></div>
+        <div class="actions-dialogue">
+          <button id="revenir-contact" type="button">Revenir</button>
+          <button id="confirmer-contact" class="action-principale-rdv" type="button">Confirmer</button>
+        </div>
+      </section>
+      <section id="confirmation-suppression-contact" hidden>
+        <h3>Supprimer ce contact ?</h3>
+        <p id="intitule-suppression-contact" class="intitule-dialogue"></p>
+        <p>Le contact ira dans « Contacts supprimés » et pourra être restauré à tout moment. Rien n’est jamais effacé.</p>
+        <div class="actions-dialogue">
+          <button id="annuler-suppression-contact" type="button">Annuler</button>
+          <button id="confirmer-suppression-contact" type="button">Supprimer</button>
+        </div>
+      </section>
+    </div>
+  </dialog>
   <dialog id="reglages-ia" aria-labelledby="titre-reglages-ia">
     <h2 id="titre-reglages-ia" tabindex="-1">Cerveau de Cap</h2>
     <p id="etat-ia"></p>
@@ -394,6 +466,7 @@
   <script src="annulation.js"></script>
   <script src="taches.js"></script>
   <script src="listes_choix.js"></script>
+  <script src="annuaire.js"></script>
   <script src="indices_rangement.js"></script>
   <script src="sous_categories.js"></script>
   <script src="reglages_google.js"></script>
@@ -423,6 +496,8 @@
   <script src="fermeture_fenetres.js"></script>
   <script src="fenetres_listes.js"></script>
   <script src="synchro_listes.js"></script>
+  <script src="synchro_annuaire.js"></script>
+  <script src="fiche_contact.js"></script>
   <script src="sauvegarde_drive.js"></script>
   <script src="scan_image.js"></script>
   <script src="scan_pdf.js"></script>

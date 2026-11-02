@@ -1335,6 +1335,160 @@ dialog button:hover {
   font-size: 14.3px;
 }
 
+#annuaire {
+  width: min(calc(100% - 24px), 520px);
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(165deg, #FDE6C3, #f6f7ec 35%, #e2f3ee);
+}
+
+#annuaire[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+#contenu-annuaire {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #547a83 transparent;
+  overflow-wrap: anywhere;
+}
+
+#annuaire .carte-contact {
+  min-width: 0;
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 1px solid rgb(32 62 73 / 20%);
+  border-radius: 12px;
+  background: #fffef7;
+}
+
+#annuaire .carte-contact h3,
+#annuaire .carte-contact h4 {
+  margin: 0 0 10px;
+  font-size: 18.7px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+#annuaire .carte-contact h4 {
+  margin-top: 14px;
+  font-size: 17.6px;
+}
+
+#annuaire .carte-contact p {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+#annuaire .carte-contact > :last-child {
+  margin-bottom: 0;
+}
+
+#annuaire button,
+#annuaire a,
+.ouvrir-contact {
+  max-width: 100%;
+  min-height: 48px;
+  font: inherit;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ouvrir-contact {
+  display: block;
+  width: 100%;
+  padding: 12px 10px;
+  margin-bottom: 8px;
+  border: 1px solid #8a9d9c;
+  border-radius: 10px;
+  color: var(--encre);
+  background: #fffef7;
+  text-align: left;
+}
+
+.ouvrir-contact:hover,
+.ouvrir-contact:active {
+  background: #e2f3ee;
+}
+
+.ligne-contact-supprime {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+#annuaire .action-principale-rdv {
+  border-color: #315c68;
+  background: #b3ede3;
+  font-weight: 600;
+}
+
+#annuaire .action-principale-rdv:hover,
+#annuaire .action-principale-rdv:active {
+  background: #9adbd0;
+}
+
+#annuaire input,
+#annuaire select,
+#annuaire textarea {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 48px;
+  font: inherit;
+}
+
+#annuaire textarea {
+  resize: vertical;
+}
+
+.actions-entree-vocale {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0;
+}
+
+.pave-numerique {
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid rgb(32 62 73 / 20%);
+  border-radius: 12px;
+  background: #fffef7;
+}
+
+.touches-pave {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.touche-pave {
+  min-height: 56px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.actions-pave {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 #clavier {
   inset: auto 0 0;
   box-sizing: border-box;

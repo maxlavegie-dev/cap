@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -38,6 +38,9 @@ TESTS_JS = r"""
     for (const cle of [CLE_USAGE, CLE_HISTORIQUE, CLE_SILENCE, 'cap_google_file_v1']) localStorage.removeItem(cle);
     const chargement = stockage.charger();
     TACHES.splice(0, TACHES.length, ...chargement.taches);
+    localStorage.removeItem('cap_annuaire_v1');
+    localStorage.removeItem('cap_annuaire_a_envoyer_v1');
+    annuaire.recharger();
   }
 
   function attendre(condition, message) {
@@ -1207,12 +1210,13 @@ TESTS_JS = r"""
     attendre(creation.sheets.every(onglet => onglet.properties.gridProperties.frozenRowCount === 1), 'entêtes non figées');
     const remplissage = c.requetes.find(r => r.url.pathname.endsWith('/values:batchUpdate')).corps;
     attendreEgal(remplissage.valueInputOption, 'RAW', 'écriture brute');
-    attendreEgal(remplissage.data.length, 5, 'cinq onglets remplis');
+    attendreEgal(remplissage.data.length, 6, 'six onglets remplis');
     attendreEgal(remplissage.data[0].values, [ENTETES_GOOGLE, ...c.TACHES.map(ligneGoogle)], 'entêtes et tâches exactes');
     attendreEgal(remplissage.data[1].values, [['Modèle', 'Étape', 'Retirée le', 'Modifiée le'], ...Object.entries(ETAPES_PAR_DEFAUT).flatMap(([modele, etapes]) => etapes.map(etape => [modele, etape, '', '']))], 'modèles');
     attendreEgal(remplissage.data[2].values, [['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le', 'Ordre']], 'catégories');
     attendreEgal(remplissage.data[3].values, [['Date et heure', 'Venu de', 'Ce que Max a dit ou touché', 'Ce que Cap a compris', 'Ce que Cap a fait']], 'journal');
     attendreEgal(remplissage.data[4].values, [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'], ...PHRASES_CLAVIER.map(p => [p.id, p.categorie, p.debut, p.a_completer, p.action])], 'phrases');
+    attendreEgal(remplissage.data[5].values, [['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique']], 'annuaire');
     const validations = c.requetes.find(r => r.url.pathname.endsWith('tableau-fictif:batchUpdate')).corps.requests;
     attendreEgal(validations.map(r => r.setDataValidation.range.startColumnIndex), [4, 14], 'colonnes booléennes');
     attendre(validations.every(r => r.setDataValidation.rule.condition.type === 'BOOLEAN' && r.setDataValidation.rule.strict), 'validation booléenne');
@@ -2527,6 +2531,13 @@ TESTS_JS = r"""
     return { instance, memoire, etapes, fenetre, evenements: () => evenements };
   }
 
+  function annuaireIsolee(memoire = espaceMemoire(), fenetre = new EventTarget()) {
+    let evenements = 0;
+    fenetre.addEventListener('cap-annuaire-changee', () => { evenements += 1; });
+    const instance = objetIsole(SOURCE_ANNUAIRE, 'annuaire', { localStorage: memoire, window: fenetre });
+    return { instance, memoire, fenetre, evenements: () => evenements };
+  }
+
   const boutonTexte = (racine, texte) => Array.from(racine.querySelectorAll('button')).find(bouton => bouton.textContent === texte);
   const texteJour = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
@@ -2970,6 +2981,152 @@ TESTS_JS = r"""
     remettreListesPage();
   });
 
+  test('Annuaire : création, modification avec historique, suppression douce et restauration', () => {
+    attendreErreur(() => annuaire.creerContact({ nom: '   ' }), 'Donne un nom');
+    attendreErreur(() => annuaire.creerContact({ nom: 'Mentor FICTIF', telephone: 'abc' }), 'numéro de téléphone');
+    attendreErreur(() => annuaire.creerContact({ nom: 'Mentor FICTIF', mail: 'pas-un-mail' }), 'adresse mail');
+    attendreErreur(() => annuaire.creerContact({ nom: 'Mentor FICTIF', anniversaire: '31-02' }), 'n’existe pas');
+    attendreErreur(() => annuaire.creerContact({ nom: 'Mentor FICTIF', anniversaire: '2-9' }), 'format JJ-MM');
+    const contact = annuaire.creerContact({ nom: '  Mentor   FICTIF  ', telephone: '06 00 00 00 00', mail: 'mentor.fictif@exemple.test', anniversaire: '29-02' });
+    attendreEgal(contact.nom, 'Mentor FICTIF', 'nom nettoyé');
+    attendre(annuaire.tous().some(item => item.id === contact.id), 'contact listé');
+    attendreEgal(contact.historique.length, 1, 'historique de création');
+    const modifie = annuaire.modifierContact(contact.id, { telephone: '06 11 11 11 11' });
+    attendreEgal(modifie.telephone, '06 11 11 11 11', 'téléphone modifié');
+    const entreeHistorique = modifie.historique.find(e => e.champ === 'telephone');
+    attendreEgal([entreeHistorique.ancienne, entreeHistorique.nouvelle], ['06 00 00 00 00', '06 11 11 11 11'], 'ancienne valeur gardée');
+    const avantModif = modifie.historique.length;
+    annuaire.modifierContact(contact.id, { telephone: '06 11 11 11 11' });
+    attendreEgal(annuaire.trouver(contact.id).historique.length, avantModif, 'aucun changement : pas de nouvelle ligne');
+    annuaire.supprimerContact(contact.id);
+    attendre(!annuaire.tous().some(item => item.id === contact.id), 'contact retiré de la liste active');
+    attendre(annuaire.supprimes().some(item => item.id === contact.id), 'contact dans les supprimés');
+    attendre(!!annuaire.trouver(contact.id).supprime_le, 'date de suppression posée');
+    annuaire.restaurerContact(contact.id);
+    attendre(annuaire.tous().some(item => item.id === contact.id), 'contact restauré');
+    attendreEgal(annuaire.trouver(contact.id).supprime_le, '', 'date de suppression effacée');
+    attendreErreur(() => annuaire.trouver('C-introuvable'), 'introuvable');
+  });
+
+  test('Annuaire : recherche par nom ou surnom, accents et casse ignorés', () => {
+    annuaire.creerContact({ nom: 'Éléonore FICTIF', surnom: 'Léo' });
+    annuaire.creerContact({ nom: 'Leonard FICTIF' });
+    const exact = annuaire.correspondances('leo');
+    attendreEgal(exact.map(c => c.nom), ['Éléonore FICTIF'], 'correspondance exacte au surnom prioritaire');
+    const partiel = annuaire.correspondances('eleonor');
+    attendreEgal(partiel.map(c => c.nom), ['Éléonore FICTIF'], 'recherche partielle sans accent');
+    attendreEgal(annuaire.correspondances(''), [], 'recherche vide : rien');
+    attendreEgal(annuaire.correspondances('zzz-inconnu'), [], 'rien trouvé');
+  });
+
+  test('Annuaire : fusion sans perte, dernière modification gagne, historiques combinés', () => {
+    const m = annuaireIsolee();
+    const local = m.instance.creerContact({ nom: 'Jardinier FICTIF', telephone: '0600000001' });
+    m.instance.marquerEnvoye();
+    const distantPlusRecent = {
+      contacts: [{
+        id: local.id, nom: 'Jardinier FICTIF', surnom: '', telephone: '0600000002', adresse: '', mail: '', anniversaire: '', note: '',
+        supprime_le: '', modifie_le: '2999-01-01T00:00:00.000Z',
+        historique: [...local.historique, { champ: 'telephone', ancienne: '0600000001', nouvelle: '0600000002', date: '2999-01-01T00:00:00.000Z' }]
+      }, {
+        id: 'C-distant-nouveau', nom: 'Voisin FICTIF', surnom: '', telephone: '', adresse: '', mail: '', anniversaire: '', note: '',
+        supprime_le: '', modifie_le: '2999-01-01T00:00:00.000Z', historique: []
+      }]
+    };
+    m.instance.fusionner(distantPlusRecent);
+    attendreEgal(m.instance.trouver(local.id).telephone, '0600000002', 'valeur distante plus récente retenue');
+    attendreEgal(m.instance.trouver(local.id).historique.length, 2, 'historique fusionné sans doublon');
+    attendre(m.instance.tous().some(c => c.id === 'C-distant-nouveau'), 'nouveau contact distant ajouté');
+    const distantPlusAncien = {
+      contacts: [{
+        id: local.id, nom: 'Jardinier FICTIF', surnom: '', telephone: '0000000000', adresse: '', mail: '', anniversaire: '', note: '',
+        supprime_le: '', modifie_le: '2000-01-01T00:00:00.000Z', historique: []
+      }]
+    };
+    m.instance.fusionner(distantPlusAncien);
+    attendreEgal(m.instance.trouver(local.id).telephone, '0600000002', 'valeur locale plus récente gardée, rien d’écrasé');
+    attendre(!m.instance.aEnvoyer(), 'fusion ne marque rien à renvoyer');
+  });
+
+  await testAsync('Google Sheets annuaire : onglet absent puis créé, lecture et écriture sans rien effacer', async c => {
+    c.localStorage.setItem('cap_google_fichier_v1', 'tableau-fictif');
+    let ongletsPresents = ['Tâches'];
+    let lignesAnnuaire = [];
+    c.repondre = async r => {
+      const chemin = decodeURIComponent(r.url.pathname);
+      if (r.methode === 'GET' && chemin === '/drive/v3/files/tableau-fictif') return reponseGoogle({ id: 'tableau-fictif', trashed: false });
+      if (r.methode === 'GET' && chemin === '/v4/spreadsheets/tableau-fictif') return reponseGoogle({ sheets: ongletsPresents.map(title => ({ properties: { title } })) });
+      if (r.methode === 'GET' && chemin.includes('Annuaire')) return reponseGoogle({ values: lignesAnnuaire });
+      if (r.methode === 'POST') return reponseGoogle({});
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const sheets = c.sheets();
+    await sheets.trouverOuCreer();
+    const lecture = await sheets.lireAnnuaire();
+    attendreEgal(lecture.manquant, true, 'onglet Annuaire absent au départ');
+    attendreEgal(lecture.contacts, [], 'rien à lire');
+    const contact = { id: 'C-fictif1', nom: 'Dupont FICTIF', surnom: '', telephone: '0600000000', adresse: '', mail: '',
+      anniversaire: '', note: '', supprime_le: '', modifie_le: 'x', historique: [{ champ: 'créé', ancienne: '', nouvelle: 'Dupont FICTIF', date: 'x' }] };
+    await sheets.ecrireAnnuaire({ contacts: [contact] });
+    const ajoutOnglet = c.requetes.find(r => r.url.pathname.endsWith('tableau-fictif:batchUpdate')).corps.requests;
+    attendreEgal(ajoutOnglet.map(a => a.addSheet.properties.title), ['Annuaire'], 'onglet Annuaire ajouté');
+    const ecriture = c.requetes.find(r => r.url.pathname.endsWith('/values:batchUpdate')).corps;
+    attendreEgal(ecriture.valueInputOption, 'RAW', 'écriture brute');
+    attendreEgal(ecriture.data[0].values[0],
+      ['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique'],
+      'entêtes écrites');
+    attendreEgal(ecriture.data[0].values[1],
+      ['C-fictif1', 'Dupont FICTIF', '', '0600000000', '', '', '', '', '', 'x', JSON.stringify(contact.historique)],
+      'ligne du contact écrite, rien de supprimé');
+    ongletsPresents = [...ongletsPresents, 'Annuaire'];
+    lignesAnnuaire = ecriture.data[0].values;
+    const relue = await sheets.lireAnnuaire();
+    attendreEgal(relue.manquant, false, 'onglet maintenant présent');
+    attendreEgal(relue.contacts.length, 1, 'un contact relu');
+    attendreEgal(relue.contacts[0].historique, contact.historique, 'historique JSON relu sans perte');
+    lignesAnnuaire = [['Identifiant', 'Nom'], ['C-fictif1', 'Dupont FICTIF']];
+    await attendreRejet(() => sheets.lireAnnuaire(), 'illisibles');
+    lignesAnnuaire = [
+      ['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique'],
+      ['C-fictif1', 'Dupont FICTIF', '', '', '', '', '', '', '', 'x', 'pas-du-json']
+    ];
+    await attendreRejet(() => sheets.lireAnnuaire(), 'illisible');
+  });
+
+  await testAsync('Synchro annuaire : lit, fusionne, écrit, puis seulement après un changement', async c => {
+    const memoire = espaceMemoire();
+    const a = annuaireIsolee(memoire, c.window);
+    const ecritures = [];
+    let echec = false;
+    const fauxSheets = {
+      trouverOuCreer: async () => ({ id: 'tableau-fictif', cree: false }),
+      lireAnnuaire: async () => ({ contacts: [{ id: 'C-distant', nom: 'Distant FICTIF', surnom: '', telephone: '', adresse: '', mail: '',
+        anniversaire: '', note: '', supprime_le: '', modifie_le: 'x', historique: [] }] }),
+      ecrireAnnuaire: async donnees => {
+        if (echec) throw new Error('panne simulée');
+        ecritures.push(donnees);
+      }
+    };
+    const synchro = objetIsole(SOURCE_SYNCHRO_ANNUAIRE, 'synchroAnnuaire', {
+      googleConnexion: c.googleConnexion, navigator: c.navigator, googleSheets: fauxSheets, annuaire: a.instance,
+      localStorage: memoire, window: c.window, setInterval: c.setInterval
+    });
+    attendreEgal(await synchro.synchroniser(), true, 'première synchronisation');
+    attendreEgal(ecritures.length, 1, 'une écriture');
+    attendre(ecritures[0].contacts.some(contact => contact.id === 'C-distant') && a.instance.tous().some(c2 => c2.id === 'C-distant'), 'fusion absente');
+    attendreEgal(await synchro.synchroniser(), false, 'rien à refaire');
+    attendreEgal(ecritures.length, 1, 'pas de réécriture inutile');
+    a.instance.creerContact({ nom: 'Nouveau FICTIF' });
+    await synchro.synchroniser();
+    attendreEgal(ecritures.length, 2, 'changement envoyé');
+    attendre(ecritures[1].contacts.some(contact => contact.nom === 'Nouveau FICTIF'), 'nouveau contact absent de l’écriture');
+    echec = true;
+    a.instance.creerContact({ nom: 'Perdu FICTIF' });
+    attendreEgal(await synchro.synchroniser(), false, 'échec signalé sans exception');
+    attendre(synchro.erreur().includes('panne simulée'), `erreur rapportée : ${synchro.erreur()}`);
+    attendre(a.instance.aEnvoyer(), 'un échec garde la marque « à envoyer »');
+  });
+
   await testAsync('Google Sheets listes : lecture, ancien entête, onglet Catégories ajouté sans rien effacer', async c => {
     c.localStorage.setItem('cap_google_fichier_v1', 'tableau-fictif');
     let ongletsPresents = ['Tâches', 'Étapes par défaut', 'Phrases du clavier'];
@@ -3309,8 +3466,8 @@ TESTS_JS = r"""
     const ui = preparerInterface(c);
     const tuilesAffichees = Array.from(ui.parId('tuiles').querySelectorAll('.tuile'));
     const titres = tuilesAffichees.map(t => t.querySelector('.titre-tuile').textContent);
-    attendreEgal(titres.slice(0, 4), ['Dernières actions', 'Prochains rendez-vous', 'Aujourd’hui', 'Trier'], 'tuiles fixes');
-    attendreEgal(titres[4], 'À trier', 'À trier pas en premier');
+    attendreEgal(titres.slice(0, 5), ['Dernières actions', 'Prochains rendez-vous', 'Aujourd’hui', 'Annuaire', 'Trier'], 'tuiles fixes');
+    attendreEgal(titres[5], 'À trier', 'À trier pas en premier');
     attendreEgal(titres.slice(-3), ['Tout', '+ Ajouter', 'Modifier'], 'tuiles de fin');
     const compteur = titre => tuilesAffichees.find(t => t.querySelector('.titre-tuile').textContent === titre).querySelector('.compteur-tuile')?.textContent;
     attendreEgal(compteur('À trier'), '(2)', 'compteur À trier');
@@ -3321,7 +3478,7 @@ TESTS_JS = r"""
     attendreEgal(compteur('Tout'), '(3)', 'compteur Tout');
     attendre(tuilesAffichees.filter(t => t.classList.contains('tuile-fixe')).every(t => !t.classList.contains('deplacable') && !t.querySelector('.micro-tuile')), 'tuile fixe déplaçable');
     attendre(tuilesAffichees.filter(t => t.classList.contains('tuile-categorie')).every(t => t.querySelector('.micro-tuile')), 'micro absent');
-    attendre(!tuilesAffichees[4].classList.contains('deplacable'), 'À trier déplaçable');
+    attendre(!tuilesAffichees[5].classList.contains('deplacable'), 'À trier déplaçable');
     attendreEgal(ui.parId('ecran-complet').dataset.vue, 'tuiles', 'vue de départ');
     attendre(ui.parId('liste-taches').classList.contains('hors-vue'), 'longue liste visible sous les tuiles');
   });
@@ -4338,8 +4495,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v25['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v25")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v26['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v26")
 
 
 def verifier_precache_fichiers_existent():
@@ -4440,6 +4597,8 @@ def construire_page():
         "SOURCE_JOURNAL_ACTIONS": "journal_actions.js",
         "SOURCE_FICHE_RDV": "fiche_rendezvous.js",
         "SOURCE_LISTES_CHOIX": "listes_choix.js",
+        "SOURCE_ANNUAIRE": "annuaire.js",
+        "SOURCE_SYNCHRO_ANNUAIRE": "synchro_annuaire.js",
         "SOURCE_CHOIX_DATES": "choix_dates.js",
         "SOURCE_FENETRES_LISTES": "fenetres_listes.js",
         "SOURCE_FERMETURE_FENETRES": "fermeture_fenetres.js",
