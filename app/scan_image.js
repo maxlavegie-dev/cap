@@ -15,6 +15,9 @@ const scanImage = (() => {
     aire_document_max: 0.97,
     remplissage_quad_min: 0.7,
     remplissage_quad_max: 1.15,
+    cadre_occupe_min: 0.12,
+    fond_blanc_min: 0.55,
+    couleur_max: 0.1,
     encre_page_vide_max: 0.004,
     contraste_page_vide_max: 22
   });
@@ -141,30 +144,98 @@ const scanImage = (() => {
     return Math.abs(somme) / 2;
   }
 
-  // Cherche les quatre coins du document (papier clair sur fond plus sombre).
-  // Retourne { coins, coupe, aire } ou null si les bords ne sont pas trouvés.
-  function trouverDocument(image) {
-    const petit = reduire(image, cote_analyse);
-    const { width: l, height: h } = petit;
-    const g = gris(petit);
-    const seuil = seuilOtsu(g);
+  // Érosion ou dilatation 3x3 (le dehors du cadre compte comme « plein » pour l'érosion : un bord de page n'est pas rongé).
+  function filtre3(masque, l, h, erosion) {
+    const sortie = new Uint8Array(l * h);
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < l; x++) {
+        let valeur = erosion ? 1 : 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const xx = x + dx, yy = y + dy;
+            const dehors = xx < 0 || yy < 0 || xx >= l || yy >= h;
+            const plein = dehors ? erosion : masque[yy * l + xx] === 1;
+            if (erosion && !plein) valeur = 0;
+            if (!erosion && plein) valeur = 1;
+          }
+        }
+        sortie[y * l + x] = valeur;
+      }
+    }
+    return sortie;
+  }
+
+  // Fermeture (comble les trous du texte) puis ouverture : efface les fines fuites (grain du bois, ombres) qui collent à la page.
+  function ouvrirMasque(masque, l, h, tours) {
+    let courant = masque;
+    for (let t = 0; t < tours; t++) courant = filtre3(courant, l, h, false);
+    for (let t = 0; t < tours; t++) courant = filtre3(courant, l, h, true);
+    for (let t = 0; t < tours; t++) courant = filtre3(courant, l, h, true);
+    for (let t = 0; t < tours; t++) courant = filtre3(courant, l, h, false);
+    return courant;
+  }
+
+  function mediane(valeurs) {
+    const copie = Float32Array.from(valeurs).sort();
+    return copie[Math.floor(copie.length / 2)] || 0;
+  }
+
+  // Masque « différent du fond » : le fond est la couleur médiane du pourtour de la photo.
+  function masqueCouleur(petit, l, h) {
+    const rouge = [], vert = [], bleu = [];
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < l; x++) {
+        if (x >= 3 && y >= 3 && x < l - 3 && y < h - 3) { x = l - 3 - 1; continue; }
+        const p = (y * l + x) * 4;
+        rouge.push(petit.data[p]); vert.push(petit.data[p + 1]); bleu.push(petit.data[p + 2]);
+      }
+    }
+    const fr = mediane(rouge), fv = mediane(vert), fb = mediane(bleu);
+    const distance = new Float32Array(l * h);
+    for (let i = 0, p = 0; i < distance.length; i++, p += 4) {
+      distance[i] = Math.hypot(petit.data[p] - fr, petit.data[p + 1] - fv, petit.data[p + 2] - fb) * 255 / 441;
+    }
+    const seuil = seuilOtsu(distance);
     const masque = new Uint8Array(l * h);
+    for (let i = 0; i < masque.length; i++) if (distance[i] > seuil) masque[i] = 1;
+    return masque;
+  }
+
+  // Plus longue suite de pixels de la page le long d'un côté du cadre, en part de ce côté : si la page dépasse du cadre, elle est longue.
+  function partDeCadreOccupee(etiquette, id, l, h) {
+    const cotes = [
+      [l, i => etiquette[i]], [l, i => etiquette[(h - 1) * l + i]],
+      [h, i => etiquette[i * l]], [h, i => etiquette[i * l + l - 1]]
+    ];
+    let meilleure = 0;
+    for (const [longueur, lire] of cotes) {
+      let suite = 0, max = 0;
+      for (let i = 0; i < longueur; i++) {
+        if (lire(i) === id) { suite++; if (suite > max) max = suite; } else suite = 0;
+      }
+      meilleure = Math.max(meilleure, max / longueur);
+    }
+    return meilleure;
+  }
+
+  // Évalue un masque « page » : retourne le document trouvé avec une pénalité (plus petite = plus sûr), ou null.
+  function evaluerMasque(masque, g, image, l, h) {
     let clairs = 0;
-    for (let i = 0; i < masque.length; i++) { if (g[i] > seuil) { masque[i] = 1; clairs++; } }
+    for (let i = 0; i < masque.length; i++) clairs += masque[i];
     const part = clairs / masque.length;
     if (part < REGLAGES.aire_document_min * 0.8 || part > 0.995) return null;
-    const { etiquette, id, taille } = composantePrincipale(masque, l, h);
+    const ouvert = ouvrirMasque(masque, l, h, 2);
+    const { etiquette, id, taille } = composantePrincipale(ouvert, l, h);
     if (!id) return null;
     const aire = taille / (l * h);
     if (aire < REGLAGES.aire_document_min || aire > REGLAGES.aire_document_max) return null;
     let hg = null, bd = null, hd = null, bg = null;
     let scoreHg = Infinity, scoreBd = -Infinity, scoreHd = -Infinity, scoreBg = Infinity;
-    const bande = 2;
-    let touche = false;
+    let sommeDedans = 0, sommeDehors = 0;
     for (let y = 0; y < h; y++) {
       for (let x = 0; x < l; x++) {
-        if (etiquette[y * l + x] !== id) continue;
-        if (x < bande || y < bande || x >= l - bande || y >= h - bande) touche = true;
+        if (etiquette[y * l + x] !== id) { sommeDehors += g[y * l + x]; continue; }
+        sommeDedans += g[y * l + x];
         const somme = x + y, difference = x - y;
         if (somme < scoreHg) { scoreHg = somme; hg = { x, y }; }
         if (somme > scoreBd) { scoreBd = somme; bd = { x, y }; }
@@ -177,9 +248,30 @@ const scanImage = (() => {
     if (!aireQuad) return null;
     const remplissage = taille / aireQuad;
     if (remplissage < REGLAGES.remplissage_quad_min || remplissage > REGLAGES.remplissage_quad_max) return null;
-    const echelle = image.width / l;
-    const coins = quad.map(p => ({ x: (p.x + 0.5) * echelle, y: (p.y + 0.5) * (image.height / h) }));
-    return { coins, coupe: touche, aire };
+    const coupe = partDeCadreOccupee(etiquette, id, l, h) >= REGLAGES.cadre_occupe_min;
+    const dehors = l * h - taille;
+    const plusSombre = dehors > 0 && sommeDedans / taille < sommeDehors / dehors - 10;
+    const penalite = Math.abs(1 - remplissage) + (plusSombre ? 0.15 : 0) + (coupe ? 0.03 : 0);
+    const echelleX = image.width / l, echelleY = image.height / h;
+    const coins = quad.map(p => ({ x: (p.x + 0.5) * echelleX, y: (p.y + 0.5) * echelleY }));
+    return { coins, coupe, aire, penalite };
+  }
+
+  // Cherche les quatre coins du document, avec deux méthodes (page plus claire que le fond, page différente de la couleur du fond)
+  // et garde la plus cohérente. « coupé » = la page dépasse réellement du cadre sur une partie notable d'un côté.
+  // Retourne { coins, coupe, aire } ou null si les bords ne sont pas trouvés.
+  function trouverDocument(image) {
+    const petit = reduire(image, cote_analyse);
+    const { width: l, height: h } = petit;
+    const g = gris(petit);
+    const seuil = seuilOtsu(g);
+    const masqueClair = new Uint8Array(l * h);
+    for (let i = 0; i < masqueClair.length; i++) if (g[i] > seuil) masqueClair[i] = 1;
+    const candidats = [
+      evaluerMasque(masqueClair, g, image, l, h),
+      evaluerMasque(masqueCouleur(petit, l, h), g, image, l, h)
+    ].filter(Boolean).sort((a, b) => a.penalite - b.penalite);
+    return candidats.length ? candidats[0] : null;
   }
 
   function homographie(c) {
@@ -234,21 +326,152 @@ const scanImage = (() => {
     return sortie;
   }
 
-  // Étire les niveaux pour que le papier devienne blanc (aspect « vrai scan »).
-  function eclaircir(image) {
-    const g = gris(image);
-    const bas = percentile(g, 0.02);
-    const haut = percentile(g, 0.9);
-    if (haut - bas < 20) return image;
-    const sortie = creer(image.width, image.height);
-    const pente = 255 / (haut - bas);
-    for (let p = 0; p < image.data.length; p += 4) {
-      for (let k = 0; k < 3; k++) {
-        sortie.data[p + k] = Math.max(0, Math.min(255, (image.data[p + k] - bas) * pente));
-      }
-      sortie.data[p + 3] = 255;
+  function valeurHisto(histo, total, fraction) {
+    const cible = fraction * total;
+    let cumul = 0;
+    for (let t = 0; t < histo.length; t++) {
+      cumul += histo[t];
+      if (cumul >= cible) return t;
     }
-    return sortie;
+    return histo.length - 1;
+  }
+
+  // Estime l'éclairage de la page : pour chaque petit bloc et chaque couleur, la valeur du fond (papier), lissée.
+  // Retourne une fonction (x, y, sortie) qui écrit dans sortie la couleur du fond en ce point.
+  function estimerFond(image) {
+    const { width: w, height: h, data } = image;
+    const bloc = Math.max(8, Math.round(Math.max(w, h) / 40));
+    const gx = Math.ceil(w / bloc), gy = Math.ceil(h / bloc);
+    const histos = new Uint16Array(gx * gy * 768);
+    const nombres = new Uint32Array(gx * gy);
+    for (let y = 0; y < h; y++) {
+      const ligne = Math.floor(y / bloc) * gx;
+      for (let x = 0; x < w; x++) {
+        const b = ligne + Math.floor(x / bloc);
+        const base = b * 768, p = (y * w + x) * 4;
+        histos[base + data[p]]++; histos[base + 256 + data[p + 1]]++; histos[base + 512 + data[p + 2]]++;
+        nombres[b]++;
+      }
+    }
+    let fond = new Float32Array(gx * gy * 3);
+    for (let b = 0; b < gx * gy; b++) {
+      for (let k = 0; k < 3; k++) {
+        fond[b * 3 + k] = valeurHisto(histos.subarray(b * 768 + k * 256, b * 768 + k * 256 + 256), nombres[b], 0.9);
+      }
+    }
+    const globaux = [0, 1, 2].map(k => {
+      const valeurs = [];
+      for (let b = 0; b < gx * gy; b++) valeurs.push(fond[b * 3 + k]);
+      valeurs.sort((a, c) => a - c);
+      return valeurs[Math.floor(valeurs.length * 0.9)] || 1;
+    });
+    for (let b = 0; b < gx * gy; b++) for (let k = 0; k < 3; k++) fond[b * 3 + k] = Math.max(fond[b * 3 + k], globaux[k] * 0.5, 1);
+    for (const maximum of [true, false]) {
+      const suite = new Float32Array(fond.length);
+      for (let by = 0; by < gy; by++) {
+        for (let bx = 0; bx < gx; bx++) {
+          for (let k = 0; k < 3; k++) {
+            let valeur = maximum ? 0 : 0, n = 0;
+            for (let dy = -1; dy <= 1; dy++) {
+              for (let dx = -1; dx <= 1; dx++) {
+                const xx = Math.max(0, Math.min(gx - 1, bx + dx)), yy = Math.max(0, Math.min(gy - 1, by + dy));
+                const v = fond[(yy * gx + xx) * 3 + k];
+                valeur = maximum ? Math.max(valeur, v) : valeur + v;
+                n++;
+              }
+            }
+            suite[(by * gx + bx) * 3 + k] = maximum ? valeur : valeur / n;
+          }
+        }
+      }
+      fond = suite;
+    }
+    const colonnes = new Array(w), lignes = new Array(h);
+    const position = (i, taille, grille) => {
+      const f = Math.max(0, Math.min(grille - 1, (i + 0.5) / taille * grille - 0.5));
+      const i0 = Math.floor(f);
+      return [i0, Math.min(grille - 1, i0 + 1), f - i0];
+    };
+    for (let x = 0; x < w; x++) colonnes[x] = position(x, bloc * gx, gx).map((v, i) => (i === 2 ? v : v));
+    for (let y = 0; y < h; y++) lignes[y] = position(y, bloc * gy, gy);
+    return (x, y, sortie) => {
+      const [x0, x1, fx] = colonnes[x], [y0, y1, fy] = lignes[y];
+      for (let k = 0; k < 3; k++) {
+        const haut = fond[(y0 * gx + x0) * 3 + k] * (1 - fx) + fond[(y0 * gx + x1) * 3 + k] * fx;
+        const bas = fond[(y1 * gx + x0) * 3 + k] * (1 - fx) + fond[(y1 * gx + x1) * 3 + k] * fx;
+        sortie[k] = haut * (1 - fy) + bas * fy;
+      }
+    };
+  }
+
+  // Améliore la page automatiquement, sans réglage :
+  // - page écrite (papier clair, peu de couleur) : éclairage égalisé, fond blanchi, noir du texte renforcé ;
+  // - page en couleur ou photo : traitement doux (éclairage corrigé à moitié, niveaux étirés, couleurs gardées).
+  function ameliorer(image) {
+    const { width: w, height: h, data } = image;
+    const fondEn = estimerFond(image);
+    const f = [0, 0, 0];
+    const histoNormal = new Uint32Array(256), histoGain = new Uint32Array(256);
+    let echantillons = 0, fonds = 0, colores = 0;
+    const gains = new Float32Array(w * h);
+    let fondMax = 0;
+    for (let y = 0; y < h; y += 4) for (let x = 0; x < w; x += 4) {
+      fondEn(x, y, f);
+      fondMax = Math.max(fondMax, 0.299 * f[0] + 0.587 * f[1] + 0.114 * f[2]);
+    }
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const i = y * w + x;
+        if (y % 3 || x % 3) continue;
+        fondEn(x, y, f);
+        const p = i * 4;
+        const r = data[p], v = data[p + 1], b = data[p + 2];
+        const lumFond = 0.299 * f[0] + 0.587 * f[1] + 0.114 * f[2];
+        const n = Math.min(1.2, (0.299 * r / f[0] + 0.587 * v / f[1] + 0.114 * b / f[2]));
+        const gain = Math.max(0.8, Math.min(1.6, Math.sqrt(fondMax / lumFond)));
+        const lum = (0.299 * r + 0.587 * v + 0.114 * b) * gain;
+        histoNormal[Math.min(255, Math.round(n * 255))]++;
+        histoGain[Math.min(255, Math.round(lum))]++;
+        echantillons++;
+        if (n > 0.85) fonds++;
+        const maxi = Math.max(r, v, b), mini = Math.min(r, v, b);
+        if (maxi > 60 && (maxi - mini) / maxi > 0.35) colores++;
+      }
+    }
+    const partFond = fonds / echantillons, partCouleur = colores / echantillons;
+    const texte = partFond >= REGLAGES.fond_blanc_min && partCouleur < REGLAGES.couleur_max;
+    const sortie = creer(w, h);
+    if (texte) {
+      const noir = Math.min(0.45, valeurHisto(histoNormal, echantillons, 0.01) / 255 + 0.12);
+      const blanc = 0.88;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const p = (y * w + x) * 4;
+          fondEn(x, y, f);
+          for (let k = 0; k < 3; k++) {
+            const t = Math.max(0, Math.min(1, (data[p + k] / f[k] - noir) / (blanc - noir)));
+            sortie.data[p + k] = 255 * t * t * (3 - 2 * t);
+          }
+          sortie.data[p + 3] = 255;
+        }
+      }
+      return { page: sortie, mode: 'texte' };
+    }
+    const bas = valeurHisto(histoGain, echantillons, 0.01) * 0.6;
+    const haut = Math.max(bas + 40, valeurHisto(histoGain, echantillons, 0.98));
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const p = (y * w + x) * 4;
+        fondEn(x, y, f);
+        const lumFond = 0.299 * f[0] + 0.587 * f[1] + 0.114 * f[2];
+        const gain = Math.max(0.8, Math.min(1.6, Math.sqrt(fondMax / lumFond)));
+        for (let k = 0; k < 3; k++) {
+          sortie.data[p + k] = Math.max(0, Math.min(255, (data[p + k] * gain - bas) * 255 / (haut - bas)));
+        }
+        sortie.data[p + 3] = 255;
+      }
+    }
+    return { page: sortie, mode: 'doux' };
   }
 
   // Page blanche (verso vide) : presque aucune encre et contraste très faible.
@@ -306,10 +529,11 @@ const scanImage = (() => {
       redressee = true;
     }
     const qualite = analyserQualite(image, document);
-    page = eclaircir(page);
+    const amelioree = ameliorer(page);
+    page = amelioree.page;
     const vide = analyserVide(page);
-    return { page, redressee, bords_trouves: Boolean(document), qualite, vide: vide.vide, coins: document ? document.coins : null };
+    return { page, mode: amelioree.mode, redressee, bords_trouves: Boolean(document), qualite, vide: vide.vide, coins: document ? document.coins : null };
   }
 
-  return { REGLAGES, creer, reduire, gris, trouverDocument, redresser, eclaircir, analyserVide, analyserQualite, phrase, traiter, homographie };
+  return { REGLAGES, creer, reduire, gris, trouverDocument, redresser, ameliorer, analyserVide, analyserQualite, phrase, traiter, homographie };
 })();

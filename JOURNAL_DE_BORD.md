@@ -130,8 +130,14 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - Avant le lot 3.2 : rappeler à Max ce qu'il reste à valider sur la clé de Haiku (expire le 29/11/2026) et sur le plafond de 4 € par mois, et reposer la question « application Android native ou non ».
   - La copie de « Instructions de Cap.md » est ancienne : le Drive a reçu « Brouillon » dans les fichiers copiés en Markdown, la Fonction 10 (choix du modèle d'IA) et la Fonction 11 (lecture du Dictionnaire général). À relire quand Max remplacera le fichier.
 
+- 02/11/2026 : **trois corrections du scanner demandées par Max après son essai (pas encore publiées)**.
+  - (c) Bords : deux méthodes (page plus claire que le fond, page différente de la couleur du fond), on garde la plus cohérente. Fermeture puis ouverture du masque pour effacer le grain du bois. « Coupé » seulement si la page longe réellement une partie notable (12 %) d'un côté du cadre.
+  - (a) Image trop sombre : cause non prouvée avec le téléphone virtuel. Deux causes probables corrigées : l'ancien étirement global laissait la page grise quand l'éclairage est inégal, et l'image vidéo est plus sombre qu'une vraie photo. Cap prend maintenant une vraie photo fixe (`ImageCapture`) si le téléphone le permet, sinon l'image vidéo. À confirmer sur le téléphone de Max.
+  - (b) Amélioration automatique : fond estimé par petits blocs, puis mode « texte » (fond blanchi et uniforme, noir renforcé) ou mode « doux » (couleurs gardées), choisi tout seul. Pas d'IA, aucun réglage.
+  - Tests : 31 pour le scanner, 236 pour le reste. Cache : cap-v21.
+
 ### En cours
-- Lot 3.1 (scanner) prêt côté code et testé ; à publier avec l'accord de Max, puis à essayer sur son téléphone avec un vrai document.
+- Lot 3.1 (scanner) publié ; trois corrections faites et testées, à publier avec l'accord de Max puis à essayer sur son téléphone.
 - Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
 - Lot 6 : Haiku prêt, fiche à coller par Max dans Cap ; en attente de son feu vert sur la clé. Étape suivante : verrouillage par empreinte, obligatoire avant toute vraie donnée. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
 - Question en attente : le texte des Lots 7 à 16 n'est pas dans le projet, et le Complément 6 interdit le Lot 7 sans validation complète du Lot 6.

@@ -199,6 +199,16 @@ const scanEcran = (() => {
 
     async function capturerDepuisCamera() {
       if (!flux || !video.videoWidth) { dire('La caméra n’est pas prête.'); return; }
+      // Photo fixe pleine résolution (exposition de la vraie photo) si le téléphone la permet ; sinon image de la vidéo.
+      if (typeof ImageCapture === 'function') {
+        try {
+          const piste = flux.getVideoTracks()[0];
+          const blob = await new ImageCapture(piste).takePhoto();
+          if (blob && blob.size > 0) { await capturerDepuisFichier(blob); return; }
+        } catch (erreur) {
+          // Repli : on garde l’image de la vidéo.
+        }
+      }
       const echelle = Math.min(1, cote_photo_max / Math.max(video.videoWidth, video.videoHeight));
       travail.width = Math.round(video.videoWidth * echelle);
       travail.height = Math.round(video.videoHeight * echelle);

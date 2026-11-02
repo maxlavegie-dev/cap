@@ -129,6 +129,83 @@ TESTS_JS = r"""
     attendre(scanImage.phrase(r.qualite.alertes).includes('coupé'), 'phrase');
   });
 
+  // Scène en couleur : fond « bois » avec grain, papier, ombre douce, éclairage inégal, encre (tout fictif).
+  function sceneCouleur(opts = {}) {
+    const l = 640, h = 480;
+    const quad = opts.quad || [[110, 60], [520, 80], [500, 420], [130, 400]];
+    const texte = rapetisser(quad, 0.85);
+    const image = scanImage.creer(l, h);
+    let graine = 12345;
+    const hasard = () => { graine = (graine * 1103515245 + 12345) & 0x7fffffff; return graine / 0x7fffffff; };
+    const papier = opts.papier || [232, 230, 222];
+    const base = opts.base || [170, 120, 75];
+    for (let y = 0; y < h; y++) for (let x = 0; x < l; x++) {
+      const p = (y * l + x) * 4;
+      let c;
+      if (dansQuad(quad, x, y)) {
+        const lumiere = opts.degrade ? 1 - opts.degrade * (x / l) : 1;
+        c = papier.map(v => v * lumiere);
+        if (opts.encre !== false && y % 6 < 2 && x % 16 < 10 && dansQuad(texte, x, y)) c = [35, 35, 45];
+        if (opts.couleur && dansQuad(texte, x, y) && ((x >> 4) + (y >> 4)) % 2) c = opts.couleur;
+      } else {
+        const grain = ((x >> 1) % 7 === 0 ? 40 : 0) + (hasard() - 0.5) * 70;
+        c = base.map(v => Math.max(0, Math.min(255, v + grain)));
+      }
+      image.data[p] = c[0]; image.data[p + 1] = c[1]; image.data[p + 2] = c[2]; image.data[p + 3] = 255;
+    }
+    return image;
+  }
+  const attendusBois = [[110, 60], [520, 80], [500, 420], [130, 400]];
+
+  await test('bois : papier sur une table en bois, coins trouvés et pas de fausse alerte « coupé »', () => {
+    const d = scanImage.trouverDocument(sceneCouleur());
+    attendre(d, 'document non trouvé sur le bois');
+    d.coins.forEach((c, i) => attendre(Math.hypot(c.x - attendusBois[i][0], c.y - attendusBois[i][1]) < 14, `coin ${i} : ${c.x},${c.y}`));
+    attendre(!d.coupe, 'faussement coupé sur le bois');
+  });
+
+  await test('bois : une page vraiment coupée reste signalée', () => {
+    const d = scanImage.trouverDocument(sceneCouleur({ quad: [[-40, 60], [520, 80], [500, 420], [-30, 400]] }));
+    attendre(d && d.coupe, 'coupure non détectée sur le bois');
+  });
+
+  await test('lisibilité : éclairage inégal, le fond devient blanc et uniforme, l’encre reste noire', () => {
+    const r = scanImage.traiter(sceneCouleur({ degrade: 0.55 }));
+    attendre(r.mode === 'texte', `mode ${r.mode}`);
+    const { width: l, height: h, data } = r.page;
+    const medianes = [];
+    for (const [qx, qy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+      const v = [];
+      for (let y = Math.floor(h * (0.05 + qy * 0.5)); y < h * (0.45 + qy * 0.5); y += 2) for (let x = Math.floor(l * (0.05 + qx * 0.5)); x < l * (0.45 + qx * 0.5); x += 2) v.push(data[(y * l + x) * 4 + 1]);
+      v.sort((a, b) => a - b);
+      medianes.push(v[Math.floor(v.length / 2)]);
+    }
+    attendre(Math.max(...medianes) - Math.min(...medianes) < 25, `fond inégal : ${medianes}`);
+    attendre(Math.min(...medianes) > 235, `fond pas assez blanc : ${medianes}`);
+    let noirs = 0;
+    for (let p = 0; p < data.length; p += 4) if (data[p] < 60) noirs++;
+    attendre(noirs > l * h * 0.02, 'l’encre a disparu');
+  });
+
+  await test('lisibilité : une page sombre (papier gris) devient claire', () => {
+    const r = scanImage.traiter(sceneCouleur({ papier: [120, 118, 112], base: [60, 40, 25] }));
+    attendre(r.bords_trouves, 'bords non trouvés');
+    const { width: l, height: h, data } = r.page;
+    const v = [];
+    for (let y = 2; y < h; y += 3) for (let x = 2; x < l; x += 3) v.push(data[(y * l + x) * 4]);
+    v.sort((a, b) => a - b);
+    attendre(v[Math.floor(v.length * 0.7)] > 235, `fond ${v[Math.floor(v.length * 0.7)]}`);
+  });
+
+  await test('lisibilité : page très colorée = traitement doux, couleurs gardées', () => {
+    const r = scanImage.traiter(sceneCouleur({ couleur: [200, 40, 40], encre: false }));
+    attendre(r.mode === 'doux', `mode ${r.mode}`);
+    let rouges = 0;
+    const { data } = r.page;
+    for (let p = 0; p < data.length; p += 4) if (data[p] > 150 && data[p + 1] < 90 && data[p + 2] < 90) rouges++;
+    attendre(rouges > 2000, `rouge perdu : ${rouges}`);
+  });
+
   await test('netteté : page nette sans alerte, page floue avec alerte', () => {
     const nette = scanImage.analyserQualite(scene());
     const floue = scanImage.analyserQualite(flouter(scene(), 6));
