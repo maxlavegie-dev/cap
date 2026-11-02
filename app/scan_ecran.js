@@ -348,13 +348,17 @@ const scanEcran = (() => {
       nomErreur.hidden = true;
       nomValide = verdict.base;
       champNom.value = verdict.base;
-      nomStatut.textContent = `Nom validé : ${verdict.base}.pdf. Il sera utilisé au dépôt ; le nom d’origine est gardé.`;
+      const confirmation = `Nom enregistré : ${verdict.base}.pdf. Il sera utilisé quand tu appuieras sur « Terminé » ; le nom d’origine est gardé.`;
+      nomStatut.textContent = confirmation;
+      dire(confirmation);
     }
 
     function garderNomProvisoire() {
       nomValide = '';
       nomErreur.hidden = true;
-      nomStatut.textContent = 'Nom provisoire gardé. La proposition reste enregistrée avec le scan.';
+      const confirmation = 'Nom provisoire enregistré : le scan gardera son nom SCAN-… fixé à « Terminé ». La proposition reste gardée avec le scan.';
+      nomStatut.textContent = confirmation;
+      dire(confirmation);
     }
 
     // Pages que la lecture enverrait : celles déjà gardées, plus celle en aperçu (qui remplace l'ancienne si on reprend une page).

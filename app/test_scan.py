@@ -902,7 +902,8 @@ TESTS_JS = r"""
       attendre(e.id('scanner-nom-statut').textContent.includes('Rien n’est renommé'), 'statut');
       saisir(e, '2026-10 - magazine - métropole fictif - numéro 65');
       cliquer(e.id('scanner-nom-valider'));
-      attendre(e.id('scanner-nom-statut').textContent.includes('Nom validé : 2026-10 - MAGAZINE - METROPOLE FICTIF - NUMERO 65.pdf'), 'validation : ' + e.id('scanner-nom-statut').textContent);
+      attendre(e.id('scanner-nom-statut').textContent.includes('Nom enregistré : 2026-10 - MAGAZINE - METROPOLE FICTIF - NUMERO 65.pdf'), 'validation : ' + e.id('scanner-nom-statut').textContent);
+      attendre(e.id('scanner-message').textContent.includes('Nom enregistré : 2026-10 - MAGAZINE - METROPOLE FICTIF - NUMERO 65.pdf') && !e.id('scanner-message').hidden, 'confirmation non visible tout de suite : ' + e.id('scanner-message').textContent);
       cliquer(e.id('scanner-terminer'));
       await pause(1500);
       const fiche = (await e.file.lister())[0];
@@ -925,7 +926,8 @@ TESTS_JS = r"""
       cliquer(e.id('scanner-nom-valider'));
       attendre(!e.id('scanner-nom-erreur').hidden && e.id('scanner-nom-erreur').textContent.includes('date'), 'validation sans date acceptée');
       cliquer(e.id('scanner-nom-provisoire'));
-      attendre(e.id('scanner-nom-statut').textContent.includes('provisoire gardé'), 'statut provisoire');
+      attendre(e.id('scanner-nom-statut').textContent.includes('Nom provisoire enregistré'), 'statut provisoire');
+      attendre(e.id('scanner-message').textContent.includes('Nom provisoire enregistré') && !e.id('scanner-message').hidden, 'confirmation du nom provisoire non visible : ' + e.id('scanner-message').textContent);
       cliquer(e.id('scanner-terminer'));
       await pause(1500);
       const fiche = (await e.file.lister())[0];

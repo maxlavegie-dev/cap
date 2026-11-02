@@ -159,6 +159,12 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - Tests : 48 pour le scanner, 236 pour le reste. Cache : cap-v23. Qui a fait quoi : le modèle principal a tout fait, aucun subagent.
   - Pas de lot 3.4 ni de détection en direct des bords sans accord de Max.
 
+- 02/11/2026 (soir) : **lot 3.3 publié (commit `0d7034d`), testé en partie par Max : le nom proposé, la correction, « Valider » et « Garder le nom provisoire » fonctionnent.**
+  - Demande de Max, faite en local (pas publiée, cache cap-v24) : confirmation visible tout de suite. « Valider ce nom » affiche « Nom enregistré : … .pdf » et « Garder le nom provisoire » affiche « Nom provisoire enregistré … », dans la zone du nom et dans le message du scanner. Testé (48 pour le scanner, 236 pour le reste).
+  - Erreurs de lecture vues par Max sur des fiches de recettes (un plat lu pour un autre, un mot lu pour un autre, sans [?]) : analyse faite, rien codé, en attente du feu vert de Max (voir le compte rendu).
+  - Hors connexion : Cap se fie à `navigator.onLine` ; « pas de Wi-Fi mais réseau mobile » compte comme en ligne, seul « aucun réseau » (mode avion) déclenche les messages hors connexion. Max refera le test en mode avion.
+  - Reste à tester par Max : document sans date lisible, mode avion avec l'indicateur « en attente », lecture d'autres types de documents.
+
 ### En cours
 - Lot 3.1 publié et validé ; hors connexion et lot 3.2 faits en local, à publier avec l'accord de Max puis à essayer sur son téléphone.
 - Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
