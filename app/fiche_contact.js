@@ -40,6 +40,7 @@ const ficheContact = (() => {
       liste: 'liste-contacts-vue', consultation: 'consultation-contact', edition: 'formulaire-contact',
       recapitulatif: 'recapitulatif-contact', suppression: 'confirmation-suppression-contact'
     })) parId(id).hidden = nom !== vue;
+    parId('retour-annuaire').hidden = vue === 'liste';
     messageErreur('');
     statut.hidden = true;
     statut.textContent = '';
@@ -95,6 +96,13 @@ const ficheContact = (() => {
     const recherche = parId('recherche-contacts').value.trim();
     const items = recherche ? annuaire.correspondances(recherche) : annuaire.tous();
     parId('liste-contacts').replaceChildren(...items.map(ligneContact));
+    const compteur = parId('compteur-resultats-contacts');
+    if (!recherche) {
+      compteur.textContent = '';
+    } else {
+      compteur.textContent = items.length === 0 ? 'Aucun résultat'
+        : items.length === 1 ? '1 résultat' : `${items.length} résultats`;
+    }
     const supprimes = annuaire.supprimes();
     parId('basculer-contacts-supprimes').textContent = `Contacts supprimés (${supprimes.length})`;
     parId('basculer-contacts-supprimes').hidden = supprimes.length === 0;
@@ -236,8 +244,25 @@ const ficheContact = (() => {
 
   // --- Édition ---
 
+  function remplirChampType() {
+    const selecteur = champ('type');
+    const valeur = texte(contact?.type);
+    const option = Array.from(selecteur.options).find(item => item.value === valeur);
+    Array.from(selecteur.querySelectorAll('.option-type-ancienne')).forEach(item => item.remove());
+    if (!option && valeur) {
+      const ancienne = noeud('option', 'option-type-ancienne', valeur);
+      ancienne.value = valeur;
+      selecteur.append(ancienne);
+    }
+    selecteur.value = valeur;
+  }
+
   function remplirFormulaire() {
-    for (const cle of Object.keys(champsLisibles)) champ(cle).value = texte(contact?.[cle]);
+    for (const cle of Object.keys(champsLisibles)) {
+      if (cle === 'type') continue;
+      champ(cle).value = texte(contact?.[cle]);
+    }
+    remplirChampType();
     parId('dire-telephone').hidden = !dictee.disponible();
     parId('dire-telephone2').hidden = !dictee.disponible();
     parId('dire-adresse').hidden = !dictee.disponible();
@@ -250,6 +275,7 @@ const ficheContact = (() => {
   function ouvrirEdition(item, boutonOrigine) {
     creation = !item;
     contact = item || Object.fromEntries(annuaire.CHAMPS.map(cle => [cle, '']));
+    if (creation) contact.type = 'Personne';
     if (!dialogue.open) {
       origine = boutonOrigine || document.activeElement;
       dialogue.showModal();
@@ -337,6 +363,12 @@ const ficheContact = (() => {
     origine?.focus?.({ preventScroll: true });
   });
 
+  function ajusterHauteurClavier() {
+    if (!window.visualViewport) return;
+    document.documentElement.style.setProperty('--hauteur-annuaire-clavier', `${window.visualViewport.height}px`);
+  }
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', ajusterHauteurClavier);
+
   function ouvrirListe() {
     if (dialogue.open) return;
     parId('titre-annuaire').textContent = 'Annuaire';
@@ -345,6 +377,7 @@ const ficheContact = (() => {
     renduListe();
     dialogue.showModal();
     afficherVue('liste', parId('nouveau-contact'));
+    ajusterHauteurClavier();
   }
 
   installerPave('pave-telephone', 'pave-effacer', 'pave-fermer', 'clavier-telephone', 'telephone');

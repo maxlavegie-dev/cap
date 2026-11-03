@@ -267,6 +267,7 @@
       <p id="statut-annuaire" role="status" aria-live="polite" hidden></p>
       <section id="liste-contacts-vue" aria-label="Liste des contacts">
         <input id="recherche-contacts" type="search" placeholder="Chercher un contact…" autocomplete="off">
+        <p id="compteur-resultats-contacts" role="status" aria-live="polite"></p>
         <ul id="liste-contacts"></ul>
         <button id="nouveau-contact" class="action-principale-rdv" type="button">+ Nouveau contact</button>
         <button id="basculer-contacts-supprimes" type="button" aria-expanded="false" aria-controls="liste-contacts-supprimes" hidden>Contacts supprimés (0)</button>
@@ -286,7 +287,13 @@
         <label for="contact-surnoms">Appellations et surnoms (séparés par une virgule)</label>
         <input id="contact-surnoms" name="surnoms" autocomplete="off">
         <label for="contact-type">Type</label>
-        <input id="contact-type" name="type" autocomplete="off">
+        <select id="contact-type" name="type">
+          <option value="">—</option>
+          <option value="Personne">Personne</option>
+          <option value="Organisme">Organisme</option>
+          <option value="Lieu">Lieu</option>
+          <option value="Procédure">Procédure</option>
+        </select>
         <label for="contact-role">Rôle</label>
         <input id="contact-role" name="role" autocomplete="off">
         <label for="contact-lien">Lien avec Max</label>

@@ -1347,6 +1347,28 @@ dialog button:hover {
 #annuaire[open] {
   display: flex;
   flex-direction: column;
+  max-height: min(calc(100dvh - 24px), var(--hauteur-annuaire-clavier, 100dvh));
+}
+
+#recherche-contacts {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #fffef7;
+}
+
+#compteur-resultats-contacts {
+  position: sticky;
+  top: 48px;
+  z-index: 2;
+  margin: 4px 0;
+  background: #fffef7;
+  font-size: 0.9em;
+  color: #203e49;
+}
+
+#compteur-resultats-contacts:empty {
+  margin: 0;
 }
 
 #contenu-annuaire {
