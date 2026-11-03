@@ -7,8 +7,11 @@ const ficheContact = (() => {
   const erreur = parId('erreur-annuaire');
   const statut = parId('statut-annuaire');
   const champsLisibles = {
-    nom: 'Nom', surnom: 'Surnom', telephone: 'Téléphone', adresse: 'Adresse',
-    mail: 'Mail', anniversaire: 'Anniversaire', note: 'Note'
+    prenom: 'Prénom', nom: 'Nom', surnoms: 'Appellations et surnoms', type: 'Type', role: 'Rôle',
+    lien: 'Lien avec Max', telephone: 'Téléphone', telephone2: 'Deuxième téléphone', mail: 'Mail',
+    mail2: 'Deuxième mail', adresse: 'Adresse postale', coordonnees: 'Coordonnées',
+    anniversaire: 'Date de naissance / anniversaire', domaine: 'Domaine', fonction: 'Fonction / titre',
+    site_web: 'Site web', note_ia: 'Note pour IA', note: 'Note'
   };
   const touchesPave = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '0', 'espace'];
   let contact = null;
@@ -63,7 +66,9 @@ const ficheContact = (() => {
 
   function ligneContact(item) {
     const li = noeud('li');
-    const bouton = noeud('button', 'ouvrir-contact', item.surnom ? `${item.nom} (${item.surnom})` : item.nom);
+    const surnoms = annuaire.listeSurnoms(item.surnoms);
+    const intitule = annuaire.nomAffichage(item);
+    const bouton = noeud('button', 'ouvrir-contact', surnoms.length ? `${intitule} (${surnoms.join(', ')})` : intitule);
     bouton.type = 'button';
     bouton.addEventListener('click', () => ouvrirConsultation(item, bouton));
     li.append(bouton);
@@ -72,13 +77,14 @@ const ficheContact = (() => {
 
   function ligneSupprime(item) {
     const li = noeud('li', 'ligne-contact-supprime');
-    li.append(noeud('span', '', `${item.nom} (supprimé le ${item.supprime_le})`));
+    const intitule = annuaire.nomAffichage(item);
+    li.append(noeud('span', '', `${intitule} (supprimé le ${item.supprime_le})`));
     const restaurer = noeud('button', '', 'Restaurer');
     restaurer.type = 'button';
     restaurer.addEventListener('click', () => {
       annuaire.restaurerContact(item.id);
       renduListe();
-      statut.textContent = `« ${item.nom} » est restauré dans l’annuaire.`;
+      statut.textContent = `« ${intitule} » est restauré dans l’annuaire.`;
       statut.hidden = false;
     });
     li.append(restaurer);
@@ -105,21 +111,40 @@ const ficheContact = (() => {
 
   // --- Consultation ---
 
-  function afficherConsultation() {
-    parId('titre-annuaire').textContent = contact.nom;
-    const telephone = texte(contact.telephone).trim();
+  function carteTelephone(titre, valeur) {
+    const telephone = texte(valeur).trim();
     const numero = telephone.replace(/[^\d+]/g, '');
-    const mail = texte(contact.mail).trim();
+    return carte(titre, telephone || '—', /\d/.test(numero) ? { texte: 'Appeler', href: `tel:${numero}` } : null);
+  }
+
+  function carteMail(titre, valeur) {
+    const mail = texte(valeur).trim();
+    return carte(titre, mail || '—', mail ? { texte: 'Écrire', href: `mailto:${encodeURIComponent(mail)}` } : null);
+  }
+
+  function afficherConsultation() {
+    parId('titre-annuaire').textContent = annuaire.nomAffichage(contact);
     const adresse = texte(contact.adresse).trim();
+    const siteWeb = texte(contact.site_web).trim();
     const historique = contact.historique.slice().reverse()
       .map(entree => `${entree.date.slice(0, 10)} — ${entree.champ}${entree.ancienne ? ` : « ${entree.ancienne} » → « ${entree.nouvelle} »` : entree.nouvelle ? ` : ${entree.nouvelle}` : ''}`)
       .join('\n');
     parId('cartes-contact').replaceChildren(
-      carte('Surnom', valeurLisible('surnom', contact.surnom)),
-      carte('Téléphone', telephone || '—', /\d/.test(numero) ? { texte: 'Appeler', href: `tel:${numero}` } : null),
-      carte('Adresse', adresse || '—', adresse ? { texte: 'Itinéraire', href: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresse)}` } : null),
-      carte('Mail', mail || '—', mail ? { texte: 'Écrire', href: `mailto:${encodeURIComponent(mail)}` } : null),
-      carte('Anniversaire', valeurLisible('anniversaire', contact.anniversaire)),
+      carte('Appellations et surnoms', valeurLisible('surnoms', contact.surnoms)),
+      carte('Type', valeurLisible('type', contact.type)),
+      carte('Rôle', valeurLisible('role', contact.role)),
+      carte('Lien avec Max', valeurLisible('lien', contact.lien)),
+      carteTelephone('Téléphone', contact.telephone),
+      carteTelephone('Deuxième téléphone', contact.telephone2),
+      carteMail('Mail', contact.mail),
+      carteMail('Deuxième mail', contact.mail2),
+      carte('Adresse postale', adresse || '—', adresse ? { texte: 'Itinéraire', href: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresse)}` } : null),
+      carte('Coordonnées', valeurLisible('coordonnees', contact.coordonnees)),
+      carte('Date de naissance / anniversaire', valeurLisible('anniversaire', contact.anniversaire)),
+      carte('Domaine', valeurLisible('domaine', contact.domaine)),
+      carte('Fonction / titre', valeurLisible('fonction', contact.fonction)),
+      carte('Site web', siteWeb || '—', siteWeb ? { texte: 'Ouvrir', href: /^https?:\/\//.test(siteWeb) ? siteWeb : `https://${siteWeb}` } : null),
+      carte('Note pour IA', valeurLisible('note_ia', contact.note_ia)),
       carte('Note', valeurLisible('note', contact.note)),
       carte('Historique', historique || 'Aucun changement enregistré.')
     );
@@ -137,43 +162,38 @@ const ficheContact = (() => {
 
   parId('modifier-contact').addEventListener('click', () => ouvrirEdition(contact, parId('modifier-contact')));
   parId('supprimer-contact').addEventListener('click', () => {
-    parId('intitule-suppression-contact').textContent = contact.nom;
+    parId('intitule-suppression-contact').textContent = annuaire.nomAffichage(contact);
     afficherVue('suppression', parId('annuler-suppression-contact'));
   });
   parId('annuler-suppression-contact').addEventListener('click', () => afficherConsultation());
   parId('confirmer-suppression-contact').addEventListener('click', () => {
-    const nom = contact.nom;
+    const intitule = annuaire.nomAffichage(contact);
     annuaire.supprimerContact(contact.id);
     renduListe();
     afficherVue('liste', parId('nouveau-contact'));
-    statut.textContent = `« ${nom} » a été supprimé. Tu peux le restaurer depuis « Contacts supprimés ».`;
+    statut.textContent = `« ${intitule} » a été supprimé. Tu peux le restaurer depuis « Contacts supprimés ».`;
     statut.hidden = false;
   });
 
   // --- Clavier numérique ---
 
-  function remplirPave() {
-    const zone = parId('pave-telephone').querySelector('.touches-pave');
+  function installerPave(idPave, idEffacer, idFermer, idClavier, nomChamp) {
+    const zone = parId(idPave).querySelector('.touches-pave');
     zone.replaceChildren(...touchesPave.map(touche => {
       const bouton = noeud('button', 'touche-pave', touche === 'espace' ? ' ' : touche);
       bouton.type = 'button';
       bouton.setAttribute('aria-label', touche === 'espace' ? 'Espace' : touche);
       bouton.addEventListener('click', () => {
-        champ('telephone').value += touche === 'espace' ? ' ' : touche;
+        champ(nomChamp).value += touche === 'espace' ? ' ' : touche;
       });
       return bouton;
     }));
+    parId(idClavier).addEventListener('click', () => { parId(idPave).hidden = false; });
+    parId(idEffacer).addEventListener('click', () => {
+      champ(nomChamp).value = champ(nomChamp).value.slice(0, -1);
+    });
+    parId(idFermer).addEventListener('click', () => { parId(idPave).hidden = true; });
   }
-
-  parId('clavier-telephone').addEventListener('click', () => {
-    parId('pave-telephone').hidden = false;
-  });
-  parId('pave-effacer').addEventListener('click', () => {
-    champ('telephone').value = champ('telephone').value.slice(0, -1);
-  });
-  parId('pave-fermer').addEventListener('click', () => {
-    parId('pave-telephone').hidden = true;
-  });
 
   // --- Dictée vocale ---
 
@@ -211,6 +231,7 @@ const ficheContact = (() => {
   }
 
   parId('dire-telephone').addEventListener('click', event => ecouterChamp('telephone', event.currentTarget));
+  parId('dire-telephone2').addEventListener('click', event => ecouterChamp('telephone2', event.currentTarget));
   parId('dire-adresse').addEventListener('click', event => ecouterChamp('adresse', event.currentTarget));
 
   // --- Édition ---
@@ -218,22 +239,24 @@ const ficheContact = (() => {
   function remplirFormulaire() {
     for (const cle of Object.keys(champsLisibles)) champ(cle).value = texte(contact?.[cle]);
     parId('dire-telephone').hidden = !dictee.disponible();
+    parId('dire-telephone2').hidden = !dictee.disponible();
     parId('dire-adresse').hidden = !dictee.disponible();
     parId('pave-telephone').hidden = true;
+    parId('pave-telephone2').hidden = true;
     parId('enregistrer-contact').textContent = creation ? 'Vérifier' : 'Enregistrer';
     parId('titre-recapitulatif-contact').textContent = creation ? 'Contact à ajouter' : 'Ce qui va changer';
   }
 
   function ouvrirEdition(item, boutonOrigine) {
     creation = !item;
-    contact = item || { nom: '', surnom: '', telephone: '', adresse: '', mail: '', anniversaire: '', note: '' };
+    contact = item || Object.fromEntries(annuaire.CHAMPS.map(cle => [cle, '']));
     if (!dialogue.open) {
       origine = boutonOrigine || document.activeElement;
       dialogue.showModal();
     }
     remplirFormulaire();
-    parId('titre-annuaire').textContent = creation ? 'Nouveau contact' : `Modifier ${contact.nom}`;
-    afficherVue('edition', champ('nom'));
+    parId('titre-annuaire').textContent = creation ? 'Nouveau contact' : `Modifier ${annuaire.nomAffichage(contact)}`;
+    afficherVue('edition', champ('prenom'));
   }
 
   parId('annuler-edition-contact').addEventListener('click', () => {
@@ -324,6 +347,7 @@ const ficheContact = (() => {
     afficherVue('liste', parId('nouveau-contact'));
   }
 
-  remplirPave();
+  installerPave('pave-telephone', 'pave-effacer', 'pave-fermer', 'clavier-telephone', 'telephone');
+  installerPave('pave-telephone2', 'pave-effacer2', 'pave-fermer2', 'clavier-telephone2', 'telephone2');
   return { ouvrirListe };
 })();

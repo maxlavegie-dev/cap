@@ -10,7 +10,13 @@ const googleSheets = (() => {
   const entetesModeles = ['Modèle', 'Étape', 'Retirée le', 'Modifiée le'];
   const entetesCategories = ['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le', 'Ordre'];
   const entetesJournal = ['Date et heure', 'Venu de', 'Ce que Max a dit ou touché', 'Ce que Cap a compris', 'Ce que Cap a fait'];
-  const entetesAnnuaire = ['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique'];
+  const entetesAnnuaireAncien = ['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique'];
+  const champsAnnuaire = ['id', 'prenom', 'nom', 'type', 'role', 'lien', 'surnoms', 'coordonnees', 'telephone', 'mail',
+    'domaine', 'note_ia', 'anniversaire', 'adresse', 'telephone2', 'mail2', 'fonction', 'site_web', 'note',
+    'supprime_le', 'modifie_le'];
+  const entetesAnnuaire = ['Identifiant', 'Prénom', 'Nom', 'Type', 'Rôle', 'Lien avec Max', 'Appellations et surnoms',
+    'Coordonnées', 'Téléphone', 'Mail', 'Domaine', 'Note pour IA', 'Date de naissance / anniversaire', 'Adresse postale',
+    'Deuxième téléphone', 'Deuxième mail', 'Fonction / titre', 'Site web', 'Note', 'Supprimé le', 'Modifié le', 'Historique'];
   let fichier = '';
   let ouverture = null;
 
@@ -81,7 +87,7 @@ const googleSheets = (() => {
         { range: plage(REGLAGES_GOOGLE.onglets.phrases_clavier, 'A1:E'),
           values: [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'],
             ...PHRASES_CLAVIER.map(phrase => [phrase.id, phrase.categorie, phrase.debut, phrase.a_completer, phrase.action])] },
-        { range: plage(REGLAGES_GOOGLE.onglets.annuaire, 'A1:K'), values: [entetesAnnuaire] }
+        { range: plage(REGLAGES_GOOGLE.onglets.annuaire, 'A1:V'), values: [entetesAnnuaire] }
       ]
     });
     await poster(adresse(':batchUpdate'), {
@@ -250,27 +256,59 @@ const googleSheets = (() => {
   }
 
   function contactValeurs(contact) {
-    return ['id', 'nom', 'surnom', 'telephone', 'adresse', 'mail', 'anniversaire', 'note', 'supprime_le', 'modifie_le']
-      .map(champ => contact[champ]).concat([JSON.stringify(contact.historique)]);
+    return champsAnnuaire.map(champ => contact[champ]).concat([JSON.stringify(contact.historique)]);
+  }
+
+  function contactDepuisLigneAncienne(ligne) {
+    const [id, nom, surnom, telephone, adresse, mail, anniversaire, note, supprime, modifie, historiqueTexte] = ligne;
+    let historique;
+    try {
+      historique = JSON.parse(historiqueTexte || '[]');
+      if (!Array.isArray(historique)) throw new Error('historique illisible');
+    } catch (erreur) {
+      throw new Error(`Une ligne de l’onglet « ${REGLAGES_GOOGLE.onglets.annuaire} » est illisible. Je n’y touche pas.`);
+    }
+    historique = historique.map(entree => ({ ...entree, champ: entree && entree.champ === 'surnom' ? 'surnoms' : entree?.champ }));
+    return {
+      id, prenom: '', nom, type: '', role: '', lien: '', surnoms: surnom, coordonnees: '', telephone, mail,
+      domaine: '', note_ia: '', anniversaire, adresse, telephone2: '', mail2: '', fonction: '', site_web: '', note,
+      supprime_le: supprime, modifie_le: modifie, historique
+    };
+  }
+
+  function contactDepuisLigne(ligne) {
+    const valeurs = champsAnnuaire.reduce((objet, champ, indice) => ({ ...objet, [champ]: ligne[indice] }), {});
+    const historiqueTexte = ligne[champsAnnuaire.length];
+    let historique;
+    try {
+      historique = JSON.parse(historiqueTexte || '[]');
+      if (!Array.isArray(historique)) throw new Error('historique illisible');
+    } catch (erreur) {
+      throw new Error(`Une ligne de l’onglet « ${REGLAGES_GOOGLE.onglets.annuaire} » est illisible. Je n’y touche pas.`);
+    }
+    return { ...valeurs, historique };
   }
 
   async function lireAnnuaire() {
-    const titres = ((await lire(adresse('?fields=sheets.properties.title'))).sheets || []).map(feuille => feuille.properties?.title);
     const nom = REGLAGES_GOOGLE.onglets.annuaire;
-    if (!titres.includes(nom)) return { contacts: [], lignes: 0, manquant: true };
-    const onglet = await lireOnglet(nom, 'A:K', entetesAnnuaire, [11]);
-    const contacts = onglet.contenu.map(([id, nomContact, surnom, telephone, adresse, mail, anniversaire, note, supprime, modifie, historiqueTexte]) => {
-      let historique;
-      try {
-        historique = JSON.parse(historiqueTexte || '[]');
-        if (!Array.isArray(historique)) throw new Error('historique illisible');
-      } catch (erreur) {
-        throw new Error(`Une ligne de l’onglet « ${nom} » est illisible. Je n’y touche pas.`);
-      }
-      return { id, nom: nomContact, surnom, telephone, adresse, mail, anniversaire, note,
-        supprime_le: supprime, modifie_le: modifie, historique };
+    const titres = ((await lire(adresse('?fields=sheets.properties.title'))).sheets || []).map(feuille => feuille.properties?.title);
+    if (!titres.includes(nom)) return { contacts: [], lignes: 0, manquant: true, ancien: false };
+    const brut = (await lire(adresse(`/values/${encodeURIComponent(plage(nom, 'A:V'))}?valueRenderOption=UNFORMATTED_VALUE`))).values || [];
+    if (!brut.length) return { contacts: [], lignes: 0, manquant: false, ancien: false };
+    const entete = brut[0];
+    const estNouveau = JSON.stringify(entete) === JSON.stringify(entetesAnnuaire);
+    const estAncien = !estNouveau && JSON.stringify(entete.slice(0, 11)) === JSON.stringify(entetesAnnuaireAncien);
+    if (!estNouveau && !estAncien) {
+      throw new Error(`Les colonnes de l’onglet « ${nom} » sont illisibles. Je n’y touche pas.`);
+    }
+    const vide = valeur => valeur === undefined || valeur === null || valeur === '';
+    const largeur = estAncien ? 11 : 22;
+    const lignesContenu = brut.slice(1).filter(ligne => !ligne.every(vide));
+    const contacts = lignesContenu.map(ligne => {
+      const cellules = Array.from({ length: largeur }, (_, indice) => (vide(ligne[indice]) ? '' : String(ligne[indice])));
+      return estAncien ? contactDepuisLigneAncienne(cellules) : contactDepuisLigne(cellules);
     });
-    return { contacts, lignes: onglet.lignes, manquant: false };
+    return { contacts, lignes: brut.length, manquant: false, ancien: estAncien };
   }
 
   async function ecrireAnnuaire(donnees) {
@@ -281,9 +319,9 @@ const googleSheets = (() => {
       }] });
     }
     const lignes = [entetesAnnuaire, ...donnees.contacts.map(contactValeurs)];
-    while (lignes.length < lecture.lignes) lignes.push(Array(11).fill(''));
+    while (lignes.length < lecture.lignes) lignes.push(Array(22).fill(''));
     await poster(adresse('/values:batchUpdate'), { valueInputOption: 'RAW', data: [
-      { range: plage(REGLAGES_GOOGLE.onglets.annuaire, 'A1:K'), values: lignes }
+      { range: plage(REGLAGES_GOOGLE.onglets.annuaire, 'A1:V'), values: lignes }
     ] });
   }
 

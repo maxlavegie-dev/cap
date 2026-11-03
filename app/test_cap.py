@@ -1216,7 +1216,9 @@ TESTS_JS = r"""
     attendreEgal(remplissage.data[2].values, [['Catégorie', 'Sous-catégorie de', 'Couleur', 'Retirée le', 'Modifiée le', 'Ordre']], 'catégories');
     attendreEgal(remplissage.data[3].values, [['Date et heure', 'Venu de', 'Ce que Max a dit ou touché', 'Ce que Cap a compris', 'Ce que Cap a fait']], 'journal');
     attendreEgal(remplissage.data[4].values, [['Identifiant', 'Catégorie', 'Début', 'À compléter', 'Action'], ...PHRASES_CLAVIER.map(p => [p.id, p.categorie, p.debut, p.a_completer, p.action])], 'phrases');
-    attendreEgal(remplissage.data[5].values, [['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique']], 'annuaire');
+    attendreEgal(remplissage.data[5].values, [['Identifiant', 'Prénom', 'Nom', 'Type', 'Rôle', 'Lien avec Max', 'Appellations et surnoms',
+      'Coordonnées', 'Téléphone', 'Mail', 'Domaine', 'Note pour IA', 'Date de naissance / anniversaire', 'Adresse postale',
+      'Deuxième téléphone', 'Deuxième mail', 'Fonction / titre', 'Site web', 'Note', 'Supprimé le', 'Modifié le', 'Historique']], 'annuaire');
     const validations = c.requetes.find(r => r.url.pathname.endsWith('tableau-fictif:batchUpdate')).corps.requests;
     attendreEgal(validations.map(r => r.setDataValidation.range.startColumnIndex), [4, 14], 'colonnes booléennes');
     attendre(validations.every(r => r.setDataValidation.rule.condition.type === 'BOOLEAN' && r.setDataValidation.rule.strict), 'validation booléenne');
@@ -2982,13 +2984,21 @@ TESTS_JS = r"""
   });
 
   test('Annuaire : création, modification avec historique, suppression douce et restauration', () => {
-    attendreErreur(() => annuaire.creerContact({ nom: '   ' }), 'Donne un nom');
-    attendreErreur(() => annuaire.creerContact({ nom: 'Mentor FICTIF', telephone: 'abc' }), 'numéro de téléphone');
-    attendreErreur(() => annuaire.creerContact({ nom: 'Mentor FICTIF', mail: 'pas-un-mail' }), 'adresse mail');
-    attendreErreur(() => annuaire.creerContact({ nom: 'Mentor FICTIF', anniversaire: '31-02' }), 'n’existe pas');
-    attendreErreur(() => annuaire.creerContact({ nom: 'Mentor FICTIF', anniversaire: '2-9' }), 'format JJ-MM');
-    const contact = annuaire.creerContact({ nom: '  Mentor   FICTIF  ', telephone: '06 00 00 00 00', mail: 'mentor.fictif@exemple.test', anniversaire: '29-02' });
-    attendreEgal(contact.nom, 'Mentor FICTIF', 'nom nettoyé');
+    attendreErreur(() => annuaire.creerContact({}), 'prénom ou un surnom');
+    attendreErreur(() => annuaire.creerContact({ prenom: '   ' }), 'prénom ou un surnom');
+    attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', telephone: 'abc' }), 'numéro de téléphone');
+    attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', mail: 'pas-un-mail' }), 'adresse mail');
+    attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', mail2: 'pas-un-mail' }), 'adresse mail');
+    attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', telephone2: 'abc' }), 'numéro de téléphone');
+    attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', anniversaire: '31-02' }), 'n’existe pas');
+    attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', anniversaire: '2-9' }), 'format JJ-MM');
+    attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', site_web: 'pas un site' }), 'site web');
+    const contact = annuaire.creerContact({
+      prenom: '  Mentor  ', nom: '  FICTIF  ', telephone: '06 00 00 00 00', telephone2: '07 00 00 00 00',
+      mail: 'mentor.fictif@exemple.test', mail2: 'mentor2.fictif@exemple.test', anniversaire: '29-02', site_web: 'exemple.test'
+    });
+    attendreEgal(contact.prenom, 'Mentor', 'prénom nettoyé');
+    attendreEgal(contact.nom, 'FICTIF', 'nom nettoyé');
     attendre(annuaire.tous().some(item => item.id === contact.id), 'contact listé');
     attendreEgal(contact.historique.length, 1, 'historique de création');
     const modifie = annuaire.modifierContact(contact.id, { telephone: '06 11 11 11 11' });
@@ -3008,29 +3018,40 @@ TESTS_JS = r"""
     attendreErreur(() => annuaire.trouver('C-introuvable'), 'introuvable');
   });
 
-  test('Annuaire : recherche par nom ou surnom, accents et casse ignorés', () => {
-    annuaire.creerContact({ nom: 'Éléonore FICTIF', surnom: 'Léo' });
-    annuaire.creerContact({ nom: 'Leonard FICTIF' });
+  test('Annuaire : un seul surnom suffit, plusieurs surnoms séparés par virgule', () => {
+    const contact = annuaire.creerContact({ surnoms: 'Pépé FICTIF,  Papi FICTIF ,Pépé FICTIF' });
+    attendreEgal(contact.surnoms, 'Pépé FICTIF, Papi FICTIF', 'surnoms nettoyés, doublons gardés en l’état de saisie');
+    attendreEgal(annuaire.nomAffichage(contact), 'Pépé FICTIF', 'affichage basé sur le premier surnom sans prénom/nom');
+  });
+
+  test('Annuaire : recherche par prénom, nom ou n’importe quel surnom, accents et casse ignorés', () => {
+    annuaire.creerContact({ prenom: 'Éléonore', nom: 'FICTIF', surnoms: 'Léo, Nono FICTIF' });
+    annuaire.creerContact({ prenom: 'Leonard', nom: 'FICTIF' });
     const exact = annuaire.correspondances('leo');
-    attendreEgal(exact.map(c => c.nom), ['Éléonore FICTIF'], 'correspondance exacte au surnom prioritaire');
+    attendreEgal(exact.map(c => c.prenom), ['Éléonore'], 'correspondance exacte au surnom prioritaire');
     const partiel = annuaire.correspondances('eleonor');
-    attendreEgal(partiel.map(c => c.nom), ['Éléonore FICTIF'], 'recherche partielle sans accent');
+    attendreEgal(partiel.map(c => c.prenom), ['Éléonore'], 'recherche partielle sans accent');
+    const parAutreSurnom = annuaire.correspondances('nono fictif');
+    attendreEgal(parAutreSurnom.map(c => c.prenom), ['Éléonore'], 'trouvé par n’importe quel surnom de la liste');
     attendreEgal(annuaire.correspondances(''), [], 'recherche vide : rien');
     attendreEgal(annuaire.correspondances('zzz-inconnu'), [], 'rien trouvé');
   });
 
   test('Annuaire : fusion sans perte, dernière modification gagne, historiques combinés', () => {
     const m = annuaireIsolee();
-    const local = m.instance.creerContact({ nom: 'Jardinier FICTIF', telephone: '0600000001' });
+    const local = m.instance.creerContact({ prenom: 'Jardinier FICTIF', telephone: '0600000001' });
     m.instance.marquerEnvoye();
     const distantPlusRecent = {
       contacts: [{
-        id: local.id, nom: 'Jardinier FICTIF', surnom: '', telephone: '0600000002', adresse: '', mail: '', anniversaire: '', note: '',
+        id: local.id, prenom: 'Jardinier FICTIF', nom: '', type: '', role: '', lien: '', surnoms: '', coordonnees: '',
+        telephone: '0600000002', mail: '', domaine: '', note_ia: '', anniversaire: '', adresse: '', telephone2: '',
+        mail2: '', fonction: '', site_web: '', note: '',
         supprime_le: '', modifie_le: '2999-01-01T00:00:00.000Z',
         historique: [...local.historique, { champ: 'telephone', ancienne: '0600000001', nouvelle: '0600000002', date: '2999-01-01T00:00:00.000Z' }]
       }, {
-        id: 'C-distant-nouveau', nom: 'Voisin FICTIF', surnom: '', telephone: '', adresse: '', mail: '', anniversaire: '', note: '',
-        supprime_le: '', modifie_le: '2999-01-01T00:00:00.000Z', historique: []
+        id: 'C-distant-nouveau', prenom: 'Voisin FICTIF', nom: '', type: '', role: '', lien: '', surnoms: '', coordonnees: '',
+        telephone: '', mail: '', domaine: '', note_ia: '', anniversaire: '', adresse: '', telephone2: '', mail2: '',
+        fonction: '', site_web: '', note: '', supprime_le: '', modifie_le: '2999-01-01T00:00:00.000Z', historique: []
       }]
     };
     m.instance.fusionner(distantPlusRecent);
@@ -3039,13 +3060,41 @@ TESTS_JS = r"""
     attendre(m.instance.tous().some(c => c.id === 'C-distant-nouveau'), 'nouveau contact distant ajouté');
     const distantPlusAncien = {
       contacts: [{
-        id: local.id, nom: 'Jardinier FICTIF', surnom: '', telephone: '0000000000', adresse: '', mail: '', anniversaire: '', note: '',
-        supprime_le: '', modifie_le: '2000-01-01T00:00:00.000Z', historique: []
+        id: local.id, prenom: 'Jardinier FICTIF', nom: '', type: '', role: '', lien: '', surnoms: '', coordonnees: '',
+        telephone: '0000000000', mail: '', domaine: '', note_ia: '', anniversaire: '', adresse: '', telephone2: '',
+        mail2: '', fonction: '', site_web: '', note: '', supprime_le: '', modifie_le: '2000-01-01T00:00:00.000Z', historique: []
       }]
     };
     m.instance.fusionner(distantPlusAncien);
     attendreEgal(m.instance.trouver(local.id).telephone, '0600000002', 'valeur locale plus récente gardée, rien d’écrasé');
     attendre(!m.instance.aEnvoyer(), 'fusion ne marque rien à renvoyer');
+  });
+
+  test('Annuaire : migration automatique d’un ancien contact (ancien « nom », ancien « surnom » singulier)', () => {
+    const m = annuaireIsolee();
+    m.memoire.setItem('cap_annuaire_v1', JSON.stringify({
+      contacts: [{
+        id: 'C-ancien1', nom: 'Dupont FICTIF', surnom: 'Dudu FICTIF', telephone: '0600000000', adresse: '12 rue FICTIF',
+        mail: 'dupont.fictif@exemple.test', anniversaire: '01-01', note: 'note ancienne FICTIF',
+        supprime_le: '', modifie_le: '2026-01-01T00:00:00.000Z',
+        historique: [{ champ: 'créé', ancienne: '', nouvelle: 'Dupont FICTIF', date: '2026-01-01T00:00:00.000Z' },
+          { champ: 'surnom', ancienne: '', nouvelle: 'Dudu FICTIF', date: '2026-01-01T00:00:01.000Z' }]
+      }]
+    }));
+    m.instance.recharger();
+    const migre = m.instance.trouver('C-ancien1');
+    attendreEgal(migre.prenom, '', 'prénom vide après migration, non deviné');
+    attendreEgal(migre.nom, 'Dupont FICTIF', 'ancien nom complet recopié dans Nom, rien perdu');
+    attendreEgal(migre.surnoms, 'Dudu FICTIF', 'ancien surnom singulier recopié dans surnoms');
+    attendreEgal(migre.telephone, '0600000000', 'téléphone conservé');
+    attendreEgal(migre.adresse, '12 rue FICTIF', 'adresse conservée');
+    attendreEgal(migre.mail, 'dupont.fictif@exemple.test', 'mail conservé');
+    attendreEgal(migre.anniversaire, '01-01', 'anniversaire conservé');
+    attendreEgal(migre.note, 'note ancienne FICTIF', 'note conservée');
+    attendreEgal(migre.historique.length, 2, 'historique entièrement conservé, rien perdu');
+    attendreEgal(migre.historique.map(e => e.champ), ['créé', 'surnoms'], 'champ « surnom » re-cadré en « surnoms »');
+    attendreEgal(migre.telephone2, '', 'nouveaux champs vides par défaut');
+    attendreEgal(migre.type, '', 'nouveaux champs vides par défaut');
   });
 
   await testAsync('Google Sheets annuaire : onglet absent puis créé, lecture et écriture sans rien effacer', async c => {
@@ -3060,23 +3109,28 @@ TESTS_JS = r"""
       if (r.methode === 'POST') return reponseGoogle({});
       throw new Error(`Requête inattendue : ${r.url}`);
     };
+    const entetesAnnuaireFictif = ['Identifiant', 'Prénom', 'Nom', 'Type', 'Rôle', 'Lien avec Max', 'Appellations et surnoms',
+      'Coordonnées', 'Téléphone', 'Mail', 'Domaine', 'Note pour IA', 'Date de naissance / anniversaire', 'Adresse postale',
+      'Deuxième téléphone', 'Deuxième mail', 'Fonction / titre', 'Site web', 'Note', 'Supprimé le', 'Modifié le', 'Historique'];
     const sheets = c.sheets();
     await sheets.trouverOuCreer();
     const lecture = await sheets.lireAnnuaire();
     attendreEgal(lecture.manquant, true, 'onglet Annuaire absent au départ');
     attendreEgal(lecture.contacts, [], 'rien à lire');
-    const contact = { id: 'C-fictif1', nom: 'Dupont FICTIF', surnom: '', telephone: '0600000000', adresse: '', mail: '',
-      anniversaire: '', note: '', supprime_le: '', modifie_le: 'x', historique: [{ champ: 'créé', ancienne: '', nouvelle: 'Dupont FICTIF', date: 'x' }] };
+    const contact = {
+      id: 'C-fictif1', prenom: 'Dupont', nom: 'FICTIF', type: '', role: '', lien: '', surnoms: '', coordonnees: '',
+      telephone: '0600000000', mail: '', domaine: '', note_ia: '', anniversaire: '', adresse: '', telephone2: '', mail2: '',
+      fonction: '', site_web: '', note: '', supprime_le: '', modifie_le: 'x',
+      historique: [{ champ: 'créé', ancienne: '', nouvelle: 'Dupont FICTIF', date: 'x' }]
+    };
     await sheets.ecrireAnnuaire({ contacts: [contact] });
     const ajoutOnglet = c.requetes.find(r => r.url.pathname.endsWith('tableau-fictif:batchUpdate')).corps.requests;
     attendreEgal(ajoutOnglet.map(a => a.addSheet.properties.title), ['Annuaire'], 'onglet Annuaire ajouté');
     const ecriture = c.requetes.find(r => r.url.pathname.endsWith('/values:batchUpdate')).corps;
     attendreEgal(ecriture.valueInputOption, 'RAW', 'écriture brute');
-    attendreEgal(ecriture.data[0].values[0],
-      ['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique'],
-      'entêtes écrites');
+    attendreEgal(ecriture.data[0].values[0], entetesAnnuaireFictif, 'entêtes écrites');
     attendreEgal(ecriture.data[0].values[1],
-      ['C-fictif1', 'Dupont FICTIF', '', '0600000000', '', '', '', '', '', 'x', JSON.stringify(contact.historique)],
+      ['C-fictif1', 'Dupont', 'FICTIF', '', '', '', '', '', '0600000000', '', '', '', '', '', '', '', '', '', '', '', 'x', JSON.stringify(contact.historique)],
       'ligne du contact écrite, rien de supprimé');
     ongletsPresents = [...ongletsPresents, 'Annuaire'];
     lignesAnnuaire = ecriture.data[0].values;
@@ -3086,11 +3140,38 @@ TESTS_JS = r"""
     attendreEgal(relue.contacts[0].historique, contact.historique, 'historique JSON relu sans perte');
     lignesAnnuaire = [['Identifiant', 'Nom'], ['C-fictif1', 'Dupont FICTIF']];
     await attendreRejet(() => sheets.lireAnnuaire(), 'illisibles');
-    lignesAnnuaire = [
-      ['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique'],
-      ['C-fictif1', 'Dupont FICTIF', '', '', '', '', '', '', '', 'x', 'pas-du-json']
-    ];
+    lignesAnnuaire = [entetesAnnuaireFictif, ['C-fictif1', 'Dupont', 'FICTIF', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'x', 'pas-du-json']];
     await attendreRejet(() => sheets.lireAnnuaire(), 'illisible');
+  });
+
+  await testAsync('Google Sheets annuaire : ancien onglet (11 colonnes) lu et migré, rien perdu', async c => {
+    c.localStorage.setItem('cap_google_fichier_v1', 'tableau-fictif');
+    const historiqueAncien = [{ champ: 'créé', ancienne: '', nouvelle: 'Dupont FICTIF', date: 'x' }];
+    const lignesAnnuaireAncien = [
+      ['Identifiant', 'Nom', 'Surnom', 'Téléphone', 'Adresse', 'Mail', 'Anniversaire', 'Note', 'Supprimé le', 'Modifié le', 'Historique'],
+      ['C-ancien1', 'Dupont FICTIF', 'Dudu FICTIF', '0600000000', '12 rue FICTIF', 'dupont.fictif@exemple.test', '01-01', 'note FICTIF', '', 'x', JSON.stringify(historiqueAncien)]
+    ];
+    c.repondre = async r => {
+      const chemin = decodeURIComponent(r.url.pathname);
+      if (r.methode === 'GET' && chemin === '/drive/v3/files/tableau-fictif') return reponseGoogle({ id: 'tableau-fictif', trashed: false });
+      if (r.methode === 'GET' && chemin === '/v4/spreadsheets/tableau-fictif') return reponseGoogle({ sheets: [{ properties: { title: 'Annuaire' } }] });
+      if (r.methode === 'GET' && chemin.includes('Annuaire')) return reponseGoogle({ values: lignesAnnuaireAncien });
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const sheets = c.sheets();
+    await sheets.trouverOuCreer();
+    const lecture = await sheets.lireAnnuaire();
+    attendreEgal(lecture.manquant, false, 'onglet présent');
+    attendreEgal(lecture.ancien, true, 'ancien format détecté');
+    attendreEgal(lecture.contacts.length, 1, 'un contact lu');
+    const contact = lecture.contacts[0];
+    attendreEgal(contact.nom, 'Dupont FICTIF', 'ancien nom complet recopié, rien perdu');
+    attendreEgal(contact.surnoms, 'Dudu FICTIF', 'ancien surnom recopié dans surnoms');
+    attendreEgal(contact.telephone, '0600000000', 'téléphone conservé');
+    attendreEgal(contact.adresse, '12 rue FICTIF', 'adresse conservée');
+    attendreEgal(contact.note, 'note FICTIF', 'note conservée');
+    attendreEgal(contact.historique, historiqueAncien, 'historique conservé sans perte');
+    attendreEgal(contact.telephone2, '', 'nouveaux champs vides par défaut');
   });
 
   await testAsync('Synchro annuaire : lit, fusionne, écrit, puis seulement après un changement', async c => {
@@ -3098,10 +3179,14 @@ TESTS_JS = r"""
     const a = annuaireIsolee(memoire, c.window);
     const ecritures = [];
     let echec = false;
+    const contactDistant = {
+      id: 'C-distant', prenom: 'Distant FICTIF', nom: '', type: '', role: '', lien: '', surnoms: '', coordonnees: '',
+      telephone: '', mail: '', domaine: '', note_ia: '', anniversaire: '', adresse: '', telephone2: '', mail2: '',
+      fonction: '', site_web: '', note: '', supprime_le: '', modifie_le: 'x', historique: []
+    };
     const fauxSheets = {
       trouverOuCreer: async () => ({ id: 'tableau-fictif', cree: false }),
-      lireAnnuaire: async () => ({ contacts: [{ id: 'C-distant', nom: 'Distant FICTIF', surnom: '', telephone: '', adresse: '', mail: '',
-        anniversaire: '', note: '', supprime_le: '', modifie_le: 'x', historique: [] }] }),
+      lireAnnuaire: async () => ({ contacts: [contactDistant] }),
       ecrireAnnuaire: async donnees => {
         if (echec) throw new Error('panne simulée');
         ecritures.push(donnees);
@@ -3116,12 +3201,12 @@ TESTS_JS = r"""
     attendre(ecritures[0].contacts.some(contact => contact.id === 'C-distant') && a.instance.tous().some(c2 => c2.id === 'C-distant'), 'fusion absente');
     attendreEgal(await synchro.synchroniser(), false, 'rien à refaire');
     attendreEgal(ecritures.length, 1, 'pas de réécriture inutile');
-    a.instance.creerContact({ nom: 'Nouveau FICTIF' });
+    a.instance.creerContact({ prenom: 'Nouveau FICTIF' });
     await synchro.synchroniser();
     attendreEgal(ecritures.length, 2, 'changement envoyé');
-    attendre(ecritures[1].contacts.some(contact => contact.nom === 'Nouveau FICTIF'), 'nouveau contact absent de l’écriture');
+    attendre(ecritures[1].contacts.some(contact => contact.prenom === 'Nouveau FICTIF'), 'nouveau contact absent de l’écriture');
     echec = true;
-    a.instance.creerContact({ nom: 'Perdu FICTIF' });
+    a.instance.creerContact({ prenom: 'Perdu FICTIF' });
     attendreEgal(await synchro.synchroniser(), false, 'échec signalé sans exception');
     attendre(synchro.erreur().includes('panne simulée'), `erreur rapportée : ${synchro.erreur()}`);
     attendre(a.instance.aEnvoyer(), 'un échec garde la marque « à envoyer »');
@@ -4495,8 +4580,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v26['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v26")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v27['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v27")
 
 
 def verifier_precache_fichiers_existent():

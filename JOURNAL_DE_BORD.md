@@ -167,6 +167,16 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - Consigne de lecture plus stricte (local, pas publiée, cache cap-v25) : [?] obligatoire sur tout nom propre, nom de plat, nom de lieu, mot rare ou en police fantaisie ; « préférer le doute à la devinette ». Test automatique : mécanique seulement (l'IA est simulée) ; l'effet réel sera jugé par Max sur ses fiches de recettes avant toute publication.
   - Piste à vérifier avant de payer un modèle plus fort : l'IA lit aujourd'hui l'image AMÉLIORÉE (fond blanchi, noir renforcé), qui peut abîmer polices fantaisie et photos. Proposition en attente du feu vert de Max : garder en mémoire l'image redressée non retouchée et offrir un test A/B (lire la même page avec l'une puis l'autre).
   - Reste à tester par Max : document sans date lisible, mode avion avec l'indicateur « en attente », lecture d'autres types de documents.
+- 03/11/2026 : **Annuaire, ÉTAPE A (migration vers 20 colonnes) construite et testée, pas publiée**. Feu vert de Max : plafond 250 premiums, pas de délégation (tout fait avec Sonnet 5 Think), zéro perte, pas d'étape B.
+  - Passage de l'ancien Annuaire (7 champs) aux 18 champs du Dictionnaire général + « Supprimé le » + « Historique » : Prénom, Nom, Type, Rôle, Lien avec Max, Appellations et surnoms, Coordonnées, Téléphone, Mail, Domaine, Note pour IA, Date de naissance/anniversaire, Adresse postale, Deuxième téléphone, Deuxième mail, Fonction/titre, Site web, Note.
+  - Nouvelle règle : au moins un Prénom OU un Surnom pour qu'une fiche existe, tout le reste facultatif.
+  - « Appellations et surnoms » : plusieurs surnoms séparés par une virgule dans la même case (doublons filtrés), recherche par n'importe lequel.
+  - Migration automatique et zéro perte : un ancien contact (ancien champ « nom » complet, ancien « surnom » singulier) est converti tout seul à la lecture, rien n'est supprimé, l'historique est gardé et re-cadré (« surnom » → « surnoms »).
+  - Onglet Google Sheets « Annuaire » : ancien format (11 colonnes) détecté et migré à la lecture sans rien effacer ; toute nouvelle écriture se fait désormais en 22 colonnes (Identifiant + 18 champs + Supprimé le + Modifié le + Historique).
+  - Fiche contact simple : tous les champs visibles et facultatifs, gros pavé numérique pour Téléphone ET Deuxième téléphone, confirmation avant tout enregistrement (inchangée).
+  - Version de cache du service worker montée à `cap-v27` (contenu des fichiers modifiés, aucun nouveau fichier).
+  - 244/244 tests automatiques réussis (`python app\test_cap.py`).
+  - Pas publié, pas poussé : en attente de l'accord de Max pour publier, après son test sur le téléphone.
 
 ### En cours
 - Lot 3.1 publié et validé ; hors connexion et lot 3.2 faits en local, à publier avec l'accord de Max puis à essayer sur son téléphone.

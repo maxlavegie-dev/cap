@@ -278,10 +278,19 @@
         <button id="supprimer-contact" type="button">Supprimer</button>
       </section>
       <form id="formulaire-contact" hidden novalidate>
-        <label for="contact-nom">Nom (obligatoire)</label>
-        <input id="contact-nom" name="nom" required autocomplete="off">
-        <label for="contact-surnom">Surnom</label>
-        <input id="contact-surnom" name="surnom" autocomplete="off">
+        <p class="aide-fiche-contact">Au moins un prénom ou un surnom est nécessaire. Tout le reste est facultatif.</p>
+        <label for="contact-prenom">Prénom</label>
+        <input id="contact-prenom" name="prenom" autocomplete="off">
+        <label for="contact-nom">Nom</label>
+        <input id="contact-nom" name="nom" autocomplete="off">
+        <label for="contact-surnoms">Appellations et surnoms (séparés par une virgule)</label>
+        <input id="contact-surnoms" name="surnoms" autocomplete="off">
+        <label for="contact-type">Type</label>
+        <input id="contact-type" name="type" autocomplete="off">
+        <label for="contact-role">Rôle</label>
+        <input id="contact-role" name="role" autocomplete="off">
+        <label for="contact-lien">Lien avec Max</label>
+        <input id="contact-lien" name="lien" autocomplete="off">
         <label for="contact-telephone">Téléphone</label>
         <input id="contact-telephone" name="telephone" type="tel" inputmode="tel" autocomplete="off">
         <div class="actions-entree-vocale">
@@ -295,13 +304,38 @@
             <button id="pave-fermer" type="button">OK</button>
           </div>
         </div>
-        <label for="contact-adresse">Adresse</label>
-        <textarea id="contact-adresse" name="adresse" rows="2"></textarea>
-        <button id="dire-adresse" type="button" hidden>Dire l’adresse</button>
+        <label for="contact-telephone2">Deuxième téléphone</label>
+        <input id="contact-telephone2" name="telephone2" type="tel" inputmode="tel" autocomplete="off">
+        <div class="actions-entree-vocale">
+          <button id="dire-telephone2" type="button" hidden>Dire le numéro</button>
+          <button id="clavier-telephone2" type="button">Clavier numérique</button>
+        </div>
+        <div id="pave-telephone2" class="pave-numerique" hidden>
+          <div class="touches-pave"></div>
+          <div class="actions-pave">
+            <button id="pave-effacer2" type="button">Effacer</button>
+            <button id="pave-fermer2" type="button">OK</button>
+          </div>
+        </div>
         <label for="contact-mail">Mail</label>
         <input id="contact-mail" name="mail" type="email" autocomplete="off">
-        <label for="contact-anniversaire">Anniversaire (JJ-MM)</label>
+        <label for="contact-mail2">Deuxième mail</label>
+        <input id="contact-mail2" name="mail2" type="email" autocomplete="off">
+        <label for="contact-adresse">Adresse postale</label>
+        <textarea id="contact-adresse" name="adresse" rows="2"></textarea>
+        <button id="dire-adresse" type="button" hidden>Dire l’adresse</button>
+        <label for="contact-coordonnees">Coordonnées</label>
+        <textarea id="contact-coordonnees" name="coordonnees" rows="2"></textarea>
+        <label for="contact-anniversaire">Date de naissance / anniversaire (JJ-MM ou JJ-MM-AAAA)</label>
         <input id="contact-anniversaire" name="anniversaire" placeholder="JJ-MM" autocomplete="off">
+        <label for="contact-domaine">Domaine</label>
+        <input id="contact-domaine" name="domaine" autocomplete="off">
+        <label for="contact-fonction">Fonction / titre</label>
+        <input id="contact-fonction" name="fonction" autocomplete="off">
+        <label for="contact-site_web">Site web</label>
+        <input id="contact-site_web" name="site_web" autocomplete="off">
+        <label for="contact-note_ia">Note pour IA</label>
+        <textarea id="contact-note_ia" name="note_ia" rows="2"></textarea>
         <label for="contact-note">Note</label>
         <textarea id="contact-note" name="note" rows="3"></textarea>
         <p class="erreur" role="alert" hidden></p>
