@@ -2995,7 +2995,7 @@ TESTS_JS = r"""
     attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', mail2: 'pas-un-mail' }), 'adresse mail');
     attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', telephone2: 'abc' }), 'numéro de téléphone');
     attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', anniversaire: '31-02' }), 'n’existe pas');
-    attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', anniversaire: '2-9' }), 'format JJ-MM');
+    attendreEgal(annuaire.creerContact({ prenom: 'Mentor FICTIF', anniversaire: '2-9' }).anniversaire, '02-09', 'date sans zéro acceptée');
     attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', site_web: 'pas un site' }), 'site web');
     const contact = annuaire.creerContact({
       prenom: '  Mentor  ', nom: '  FICTIF  ', telephone: '06 00 00 00 00', telephone2: '07 00 00 00 00',
@@ -3020,6 +3020,26 @@ TESTS_JS = r"""
     attendre(annuaire.tous().some(item => item.id === contact.id), 'contact restauré');
     attendreEgal(annuaire.trouver(contact.id).supprime_le, '', 'date de suppression effacée');
     attendreErreur(() => annuaire.trouver('C-introuvable'), 'introuvable');
+  });
+
+  test('Annuaire : dates multi-formats, abréviations, années ambiguës et dictée', () => {
+    attendreEgal(annuaire.analyserAnniversaire('').valeur, '', 'date vide acceptée');
+    attendreEgal(annuaire.analyserAnniversaire('11 01 77').ok, false, 'année à deux chiffres : ambigu');
+    attendreEgal(annuaire.analyserAnniversaire('11 01 77').options.map(o => o.valeur).sort(), ['11-01-1977', '11-01-2077'], 'deux options complètes proposées');
+    attendreEgal(annuaire.analyserAnniversaire('11 01 1977').valeur, '11-01-1977', 'année à quatre chiffres : pas d’ambiguïté');
+    attendreEgal(annuaire.analyserAnniversaire('11 janvier').valeur, '11-01', 'mois en toutes lettres, sans année');
+    attendreEgal(annuaire.analyserAnniversaire('11 janv 77').ok, false, 'mois abrégé, année à deux chiffres : toujours les deux options');
+    attendreEgal(annuaire.analyserAnniversaire('11 janv. 1977').valeur, '11-01-1977', 'mois abrégé avec point, année à quatre chiffres');
+    attendreEgal(annuaire.analyserAnniversaire('11/01/1977').valeur, '11-01-1977', 'séparateur barre oblique');
+    attendreEgal(annuaire.analyserAnniversaire('11.01.1977').valeur, '11-01-1977', 'séparateur point');
+    attendreEgal(annuaire.analyserAnniversaire('11-01-1977').valeur, '11-01-1977', 'séparateur tiret');
+    attendreEgal(annuaire.analyserAnniversaire('onze janvier mille neuf cent soixante-dix-sept').valeur, '11-01-1977', 'dictée en toutes lettres');
+    attendreEgal(annuaire.analyserAnniversaire('11 jui').ok, false, 'mois « jui » ambigu entre juin et juillet');
+    attendreEgal(annuaire.analyserAnniversaire('11 jui').options.map(o => o.valeur).sort(), ['11-06', '11-07'], 'les deux mois possibles proposés');
+    attendreErreur(() => annuaire.analyserAnniversaire('31 février'), 'n’existe pas');
+    attendreErreur(() => annuaire.analyserAnniversaire('pas une date'), 'Vérifie');
+    attendreEgal(annuaire.anniversaireLisible('11-01-1977'), '11 janvier 1977', 'affichage en toutes lettres avec année');
+    attendreEgal(annuaire.anniversaireLisible('11-01'), '11 janvier', 'affichage en toutes lettres sans année');
   });
 
   test('Annuaire : un seul surnom suffit, plusieurs surnoms séparés par virgule', () => {
@@ -4604,8 +4624,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v28['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v28")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v29['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v29")
 
 
 def verifier_precache_fichiers_existent():

@@ -148,7 +148,7 @@ const ficheContact = (() => {
       carteMail('Deuxième mail', contact.mail2),
       carte('Adresse postale', adresse || '—', adresse ? { texte: 'Itinéraire', href: `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(adresse)}` } : null),
       carte('Coordonnées', valeurLisible('coordonnees', contact.coordonnees)),
-      carte('Date de naissance / anniversaire', valeurLisible('anniversaire', contact.anniversaire)),
+      carte('Date de naissance / anniversaire', annuaire.anniversaireLisible(contact.anniversaire) || '—'),
       carte('Domaine', valeurLisible('domaine', contact.domaine)),
       carte('Fonction / titre', valeurLisible('fonction', contact.fonction)),
       carte('Site web', siteWeb || '—', siteWeb ? { texte: 'Ouvrir', href: /^https?:\/\//.test(siteWeb) ? siteWeb : `https://${siteWeb}` } : null),
@@ -200,10 +200,91 @@ const ficheContact = (() => {
     parId(idEffacer).addEventListener('click', () => {
       champ(nomChamp).value = champ(nomChamp).value.slice(0, -1);
     });
-    parId(idFermer).addEventListener('click', () => { parId(idPave).hidden = true; });
+    parId(idFermer).addEventListener('click', () => {
+      parId(idPave).hidden = true;
+      grandAffichageDepuisChamp(nomChamp);
+    });
   }
 
+  // --- Fenêtre très gros pendant 8 secondes ---
+
+  const dialogueGrand = parId('grand-affichage');
+  const texteGrand = parId('grand-affichage-texte');
+  let delaiGrand;
+
+  function fermerGrandAffichage() {
+    clearTimeout(delaiGrand);
+    if (dialogueGrand.open) dialogueGrand.close();
+  }
+
+  function afficherGrandAffichage(valeur) {
+    const propre = texte(valeur).trim();
+    if (!propre) return;
+    clearTimeout(delaiGrand);
+    texteGrand.textContent = propre;
+    if (propre.length > 20) texteGrand.setAttribute('data-long', '1');
+    else texteGrand.removeAttribute('data-long');
+    if (!dialogueGrand.open) dialogueGrand.showModal();
+    delaiGrand = setTimeout(fermerGrandAffichage, 8000);
+  }
+
+  function grandAffichageDepuisChamp(nomChamp) {
+    if (nomChamp === 'anniversaire') { gererAnniversaireSaisie(champ(nomChamp).value); return; }
+    afficherGrandAffichage(champ(nomChamp).value);
+  }
+
+  dialogueGrand.addEventListener('click', fermerGrandAffichage);
+  dialogueGrand.addEventListener('close', () => clearTimeout(delaiGrand));
+
+  function afficherChoixAnniversaire(options) {
+    clearTimeout(delaiGrand);
+    texteGrand.removeAttribute('data-long');
+    texteGrand.replaceChildren(
+      noeud('p', 'choix-grand-affichage-titre', 'Je ne suis pas sûr. Touche la bonne date :'),
+      ...options.map(option => {
+        const bouton = noeud('button', 'choix-grand-affichage', option.lisible);
+        bouton.type = 'button';
+        bouton.addEventListener('click', event => {
+          event.stopPropagation();
+          champ('anniversaire').value = option.valeur;
+          fermerGrandAffichage();
+          afficherGrandAffichage(option.lisible);
+        });
+        return bouton;
+      })
+    );
+    if (!dialogueGrand.open) dialogueGrand.showModal();
+  }
+
+  function gererAnniversaireSaisie(valeurBrute) {
+    if (!texte(valeurBrute).trim()) return;
+    let resultat;
+    try {
+      resultat = annuaire.analyserAnniversaire(valeurBrute);
+    } catch (echec) {
+      return;
+    }
+    if (!resultat.ok) { afficherChoixAnniversaire(resultat.options); return; }
+    if (resultat.valeur) {
+      champ('anniversaire').value = resultat.valeur;
+      afficherGrandAffichage(resultat.lisible);
+    }
+  }
+
+  champ('anniversaire').addEventListener('blur', () => gererAnniversaireSaisie(champ('anniversaire').value));
+
   // --- Dictée vocale ---
+
+  const CHAMPS_MAIL = new Set(['mail', 'mail2']);
+
+  function normaliserMailDicte(valeur) {
+    let propre = ` ${valeur.toLocaleLowerCase('fr').trim()} `;
+    propre = propre.replace(/\s+arobase\s+/g, '@');
+    propre = propre.replace(/\s+point\s+/g, '.');
+    propre = propre.replace(/\s+tiret\s+/g, '-');
+    propre = propre.replace(/\s+underscore\s+/g, '_');
+    return propre.replace(/\s+/g, '').trim();
+  }
 
   function ecouterChamp(nomChamp, bouton) {
     if (!dictee.disponible()) return;
@@ -225,8 +306,15 @@ const ficheContact = (() => {
       surFinal(texteRecu) {
         if (recu) return;
         recu = true;
-        champ(nomChamp).value = texteRecu.trim();
         statut.hidden = true;
+        if (nomChamp === 'anniversaire') {
+          champ(nomChamp).value = texteRecu.trim();
+          gererAnniversaireSaisie(texteRecu);
+          return;
+        }
+        const valeur = CHAMPS_MAIL.has(nomChamp) ? normaliserMailDicte(texteRecu) : texteRecu.trim();
+        champ(nomChamp).value = valeur;
+        afficherGrandAffichage(valeur);
       },
       surErreur() {},
       surFin() {
@@ -238,9 +326,9 @@ const ficheContact = (() => {
     });
   }
 
-  parId('dire-telephone').addEventListener('click', event => ecouterChamp('telephone', event.currentTarget));
-  parId('dire-telephone2').addEventListener('click', event => ecouterChamp('telephone2', event.currentTarget));
-  parId('dire-adresse').addEventListener('click', event => ecouterChamp('adresse', event.currentTarget));
+  for (const bouton of document.querySelectorAll('.micro-champ')) {
+    bouton.addEventListener('click', event => ecouterChamp(bouton.dataset.champ, event.currentTarget));
+  }
 
   // --- Édition ---
 
@@ -263,9 +351,7 @@ const ficheContact = (() => {
       champ(cle).value = texte(contact?.[cle]);
     }
     remplirChampType();
-    parId('dire-telephone').hidden = !dictee.disponible();
-    parId('dire-telephone2').hidden = !dictee.disponible();
-    parId('dire-adresse').hidden = !dictee.disponible();
+    for (const bouton of document.querySelectorAll('.micro-champ')) bouton.hidden = !dictee.disponible();
     parId('pave-telephone').hidden = true;
     parId('pave-telephone2').hidden = true;
     parId('enregistrer-contact').textContent = creation ? 'Vérifier' : 'Enregistrer';

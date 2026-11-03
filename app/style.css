@@ -1484,9 +1484,44 @@ dialog button:hover {
   margin: 8px 0;
 }
 
+.champ-avec-micro {
+  position: relative;
+}
+
+.champ-avec-micro input,
+.champ-avec-micro textarea {
+  width: 100%;
+  padding-right: 48px;
+}
+
+.champ-avec-micro-haut .micro-champ {
+  top: 10px;
+  transform: none;
+}
+
+.micro-champ {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  color: #547a83;
+}
+
+.micro-champ[aria-pressed="true"] {
+  color: #c0392b;
+}
+
 .pave-numerique {
   margin: 8px 0;
-  padding: 10px;
+  padding: 14px;
   border: 1px solid rgb(32 62 73 / 20%);
   border-radius: 12px;
   background: #fffef7;
@@ -1495,20 +1530,90 @@ dialog button:hover {
 .touches-pave {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 .touche-pave {
-  min-height: 56px;
-  font-size: 20px;
-  font-weight: 600;
+  min-height: 80px;
+  font-size: 34px;
+  font-weight: 700;
 }
 
 .actions-pave {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.actions-pave button {
+  min-height: 60px;
+  padding: 0 24px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+#grand-affichage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 24px;
+  border: 0;
+  background: #203e49;
+  color: #fffef7;
+  text-align: center;
+}
+
+#grand-affichage[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#grand-affichage::backdrop {
+  background: rgb(32 62 73 / 60%);
+}
+
+#grand-affichage-texte {
+  margin: 0;
+  width: 100%;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+  line-height: 1.15;
+  font-size: clamp(32px, 14vw, 96px);
+}
+
+.choix-grand-affichage-titre {
+  margin: 0 0 20px;
+  font-size: clamp(20px, 6vw, 32px);
+  font-weight: 600;
+}
+
+.choix-grand-affichage {
+  display: block;
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 2px solid #fffef7;
+  border-radius: 12px;
+  background: transparent;
+  color: #fffef7;
+  font-size: clamp(22px, 7vw, 36px);
+  font-weight: 700;
+}
+
+.choix-grand-affichage:hover,
+.choix-grand-affichage:active {
+  background: rgb(255 255 247 / 15%);
+}
+
+#grand-affichage-texte[data-long] {
+  font-size: clamp(22px, 7vw, 44px);
+  text-align: left;
 }
 
 #clavier {

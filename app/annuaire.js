@@ -55,14 +55,135 @@ const annuaire = (() => {
   function validerAnniversaire(valeur) {
     const propre = texte(valeur).trim();
     if (!propre) return '';
-    const correspondance = /^(\d{2})-(\d{2})(?:-(\d{4}))?$/.exec(propre);
-    if (!correspondance) throw new Error('La date de naissance / anniversaire doit être au format JJ-MM ou JJ-MM-AAAA.');
-    const jour = Number(correspondance[1]);
-    const mois = Number(correspondance[2]);
-    const annee = correspondance[3] ? Number(correspondance[3]) : 2024;
-    const date = new Date(annee, mois - 1, jour);
-    if (date.getMonth() !== mois - 1 || date.getDate() !== jour) throw new Error('Cette date n’existe pas.');
-    return propre;
+    const canonique = /^(\d{2})-(\d{2})(?:-(\d{4}))?$/.exec(propre);
+    if (canonique) {
+      const jour = Number(canonique[1]);
+      const mois = Number(canonique[2]);
+      const annee = canonique[3] ? Number(canonique[3]) : null;
+      if (!dateAnniversaireExiste(jour, mois, annee)) throw new Error('Cette date n’existe pas.');
+      return propre;
+    }
+    const resultat = analyserAnniversaire(propre);
+    if (!resultat.ok) throw new Error('Cette date a plusieurs sens possibles. Choisis-la dans la fenêtre d’aide avant d’enregistrer.');
+    return resultat.valeur;
+  }
+
+  const NOMS_MOIS_ANNIVERSAIRE = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const MOIS_ANNIVERSAIRE = {
+    janvier: 1, janv: 1, jan: 1, fevrier: 2, fevr: 2, fev: 2, mars: 3, mar: 3, avril: 4, avr: 4, mai: 5,
+    juin: 6, juillet: 7, juil: 7, aout: 8, aou: 8, septembre: 9, sept: 9, sep: 9, octobre: 10, oct: 10,
+    novembre: 11, nov: 11, decembre: 12, dec: 12
+  };
+  const MOIS_ANNIVERSAIRE_AMBIGUS = { jui: [6, 7] };
+
+  function dateAnniversaireExiste(jour, mois, annee) {
+    if (!(mois >= 1 && mois <= 12) || !(jour >= 1 && jour <= 31)) return false;
+    const a = annee || 2024;
+    const date = new Date(a, mois - 1, jour);
+    return date.getMonth() === mois - 1 && date.getDate() === jour;
+  }
+
+  function canoniqueAnniversaire(jour, mois, annee) {
+    const j = String(jour).padStart(2, '0');
+    const m = String(mois).padStart(2, '0');
+    return annee ? `${j}-${m}-${annee}` : `${j}-${m}`;
+  }
+
+  function libelleAnniversaire(jour, mois, annee) {
+    return annee ? `${jour} ${NOMS_MOIS_ANNIVERSAIRE[mois - 1]} ${annee}` : `${jour} ${NOMS_MOIS_ANNIVERSAIRE[mois - 1]}`;
+  }
+
+  function anneesDeuxChiffresPossibles(jour, mois, deux) {
+    const n = Number(deux);
+    return [1900 + n, 2000 + n].filter(an => dateAnniversaireExiste(jour, mois, an));
+  }
+
+  function motsEnNombre(segment) {
+    let s = normaliser(segment).replace(/\bquatre vingts?\b/g, 'quatrevingt');
+    const tokens = s.split(' ').filter(t => t && t !== 'et');
+    if (!tokens.length) return null;
+    const UNITES = { zero: 0, un: 1, une: 1, deux: 2, trois: 3, quatre: 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10, onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16 };
+    const DIZAINES = { vingt: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60, quatrevingt: 80 };
+    let valeur = 0, courant = 0, trouve = false;
+    for (const token of tokens) {
+      if (/^\d+$/.test(token)) { courant += Number(token); trouve = true; continue; }
+      if (token in UNITES) { courant += UNITES[token]; trouve = true; continue; }
+      if (token in DIZAINES) { courant += DIZAINES[token]; trouve = true; continue; }
+      if (token === 'cent' || token === 'cents') { courant = (courant || 1) * 100; trouve = true; continue; }
+      if (token === 'mille' || token === 'mil') { valeur += (courant || 1) * 1000; courant = 0; trouve = true; continue; }
+      return null;
+    }
+    return trouve ? valeur + courant : null;
+  }
+
+  function resoudreAnniversaire(jour, mois, anneeTexte) {
+    if (!(mois >= 1 && mois <= 12) || !(jour >= 1 && jour <= 31)) throw new Error('Vérifie la date de naissance / anniversaire.');
+    const txt = texte(anneeTexte).trim();
+    if (!txt) {
+      if (!dateAnniversaireExiste(jour, mois, null)) throw new Error('Cette date n’existe pas.');
+      return { ok: true, valeur: canoniqueAnniversaire(jour, mois, null), lisible: libelleAnniversaire(jour, mois, null) };
+    }
+    if (/^\d{4}$/.test(txt)) {
+      const an = Number(txt);
+      if (!dateAnniversaireExiste(jour, mois, an)) throw new Error('Cette date n’existe pas.');
+      return { ok: true, valeur: canoniqueAnniversaire(jour, mois, an), lisible: libelleAnniversaire(jour, mois, an) };
+    }
+    if (/^\d{2}$/.test(txt)) {
+      const possibles = anneesDeuxChiffresPossibles(jour, mois, txt);
+      if (!possibles.length) throw new Error('Cette date n’existe pas.');
+      if (possibles.length === 1) return { ok: true, valeur: canoniqueAnniversaire(jour, mois, possibles[0]), lisible: libelleAnniversaire(jour, mois, possibles[0]) };
+      return { ok: false, options: possibles.map(an => ({ valeur: canoniqueAnniversaire(jour, mois, an), lisible: libelleAnniversaire(jour, mois, an) })) };
+    }
+    const an = motsEnNombre(txt);
+    if (an && an >= 1000 && an <= 9999) {
+      if (!dateAnniversaireExiste(jour, mois, an)) throw new Error('Cette date n’existe pas.');
+      return { ok: true, valeur: canoniqueAnniversaire(jour, mois, an), lisible: libelleAnniversaire(jour, mois, an) };
+    }
+    throw new Error('Vérifie la date de naissance / anniversaire.');
+  }
+
+  function analyserAnniversaire(brut) {
+    const propre = texte(brut).trim();
+    if (!propre) return { ok: true, valeur: '', lisible: '' };
+    const travail = propre.replace(/[/.-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const mots = travail.split(' ');
+    let indexMois = -1;
+    for (let i = 0; i < mots.length; i++) {
+      const mot = normaliser(mots[i]).replace(/\.$/, '');
+      if (MOIS_ANNIVERSAIRE[mot] !== undefined || MOIS_ANNIVERSAIRE_AMBIGUS[mot]) { indexMois = i; break; }
+    }
+    if (indexMois === -1) {
+      if ((mots.length === 2 || mots.length === 3) && mots.every(m => /^\d+$/.test(m))) {
+        return resoudreAnniversaire(Number(mots[0]), Number(mots[1]), mots[2]);
+      }
+      throw new Error('Vérifie la date de naissance / anniversaire.');
+    }
+    const motMois = normaliser(mots[indexMois]).replace(/\.$/, '');
+    const candidatsMois = MOIS_ANNIVERSAIRE_AMBIGUS[motMois] || [MOIS_ANNIVERSAIRE[motMois]];
+    const jourTexte = mots.slice(0, indexMois).join(' ');
+    const anneeTexte = mots.slice(indexMois + 1).join(' ');
+    const jourNombre = /^\d{1,2}$/.test(jourTexte) ? Number(jourTexte) : motsEnNombre(jourTexte);
+    if (!jourNombre || jourNombre < 1 || jourNombre > 31) throw new Error('Vérifie la date de naissance / anniversaire.');
+    if (candidatsMois.length > 1) {
+      const options = [];
+      for (const mois of candidatsMois) {
+        try {
+          const res = resoudreAnniversaire(jourNombre, mois, anneeTexte);
+          if (res.ok) { if (res.valeur) options.push({ valeur: res.valeur, lisible: res.lisible }); }
+          else options.push(...res.options);
+        } catch (echec) { /* option impossible pour ce mois, ignorée */ }
+      }
+      if (!options.length) throw new Error('Cette date n’existe pas.');
+      if (options.length === 1) return { ok: true, valeur: options[0].valeur, lisible: options[0].lisible };
+      return { ok: false, options };
+    }
+    return resoudreAnniversaire(jourNombre, candidatsMois[0], anneeTexte);
+  }
+
+  function anniversaireLisible(valeurCanonique) {
+    const m = /^(\d{2})-(\d{2})(?:-(\d{4}))?$/.exec(texte(valeurCanonique).trim());
+    if (!m) return texte(valeurCanonique);
+    return libelleAnniversaire(Number(m[1]), Number(m[2]), m[3] ? Number(m[3]) : null);
   }
 
   function validerSiteWeb(valeur) {
@@ -318,6 +439,7 @@ const annuaire = (() => {
   return {
     tous, supprimes, trouver, correspondances, creerContact, modifierContact, supprimerContact, restaurerContact,
     fusionner, exporter, aEnvoyer, marquerEnvoye, recharger, nomAffichage, listeSurnoms,
-    validerTelephone, validerMail, validerAnniversaire, validerSiteWeb, validerChamps, CHAMPS
+    validerTelephone, validerMail, validerAnniversaire, validerSiteWeb, validerChamps, CHAMPS,
+    analyserAnniversaire, anniversaireLisible
   };
 })();

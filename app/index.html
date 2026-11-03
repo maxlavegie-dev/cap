@@ -281,11 +281,20 @@
       <form id="formulaire-contact" hidden novalidate>
         <p class="aide-fiche-contact">Au moins un prénom ou un surnom est nécessaire. Tout le reste est facultatif.</p>
         <label for="contact-prenom">Prénom</label>
-        <input id="contact-prenom" name="prenom" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-prenom" name="prenom" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="prenom" aria-label="Dicter le prénom" hidden>🎤</button>
+        </div>
         <label for="contact-nom">Nom</label>
-        <input id="contact-nom" name="nom" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-nom" name="nom" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="nom" aria-label="Dicter le nom" hidden>🎤</button>
+        </div>
         <label for="contact-surnoms">Appellations et surnoms (séparés par une virgule)</label>
-        <input id="contact-surnoms" name="surnoms" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-surnoms" name="surnoms" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="surnoms" aria-label="Dicter les appellations et surnoms" hidden>🎤</button>
+        </div>
         <label for="contact-type">Type</label>
         <select id="contact-type" name="type">
           <option value="">—</option>
@@ -295,13 +304,21 @@
           <option value="Procédure">Procédure</option>
         </select>
         <label for="contact-role">Rôle</label>
-        <input id="contact-role" name="role" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-role" name="role" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="role" aria-label="Dicter le rôle" hidden>🎤</button>
+        </div>
         <label for="contact-lien">Lien avec Max</label>
-        <input id="contact-lien" name="lien" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-lien" name="lien" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="lien" aria-label="Dicter le lien avec Max" hidden>🎤</button>
+        </div>
         <label for="contact-telephone">Téléphone</label>
-        <input id="contact-telephone" name="telephone" type="tel" inputmode="tel" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-telephone" name="telephone" type="tel" inputmode="tel" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="telephone" aria-label="Dicter le téléphone" hidden>🎤</button>
+        </div>
         <div class="actions-entree-vocale">
-          <button id="dire-telephone" type="button" hidden>Dire le numéro</button>
           <button id="clavier-telephone" type="button">Clavier numérique</button>
         </div>
         <div id="pave-telephone" class="pave-numerique" hidden>
@@ -312,9 +329,11 @@
           </div>
         </div>
         <label for="contact-telephone2">Deuxième téléphone</label>
-        <input id="contact-telephone2" name="telephone2" type="tel" inputmode="tel" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-telephone2" name="telephone2" type="tel" inputmode="tel" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="telephone2" aria-label="Dicter le deuxième téléphone" hidden>🎤</button>
+        </div>
         <div class="actions-entree-vocale">
-          <button id="dire-telephone2" type="button" hidden>Dire le numéro</button>
           <button id="clavier-telephone2" type="button">Clavier numérique</button>
         </div>
         <div id="pave-telephone2" class="pave-numerique" hidden>
@@ -325,26 +344,55 @@
           </div>
         </div>
         <label for="contact-mail">Mail</label>
-        <input id="contact-mail" name="mail" type="email" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-mail" name="mail" type="email" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="mail" aria-label="Dicter le mail" hidden>🎤</button>
+        </div>
         <label for="contact-mail2">Deuxième mail</label>
-        <input id="contact-mail2" name="mail2" type="email" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-mail2" name="mail2" type="email" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="mail2" aria-label="Dicter le deuxième mail" hidden>🎤</button>
+        </div>
         <label for="contact-adresse">Adresse postale</label>
-        <textarea id="contact-adresse" name="adresse" rows="2"></textarea>
-        <button id="dire-adresse" type="button" hidden>Dire l’adresse</button>
+        <div class="champ-avec-micro champ-avec-micro-haut">
+          <textarea id="contact-adresse" name="adresse" rows="2"></textarea>
+          <button class="micro-champ" type="button" data-champ="adresse" aria-label="Dicter l’adresse" hidden>🎤</button>
+        </div>
         <label for="contact-coordonnees">Coordonnées</label>
-        <textarea id="contact-coordonnees" name="coordonnees" rows="2"></textarea>
+        <div class="champ-avec-micro champ-avec-micro-haut">
+          <textarea id="contact-coordonnees" name="coordonnees" rows="2"></textarea>
+          <button class="micro-champ" type="button" data-champ="coordonnees" aria-label="Dicter les coordonnées" hidden>🎤</button>
+        </div>
         <label for="contact-anniversaire">Date de naissance / anniversaire (JJ-MM ou JJ-MM-AAAA)</label>
-        <input id="contact-anniversaire" name="anniversaire" placeholder="JJ-MM" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-anniversaire" name="anniversaire" placeholder="JJ-MM" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="anniversaire" aria-label="Dicter la date de naissance ou l’anniversaire" hidden>🎤</button>
+        </div>
         <label for="contact-domaine">Domaine</label>
-        <input id="contact-domaine" name="domaine" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-domaine" name="domaine" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="domaine" aria-label="Dicter le domaine" hidden>🎤</button>
+        </div>
         <label for="contact-fonction">Fonction / titre</label>
-        <input id="contact-fonction" name="fonction" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-fonction" name="fonction" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="fonction" aria-label="Dicter la fonction ou le titre" hidden>🎤</button>
+        </div>
         <label for="contact-site_web">Site web</label>
-        <input id="contact-site_web" name="site_web" autocomplete="off">
+        <div class="champ-avec-micro">
+          <input id="contact-site_web" name="site_web" autocomplete="off">
+          <button class="micro-champ" type="button" data-champ="site_web" aria-label="Dicter le site web" hidden>🎤</button>
+        </div>
         <label for="contact-note_ia">Note pour IA</label>
-        <textarea id="contact-note_ia" name="note_ia" rows="2"></textarea>
+        <div class="champ-avec-micro champ-avec-micro-haut">
+          <textarea id="contact-note_ia" name="note_ia" rows="2"></textarea>
+          <button class="micro-champ" type="button" data-champ="note_ia" aria-label="Dicter la note pour IA" hidden>🎤</button>
+        </div>
         <label for="contact-note">Note</label>
-        <textarea id="contact-note" name="note" rows="3"></textarea>
+        <div class="champ-avec-micro champ-avec-micro-haut">
+          <textarea id="contact-note" name="note" rows="3"></textarea>
+          <button class="micro-champ" type="button" data-champ="note" aria-label="Dicter la note" hidden>🎤</button>
+        </div>
         <p class="erreur" role="alert" hidden></p>
         <div class="actions-dialogue">
           <button id="annuler-edition-contact" type="button">Annuler</button>
@@ -369,6 +417,9 @@
         </div>
       </section>
     </div>
+  </dialog>
+  <dialog id="grand-affichage" aria-label="Ce que Cap a compris">
+    <p id="grand-affichage-texte"></p>
   </dialog>
   <dialog id="reglages-ia" aria-labelledby="titre-reglages-ia">
     <h2 id="titre-reglages-ia" tabindex="-1">Cerveau de Cap</h2>
