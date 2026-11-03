@@ -186,6 +186,15 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - Deux mots interdits détectés et corrigés pendant l'écriture des tests (un prénom fictif de la liste interdite, et un mot en collision involontaire avec un préfixe testé) : renommés sans rien publier du mot d'origine.
   - 246/246 tests automatiques réussis. Tag de sauvegarde `sauvegarde-avant-push-groupes-1-3` posé. Relecture des deux commits : aucune clé, aucun mail réel, aucun nom interdit, aucun fichier privé.
   - Pas publié, pas poussé : en attente de l'accord de Max après son test sur le téléphone. Reste à faire (groupes suivants, non commencés) : pavé numérique plus gros, fenêtre très gros 8 secondes, micro sur tous les champs, dates multi-formats, puis (après accord séparé de Max) commandes vocales reliées à l'annuaire.
+- 03/11/2026 : **Groupes 1 à 3 publiés (commits `a98faa8`, `cd3523a`, `d0e5f1b`, cache `cap-v28`), testés et validés par Max sur son vrai téléphone.** Instruction de continuer sans attendre sur les groupes 4 à 7.
+- 03/11/2026 : **Groupes 4 à 7 construits et testés (commit local `7ab47eb`), pas publiés.**
+  - Groupe 4 (pavé numérique) : chiffres et touches agrandis (CSS).
+  - Groupe 5 (fenêtre très gros 8 secondes) : nouvelle fenêtre `#grand-affichage`, affichage plein écran après une dictée ou une validation du pavé numérique, fermeture au toucher ou après 8 secondes.
+  - Groupe 6 (micro sur tous les champs) : icône micro dans chaque champ texte (prénom, nom, surnoms, rôle, lien, téléphones, mails, adresse, coordonnées, anniversaire, domaine, fonction, site web, notes), zone de toucher de la taille d'un doigt, rouge pendant l'écoute ; dictée d'un mail comprend « arobase », « point », « tiret », « underscore ».
+  - Groupe 7 (dates multi-formats) : la date de naissance / anniversaire se comprend sous plusieurs formes (séparateurs espace/barre/point/tiret, mois en toutes lettres ou abrégés, dictée complète en mots type « onze janvier mille neuf cent soixante-dix-sept ») ; année à deux chiffres ou mois abrégé ambigu (« jui » = juin/juillet) : Cap affiche toujours les options en très gros et Max touche la bonne, jamais de choix automatique ; date impossible refusée sans deviner ; affichage toujours en toutes lettres dans la fiche.
+  - Version de cache du service worker montée à `cap-v29`.
+  - 247/247 tests automatiques réussis. Tag de sauvegarde `sauvegarde-avant-push-groupes-4-7` posé (pointe sur le commit juste avant). Relecture du commit : aucune clé, aucun mail réel, aucun nom interdit, aucun fichier privé.
+  - Pas publié, pas poussé : en attente de l'accord de Max. Étape B (saisie pas à pas) et groupe 8 (commandes vocales reliées à l'annuaire) toujours non commencés.
 
 ### En cours
 - Lot 3.1 publié et validé ; hors connexion et lot 3.2 faits en local, à publier avec l'accord de Max puis à essayer sur son téléphone.
