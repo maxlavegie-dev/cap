@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "fichiers_vocaux.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -4485,10 +4485,10 @@ TESTS_JS = r"""
 
   test('Fichiers vocaux : « liste » reconnu en code pur (ajout, lecture, retrait, zéro perte)', () => {
     attendreEgal(fichiersVocaux.detecterCommande('liste pommes, pain et lait'),
-      { type: 'ajouter', produits: ['pommes', 'pain', 'lait'] }, 'ajout reconnu');
-    attendreEgal(fichiersVocaux.detecterCommande('liste, lis-moi'), { type: 'lire' }, 'lecture reconnue');
+      { type: 'ajouter', fichier: 'liste_courses', produits: ['pommes', 'pain', 'lait'] }, 'ajout reconnu');
+    attendreEgal(fichiersVocaux.detecterCommande('liste, lis-moi'), { type: 'lire', fichier: 'liste_courses' }, 'lecture reconnue');
     attendreEgal(fichiersVocaux.detecterCommande('liste, retire pommes'),
-      { type: 'retirer', produit: 'pommes' }, 'retrait reconnu');
+      { type: 'retirer', fichier: 'liste_courses', produit: 'pommes' }, 'retrait reconnu');
     attendreEgal(fichiersVocaux.detecterCommande('bloc-notes, note quelque chose'), null, 'pas de collision avec une autre commande');
     const ajout = fichiersVocaux.ajouterElements('', ['Pommes', 'pain']);
     attendreEgal(ajout.ajoutes, ['Pommes', 'pain'], 'deux produits ajoutés');
@@ -4565,23 +4565,106 @@ TESTS_JS = r"""
     };
     const controleur = objetIsole(SOURCE_FICHIERS_VOCAUX_CONTROLEUR, 'fichiersVocauxControleur', {
       navigator: { onLine: true }, googleConnexion: { connecte: () => true }, REGLAGES_GOOGLE,
-      fichiersVocauxDrive: drivefictif, fichiersVocaux, journalActions: { consigner: () => {} }
+      fichiersVocauxDrive: drivefictif, fichiersVocaux, fichiersVocauxEcheancier, fichiersVocauxAFaire,
+      fichiersVocauxNotes, journalActions: { consigner: () => {} }
     });
-    const ajout = await controleur.traiter({ type: 'ajouter', produits: ['pommes'] });
+    const ajout = await controleur.traiter({ systeme: 'liste', commande: { type: 'ajouter', fichier: 'liste_courses', produits: ['pommes'] } });
     attendre(ajout.type === 'reponse' && ajout.message.includes('pommes'), 'réponse après ajout');
-    const lecture = await controleur.traiter({ type: 'lire' });
+    const lecture = await controleur.traiter({ systeme: 'liste', commande: { type: 'lire', fichier: 'liste_courses' } });
     attendre(lecture.message.includes('pommes'), 'lecture après ajout');
-    const retrait = await controleur.traiter({ type: 'retirer', produit: 'pommes' });
+    const retrait = await controleur.traiter({ systeme: 'liste', commande: { type: 'retirer', fichier: 'liste_courses', produit: 'pommes' } });
     attendre(retrait.message.includes('Retiré'), 'réponse après retrait');
-    const relecture = await controleur.traiter({ type: 'lire' });
+    const relecture = await controleur.traiter({ systeme: 'liste', commande: { type: 'lire', fichier: 'liste_courses' } });
     attendre(relecture.message.includes('vide'), 'retiré absent de la lecture, jamais effacé du fichier');
     attendre(contenuActuel.includes('(retiré le'), 'zéro perte dans le fichier');
     const controleurHorsLigne = objetIsole(SOURCE_FICHIERS_VOCAUX_CONTROLEUR, 'fichiersVocauxControleur', {
       navigator: { onLine: false }, googleConnexion: { connecte: () => true }, REGLAGES_GOOGLE,
-      fichiersVocauxDrive: drivefictif, fichiersVocaux, journalActions: { consigner: () => {} }
+      fichiersVocauxDrive: drivefictif, fichiersVocaux, fichiersVocauxEcheancier, fichiersVocauxAFaire,
+      fichiersVocauxNotes, journalActions: { consigner: () => {} }
     });
-    const horsLigne = await controleurHorsLigne.traiter({ type: 'ajouter', produits: ['lait'] });
+    const horsLigne = await controleurHorsLigne.traiter({ systeme: 'liste', commande: { type: 'ajouter', fichier: 'liste_courses', produits: ['lait'] } });
     attendre(horsLigne.message.toLowerCase().includes('pas de connexion'), 'honnête hors connexion, rien inventé');
+  });
+
+  test('Fichiers vocaux : listes génériques (achats, films, livres) sans collision', () => {
+    attendreEgal(fichiersVocaux.detecterCommande('achats une perceuse'),
+      { type: 'ajouter', fichier: 'choses_a_acheter', produits: ['une perceuse'] }, 'achats reconnu');
+    attendreEgal(fichiersVocaux.detecterCommande('films Dune et Oppenheimer'),
+      { type: 'ajouter', fichier: 'films_a_voir', produits: ['Dune', 'Oppenheimer'] }, 'films reconnu');
+    attendreEgal(fichiersVocaux.detecterCommande('livres, lis-moi'), { type: 'lire', fichier: 'livres_a_lire' }, 'livres lecture');
+    attendreEgal(fichiersVocaux.detecterCommande('liste pain'), { type: 'ajouter', fichier: 'liste_courses', produits: ['pain'] }, 'liste toujours reconnue');
+  });
+
+  test('Fichiers vocaux : notes (ouverture, fin, titre automatique, ajout sans effacement)', () => {
+    attendreEgal(fichiersVocauxNotes.detecterOuverture('bloc-notes, note'), { fichier: 'bloc_notes' }, 'ouverture bloc-notes');
+    attendreEgal(fichiersVocauxNotes.detecterOuverture('brouillon vocal, note'), { fichier: 'brouillon_vocal' }, 'ouverture brouillon vocal');
+    attendreEgal(fichiersVocauxNotes.detecterOuverture('liste pommes'), null, 'pas de collision avec les listes');
+    attendre(fichiersVocauxNotes.estTerminer('terminé'), 'fin reconnue');
+    attendre(fichiersVocauxNotes.estTerminer('Terminé.'), 'fin reconnue avec majuscule et point');
+    attendre(!fichiersVocauxNotes.estTerminer('je n’ai pas terminé mon café'), 'pas de faux positif');
+    attendreEgal(fichiersVocauxNotes.titreCourt('Penser à appeler le plombier demain matin pour la fuite dans la cuisine.'),
+      'Penser à appeler le plombier demain matin pour…', 'titre court');
+    const texte = fichiersVocauxNotes.ajouterEntree('', 'Idée', 'Contenu dicté.', new Date(2026, 10, 3, 9, 5));
+    attendre(texte.includes('## 03/11/2026 09:05 — Idée') && texte.includes('Contenu dicté.'), 'entrée bien formée');
+    const deuxieme = fichiersVocauxNotes.ajouterEntree(texte, 'Autre', 'Deuxième contenu.', new Date(2026, 10, 3, 9, 10));
+    attendre(deuxieme.includes('Contenu dicté.') && deuxieme.includes('Deuxième contenu.'), 'ajout sans effacer la première entrée');
+  });
+
+  test('Fichiers vocaux : tableau Markdown générique (ajout, lecture, retrait sans effacement)', () => {
+    const vide = fichiersVocauxTableau.construireFichier([{ titre: 'À venir', colonnes: ['A', 'B'] }]);
+    attendre(vide.includes('# À venir') && vide.includes('| A | B |'), 'fichier vide bien formé');
+    const avecLigne = fichiersVocauxTableau.ajouterLigne(vide, 'À venir', ['A', 'B'], ['x', 'y']);
+    attendreEgal(fichiersVocauxTableau.lignesDonnees(fichiersVocauxTableau.corpsSection(avecLigne, 'À venir')).length, 1, 'une ligne de données');
+    attendreEgal(fichiersVocauxTableau.cellules(fichiersVocauxTableau.lignesDonnees(fichiersVocauxTableau.corpsSection(avecLigne, 'À venir'))[0]), ['x', 'y'], 'cellules lues');
+    const avecDeux = fichiersVocauxTableau.ajouterLigne(avecLigne, 'À venir', ['A', 'B'], ['z', 'w']);
+    attendreEgal(fichiersVocauxTableau.lignesDonnees(fichiersVocauxTableau.corpsSection(avecDeux, 'À venir')).length, 2, 'ajout sans écraser');
+    const sansPremiere = fichiersVocauxTableau.retirerLigneParIndex(fichiersVocauxTableau.corpsSection(avecDeux, 'À venir'), 0);
+    attendreEgal(fichiersVocauxTableau.lignesDonnees(sansPremiere).map(l => fichiersVocauxTableau.cellules(l)[0]), ['z'], 'retrait par index');
+  });
+
+  test('Fichiers vocaux : Échéancier (ajout avec rappel par défaut, terminer déplace sans effacer, lecture triée)', () => {
+    const maintenant = new Date(2026, 10, 3, 10, 0);
+    const commande = fichiersVocauxEcheancier.detecterCommande('échéance anniversaire de Léa le 8 mars', maintenant);
+    attendre(commande && commande.type === 'ajouter' && commande.element === 'anniversaire de Léa', 'commande reconnue');
+    attendreEgal(commande.delaiJours, 30, 'rappel par défaut à 30 jours');
+    const sansRappel = fichiersVocauxEcheancier.detecterCommande('échéance contrôle technique le 8 mars, pas de rappel', maintenant);
+    attendreEgal(sansRappel.delaiJours, null, 'pas de rappel respecté');
+    attendreEgal(fichiersVocauxEcheancier.detecterCommande('échéance, lis-moi'), { type: 'lire' }, 'lecture reconnue');
+    const { contenu } = fichiersVocauxEcheancier.ajouter('', commande, maintenant);
+    attendre(contenu.includes('anniversaire de Léa'), 'ligne ajoutée dans À venir');
+    const resultat = fichiersVocauxEcheancier.terminer(contenu, 'anniversaire de Léa', new Date(2026, 10, 4));
+    attendre(resultat.trouve, 'échéance trouvée');
+    const corpsAVenir = fichiersVocauxTableau.corpsSection(resultat.contenu, 'À venir');
+    attendreEgal(fichiersVocauxTableau.lignesDonnees(corpsAVenir).length, 0, 'plus dans À venir');
+    const corpsTerminees = fichiersVocauxTableau.corpsSection(resultat.contenu, 'Terminées');
+    attendre(fichiersVocauxTableau.cellules(fichiersVocauxTableau.lignesDonnees(corpsTerminees)[0])[9] === '04/11/2026', 'déplacée dans Terminées avec sa date, zéro perte');
+  });
+
+  test('Fichiers vocaux : À faire (ajout, priorité, coche et retrait sans effacement, lecture triée, distinct des tâches FICTIF)', () => {
+    const maintenant = new Date(2026, 10, 3, 10, 0);
+    const commande = fichiersVocauxAFaire.detecterCommande('à faire appeler le dentiste demain, urgent', maintenant);
+    attendre(commande && commande.type === 'ajouter', 'commande reconnue');
+    attendreEgal(commande.priorite, 'Haute', 'priorité détectée');
+    attendre(commande.tache.toLowerCase().includes('appeler le dentiste'), 'tâche propre, sans la date ni le mot urgent');
+    const viaRappelleMoi = fichiersVocauxAFaire.detecterCommande('rappelle-moi de sortir les poubelles', maintenant);
+    attendre(viaRappelleMoi && viaRappelleMoi.tache.includes('sortir les poubelles'), 'synonyme « rappelle-moi de » reconnu');
+    const { contenu } = fichiersVocauxAFaire.ajouter('', commande, maintenant);
+    attendre(contenu.includes('appeler le dentiste'), 'ligne ajoutée');
+    const coche = fichiersVocauxAFaire.coche(contenu, commande.tache);
+    attendre(coche.trouve, 'tâche cochée sans suppression');
+    const corps = fichiersVocauxTableau.corpsSection(coche.contenu, 'Tâches');
+    attendreEgal(fichiersVocauxTableau.lignesDonnees(corps).length, 1, 'ligne toujours présente après la coche');
+    attendreEgal(fichiersVocauxAFaire.lireActives(coche.contenu).length, 0, 'tâche cochée absente de la lecture');
+    const { contenu: contenuDeux } = fichiersVocauxAFaire.ajouter(contenu, viaRappelleMoi, maintenant);
+    const retrait = fichiersVocauxAFaire.retirer(contenuDeux, 'sortir les poubelles');
+    attendre(retrait.trouve && retrait.contenu.includes('(retirée le'), 'retrait marqué, jamais effacé');
+  });
+
+  test('Fichiers vocaux : le routeur du contrôleur distingue listes, échéancier et à faire sans collision', () => {
+    attendreEgal(fichiersVocauxControleur.detecterCommande('liste pain').systeme, 'liste', 'liste routée');
+    attendreEgal(fichiersVocauxControleur.detecterCommande('échéance anniversaire le 8 mars').systeme, 'echeancier', 'échéancier routé');
+    attendreEgal(fichiersVocauxControleur.detecterCommande('à faire appeler le dentiste').systeme, 'a_faire', 'à faire routé');
+    attendreEgal(fichiersVocauxControleur.detecterCommande('bonjour Cap'), null, 'phrase libre non capturée');
   });
 
   const erreursPage = window.erreursPage || [];
@@ -4725,8 +4808,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v31['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v31")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v32['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v32")
 
 
 def verifier_precache_fichiers_existent():

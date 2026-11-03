@@ -1026,7 +1026,7 @@
   }
 
   function noterDemande(source, texte, resultat) {
-    if (resultat.type === 'tache') return;
+    if (resultat.type === 'tache' || resultat.type === 'silence') return;
     const compris = { annuler: 'annuler la dernière action', report: 'reporter la tâche ouverte à demain',
       proposition: 'proposition faite à Max', rendez_vous_ajoute: 'rendez-vous inscrit après le oui de Max',
       vide: 'rien reçu', pas_compris: 'pas compris', attente_cerveau: 'demande pour plus tard',
@@ -1038,6 +1038,7 @@
   let reflexionsEnCours = 0;
 
   function afficherResultatDemande(resultat, origine) {
+    if (resultat.type === 'silence') return;
     if (resultat.type === 'annuler') {
       annulerParLaParole(origine);
       return;
@@ -1344,7 +1345,8 @@
         if (!live.actif) return;
         if (entendu) {
           live.dernierSon = Date.now();
-          if (/^(?:stop|stoppe|arrete|arrete toi|fin|termine|c est fini|au revoir)(?: (?:le mode|la conversation|cap|merci))*$/.test(cerveau.texte.plier(entendu).replace(/ +/g, ' ').trim())) {
+          if (!fichiersVocauxControleur.sessionActive()
+            && /^(?:stop|stoppe|arrete|arrete toi|fin|termine|c est fini|au revoir)(?: (?:le mode|la conversation|cap|merci))*$/.test(cerveau.texte.plier(entendu).replace(/ +/g, ' ').trim())) {
             arreterLive('Mode conversation arrêté. À plus tard, Max.');
             return;
           }
@@ -1389,15 +1391,21 @@
       annoncer("La dictée n'est pas disponible dans ce navigateur. Utilise le bouton +.");
       return;
     }
+    ecouterDemandeMicro();
+  });
+
+  // Une écoute du micro (appui simple). Si une dictée libre (bloc-notes, brouillon vocal) vient de
+  // s'ouvrir, Cap réécoute tout seul sans que Max ait besoin de retoucher le micro, jusqu'à « terminé ».
+  function ecouterDemandeMicro() {
     let resultatRecu = false;
     let finalRecu = false;
     micro.setAttribute('aria-pressed', 'true');
     micro.setAttribute('aria-label', 'Arrêter la dictée');
     annulation.garderPendantEcoute();
-    annoncer("Je t'écoute…");
+    if (!fichiersVocauxControleur.sessionActive()) annoncer("Je t'écoute…");
     dictee.demarrer({
       surProvisoire(texte) {
-        if (!finalRecu) annoncer(texte || "Je t'écoute…");
+        if (!finalRecu && !fichiersVocauxControleur.sessionActive()) annoncer(texte || "Je t'écoute…");
       },
       surFinal(texte) {
         if (finalRecu) return;
@@ -1418,12 +1426,16 @@
         annoncer(code === 'aborted' ? '' : (messages[code] || "La dictée n'a pas marché, réessaie."));
       },
       surFin() {
+        if (fichiersVocauxControleur.sessionActive()) {
+          ecouterDemandeMicro();
+          return;
+        }
         micro.setAttribute('aria-pressed', 'false');
         micro.setAttribute('aria-label', 'Dicter une tâche');
         if (!resultatRecu) annoncer("Je n'ai rien entendu, réessaie.");
       }
     });
-  });
+  }
 
   function actualiserHorloge() {
     const maintenant = new Date();

@@ -26,6 +26,13 @@ const REGLAGES_GOOGLE = Object.freeze({
   cle_api_picker: '',
   dossier_fichiers_vocaux: 'Fichiers vocaux',
   fichiers_vocaux: Object.freeze({
-    liste_courses: 'Liste de courses.md'
+    liste_courses: 'Liste de courses.md',
+    choses_a_acheter: 'Choses à acheter.md',
+    films_a_voir: 'Films à voir.md',
+    livres_a_lire: 'Livres à lire.md',
+    bloc_notes: 'Bloc-notes.md',
+    brouillon_vocal: 'Brouillon vocal.md',
+    echeancier: 'Échéancier.md',
+    a_faire: 'À faire.md'
   })
 });

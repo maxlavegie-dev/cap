@@ -68,11 +68,24 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
     };
   }
   let resultat;
-  const commandeFichierVocal = !phrase ? fichiersVocaux.detecterCommande(texteComplet) : null;
-  const suiteQuestion = !phrase && !commandeFichierVocal && (cerveau.propositionEnAttente() || !annulation.estDemande(texteComplet))
+  const sessionNoteActive = !phrase && fichiersVocauxControleur.sessionActive();
+  const estFinNote = sessionNoteActive && fichiersVocauxNotes.estTerminer(texteComplet);
+  const ouvertureNote = !phrase && !sessionNoteActive ? fichiersVocauxControleur.detecterOuvertureNote(texteComplet) : null;
+  const commandeFichierVocal = !phrase && !sessionNoteActive && !ouvertureNote
+    ? fichiersVocauxControleur.detecterCommande(texteComplet) : null;
+  const suiteQuestion = !phrase && !sessionNoteActive && !ouvertureNote && !commandeFichierVocal
+    && (cerveau.propositionEnAttente() || !annulation.estDemande(texteComplet))
     ? cerveau.repondre(texteComplet) : null;
   if (phrase) cerveau.oublierProposition();
-  if (commandeFichierVocal) {
+  if (sessionNoteActive && estFinNote) {
+    resultat = { type: 'reflexion', message: '', suite: fichiersVocauxControleur.fermerSession() };
+  } else if (sessionNoteActive) {
+    fichiersVocauxControleur.accumuler(texteComplet);
+    resultat = { type: 'silence', message: '' };
+  } else if (ouvertureNote) {
+    fichiersVocauxControleur.ouvrirSession(ouvertureNote.fichier);
+    resultat = { type: 'silence', message: '' };
+  } else if (commandeFichierVocal) {
     resultat = { type: 'reflexion', message: 'Je note…', suite: fichiersVocauxControleur.traiter(commandeFichierVocal, source) };
   } else if (suiteQuestion) {
     resultat = executerDecision(suiteQuestion, source);
