@@ -177,6 +177,15 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
   - Version de cache du service worker montée à `cap-v27` (contenu des fichiers modifiés, aucun nouveau fichier).
   - 244/244 tests automatiques réussis (`python app\test_cap.py`).
   - Pas publié, pas poussé : en attente de l'accord de Max pour publier, après son test sur le téléphone.
+- 03/11/2026 : **Étape A publiée (commits `15955b5` et `677ab7e`), poussée sur `origin/main` après accord de Max (tag `sauvegarde-avant-push-annuaire`, relecture des commits sans rien trouvé). Cache `cap-v27`.**
+- 03/11/2026 : retours de test de Max sur son téléphone (faux contacts) : doléances classées par priorité (recherche d'abord, puis saisie) et grande demande séparée pour relier les commandes vocales à l'annuaire (fiche, appel, mail), toujours sans jamais exposer l'annuaire à l'IA. Estimation chiffrée donnée sans coder : Partie 1 ~235-330 premiums, Partie 2 ~85-125. Feu vert de Max : plafond 450 (arrêt à 400), ordre de travail fixé, piste 3a pour le clavier, contrôle des 10 chiffres validé.
+- 03/11/2026 : **Groupes 1 à 3 construits et testés (commits locaux `a98faa8` et `7e57a23`), pas publiés.**
+  - Groupe 1 (recherche) : recherche en direct mot par mot, dans n'importe quel ordre, dès la première lettre, sur prénom/nom/lien/surnoms ; insensible aux tirets, espaces, apostrophes et accents ; contrôle des numéros français à dix chiffres (commençant par 0) sans jamais bloquer un numéro étranger ou en 00.
+  - Groupe 2 (affichage) : bouton Retour masqué uniquement dans la fenêtre de recherche (elle se fermait déjà en touchant à côté) ; champ Type transformé en menu déroulant (Personne par défaut sur un nouveau contact, Organisme, Lieu, Procédure, case vide), avec zéro perte pour une ancienne valeur personnalisée (option temporaire ajoutée).
+  - Groupe 3 (clavier) : piste 3a choisie — barre de recherche et compteur de résultats fixés en haut de la liste, au-dessus du clavier virtuel, avec ajustement dynamique de la hauteur de la fenêtre via `visualViewport`.
+  - Deux mots interdits détectés et corrigés pendant l'écriture des tests (un prénom fictif de la liste interdite, et un mot en collision involontaire avec un préfixe testé) : renommés sans rien publier du mot d'origine.
+  - 246/246 tests automatiques réussis. Tag de sauvegarde `sauvegarde-avant-push-groupes-1-3` posé. Relecture des deux commits : aucune clé, aucun mail réel, aucun nom interdit, aucun fichier privé.
+  - Pas publié, pas poussé : en attente de l'accord de Max après son test sur le téléphone. Reste à faire (groupes suivants, non commencés) : pavé numérique plus gros, fenêtre très gros 8 secondes, micro sur tous les champs, dates multi-formats, puis (après accord séparé de Max) commandes vocales reliées à l'annuaire.
 
 ### En cours
 - Lot 3.1 publié et validé ; hors connexion et lot 3.2 faits en local, à publier avec l'accord de Max puis à essayer sur son téléphone.
