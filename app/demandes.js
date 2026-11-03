@@ -68,10 +68,13 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
     };
   }
   let resultat;
-  const suiteQuestion = !phrase && (cerveau.propositionEnAttente() || !annulation.estDemande(texteComplet))
+  const commandeFichierVocal = !phrase ? fichiersVocaux.detecterCommande(texteComplet) : null;
+  const suiteQuestion = !phrase && !commandeFichierVocal && (cerveau.propositionEnAttente() || !annulation.estDemande(texteComplet))
     ? cerveau.repondre(texteComplet) : null;
   if (phrase) cerveau.oublierProposition();
-  if (suiteQuestion) {
+  if (commandeFichierVocal) {
+    resultat = { type: 'reflexion', message: 'Je note…', suite: fichiersVocauxControleur.traiter(commandeFichierVocal, source) };
+  } else if (suiteQuestion) {
     resultat = executerDecision(suiteQuestion, source);
   } else if (phrase?.id === 'annuler' || (!phrase && annulation.estDemande(texteComplet))) {
     resultat = { type: 'annuler', message: '' };

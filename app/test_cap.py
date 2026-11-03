@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_sheets.js", "google_agenda.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "fichiers_vocaux.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -4483,6 +4483,107 @@ TESTS_JS = r"""
     attendreEgal(s.etat().nombre, 6, 'nombre de copies');
   });
 
+  test('Fichiers vocaux : « liste » reconnu en code pur (ajout, lecture, retrait, zéro perte)', () => {
+    attendreEgal(fichiersVocaux.detecterCommande('liste pommes, pain et lait'),
+      { type: 'ajouter', produits: ['pommes', 'pain', 'lait'] }, 'ajout reconnu');
+    attendreEgal(fichiersVocaux.detecterCommande('liste, lis-moi'), { type: 'lire' }, 'lecture reconnue');
+    attendreEgal(fichiersVocaux.detecterCommande('liste, retire pommes'),
+      { type: 'retirer', produit: 'pommes' }, 'retrait reconnu');
+    attendreEgal(fichiersVocaux.detecterCommande('bloc-notes, note quelque chose'), null, 'pas de collision avec une autre commande');
+    const ajout = fichiersVocaux.ajouterElements('', ['Pommes', 'pain']);
+    attendreEgal(ajout.ajoutes, ['Pommes', 'pain'], 'deux produits ajoutés');
+    attendre(ajout.contenu === '- Pommes\n- pain\n', 'lignes attendues');
+    const sansDoublon = fichiersVocaux.ajouterElements(ajout.contenu, ['pommes', 'beurre']);
+    attendreEgal(sansDoublon.ajoutes, ['beurre'], 'pas de doublon malgré la casse');
+    attendreEgal(sansDoublon.doublons, ['pommes'], 'doublon signalé');
+    const retrait = fichiersVocaux.retirerElement(sansDoublon.contenu, 'pain', new Date(2026, 10, 3));
+    attendre(retrait.retire && retrait.nom === 'pain', 'retrait reconnu');
+    attendre(retrait.contenu.includes('- pain (retiré le 03/11/2026)'), 'ligne marquée, jamais effacée');
+    attendreEgal(fichiersVocaux.elementsActifs(retrait.contenu), ['Pommes', 'beurre'], 'retiré absent de la lecture');
+  });
+
+  await testAsync('Fichiers vocaux Drive : crée « Fichiers vocaux » et le fichier Liste de courses, ajoute puis retire sans effacer', async () => {
+    let texteFichier = '';
+    const requetes = [];
+    const googleConnexionFictif = {
+      appeler: async (adresse, options = {}) => {
+        const url = new URL(adresse);
+        const chemin = decodeURIComponent(url.pathname);
+        requetes.push({ url, methode: options.method || 'GET' });
+        if (!options.method || options.method === 'GET') {
+          if (chemin === '/drive/v3/files/fichier-liste-courses') {
+            if (url.searchParams.get('alt') === 'media') return { text: async () => texteFichier };
+            return { json: async () => ({ id: 'fichier-liste-courses', trashed: false }) };
+          }
+          if (chemin === '/drive/v3/files') {
+            return { json: async () => ({ files: [] }) };
+          }
+          throw new Error(`GET inattendu : ${url}`);
+        }
+        if (options.method === 'POST' && chemin === '/drive/v3/files') {
+          const corps = JSON.parse(options.body);
+          if (corps.mimeType === 'application/vnd.google-apps.folder') {
+            attendreEgal(corps.parents, ['dossier-app-cap'], 'sous-dossier créé dans App Cap');
+            return { json: async () => ({ id: 'dossier-fichiers-vocaux' }) };
+          }
+          attendreEgal(corps.mimeType, 'text/markdown', 'fichier créé en Markdown');
+          return { json: async () => ({ id: 'fichier-liste-courses' }) };
+        }
+        if (options.method === 'PATCH' && chemin === '/upload/drive/v3/files/fichier-liste-courses') {
+          texteFichier = options.body;
+          return { json: async () => ({ id: 'fichier-liste-courses' }) };
+        }
+        throw new Error(`Requête inattendue : ${url}`);
+      }
+    };
+    const drive = objetIsole(SOURCE_FICHIERS_VOCAUX_DRIVE, 'fichiersVocauxDrive', {
+      localStorage: espaceMemoire(), googleConnexion: googleConnexionFictif, REGLAGES_GOOGLE,
+      googlePicker: { dossierAppCap: () => ({ id: 'dossier-app-cap', nom: 'App Cap' }) }
+    });
+    const nomFichier = REGLAGES_GOOGLE.fichiers_vocaux.liste_courses;
+    const ajout = await drive.modifier('liste_courses', nomFichier,
+      contenu => fichiersVocaux.ajouterElements(contenu, ['pommes', 'pain']));
+    attendreEgal(ajout.ajoutes, ['pommes', 'pain'], 'produits ajoutés');
+    attendre(texteFichier.includes('- pommes') && texteFichier.includes('- pain'), 'contenu écrit dans le fichier');
+    const retrait = await drive.modifier('liste_courses', nomFichier,
+      contenu => fichiersVocaux.retirerElement(contenu, 'pommes'));
+    attendre(retrait.retire, 'retrait reconnu');
+    attendre(texteFichier.includes('(retiré le') && texteFichier.includes('- pain') && !/\n- pommes\n/.test(texteFichier),
+      'zéro perte : la ligne reste, marquée, jamais effacée');
+  });
+
+  await testAsync('Fichiers vocaux : le contrôleur ajoute, lit et retire, et répond honnêtement hors connexion', async () => {
+    let contenuActuel = '';
+    const drivefictif = {
+      modifier: async (cle, nomFichier, transformer) => {
+        const resultat = transformer(contenuActuel);
+        contenuActuel = resultat.contenu;
+        return resultat;
+      },
+      trouverOuCreerFichier: async () => 'fichier-fictif',
+      lireTexte: async () => contenuActuel
+    };
+    const controleur = objetIsole(SOURCE_FICHIERS_VOCAUX_CONTROLEUR, 'fichiersVocauxControleur', {
+      navigator: { onLine: true }, googleConnexion: { connecte: () => true }, REGLAGES_GOOGLE,
+      fichiersVocauxDrive: drivefictif, fichiersVocaux, journalActions: { consigner: () => {} }
+    });
+    const ajout = await controleur.traiter({ type: 'ajouter', produits: ['pommes'] });
+    attendre(ajout.type === 'reponse' && ajout.message.includes('pommes'), 'réponse après ajout');
+    const lecture = await controleur.traiter({ type: 'lire' });
+    attendre(lecture.message.includes('pommes'), 'lecture après ajout');
+    const retrait = await controleur.traiter({ type: 'retirer', produit: 'pommes' });
+    attendre(retrait.message.includes('Retiré'), 'réponse après retrait');
+    const relecture = await controleur.traiter({ type: 'lire' });
+    attendre(relecture.message.includes('vide'), 'retiré absent de la lecture, jamais effacé du fichier');
+    attendre(contenuActuel.includes('(retiré le'), 'zéro perte dans le fichier');
+    const controleurHorsLigne = objetIsole(SOURCE_FICHIERS_VOCAUX_CONTROLEUR, 'fichiersVocauxControleur', {
+      navigator: { onLine: false }, googleConnexion: { connecte: () => true }, REGLAGES_GOOGLE,
+      fichiersVocauxDrive: drivefictif, fichiersVocaux, journalActions: { consigner: () => {} }
+    });
+    const horsLigne = await controleurHorsLigne.traiter({ type: 'ajouter', produits: ['lait'] });
+    attendre(horsLigne.message.toLowerCase().includes('pas de connexion'), 'honnête hors connexion, rien inventé');
+  });
+
   const erreursPage = window.erreursPage || [];
   const reussis = resultats.filter(r => r.ok).length;
   document.getElementById('resultat-tests').textContent = JSON.stringify({
@@ -4624,8 +4725,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v30['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v30")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v31['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v31")
 
 
 def verifier_precache_fichiers_existent():
@@ -4733,6 +4834,10 @@ def construire_page():
         "SOURCE_FERMETURE_FENETRES": "fermeture_fenetres.js",
         "SOURCE_SYNCHRO_LISTES": "synchro_listes.js",
         "SOURCE_SAUVEGARDE_DRIVE": "sauvegarde_drive.js",
+        "SOURCE_GOOGLE_PICKER": "google_picker.js",
+        "SOURCE_FICHIERS_VOCAUX": "fichiers_vocaux.js",
+        "SOURCE_FICHIERS_VOCAUX_DRIVE": "fichiers_vocaux_drive.js",
+        "SOURCE_FICHIERS_VOCAUX_CONTROLEUR": "fichiers_vocaux_controleur.js",
         "SOURCE_TUILES": "tuiles.js",
         "SOURCE_MODE_TRIER": "mode_trier.js",
         "SOURCE_HTML": "index.html",

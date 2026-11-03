@@ -22,5 +22,10 @@ const REGLAGES_GOOGLE = Object.freeze({
   sauvegardes_a_garder: 5,
   dossier_archives: 'ARCHIVES_PERSONNELLES - FICTIF',
   dossier_a_classer: '00_A_CLASSER',
-  nom_agenda: 'Cap – FICTIF'
+  nom_agenda: 'Cap – FICTIF',
+  cle_api_picker: '',
+  dossier_fichiers_vocaux: 'Fichiers vocaux',
+  fichiers_vocaux: Object.freeze({
+    liste_courses: 'Liste de courses.md'
+  })
 });
