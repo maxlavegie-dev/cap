@@ -4604,8 +4604,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v27['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v27")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v28['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v28")
 
 
 def verifier_precache_fichiers_existent():
