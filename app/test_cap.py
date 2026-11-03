@@ -2987,6 +2987,10 @@ TESTS_JS = r"""
     attendreErreur(() => annuaire.creerContact({}), 'prénom ou un surnom');
     attendreErreur(() => annuaire.creerContact({ prenom: '   ' }), 'prénom ou un surnom');
     attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', telephone: 'abc' }), 'numéro de téléphone');
+    attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', telephone: '06 00 00 00' }), 'dix chiffres');
+    attendre(annuaire.creerContact({ prenom: 'Mentor FICTIF', telephone: '0600000000' }).telephone === '0600000000', 'numéro français à dix chiffres accepté');
+    attendre(annuaire.creerContact({ prenom: 'Mentor FICTIF', telephone: '+1 212 555 0100' }).telephone === '+1 212 555 0100', 'numéro étranger jamais bloqué');
+    attendre(annuaire.creerContact({ prenom: 'Mentor FICTIF', telephone: '0033600000000' }).telephone === '0033600000000', 'numéro international avec 00 jamais bloqué');
     attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', mail: 'pas-un-mail' }), 'adresse mail');
     attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', mail2: 'pas-un-mail' }), 'adresse mail');
     attendreErreur(() => annuaire.creerContact({ prenom: 'Mentor FICTIF', telephone2: 'abc' }), 'numéro de téléphone');
@@ -3027,14 +3031,34 @@ TESTS_JS = r"""
   test('Annuaire : recherche par prénom, nom ou n’importe quel surnom, accents et casse ignorés', () => {
     annuaire.creerContact({ prenom: 'Éléonore', nom: 'FICTIF', surnoms: 'Léo, Nono FICTIF' });
     annuaire.creerContact({ prenom: 'Leonard', nom: 'FICTIF' });
-    const exact = annuaire.correspondances('leo');
-    attendreEgal(exact.map(c => c.prenom), ['Éléonore'], 'correspondance exacte au surnom prioritaire');
+    const prefixe = annuaire.correspondances('leo');
+    attendreEgal(prefixe.map(c => c.prenom), ['Éléonore', 'Leonard'], 'préfixe commun trouve les deux');
     const partiel = annuaire.correspondances('eleonor');
     attendreEgal(partiel.map(c => c.prenom), ['Éléonore'], 'recherche partielle sans accent');
     const parAutreSurnom = annuaire.correspondances('nono fictif');
     attendreEgal(parAutreSurnom.map(c => c.prenom), ['Éléonore'], 'trouvé par n’importe quel surnom de la liste');
     attendreEgal(annuaire.correspondances(''), [], 'recherche vide : rien');
     attendreEgal(annuaire.correspondances('zzz-inconnu'), [], 'rien trouvé');
+  });
+
+  test('Annuaire : recherche mot par mot, dès la première lettre, dans n’importe quel ordre', () => {
+    annuaire.creerContact({ prenom: 'Marius', nom: 'Cousin FICTIF', lien: 'Mon cousin FICTIF' });
+    annuaire.creerContact({ prenom: 'JP FICTIF', nom: '', lien: 'Mon voisin FICTIF' });
+    attendreEgal(annuaire.correspondances('c').map(c => c.prenom), ['Marius'], 'une seule lettre ne doit pas perdre Marius Cousin');
+    attendreEgal(annuaire.correspondances('cou').map(c => c.prenom), ['Marius'], 'début de mot « cou »');
+    attendreEgal(annuaire.correspondances('Marius C').map(c => c.prenom), ['Marius'], 'deux mots dans l’ordre');
+    attendreEgal(annuaire.correspondances('Cousin Marius').map(c => c.prenom), ['Marius'], 'deux mots dans le désordre');
+    attendreEgal(annuaire.correspondances('mon cousin marius').map(c => c.prenom), ['Marius'], 'trois mots : trouve Marius, pas JP');
+  });
+
+  test('Annuaire : recherche insensible aux tirets, espaces, apostrophes et accents', () => {
+    annuaire.creerContact({ prenom: 'JP FICTIF', surnoms: 'Jean-Pierre FICTIF' });
+    annuaire.creerContact({ prenom: 'Andre FICTIF', nom: 'FICTIF' });
+    attendreEgal(annuaire.correspondances('jean-pierre').map(c => c.prenom), ['JP FICTIF'], 'avec tiret');
+    attendreEgal(annuaire.correspondances('jean pierre').map(c => c.prenom), ['JP FICTIF'], 'avec espace');
+    attendreEgal(annuaire.correspondances('JEANPIERRE').map(c => c.prenom), [], 'collé sans séparateur : non trouvé, c’est attendu');
+    attendreEgal(annuaire.correspondances('André').map(c => c.prenom), ['Andre FICTIF'], 'avec accent trouve sans accent');
+    attendreEgal(annuaire.correspondances('andre').map(c => c.prenom), ['Andre FICTIF'], 'sans accent trouve sans accent');
   });
 
   test('Annuaire : fusion sans perte, dernière modification gagne, historiques combinés', () => {

@@ -4,7 +4,8 @@ const annuaire = (() => {
   const cle = 'cap_annuaire_v1';
   const cleEnvoi = 'cap_annuaire_a_envoyer_v1';
   const texte = valeur => (typeof valeur === 'string' ? valeur : '');
-  const normaliser = valeur => texte(valeur).toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const normaliser = valeur => texte(valeur).toLocaleLowerCase('fr').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[-'’]/g, ' ').replace(/\s+/g, ' ').trim();
 
   const CHAMPS = [
     'prenom', 'nom', 'type', 'role', 'lien', 'surnoms', 'coordonnees', 'telephone', 'mail',
@@ -37,6 +38,10 @@ const annuaire = (() => {
     const propre = texte(valeur).trim();
     if (!propre) return '';
     if (!/^[0-9+().\s-]{3,30}$/.test(propre) || !/\d/.test(propre)) throw new Error('Vérifie le numéro de téléphone.');
+    const chiffres = propre.replace(/\D/g, '');
+    if (propre.startsWith('0') && !propre.startsWith('00') && chiffres.length !== 10) {
+      throw new Error('Un numéro français commence par 0 et a dix chiffres. Vérifie le numéro.');
+    }
     return propre;
   }
 
@@ -174,21 +179,18 @@ const annuaire = (() => {
   }
 
   function correspondances(texteRecherche) {
-    const recherche = normaliser(texteRecherche);
-    if (!recherche) return [];
+    const mots = normaliser(texteRecherche).split(' ').filter(Boolean);
+    if (!mots.length) return [];
     const actifs = tous();
-    const correspond = (contact, exact) => {
-      const prenom = normaliser(contact.prenom);
-      const nom = normaliser(contact.nom);
-      const surnoms = listeSurnoms(contact.surnoms).map(normaliser);
-      if (exact) {
-        return prenom === recherche || nom === recherche || surnoms.includes(recherche);
-      }
-      return prenom.includes(recherche) || nom.includes(recherche) || surnoms.some(surnom => surnom.includes(recherche));
+    const texteContact = contact => [
+      normaliser(contact.prenom), normaliser(contact.nom), normaliser(contact.lien),
+      ...listeSurnoms(contact.surnoms).map(normaliser)
+    ].join(' ');
+    const correspond = contact => {
+      const champ = texteContact(contact);
+      return mots.every(mot => champ.split(' ').some(morceau => morceau.startsWith(mot)));
     };
-    const exacts = actifs.filter(contact => correspond(contact, true));
-    if (exacts.length) return exacts;
-    return actifs.filter(contact => correspond(contact, false));
+    return actifs.filter(correspond);
   }
 
   function validerChamps(champs = {}) {
