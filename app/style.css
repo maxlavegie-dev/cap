@@ -1587,6 +1587,11 @@ dialog button:hover {
   font-size: clamp(32px, 14vw, 96px);
 }
 
+#grand-affichage-texte:not([data-long]) {
+  white-space: nowrap;
+  overflow: hidden;
+}
+
 .choix-grand-affichage-titre {
   margin: 0 0 20px;
   font-size: clamp(20px, 6vw, 32px);

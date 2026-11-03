@@ -217,20 +217,41 @@ const ficheContact = (() => {
     if (dialogueGrand.open) dialogueGrand.close();
   }
 
-  function afficherGrandAffichage(valeur) {
+  function ajusterTailleUneLigne(element) {
+    const tailleMax = 96;
+    const tailleMin = 22;
+    let taille = tailleMax;
+    element.style.fontSize = taille + 'px';
+    while (taille > tailleMin && element.scrollWidth > element.clientWidth) {
+      taille -= 2;
+      element.style.fontSize = taille + 'px';
+    }
+  }
+
+  function afficherGrandAffichage(valeur, options) {
     const propre = texte(valeur).trim();
     if (!propre) return;
     clearTimeout(delaiGrand);
     texteGrand.textContent = propre;
-    if (propre.length > 20) texteGrand.setAttribute('data-long', '1');
-    else texteGrand.removeAttribute('data-long');
+    const uneLigne = Boolean(options && options.uneLigne) || propre.length <= 20;
+    if (uneLigne) {
+      texteGrand.removeAttribute('data-long');
+    } else {
+      texteGrand.setAttribute('data-long', '1');
+      texteGrand.style.fontSize = '';
+    }
     if (!dialogueGrand.open) dialogueGrand.showModal();
+    if (uneLigne) ajusterTailleUneLigne(texteGrand);
     delaiGrand = setTimeout(fermerGrandAffichage, 8000);
+  }
+
+  function estChampTelephone(nomChamp) {
+    return nomChamp === 'telephone' || nomChamp === 'telephone2';
   }
 
   function grandAffichageDepuisChamp(nomChamp) {
     if (nomChamp === 'anniversaire') { gererAnniversaireSaisie(champ(nomChamp).value); return; }
-    afficherGrandAffichage(champ(nomChamp).value);
+    afficherGrandAffichage(champ(nomChamp).value, { uneLigne: estChampTelephone(nomChamp) });
   }
 
   dialogueGrand.addEventListener('click', fermerGrandAffichage);
@@ -314,7 +335,7 @@ const ficheContact = (() => {
         }
         const valeur = CHAMPS_MAIL.has(nomChamp) ? normaliserMailDicte(texteRecu) : texteRecu.trim();
         champ(nomChamp).value = valeur;
-        afficherGrandAffichage(valeur);
+        afficherGrandAffichage(valeur, { uneLigne: estChampTelephone(nomChamp) });
       },
       surErreur() {},
       surFin() {
