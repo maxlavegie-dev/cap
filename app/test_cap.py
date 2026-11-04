@@ -689,6 +689,103 @@ TESTS_JS = r"""
     }
   });
 
+  test('micro note : silence de 40 secondes, enregistre ce qui est dicté, aucune entrée vide', () => {
+    const original = {
+      sessionActive: fichiersVocauxControleur.sessionActive,
+      detecterOuvertureNote: fichiersVocauxControleur.detecterOuvertureNote,
+      ouvrirSession: fichiersVocauxControleur.ouvrirSession,
+      accumuler: fichiersVocauxControleur.accumuler,
+      fermerSession: fichiersVocauxControleur.fermerSession
+    };
+    let active = false;
+    let morceaux = [];
+    let fermetures = 0;
+    fichiersVocauxControleur.sessionActive = () => active;
+    fichiersVocauxControleur.detecterOuvertureNote = texte => (texte === 'bloc-notes, note' ? { fichier: 'bloc_notes' } : null);
+    fichiersVocauxControleur.ouvrirSession = () => { active = true; morceaux = []; };
+    fichiersVocauxControleur.accumuler = texte => { if (texte) morceaux.push(texte); };
+    fichiersVocauxControleur.fermerSession = () => ({
+      then(resolve) {
+        fermetures += 1;
+        active = false;
+        const message = morceaux.length ? `C'est noté. Ajouté à ton bloc-notes : ${morceaux.join(' ')}.`
+          : "Je n'ai rien noté, rien à enregistrer.";
+        resolve({ type: 'reponse', message, parole: message });
+        return Promise.resolve();
+      }
+    });
+    const originalNow = Date.now;
+    let maintenant = originalNow();
+    Date.now = () => maintenant;
+    try {
+      sessionMicro(fake => {
+        cliquerMicro();
+        fake.instances[0].onresult({ resultIndex: 0, results: [segment('bloc-notes, note', true)] });
+        fake.instances[0].onend();
+        attendreEgal(active, true, 'session de dictée libre ouverte');
+        attendreEgal(fake.instances.length, 2, 'réécoute automatique après ouverture, sans retoucher le micro');
+        fake.instances[1].onresult({ resultIndex: 0, results: [segment('Acheter du lait', true)] });
+        fake.instances[1].onend();
+        attendreEgal(morceaux, ['Acheter du lait'], 'morceau dicté accumulé');
+        attendreEgal(fake.instances.length, 3, 'réécoute après un bout dicté');
+        maintenant += 41000;
+        fake.instances[2].onend();
+        attendreEgal(fermetures, 1, 'session fermée après 40 secondes de silence');
+        attendreEgal(active, false, 'session bien fermée, pas bloquée');
+        attendreEgal(fake.instances.length, 3, 'pas de nouvelle écoute lancée après le silence');
+        attendreEgal(micro().getAttribute('aria-pressed'), 'false', 'micro au repos après le silence');
+        attendre(texteStatut().includes('Acheter du lait'), 'ce qui a été dicté est quand même enregistré');
+      });
+    } finally {
+      Date.now = originalNow;
+      Object.assign(fichiersVocauxControleur, original);
+    }
+  });
+
+  test('micro note : silence de 40 secondes sans rien dicté, aucune entrée vide créée', () => {
+    const original = {
+      sessionActive: fichiersVocauxControleur.sessionActive,
+      detecterOuvertureNote: fichiersVocauxControleur.detecterOuvertureNote,
+      ouvrirSession: fichiersVocauxControleur.ouvrirSession,
+      accumuler: fichiersVocauxControleur.accumuler,
+      fermerSession: fichiersVocauxControleur.fermerSession
+    };
+    let active = false;
+    const morceaux = [];
+    let fermetures = 0;
+    fichiersVocauxControleur.sessionActive = () => active;
+    fichiersVocauxControleur.detecterOuvertureNote = texte => (texte === 'bloc-notes, note' ? { fichier: 'bloc_notes' } : null);
+    fichiersVocauxControleur.ouvrirSession = () => { active = true; };
+    fichiersVocauxControleur.accumuler = texte => { if (texte) morceaux.push(texte); };
+    fichiersVocauxControleur.fermerSession = () => ({
+      then(resolve) {
+        fermetures += 1;
+        active = false;
+        const message = morceaux.length ? `Ajouté : ${morceaux.join(' ')}.` : "Je n'ai rien noté, rien à enregistrer.";
+        resolve({ type: 'reponse', message, parole: message });
+        return Promise.resolve();
+      }
+    });
+    const originalNow = Date.now;
+    let maintenant = originalNow();
+    Date.now = () => maintenant;
+    try {
+      sessionMicro(fake => {
+        cliquerMicro();
+        fake.instances[0].onresult({ resultIndex: 0, results: [segment('bloc-notes, note', true)] });
+        fake.instances[0].onend();
+        maintenant += 41000;
+        fake.instances[1].onend();
+        attendreEgal(fermetures, 1, 'session fermée après le silence même sans dictée');
+        attendreEgal(morceaux, [], 'rien accumulé');
+        attendreEgal(texteStatut(), "Je n'ai rien noté, rien à enregistrer.", 'aucune entrée vide annoncée');
+      });
+    } finally {
+      Date.now = originalNow;
+      Object.assign(fichiersVocauxControleur, original);
+    }
+  });
+
   test('catalogue : 11 phrases, 4 catégories, actions exactes', () => {
     attendreEgal(PHRASES_CLAVIER.map(p => p.id),
       ['retrouver', 'dictionnaire', 'dernier-mail', 'agenda', 'ajouter-tache', 'rappel', 'resumer-mails', 'brouillon', 'reformuler', 'continuer', 'annuler'], 'identifiants');

@@ -1259,6 +1259,10 @@
   // Il s'arrête sur un appui sur le micro, sur « Arrêter », sur « stop », après une minute de silence, ou si la limite du jour est atteinte.
   const APPUI_LONG_MS = 2000;
   const SILENCE_LIVE_MS = 60 * 1000;
+  // Après « bloc-notes, note » (ou brouillon vocal), Cap attend en silence. Si Max ne dit rien
+  // pendant ce délai, Cap arrête d'écouter et enregistre ce qui a déjà été dicté, sans rien effacer ;
+  // s'il n'avait encore rien dit, aucune entrée vide n'est créée. Délai réglable ici.
+  const SILENCE_NOTE_MS = 40 * 1000;
   const live = { actif: false, dernierSon: 0, verrou: null, attente: null };
   let minuteurAppui = null;
   let appuiLong = false;
@@ -1410,15 +1414,30 @@
     ecouterDemandeMicro();
   });
 
+  // Horodatage du dernier mot entendu pendant une dictée libre (bloc-notes, brouillon vocal) en cours ;
+  // sert à mesurer le silence sans jamais effacer ce qui a déjà été dicté.
+  let dernierSonNote = 0;
+
+  // Ferme la session de dictée libre après un silence, sans rien effacer : enregistre ce qui a déjà
+  // été dicté, ou ne crée aucune entrée si rien n'avait encore été dit (fermerSession gère les deux cas).
+  function fermerSessionNotePourSilence() {
+    const resultat = { type: 'reflexion', message: '', suite: fichiersVocauxControleur.fermerSession() };
+    noterDemande('micro', '', resultat);
+    afficherResultatDemande(resultat, micro);
+  }
+
   // Une écoute du micro (appui simple). Si une dictée libre (bloc-notes, brouillon vocal) vient de
-  // s'ouvrir, Cap réécoute tout seul sans que Max ait besoin de retoucher le micro, jusqu'à « terminé ».
+  // s'ouvrir, Cap réécoute tout seul sans que Max ait besoin de retoucher le micro, jusqu'à « terminé »
+  // ou jusqu'à SILENCE_NOTE_MS de silence.
   function ecouterDemandeMicro() {
     let resultatRecu = false;
     let finalRecu = false;
+    const sessionActiveAuDepart = fichiersVocauxControleur.sessionActive();
+    if (sessionActiveAuDepart && dernierSonNote === 0) dernierSonNote = Date.now();
     micro.setAttribute('aria-pressed', 'true');
     micro.setAttribute('aria-label', 'Arrêter la dictée');
     annulation.garderPendantEcoute();
-    if (!fichiersVocauxControleur.sessionActive()) annoncer("Je t'écoute…");
+    if (!sessionActiveAuDepart) annoncer("Je t'écoute…");
     dictee.demarrer({
       surProvisoire(texte) {
         if (!finalRecu && !fichiersVocauxControleur.sessionActive()) annoncer(texte || "Je t'écoute…");
@@ -1427,6 +1446,7 @@
         if (finalRecu) return;
         resultatRecu = true;
         finalRecu = true;
+        if (texte && texte.trim()) dernierSonNote = Date.now();
         ajouterDictee(texte);
       },
       surErreur(code) {
@@ -1439,13 +1459,23 @@
           network: "La dictée a besoin d'internet pour l'instant.",
           'audio-capture': 'Aucun micro trouvé.'
         };
-        annoncer(code === 'aborted' ? '' : (messages[code] || "La dictée n'a pas marché, réessaie."));
+        if (!fichiersVocauxControleur.sessionActive()) {
+          annoncer(code === 'aborted' ? '' : (messages[code] || "La dictée n'a pas marché, réessaie."));
+        }
       },
       surFin() {
         if (fichiersVocauxControleur.sessionActive()) {
+          if (Date.now() - dernierSonNote > SILENCE_NOTE_MS) {
+            dernierSonNote = 0;
+            micro.setAttribute('aria-pressed', 'false');
+            micro.setAttribute('aria-label', 'Dicter une tâche');
+            fermerSessionNotePourSilence();
+            return;
+          }
           ecouterDemandeMicro();
           return;
         }
+        dernierSonNote = 0;
         micro.setAttribute('aria-pressed', 'false');
         micro.setAttribute('aria-label', 'Dicter une tâche');
         if (!resultatRecu) annoncer("Je n'ai rien entendu, réessaie.");
