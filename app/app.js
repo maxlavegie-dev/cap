@@ -1716,6 +1716,69 @@
     zone.hidden = !message;
   }
 
+  const reglagesDrive = parId('reglages-drive');
+  fermetureFenetres.installer(reglagesDrive);
+
+  function erreurReglagesDrive(message) {
+    const zone = reglagesDrive.querySelector('.erreur');
+    zone.textContent = message;
+    zone.hidden = !message;
+  }
+
+  function afficherDrive() {
+    const cle = clePicker.presente();
+    parId('etat-picker').textContent = cle
+      ? `Clé enregistrée sur ce téléphone (${clePicker.apercu()}).`
+      : 'Aucune clé : le sélecteur de dossier Google n’est pas encore réglé.';
+    parId('retirer-cle-picker').hidden = !cle;
+    const dossier = googlePicker.dossierAppCap();
+    parId('etat-dossier-drive').textContent = dossier
+      ? `Dossier choisi : « ${dossier.nom || dossier.id} ».`
+      : 'Aucun dossier choisi pour l’instant.';
+    parId('choisir-dossier-drive').disabled = !cle;
+    parId('oublier-dossier-drive').hidden = !dossier;
+  }
+
+  parId('ouvrir-reglages-drive').addEventListener('click', event => {
+    ouvrir(reglagesDrive, parId('titre-reglages-drive'), event.currentTarget);
+    afficherDrive();
+  });
+  parId('formulaire-cle-picker').addEventListener('submit', event => {
+    event.preventDefault();
+    const champ = parId('cle-picker');
+    try {
+      clePicker.enregistrer(champ.value);
+      champ.value = '';
+      erreurReglagesDrive('');
+      annoncer('Clé du sélecteur Google enregistrée sur ce téléphone.', true);
+    } catch (erreur) {
+      erreurReglagesDrive(erreur.message);
+    }
+    afficherDrive();
+  });
+  parId('retirer-cle-picker').addEventListener('click', () => {
+    clePicker.retirer();
+    erreurReglagesDrive('');
+    annoncer('Clé du sélecteur Google retirée de ce téléphone.', true);
+    afficherDrive();
+  });
+  parId('choisir-dossier-drive').addEventListener('click', async () => {
+    try {
+      const dossier = await googlePicker.choisir();
+      erreurReglagesDrive('');
+      if (dossier) annoncer('Dossier « App Cap » enregistré.', true);
+      afficherDrive();
+    } catch (erreur) {
+      erreurReglagesDrive(erreur.message);
+    }
+  });
+  parId('oublier-dossier-drive').addEventListener('click', () => {
+    googlePicker.oublierDossier();
+    erreurReglagesDrive('');
+    annoncer('Dossier oublié : choisis-en un à nouveau quand tu veux.', true);
+    afficherDrive();
+  });
+
   parId('ouvrir-reglages-ia').addEventListener('click', event => {
     ouvrir(reglagesIA, parId('titre-reglages-ia'), event.currentTarget);
     parId('texte-fiche-ia').value = cerveauClaude.ficheTelephone();

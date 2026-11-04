@@ -56,6 +56,7 @@
         <p id="dernier-envoi"></p>
         <button id="synchroniser-maintenant" type="button">Synchroniser maintenant</button>
         <button id="connexion-google" type="button">Se connecter à Google</button>
+        <button id="ouvrir-reglages-drive" type="button" aria-haspopup="dialog" aria-controls="reglages-drive">Réglages du Drive</button>
       </div>
       <section id="zone-sauvegarde" aria-label="Sauvegarde du tableau" data-vues="tuiles tout">
         <p id="texte-sauvegarde"></p>
@@ -422,6 +423,20 @@
   <dialog id="grand-affichage" aria-label="Ce que Cap a compris">
     <p id="grand-affichage-texte"></p>
   </dialog>
+  <dialog id="reglages-drive" aria-labelledby="titre-reglages-drive">
+    <h2 id="titre-reglages-drive" tabindex="-1">Réglages du Drive</h2>
+    <p id="etat-picker"></p>
+    <form id="formulaire-cle-picker">
+      <label for="cle-picker">Clé API du sélecteur Google (elle reste sur ce téléphone)</label>
+      <input id="cle-picker" type="password" autocomplete="off" spellcheck="false" autocapitalize="off">
+      <button type="submit">Enregistrer la clé</button>
+    </form>
+    <button id="retirer-cle-picker" type="button" hidden>Retirer la clé</button>
+    <p id="etat-dossier-drive"></p>
+    <button id="choisir-dossier-drive" type="button">Choisir le dossier « App Cap »</button>
+    <button id="oublier-dossier-drive" type="button" hidden>Oublier ce dossier</button>
+    <p class="erreur" role="alert" hidden></p>
+  </dialog>
   <dialog id="reglages-ia" aria-labelledby="titre-reglages-ia">
     <h2 id="titre-reglages-ia" tabindex="-1">Cerveau de Cap</h2>
     <p id="etat-ia"></p>
@@ -564,6 +579,7 @@
   <script src="sous_categories.js"></script>
   <script src="reglages_google.js"></script>
   <script src="google_connexion.js"></script>
+  <script src="cle_picker.js"></script>
   <script src="google_picker.js"></script>
   <script src="google_sheets.js"></script>
   <script src="google_agenda.js"></script>

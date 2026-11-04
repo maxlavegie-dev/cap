@@ -22,7 +22,7 @@ const googlePicker = (() => {
   }
 
   function disponible() {
-    return Boolean(REGLAGES_GOOGLE.cle_api_picker) && googleConnexion.connecte();
+    return clePicker.presente() && googleConnexion.connecte();
   }
 
   function chargerScript() {
@@ -47,7 +47,7 @@ const googlePicker = (() => {
 
   // Ouvre la fenêtre Google : Max choisit "App Cap" une seule fois, son choix est gardé sur le téléphone.
   async function choisir() {
-    if (!REGLAGES_GOOGLE.cle_api_picker) throw new Error('Le sélecteur Google n’est pas encore réglé.');
+    if (!clePicker.presente()) throw new Error('Le sélecteur Google n’est pas encore réglé : ajoute ta clé dans les réglages.');
     if (!googleConnexion.connecte()) throw new Error('Connecte-toi à Google avant de choisir un dossier.');
     await chargerScript();
     await chargerPicker();
@@ -59,7 +59,7 @@ const googlePicker = (() => {
       const selecteur = new google.picker.PickerBuilder()
         .addView(vue)
         .setOAuthToken(googleConnexion.jeton())
-        .setDeveloperKey(REGLAGES_GOOGLE.cle_api_picker)
+        .setDeveloperKey(clePicker.lire())
         .setCallback(reponse => {
           if (reponse.action === google.picker.Action.PICKED) {
             const choix = reponse.docs && reponse.docs[0];
