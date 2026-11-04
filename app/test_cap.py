@@ -4635,6 +4635,15 @@ TESTS_JS = r"""
     attendre(fichiersVocauxNotes.estTerminer('terminé'), 'fin reconnue');
     attendre(fichiersVocauxNotes.estTerminer('Terminé.'), 'fin reconnue avec majuscule et point');
     attendre(!fichiersVocauxNotes.estTerminer('je n’ai pas terminé mon café'), 'pas de faux positif');
+    attendreEgal(fichiersVocauxNotes.decouperFin('terminé'), { avant: '', termine: true }, 'decouperFin seul, rien avant');
+    attendreEgal(fichiersVocauxNotes.decouperFin('range le lait terminé'),
+      { avant: 'range le lait', termine: true }, 'decouperFin dans le même souffle, mot terminé coupé');
+    attendreEgal(fichiersVocauxNotes.decouperFin('range le lait, terminé.'),
+      { avant: 'range le lait', termine: true }, 'decouperFin avec virgule et point');
+    attendreEgal(fichiersVocauxNotes.decouperFin('Terminé'),
+      { avant: '', termine: true }, 'decouperFin majuscule seule');
+    attendreEgal(fichiersVocauxNotes.decouperFin('je n’ai pas terminé mon café'),
+      { avant: 'je n’ai pas terminé mon café', termine: false }, 'decouperFin pas de faux positif au milieu');
     attendreEgal(fichiersVocauxNotes.titreCourt('Penser à appeler le plombier demain matin pour la fuite dans la cuisine.'),
       'Penser à appeler le plombier demain matin pour…', 'titre court');
     const texte = fichiersVocauxNotes.ajouterEntree('', 'Idée', 'Contenu dicté.', new Date(2026, 10, 3, 9, 5));

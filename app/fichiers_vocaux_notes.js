@@ -24,6 +24,16 @@ const fichiersVocauxNotes = (() => {
     return /^\s*termin[eé]e?s?\s*\.?\s*$/i.test(String(texteBrut || ''));
   }
 
+  // Coupe le mot "terminé" (et ce qu'il y a après) à la fin d'une phrase dictée, même s'il arrive
+  // dans le même souffle que la fin de la dictée ("range le lait terminé"). Le mot "terminé" ne doit
+  // JAMAIS se retrouver écrit dans la note : seul ce qui est dit AVANT lui est gardé.
+  function decouperFin(texteBrut) {
+    const texte = String(texteBrut || '').trim();
+    const correspondance = /^(.*?)\s*,?\s*termin[eé]e?s?\s*\.?\s*$/i.exec(texte);
+    if (!correspondance) return { avant: texte, termine: false };
+    return { avant: correspondance[1].trim(), termine: true };
+  }
+
   function deuxChiffres(valeur) {
     return String(valeur).padStart(2, '0');
   }
@@ -51,5 +61,5 @@ const fichiersVocauxNotes = (() => {
     return `${propre}\n## ${dateHeure(maintenant)} — ${titre}\n\n${texte}\n`;
   }
 
-  return { detecterOuverture, estTerminer, titreCourt, ajouterEntree, dateHeure };
+  return { detecterOuverture, estTerminer, decouperFin, titreCourt, ajouterEntree, dateHeure };
 })();

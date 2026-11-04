@@ -69,7 +69,8 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
   }
   let resultat;
   const sessionNoteActive = !phrase && fichiersVocauxControleur.sessionActive();
-  const estFinNote = sessionNoteActive && fichiersVocauxNotes.estTerminer(texteComplet);
+  const finNote = sessionNoteActive ? fichiersVocauxNotes.decouperFin(texteComplet) : null;
+  const estFinNote = Boolean(finNote && finNote.termine);
   const ouvertureNote = !phrase && !sessionNoteActive ? fichiersVocauxControleur.detecterOuvertureNote(texteComplet) : null;
   const commandeFichierVocal = !phrase && !sessionNoteActive && !ouvertureNote
     ? fichiersVocauxControleur.detecterCommande(texteComplet) : null;
@@ -78,6 +79,7 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
     ? cerveau.repondre(texteComplet) : null;
   if (phrase) cerveau.oublierProposition();
   if (sessionNoteActive && estFinNote) {
+    if (finNote.avant) fichiersVocauxControleur.accumuler(finNote.avant);
     resultat = { type: 'reflexion', message: '', suite: fichiersVocauxControleur.fermerSession() };
   } else if (sessionNoteActive) {
     fichiersVocauxControleur.accumuler(texteComplet);
