@@ -56,9 +56,13 @@ const commandeAnnuaireUI = (() => {
       bouton.addEventListener('click', () => suite(contact));
       return bouton;
     });
+    const annuler = noeud('button', 'commande-annuaire-fermer', 'Annuler');
+    annuler.type = 'button';
+    annuler.addEventListener('click', fermer);
     corps.replaceChildren(
       noeud('p', 'choix-grand-affichage-titre', 'Plusieurs personnes correspondent. Touche la bonne :'),
-      ...boutons
+      ...boutons,
+      annuler
     );
     ouvrir();
     boutons[0]?.focus({ preventScroll: true });

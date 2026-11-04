@@ -3218,6 +3218,21 @@ TESTS_JS = r"""
     attendre(urls[0].startsWith('mailto:milo.fictif%40exemple.test?body='), 'lien mailto correct');
   });
 
+  test('Commande annuaire UI : plusieurs correspondances, bouton Annuler ferme sans rien faire', () => {
+    annuaire.creerContact({ prenom: 'Milo', nom: 'FICTIF', telephone: '0600000010' });
+    annuaire.creerContact({ prenom: 'Milovan', nom: 'FICTIF', telephone: '0600000011' });
+    const urls = [];
+    commandeAnnuaireUI._definirNaviguer(url => urls.push(url));
+    commandeAnnuaireUI.traiter({ action: 'appel', nom: 'Milo' });
+    const dialogue = document.getElementById('commande-annuaire');
+    attendre(dialogue.open, 'écran de choix ouvert');
+    const annuler = Array.from(dialogue.querySelectorAll('button')).find(b => b.textContent === 'Annuler');
+    attendre(Boolean(annuler), 'bouton Annuler présent');
+    annuler.click();
+    attendre(!dialogue.open, 'écran fermé après Annuler');
+    attendreEgal(urls.length, 0, 'aucune navigation déclenchée');
+  });
+
   test('Annuaire : fusion sans perte, dernière modification gagne, historiques combinés', () => {
     const m = annuaireIsolee();
     const local = m.instance.creerContact({ prenom: 'Jardinier FICTIF', telephone: '0600000001' });
