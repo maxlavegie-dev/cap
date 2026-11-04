@@ -32,13 +32,18 @@ const fichiersVocaux = (() => {
 
   function detecterCommande(texteBrut) {
     const texte = String(texteBrut || '').trim();
-    const trouve = phrasesModifiables.detecterCommande(phrasesModifiablesEtat.obtenir(), texte);
+    const etat = phrasesModifiablesEtat.obtenir();
+    const trouve = phrasesModifiables.detecterCommande(etat, texte);
     if (!trouve || !RUBRIQUES_LISTES.has(trouve.rubrique)) return null;
     const fichier = trouve.rubrique;
     const reste = trouve.reste;
-    if (/^lis[- ]?moi\b/i.test(reste)) return { type: 'lire', fichier };
-    const retire = /^retir[eé]\w*\s+(.+)/i.exec(reste);
-    if (retire) return { type: 'retirer', fichier, produit: retire[1].trim() };
+    // Les mots d'action ("lis-moi", "retire", ...) viennent de phrases_modifiables.js : Max peut
+    // les ajouter/modifier/retirer dans les réglages, sans toucher au code.
+    const action = phrasesModifiables.detecterAction(etat, reste);
+    if (action && action.rubrique === 'action_lire') return { type: 'lire', fichier };
+    if (action && action.rubrique === 'action_retirer' && action.reste) {
+      return { type: 'retirer', fichier, produit: action.reste };
+    }
     if (!reste) return null;
     const produits = decouperProduits(reste);
     return produits.length ? { type: 'ajouter', fichier, produits } : null;

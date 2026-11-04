@@ -38,15 +38,17 @@ const fichiersVocauxAFaire = (() => {
   // l'ajouter/modifier/retirer dans les réglages, sans toucher au code.
   function detecterCommande(texteBrut, maintenant = new Date()) {
     const texte = String(texteBrut || '').trim();
-    const ouverture = phrasesModifiables.detecterCommande(phrasesModifiablesEtat.obtenir(), texte);
+    const etat = phrasesModifiablesEtat.obtenir();
+    const ouverture = phrasesModifiables.detecterCommande(etat, texte);
     if (!ouverture || ouverture.rubrique !== 'a_faire') return null;
     const reste = ouverture.reste;
     if (!reste) return null;
-    if (/^lis[- ]?moi\b/i.test(reste)) return { type: 'lire' };
-    const coche = /^coche\s+(.+)/i.exec(reste);
-    if (coche) return { type: 'coche', element: coche[1].trim() };
-    const retire = /^retir[eé]\w*\s+(.+)/i.exec(reste);
-    if (retire) return { type: 'retirer', element: retire[1].trim() };
+    // Les mots d'action ("lis-moi", "coche", "retire", ...) viennent de phrases_modifiables.js :
+    // Max peut les ajouter/modifier/retirer dans les réglages, sans toucher au code.
+    const action = phrasesModifiables.detecterAction(etat, reste);
+    if (action && action.rubrique === 'action_lire') return { type: 'lire' };
+    if (action && action.rubrique === 'action_cocher' && action.reste) return { type: 'coche', element: action.reste };
+    if (action && action.rubrique === 'action_retirer' && action.reste) return { type: 'retirer', element: action.reste };
 
     const priorite = /\b(?:urgent|urgente|prioritaire)\b/i.test(reste) ? 'Haute' : '';
     const trouve = comprendreDates.trouver(reste, maintenant);

@@ -40,13 +40,16 @@ const fichiersVocauxEcheancier = (() => {
   // peut l'ajouter/modifier/retirer dans les réglages, sans toucher au code.
   function detecterCommande(texteBrut, maintenant = new Date()) {
     const texte = String(texteBrut || '').trim();
-    const ouverture = phrasesModifiables.detecterCommande(phrasesModifiablesEtat.obtenir(), texte);
+    const etat = phrasesModifiablesEtat.obtenir();
+    const ouverture = phrasesModifiables.detecterCommande(etat, texte);
     if (!ouverture || ouverture.rubrique !== 'echeancier') return null;
     const reste = ouverture.reste;
     if (!reste) return null;
-    if (/^lis[- ]?moi\b/i.test(reste)) return { type: 'lire' };
-    const terminer = /^termin[eé]e?\s+(.+)/i.exec(reste);
-    if (terminer) return { type: 'terminer', element: terminer[1].trim() };
+    // Les mots d'action ("lis-moi", "terminé", ...) viennent de phrases_modifiables.js : Max peut
+    // les ajouter/modifier/retirer dans les réglages, sans toucher au code.
+    const action = phrasesModifiables.detecterAction(etat, reste);
+    if (action && action.rubrique === 'action_lire') return { type: 'lire' };
+    if (action && action.rubrique === 'action_terminer' && action.reste) return { type: 'terminer', element: action.reste };
 
     const pasDeRappel = /\b(?:pas\s+(?:de\s+)?rappel|sans\s+rappel|aucun\s+rappel)\b/i.test(reste);
     const delaiMatch = /\b(?:dans|rappel(?:\s+de)?)\s+(\d{1,3})\s+jours?\s*(?:avant)?\b/i.exec(reste);
