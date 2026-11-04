@@ -4692,6 +4692,37 @@ TESTS_JS = r"""
     attendre(horsLigne.message.toLowerCase().includes('pas de connexion'), 'honnête hors connexion, rien inventé');
   });
 
+  await testAsync('Fichiers vocaux : après "terminé", sessionEnCoursDeFermeture() reste vrai pendant l\'écriture (évite le faux "Je n\'ai rien entendu")', async () => {
+    let contenuActuel = '';
+    let resoudreEcriture;
+    const drivefictif = {
+      modifier: async (cle, nomFichier, transformer) => {
+        await new Promise(resolve => { resoudreEcriture = resolve; });
+        const resultat = transformer(contenuActuel);
+        contenuActuel = resultat.contenu;
+        return resultat;
+      },
+      trouverOuCreerFichier: async () => 'fichier-fictif',
+      lireTexte: async () => contenuActuel
+    };
+    const controleur = objetIsole(SOURCE_FICHIERS_VOCAUX_CONTROLEUR, 'fichiersVocauxControleur', {
+      navigator: { onLine: true }, googleConnexion: { connecte: () => true }, REGLAGES_GOOGLE,
+      fichiersVocauxDrive: drivefictif, fichiersVocaux, fichiersVocauxEcheancier, fichiersVocauxAFaire,
+      fichiersVocauxNotes, journalActions: { consigner: () => {} }
+    });
+    controleur.ouvrirSession('bloc_notes');
+    controleur.accumuler('Acheter du lait');
+    attendreEgal(controleur.sessionEnCoursDeFermeture(), false, 'pas de fermeture avant que "terminé" soit dit');
+    const promesse = controleur.fermerSession();
+    attendreEgal(controleur.sessionEnCoursDeFermeture(), true, 'fermeture en cours dès l’appel, avant la fin de l’écriture Drive');
+    attendreEgal(controleur.sessionActive(), true, 'session encore active pendant l’écriture : app.js ne doit pas la croire fermée sans vérifier sessionEnCoursDeFermeture()');
+    resoudreEcriture();
+    const resultat = await promesse;
+    attendreEgal(controleur.sessionEnCoursDeFermeture(), false, 'fermeture terminée une fois l’écriture finie');
+    attendreEgal(controleur.sessionActive(), false, 'session bien fermée');
+    attendre(resultat.message.includes('Acheter du lait'), 'contenu dicté bien enregistré');
+  });
+
   test('Fichiers vocaux : listes génériques (achats, films, livres) sans collision', () => {
     attendreEgal(fichiersVocaux.detecterCommande('achats une perceuse'),
       { type: 'ajouter', fichier: 'choses_a_acheter', produits: ['une perceuse'] }, 'achats reconnu');

@@ -12,6 +12,9 @@ const fichiersVocauxControleur = (() => {
   };
 
   let session = null; // { fichier, morceaux: [] } — dictée libre en cours (Bloc-notes, Brouillon vocal)
+  // Vrai pendant que fermerSession() écrit dans Drive (après "terminé"), avant que session soit remis
+  // à null. Sert à éviter qu'app.js relance le micro une fois de trop pendant cette courte fermeture.
+  let fermetureEnCours = false;
 
   function pret() {
     return typeof navigator === 'undefined' || navigator.onLine !== false
@@ -142,36 +145,45 @@ const fichiersVocauxControleur = (() => {
 
   async function fermerSession() {
     if (!session) return null;
-    if (!pret()) {
-      const message = messagePasPret();
-      return { type: 'reponse', message, parole: message };
-    }
-    const { fichier, morceaux } = session;
-    const contenu = morceaux.join(' ').trim();
-    if (!contenu) {
-      session = null;
-      return { type: 'reponse', message: "Je n'ai rien noté, rien à enregistrer.", parole: 'Rien noté.' };
-    }
-    const nomFichier = REGLAGES_GOOGLE.fichiers_vocaux[fichier];
-    const libelle = fichier === 'bloc_notes' ? 'ton bloc-notes' : 'ton brouillon vocal';
-    const titre = fichiersVocauxNotes.titreCourt(contenu);
+    fermetureEnCours = true;
     try {
-      await fichiersVocauxDrive.modifier(fichier, nomFichier,
-        avant => ({ contenu: fichiersVocauxNotes.ajouterEntree(avant, titre, contenu) }));
-      session = null;
-      const message = `C'est noté. Ajouté à ${libelle} : ${titre}.`;
-      consigner(contenu, `note dans ${libelle}`, message);
-      return { type: 'reponse', message, parole: "C'est noté." };
-    } catch (erreur) {
-      const message = erreur instanceof Error
-        ? `${erreur.message} Dis « terminé » pour réessayer.`
-        : `Je n'ai pas pu enregistrer dans ${libelle}. Dis « terminé » pour réessayer.`;
-      return { type: 'reponse', message, parole: message };
+      if (!pret()) {
+        const message = messagePasPret();
+        return { type: 'reponse', message, parole: message };
+      }
+      const { fichier, morceaux } = session;
+      const contenu = morceaux.join(' ').trim();
+      if (!contenu) {
+        session = null;
+        return { type: 'reponse', message: "Je n'ai rien noté, rien à enregistrer.", parole: 'Rien noté.' };
+      }
+      const nomFichier = REGLAGES_GOOGLE.fichiers_vocaux[fichier];
+      const libelle = fichier === 'bloc_notes' ? 'ton bloc-notes' : 'ton brouillon vocal';
+      const titre = fichiersVocauxNotes.titreCourt(contenu);
+      try {
+        await fichiersVocauxDrive.modifier(fichier, nomFichier,
+          avant => ({ contenu: fichiersVocauxNotes.ajouterEntree(avant, titre, contenu) }));
+        session = null;
+        const message = `C'est noté. Ajouté à ${libelle} : ${titre}.`;
+        consigner(contenu, `note dans ${libelle}`, message);
+        return { type: 'reponse', message, parole: "C'est noté." };
+      } catch (erreur) {
+        const message = erreur instanceof Error
+          ? `${erreur.message} Dis « terminé » pour réessayer.`
+          : `Je n'ai pas pu enregistrer dans ${libelle}. Dis « terminé » pour réessayer.`;
+        return { type: 'reponse', message, parole: message };
+      }
+    } finally {
+      fermetureEnCours = false;
     }
   }
 
   function detecterOuvertureNote(texte) {
     return fichiersVocauxNotes.detecterOuverture(texte);
+  }
+
+  function sessionEnCoursDeFermeture() {
+    return fermetureEnCours;
   }
 
   // ---------- Détection générale (listes, échéancier, à faire) ----------
@@ -204,6 +216,6 @@ const fichiersVocauxControleur = (() => {
 
   return {
     pret, detecterCommande, traiter,
-    sessionActive, ouvrirSession, accumuler, fermerSession, detecterOuvertureNote
+    sessionActive, ouvrirSession, accumuler, fermerSession, detecterOuvertureNote, sessionEnCoursDeFermeture
   };
 })();

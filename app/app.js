@@ -1464,6 +1464,14 @@
         }
       },
       surFin() {
+        // Après "terminé", fermerSession() écrit dans Drive (asynchrone) : le micro ne doit pas
+        // se relancer pendant ce court instant, sinon il entend du silence et annonce une fausse erreur.
+        if (fichiersVocauxControleur.sessionEnCoursDeFermeture()) {
+          dernierSonNote = 0;
+          micro.setAttribute('aria-pressed', 'false');
+          micro.setAttribute('aria-label', 'Dicter une tâche');
+          return;
+        }
         if (fichiersVocauxControleur.sessionActive()) {
           if (Date.now() - dernierSonNote > SILENCE_NOTE_MS) {
             dernierSonNote = 0;
