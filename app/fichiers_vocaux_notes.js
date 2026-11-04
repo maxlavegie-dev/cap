@@ -4,20 +4,15 @@
 // fait que reconnaître les phrases d'ouverture/fin et mettre en forme l'entrée. La session (ce qui
 // a été dicté) est gardée par fichiers_vocaux_controleur.js, pas ici.
 const fichiersVocauxNotes = (() => {
-  const CATALOGUE = [
-    { fichier: 'bloc_notes', motif: /^bloc[- ]notes?\b/i },
-    { fichier: 'brouillon_vocal', motif: /^brouillon(?:\s+vocal)?\b/i }
-  ];
-
   // "bloc-notes, note" ou "brouillon vocal, note" ouvre une session ; le reste est accumulé ensuite.
+  // Les phrases "bloc-notes" / "brouillon vocal" viennent de phrases_modifiables.js : Max peut les
+  // ajouter/modifier/retirer dans les réglages, sans toucher au code.
   function detecterOuverture(texteBrut) {
     const texte = String(texteBrut || '').trim();
-    for (const entree of CATALOGUE) {
-      if (!entree.motif.test(texte)) continue;
-      const reste = texte.replace(entree.motif, '').replace(/^\s*,?\s*/, '');
-      if (/^note\b/i.test(reste)) return { fichier: entree.fichier };
-    }
-    return null;
+    const trouve = phrasesModifiables.detecterCommande(phrasesModifiablesEtat.obtenir(), texte);
+    if (!trouve || (trouve.rubrique !== 'bloc_notes' && trouve.rubrique !== 'brouillon_vocal')) return null;
+    if (!/^note\b/i.test(trouve.reste)) return null;
+    return { fichier: trouve.rubrique };
   }
 
   function estTerminer(texteBrut) {

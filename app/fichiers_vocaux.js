@@ -26,25 +26,22 @@ const fichiersVocaux = (() => {
       .filter(Boolean);
   }
 
-  // Un mot déclencheur par fichier-liste : chacun est indépendant, pas de collision entre eux.
-  const LISTES_SIMPLES = [
-    { fichier: 'liste_courses', motif: /^listes?\b/i, debut: /^listes?\s*,?\s*/i },
-    { fichier: 'choses_a_acheter', motif: /^achats?\b/i, debut: /^achats?\s*,?\s*/i },
-    { fichier: 'films_a_voir', motif: /^films?\b/i, debut: /^films?\s*,?\s*/i },
-    { fichier: 'livres_a_lire', motif: /^livres?\b/i, debut: /^livres?\s*,?\s*/i }
-  ];
+  // Rubriques "listes" gérées ici (les phrases qui les ouvrent viennent de phrases_modifiables.js :
+  // Max peut les ajouter/modifier/retirer dans les réglages, sans toucher au code).
+  const RUBRIQUES_LISTES = new Set(['liste_courses', 'choses_a_acheter', 'films_a_voir', 'livres_a_lire']);
 
   function detecterCommande(texteBrut) {
     const texte = String(texteBrut || '').trim();
-    const entree = LISTES_SIMPLES.find(item => item.motif.test(texte));
-    if (!entree) return null;
-    const reste = texte.replace(entree.debut, '').trim();
-    if (/^lis[- ]?moi\b/i.test(reste)) return { type: 'lire', fichier: entree.fichier };
+    const trouve = phrasesModifiables.detecterCommande(phrasesModifiablesEtat.obtenir(), texte);
+    if (!trouve || !RUBRIQUES_LISTES.has(trouve.rubrique)) return null;
+    const fichier = trouve.rubrique;
+    const reste = trouve.reste;
+    if (/^lis[- ]?moi\b/i.test(reste)) return { type: 'lire', fichier };
     const retire = /^retir[eé]\w*\s+(.+)/i.exec(reste);
-    if (retire) return { type: 'retirer', fichier: entree.fichier, produit: retire[1].trim() };
+    if (retire) return { type: 'retirer', fichier, produit: retire[1].trim() };
     if (!reste) return null;
     const produits = decouperProduits(reste);
-    return produits.length ? { type: 'ajouter', fichier: entree.fichier, produits } : null;
+    return produits.length ? { type: 'ajouter', fichier, produits } : null;
   }
 
   function ligneProduit(nom) {

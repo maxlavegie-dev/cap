@@ -34,17 +34,13 @@ const fichiersVocauxAFaire = (() => {
     return recherche.normaliser(String(texte || '')).replace(/\s+/g, ' ').trim();
   }
 
-  const OUVERTURES = [
-    /^à\s+faire\s*,?\s*/i, /^a\s+faire\s*,?\s*/i,
-    /^mets\s+dans\s+ma\s+to-?do\s*,?\s*/i, /^ma\s+to-?do\s*,?\s*/i,
-    /^rappelle[- ]moi\s+de\s+/i, /^il\s+faut\s+que\s+je\s+/i
-  ];
-
+  // La phrase qui ouvre "à faire" vient de phrases_modifiables.js (rubrique "a_faire") : Max peut
+  // l'ajouter/modifier/retirer dans les réglages, sans toucher au code.
   function detecterCommande(texteBrut, maintenant = new Date()) {
     const texte = String(texteBrut || '').trim();
-    const ouverture = OUVERTURES.find(motif => motif.test(texte));
-    if (!ouverture) return null;
-    const reste = texte.replace(ouverture, '').trim();
+    const ouverture = phrasesModifiables.detecterCommande(phrasesModifiablesEtat.obtenir(), texte);
+    if (!ouverture || ouverture.rubrique !== 'a_faire') return null;
+    const reste = ouverture.reste;
     if (!reste) return null;
     if (/^lis[- ]?moi\b/i.test(reste)) return { type: 'lire' };
     const coche = /^coche\s+(.+)/i.exec(reste);

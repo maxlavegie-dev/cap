@@ -36,10 +36,13 @@ const fichiersVocauxEcheancier = (() => {
   }
 
   // "échéance anniversaire de Léa le 8 mars, rappel 15 jours avant" -> {element, date, delaiJours}
+  // La phrase qui ouvre "échéance" vient de phrases_modifiables.js (rubrique "echeancier") : Max
+  // peut l'ajouter/modifier/retirer dans les réglages, sans toucher au code.
   function detecterCommande(texteBrut, maintenant = new Date()) {
     const texte = String(texteBrut || '').trim();
-    if (!/^[ée]ch[ée]ance\b/i.test(texte)) return null;
-    const reste = texte.replace(/^[ée]ch[ée]ance\s*,?\s*/i, '').trim();
+    const ouverture = phrasesModifiables.detecterCommande(phrasesModifiablesEtat.obtenir(), texte);
+    if (!ouverture || ouverture.rubrique !== 'echeancier') return null;
+    const reste = ouverture.reste;
     if (!reste) return null;
     if (/^lis[- ]?moi\b/i.test(reste)) return { type: 'lire' };
     const terminer = /^termin[eé]e?\s+(.+)/i.exec(reste);
