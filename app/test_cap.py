@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -3178,6 +3178,34 @@ TESTS_JS = r"""
     attendreEgal(annuaire.correspondances('andre').map(c => c.prenom), ['Andre FICTIF'], 'sans accent trouve sans accent');
   });
 
+  test('Commandes annuaire : détection des trois commandes (fiche, appel, mail)', () => {
+    attendreEgal(commandesAnnuaire.detecter('montre-moi la fiche de Milo FICTIF'),
+      { action: 'fiche', nom: 'Milo FICTIF' }, 'fiche reconnue');
+    attendreEgal(commandesAnnuaire.detecter('affiche la fiche d’Éléonore FICTIF'),
+      { action: 'fiche', nom: 'Éléonore FICTIF' }, 'fiche avec apostrophe');
+    attendreEgal(commandesAnnuaire.detecter('appelle Milo FICTIF'),
+      { action: 'appel', nom: 'Milo FICTIF' }, 'appel reconnu');
+    attendreEgal(commandesAnnuaire.detecter('mail à Milo FICTIF, dis-lui bonjour'),
+      { action: 'mail', nom: 'Milo FICTIF', message: 'dis-lui bonjour' }, 'mail avec message');
+    attendreEgal(commandesAnnuaire.detecter('mail a Milo FICTIF'),
+      { action: 'mail', nom: 'Milo FICTIF', message: '' }, 'mail sans virgule : pas de message');
+    attendreEgal(commandesAnnuaire.detecter('liste pommes'), null, 'pas de collision avec une autre commande');
+    attendreEgal(commandesAnnuaire.detecter('appelle'), null, 'appelle sans nom : rien');
+    attendreEgal(commandesAnnuaire.detecter(''), null, 'texte vide : rien');
+  });
+
+  test('Commandes annuaire : résolution via l’annuaire, 0/1/plusieurs correspondances', () => {
+    annuaire.creerContact({ prenom: 'Milo', nom: 'FICTIF', telephone: '0600000010', mail: 'milo.fictif@exemple.test' });
+    annuaire.creerContact({ prenom: 'Milovan', nom: 'FICTIF', telephone: '0600000011' });
+    annuaire.creerContact({ prenom: 'Zoe', nom: 'FICTIF' });
+    const aucun = commandesAnnuaire.resoudreContact('Personne FICTIF');
+    attendreEgal(aucun, { statut: 'aucun' }, 'aucune correspondance');
+    const plusieurs = commandesAnnuaire.resoudreContact('milo');
+    attendre(plusieurs.statut === 'plusieurs' && plusieurs.contacts.length === 2, 'deux Milo trouvés');
+    const un = commandesAnnuaire.resoudreContact('zoe');
+    attendre(un.statut === 'un' && un.contact.prenom === 'Zoe', 'un seul Zoe trouvé');
+  });
+
   test('Annuaire : fusion sans perte, dernière modification gagne, historiques combinés', () => {
     const m = annuaireIsolee();
     const local = m.instance.creerContact({ prenom: 'Jardinier FICTIF', telephone: '0600000001' });
@@ -5038,8 +5066,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v35['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v35")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v36['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v36")
 
 
 def verifier_precache_fichiers_existent():

@@ -40,6 +40,12 @@ const phrasesModifiables = (() => {
       type: 'commande', libelle: 'À faire',
       phrases: ['à faire', 'affaire', 'mets dans ma to-do', 'ma to-do', 'rappelle-moi de', 'il faut que je']
     },
+    fiche_annuaire: {
+      type: 'commande', libelle: 'Annuaire : montrer la fiche',
+      phrases: ['montre-moi la fiche de', 'montre-moi la fiche d', 'affiche la fiche de', 'affiche la fiche d']
+    },
+    appel_annuaire: { type: 'commande', libelle: 'Annuaire : appeler', phrases: ['appelle'] },
+    mail_annuaire: { type: 'commande', libelle: 'Annuaire : mail à', phrases: ['mail à', 'mail a'] },
     action_lire: { type: 'action', libelle: 'Action : lire', phrases: ['lis-moi'] },
     action_retirer: { type: 'action', libelle: 'Action : retirer', phrases: ['retire'] },
     action_cocher: { type: 'action', libelle: 'Action : cocher', phrases: ['coche'] },
@@ -207,7 +213,7 @@ const phrasesModifiables = (() => {
     }
     if (!meilleur) return null;
     const fin = mots[meilleur.longueur - 1].fin;
-    const reste = String(texte).slice(fin).replace(/^[\s,;:.!?\-–—]+/u, '').trim();
+    const reste = String(texte).slice(fin).replace(/^[\s,;:.!?\-–—'’]+/u, '').trim();
     return { rubrique: meilleur.rubrique, phrase: meilleur.phrase, reste };
   }
 

@@ -74,7 +74,11 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
   const ouvertureNote = !phrase && !sessionNoteActive ? fichiersVocauxControleur.detecterOuvertureNote(texteComplet) : null;
   const commandeFichierVocal = !phrase && !sessionNoteActive && !ouvertureNote
     ? fichiersVocauxControleur.detecterCommande(texteComplet) : null;
-  const suiteQuestion = !phrase && !sessionNoteActive && !ouvertureNote && !commandeFichierVocal
+  // Commandes vocales de l'annuaire (fiche, appel, mail) : reconnues en code pur, AVANT le cerveau,
+  // pour que l'IA ne voie jamais le nom cherché ni l'annuaire.
+  const commandeAnnuaire = !phrase && !sessionNoteActive && !ouvertureNote && !commandeFichierVocal
+    ? commandesAnnuaire.detecter(texteComplet) : null;
+  const suiteQuestion = !phrase && !sessionNoteActive && !ouvertureNote && !commandeFichierVocal && !commandeAnnuaire
     && (cerveau.propositionEnAttente() || !annulation.estDemande(texteComplet))
     ? cerveau.repondre(texteComplet) : null;
   if (phrase) cerveau.oublierProposition();
@@ -89,6 +93,11 @@ function traiterDemande({ texte = '', source, id_phrase = '', complement = '', a
     resultat = { type: 'silence', message: '' };
   } else if (commandeFichierVocal) {
     resultat = { type: 'reflexion', message: 'Je note…', suite: fichiersVocauxControleur.traiter(commandeFichierVocal, source) };
+  } else if (commandeAnnuaire) {
+    resultat = {
+      type: 'commande_annuaire', detection: commandeAnnuaire,
+      message: `Commande annuaire (${commandeAnnuaire.action}) : ${commandeAnnuaire.nom}`
+    };
   } else if (suiteQuestion) {
     resultat = executerDecision(suiteQuestion, source);
   } else if (phrase?.id === 'annuler' || (!phrase && annulation.estDemande(texteComplet))) {

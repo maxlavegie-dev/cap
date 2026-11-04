@@ -1045,7 +1045,8 @@
     const compris = { annuler: 'annuler la dernière action', report: 'reporter la tâche ouverte à demain',
       proposition: 'proposition faite à Max', rendez_vous_ajoute: 'rendez-vous inscrit après le oui de Max',
       vide: 'rien reçu', pas_compris: 'pas compris', attente_cerveau: 'demande pour plus tard',
-      question: 'question posée à Max', reflexion: 'demande envoyée au cerveau', reponse: 'conversation' };
+      question: 'question posée à Max', reflexion: 'demande envoyée au cerveau', reponse: 'conversation',
+      commande_annuaire: 'commande annuaire (fiche/appel/mail)' };
     journalActions.consigner({ source, entree: texte, compris: compris[resultat.type] || resultat.type,
       fait: resultat.message || ({ report: 'report demandé', annuler: 'annulation demandée' }[resultat.type] || 'rien') });
   }
@@ -1056,6 +1057,10 @@
     if (resultat.type === 'silence') return;
     if (resultat.type === 'annuler') {
       annulerParLaParole(origine);
+      return;
+    }
+    if (resultat.type === 'commande_annuaire') {
+      commandeAnnuaireUI.traiter(resultat.detection);
       return;
     }
     if (resultat.type === 'reflexion') {

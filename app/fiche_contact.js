@@ -489,5 +489,17 @@ const ficheContact = (() => {
 
   installerPave('pave-telephone', 'pave-effacer', 'pave-fermer', 'clavier-telephone', 'telephone');
   installerPave('pave-telephone2', 'pave-effacer2', 'pave-fermer2', 'clavier-telephone2', 'telephone2');
-  return { ouvrirListe };
+
+  // Ouvre directement la fiche d'un contact (ex. depuis une commande vocale « montre-moi la fiche de »).
+  function ouvrirFiche(item) {
+    if (!dialogue.open) {
+      origine = document.activeElement;
+      dialogue.showModal();
+    }
+    contact = item;
+    afficherConsultation();
+    ajusterHauteurClavier();
+  }
+
+  return { ouvrirListe, ouvrirFiche };
 })();

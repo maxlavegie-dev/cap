@@ -1649,6 +1649,88 @@ dialog button:hover {
   text-align: left;
 }
 
+#commande-annuaire {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  margin: 0;
+  padding: 24px;
+  border: 0;
+  background: #203e49;
+  color: #fffef7;
+  text-align: center;
+}
+
+#commande-annuaire[open] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#commande-annuaire::backdrop {
+  background: rgb(32 62 73 / 60%);
+}
+
+#commande-annuaire-corps {
+  width: 100%;
+}
+
+.commande-annuaire-texte {
+  margin: 0 0 20px;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+  line-height: 1.2;
+  font-size: clamp(28px, 10vw, 72px);
+}
+
+.commande-annuaire-sous-texte {
+  margin: 0 0 32px;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+  font-size: clamp(22px, 7vw, 40px);
+}
+
+.commande-annuaire-message {
+  margin: 0 0 24px;
+  font-size: clamp(20px, 6vw, 32px);
+  font-weight: 600;
+}
+
+.commande-annuaire-boutons {
+  display: flex;
+  gap: 16px;
+}
+
+.commande-annuaire-boutons button {
+  flex: 1;
+  padding: 20px;
+  border: 2px solid #fffef7;
+  border-radius: 12px;
+  background: transparent;
+  color: #fffef7;
+  font-size: clamp(24px, 8vw, 40px);
+  font-weight: 700;
+}
+
+.commande-annuaire-boutons button:hover,
+.commande-annuaire-boutons button:active {
+  background: rgb(255 255 247 / 15%);
+}
+
+.commande-annuaire-fermer {
+  margin-top: 8px;
+  padding: 16px 24px;
+  border: 2px solid #fffef7;
+  border-radius: 12px;
+  background: transparent;
+  color: #fffef7;
+  font-size: clamp(20px, 6vw, 28px);
+  font-weight: 700;
+}
+
 #clavier {
   inset: auto 0 0;
   box-sizing: border-box;
