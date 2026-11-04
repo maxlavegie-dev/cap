@@ -4604,6 +4604,30 @@ TESTS_JS = r"""
     attendreEgal(fichiersVocaux.detecterCommande('liste pain'), { type: 'ajouter', fichier: 'liste_courses', produits: ['pain'] }, 'liste toujours reconnue');
   });
 
+  test('Fichiers vocaux : singulier et pluriel, avec ou sans virgule (phrases comme le micro les transcrit)', () => {
+    attendreEgal(fichiersVocaux.detecterCommande('film Rambo'),
+      { type: 'ajouter', fichier: 'films_a_voir', produits: ['Rambo'] }, 'film singulier sans virgule');
+    attendreEgal(fichiersVocaux.detecterCommande('film, Rambo'),
+      { type: 'ajouter', fichier: 'films_a_voir', produits: ['Rambo'] }, 'film singulier avec virgule');
+    attendreEgal(fichiersVocaux.detecterCommande('films, Rambo'),
+      { type: 'ajouter', fichier: 'films_a_voir', produits: ['Rambo'] }, 'films pluriel avec virgule');
+    attendreEgal(fichiersVocaux.detecterCommande('livre Dune'),
+      { type: 'ajouter', fichier: 'livres_a_lire', produits: ['Dune'] }, 'livre singulier');
+    attendreEgal(fichiersVocaux.detecterCommande('livre, Dune'),
+      { type: 'ajouter', fichier: 'livres_a_lire', produits: ['Dune'] }, 'livre singulier avec virgule');
+    attendreEgal(fichiersVocaux.detecterCommande('achat lait'),
+      { type: 'ajouter', fichier: 'choses_a_acheter', produits: ['lait'] }, 'achat singulier');
+    attendreEgal(fichiersVocaux.detecterCommande('achat, lait'),
+      { type: 'ajouter', fichier: 'choses_a_acheter', produits: ['lait'] }, 'achat singulier avec virgule');
+    attendreEgal(fichiersVocaux.detecterCommande('listes pain'),
+      { type: 'ajouter', fichier: 'liste_courses', produits: ['pain'] }, 'listes pluriel');
+    attendreEgal(fichiersVocaux.detecterCommande('liste, pain'),
+      { type: 'ajouter', fichier: 'liste_courses', produits: ['pain'] }, 'liste singulier avec virgule');
+    attendreEgal(fichiersVocaux.detecterCommande('film lis-moi'), { type: 'lire', fichier: 'films_a_voir' }, 'film singulier lecture');
+    attendreEgal(fichiersVocaux.detecterCommande('livre retiré Dune'),
+      { type: 'retirer', fichier: 'livres_a_lire', produit: 'Dune' }, 'livre singulier retrait');
+  });
+
   test('Fichiers vocaux : notes (ouverture, fin, titre automatique, ajout sans effacement)', () => {
     attendreEgal(fichiersVocauxNotes.detecterOuverture('bloc-notes, note'), { fichier: 'bloc_notes' }, 'ouverture bloc-notes');
     attendreEgal(fichiersVocauxNotes.detecterOuverture('brouillon vocal, note'), { fichier: 'brouillon_vocal' }, 'ouverture brouillon vocal');

@@ -28,10 +28,10 @@ const fichiersVocaux = (() => {
 
   // Un mot déclencheur par fichier-liste : chacun est indépendant, pas de collision entre eux.
   const LISTES_SIMPLES = [
-    { fichier: 'liste_courses', motif: /^liste\b/i, debut: /^liste\s*,?\s*/i },
-    { fichier: 'choses_a_acheter', motif: /^achats\b/i, debut: /^achats\s*,?\s*/i },
-    { fichier: 'films_a_voir', motif: /^films\b/i, debut: /^films\s*,?\s*/i },
-    { fichier: 'livres_a_lire', motif: /^livres\b/i, debut: /^livres\s*,?\s*/i }
+    { fichier: 'liste_courses', motif: /^listes?\b/i, debut: /^listes?\s*,?\s*/i },
+    { fichier: 'choses_a_acheter', motif: /^achats?\b/i, debut: /^achats?\s*,?\s*/i },
+    { fichier: 'films_a_voir', motif: /^films?\b/i, debut: /^films?\s*,?\s*/i },
+    { fichier: 'livres_a_lire', motif: /^livres?\b/i, debut: /^livres?\s*,?\s*/i }
   ];
 
   function detecterCommande(texteBrut) {
