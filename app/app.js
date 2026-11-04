@@ -5,6 +5,7 @@
   const dateElement = parId('date');
   const listeElement = parId('liste-taches');
   const statutElement = parId('statut');
+  const texteEntenduElement = parId('texte-entendu');
   const archiveElement = parId('basculer-archive');
   const listeArchiveElement = parId('liste-archive');
   const termineesElement = parId('basculer-terminees');
@@ -206,6 +207,19 @@
     statutElement.textContent = message;
     if (temporaire) {
       delaiStatut = setTimeout(() => { statutElement.textContent = ''; }, 2600);
+    }
+  }
+
+  let delaiTexteEntendu = null;
+
+  // Affiche brièvement le texte exact compris par la dictée, pour preuve en cas de commande mal reconnue.
+  function afficherTexteEntendu(texte) {
+    if (!texteEntenduElement) return;
+    clearTimeout(delaiTexteEntendu);
+    const propre = texte.trim();
+    texteEntenduElement.textContent = propre ? `Entendu : « ${propre} »` : '';
+    if (propre) {
+      delaiTexteEntendu = setTimeout(() => { texteEntenduElement.textContent = ''; }, 4000);
     }
   }
 
@@ -813,6 +827,7 @@
       if (recu) return;
       recu = true;
       const intitule = texte.trim();
+      afficherTexteEntendu(intitule);
       if (!intitule) {
         annoncer("Je n'ai rien entendu, réessaie.");
         return;
@@ -1228,6 +1243,7 @@
 
   function ajouterDictee(texte) {
     const intitule = texte.trim();
+    afficherTexteEntendu(intitule);
     try {
       const resultat = journalActions.pendant({ source: 'micro', entree: intitule, compris: 'noter une tâche dans À trier' },
         () => traiterDemande({ texte: intitule, source: 'micro', agenda_disponible: agendaDisponible() }));

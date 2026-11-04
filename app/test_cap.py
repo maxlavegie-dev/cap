@@ -3655,6 +3655,15 @@ TESTS_JS = r"""
     attendre(ligne && ligne[1] === 'micro de la tuile Musique' && ligne[2] === 'FICTIF changer les cordes', 'journal incomplet');
   });
 
+  await testAsync('Dictée : le texte exact compris est affiché brièvement à l’écran', async c => {
+    tachesTuiles(c);
+    const ui = preparerInterface(c);
+    dicteeQuiEntend(ui, 'FICTIF liste pommes et pain');
+    ui.parId('microphone').click();
+    attendreEgal(ui.parId('texte-entendu').textContent, 'Entendu : « FICTIF liste pommes et pain »',
+      'texte entendu non affiché');
+  });
+
   await testAsync('Dates : micro de tuile, échéance dite, puis question à deux boutons si Cap hésite', async c => {
     tachesTuiles(c);
     const ui = preparerInterface(c);
@@ -4808,8 +4817,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v32['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v32")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v33['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v33")
 
 
 def verifier_precache_fichiers_existent():

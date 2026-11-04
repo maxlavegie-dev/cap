@@ -489,6 +489,21 @@ body.vue-complete #zone-recherche {
   opacity: 0;
 }
 
+#texte-entendu {
+  max-width: 100%;
+  margin: 4px 0 0;
+  padding: 0 16px;
+  color: #6a7a79;
+  font-size: 13px;
+  font-style: italic;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+#texte-entendu:empty {
+  display: none;
+}
+
 .annuler-dictee {
   display: block;
   margin: 8px auto 0;
