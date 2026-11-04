@@ -3206,6 +3206,18 @@ TESTS_JS = r"""
     attendre(un.statut === 'un' && un.contact.prenom === 'Zoe', 'un seul Zoe trouvé');
   });
 
+  test('Commande annuaire UI : mail sans message, jamais « undefined » dans le corps', () => {
+    annuaire.creerContact({ prenom: 'Milo', nom: 'FICTIF', mail: 'milo.fictif@exemple.test' });
+    const urls = [];
+    commandeAnnuaireUI._definirNaviguer(url => urls.push(url));
+    commandeAnnuaireUI.traiter({ action: 'mail', nom: 'Milo FICTIF', message: '' });
+    document.querySelector('.commande-annuaire-boutons button').click();
+    attendreEgal(urls.length, 1, 'une navigation déclenchée');
+    attendre(!urls[0].includes('undefined'), 'jamais « undefined » dans le lien mailto');
+    attendre(urls[0].includes('body='), 'le paramètre body est toujours présent');
+    attendre(urls[0].startsWith('mailto:milo.fictif%40exemple.test?body='), 'lien mailto correct');
+  });
+
   test('Annuaire : fusion sans perte, dernière modification gagne, historiques combinés', () => {
     const m = annuaireIsolee();
     const local = m.instance.creerContact({ prenom: 'Jardinier FICTIF', telephone: '0600000001' });

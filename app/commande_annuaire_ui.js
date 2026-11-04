@@ -36,6 +36,9 @@ const commandeAnnuaireUI = (() => {
     if (typeof voix !== 'undefined' && voix.dire) voix.dire(texte);
   }
 
+  // Remplaçable par les tests automatiques, pour ne jamais vraiment naviguer pendant un test.
+  let naviguer = url => { window.location.href = url; };
+
   function afficherMessage(texte) {
     const bouton = noeud('button', 'commande-annuaire-fermer', 'Fermer');
     bouton.type = 'button';
@@ -87,7 +90,7 @@ const commandeAnnuaireUI = (() => {
     }
     const chiffres = numero.replace(/[^\d+]/g, '');
     afficherConfirmation(annuaire.nomAffichage(contact), numero, () => {
-      window.location.href = `tel:${chiffres}`;
+      naviguer(`tel:${chiffres}`);
     });
   }
 
@@ -98,8 +101,9 @@ const commandeAnnuaireUI = (() => {
       return;
     }
     afficherConfirmation(annuaire.nomAffichage(contact), mail, () => {
-      const corpsMail = message ? `?body=${encodeURIComponent(message)}` : '';
-      window.location.href = `mailto:${encodeURIComponent(mail)}${corpsMail}`;
+      // Le paramètre body est toujours présent, même vide : certains téléphones Android
+      // affichent sinon le mot « undefined » dans le corps du brouillon quand il est absent.
+      naviguer(`mailto:${encodeURIComponent(mail)}?body=${encodeURIComponent(message || '')}`);
     });
   }
 
@@ -126,5 +130,6 @@ const commandeAnnuaireUI = (() => {
 
   fermetureFenetres.installer(dialogue, { retour: fermer, cle: () => 'commande-annuaire' });
 
-  return { traiter };
+  // _definirNaviguer : réservé aux tests automatiques, pour ne jamais vraiment appeler ou mailer.
+  return { traiter, _definirNaviguer: fonction => { naviguer = fonction; } };
 })();
