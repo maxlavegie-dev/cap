@@ -1164,6 +1164,19 @@ dialog .bouton-neutre {
   gap: 10px;
 }
 
+.gros-bouton {
+  font-size: 1.1em;
+  font-weight: 600;
+  padding: 16px 24px;
+  min-height: 56px;
+}
+
+#annuler-reinit-phrases {
+  order: -1;
+  border-color: #315c68;
+  background: #b3ede3;
+}
+
 dialog button {
   padding: 10px 16px;
   border: 1px solid #8a9d9c;

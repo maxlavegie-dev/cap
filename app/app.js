@@ -1967,6 +1967,17 @@
   });
 
   parId('reinitialiser-rubrique-phrases').addEventListener('click', () => {
+    parId('confirmation-reinit-phrases').hidden = false;
+    parId('annuler-reinit-phrases').focus({ preventScroll: true });
+  });
+
+  parId('annuler-reinit-phrases').addEventListener('click', () => {
+    parId('confirmation-reinit-phrases').hidden = true;
+    parId('reinitialiser-rubrique-phrases').focus({ preventScroll: true });
+  });
+
+  parId('confirmer-reinit-phrases').addEventListener('click', () => {
+    parId('confirmation-reinit-phrases').hidden = true;
     const resultat = phrasesModifiables.reinitialiser(etatPhrases(), rubriqueCourantePhrases);
     if (!resultat.ok) { erreurPhrases(resultat.erreur); return; }
     phrasesModifiablesEtat.enregistrer(resultat.etat);
@@ -1983,6 +1994,7 @@
     annulerModificationPhrase();
     statutPhrases('');
     erreurPhrases('');
+    parId('confirmation-reinit-phrases').hidden = true;
     renduDetailPhrases();
     parId('liste-rubriques-phrases-vue').hidden = true;
     parId('detail-rubrique-phrases').hidden = false;
@@ -2037,6 +2049,7 @@
     annulerModificationPhrase();
     statutPhrases('');
     erreurPhrases('');
+    parId('confirmation-reinit-phrases').hidden = true;
   });
 
   basculerVue.addEventListener('click', () => changerVue(ecranComplet.hidden));

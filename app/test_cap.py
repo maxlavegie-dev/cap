@@ -4465,6 +4465,14 @@ TESTS_JS = r"""
       attendre(phrasesModifiablesEtat.obtenir().rubriques.liste_courses.phrases
         .find(p => p.texte === 'mes courses').retiree_le !== null, 'phrase retirée marquée datée, pas effacée');
       ui.parId('reinitialiser-rubrique-phrases').click();
+      attendre(!ui.parId('confirmation-reinit-phrases').hidden, 'confirmation affichée avant réinitialisation');
+      ui.parId('annuler-reinit-phrases').click();
+      attendre(ui.parId('confirmation-reinit-phrases').hidden, 'confirmation refermée après Annuler');
+      attendre(phrasesModifiablesEtat.obtenir().rubriques.liste_courses.phrases
+        .find(p => p.texte === 'mes courses').retiree_le !== null, 'Annuler ne restaure rien, phrase toujours retirée');
+      ui.parId('reinitialiser-rubrique-phrases').click();
+      ui.parId('confirmer-reinit-phrases').click();
+      attendre(ui.parId('confirmation-reinit-phrases').hidden, 'confirmation refermée après Confirmer');
       attendreEgal(ui.parId('statut-phrases').textContent, 'Phrases d’origine restaurées.', 'message après réinitialisation');
       attendreEgal(
         Array.from(ui.parId('liste-phrases-actives').querySelectorAll('li')).map(li => li.firstChild.textContent.trim()),
