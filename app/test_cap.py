@@ -3194,6 +3194,19 @@ TESTS_JS = r"""
     attendreEgal(commandesAnnuaire.detecter(''), null, 'texte vide : rien');
   });
 
+  test('Commandes annuaire : variantes de phrases d’origine (fiche, appel, mail)', () => {
+    attendreEgal(commandesAnnuaire.detecter('ouvre la fiche de Milo FICTIF'),
+      { action: 'fiche', nom: 'Milo FICTIF' }, 'ouvre la fiche de');
+    attendreEgal(commandesAnnuaire.detecter('téléphone à Milo FICTIF'),
+      { action: 'appel', nom: 'Milo FICTIF' }, 'téléphone à');
+    attendreEgal(commandesAnnuaire.detecter('passe un coup de fil à Milo FICTIF'),
+      { action: 'appel', nom: 'Milo FICTIF' }, 'passe un coup de fil à');
+    attendreEgal(commandesAnnuaire.detecter('envoie un mail à Milo FICTIF, dis-lui bonjour'),
+      { action: 'mail', nom: 'Milo FICTIF', message: 'dis-lui bonjour' }, 'envoie un mail à');
+    attendreEgal(commandesAnnuaire.detecter('écris à Milo FICTIF, dis-lui bonjour'),
+      { action: 'mail', nom: 'Milo FICTIF', message: 'dis-lui bonjour' }, 'écris à');
+  });
+
   test('Commandes annuaire : résolution via l’annuaire, 0/1/plusieurs correspondances', () => {
     annuaire.creerContact({ prenom: 'Milo', nom: 'FICTIF', telephone: '0600000010', mail: 'milo.fictif@exemple.test' });
     annuaire.creerContact({ prenom: 'Milovan', nom: 'FICTIF', telephone: '0600000011' });

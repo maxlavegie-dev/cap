@@ -42,10 +42,19 @@ const phrasesModifiables = (() => {
     },
     fiche_annuaire: {
       type: 'commande', libelle: 'Annuaire : montrer la fiche',
-      phrases: ['montre-moi la fiche de', 'montre-moi la fiche d', 'affiche la fiche de', 'affiche la fiche d']
+      phrases: [
+        'montre-moi la fiche de', 'montre-moi la fiche d', 'affiche la fiche de', 'affiche la fiche d',
+        'ouvre la fiche de', 'ouvre la fiche d', 'montre la fiche de', 'montre la fiche d'
+      ]
     },
-    appel_annuaire: { type: 'commande', libelle: 'Annuaire : appeler', phrases: ['appelle'] },
-    mail_annuaire: { type: 'commande', libelle: 'Annuaire : mail à', phrases: ['mail à', 'mail a'] },
+    appel_annuaire: {
+      type: 'commande', libelle: 'Annuaire : appeler',
+      phrases: ['appelle', 'appel', 'téléphone à', 'telephone a', 'passe un coup de fil à', 'passe-moi un coup de fil à']
+    },
+    mail_annuaire: {
+      type: 'commande', libelle: 'Annuaire : mail à',
+      phrases: ['mail à', 'mail a', 'envoie un mail à', 'envoie un e-mail à', 'écris à', 'ecris a', 'écris un mail à']
+    },
     action_lire: { type: 'action', libelle: 'Action : lire', phrases: ['lis-moi'] },
     action_retirer: { type: 'action', libelle: 'Action : retirer', phrases: ['retire'] },
     action_cocher: { type: 'action', libelle: 'Action : cocher', phrases: ['coche'] },
