@@ -4425,6 +4425,58 @@ TESTS_JS = r"""
     }
   });
 
+  await testAsync('Mes phrases : ouvrir, ajouter, modifier, retirer et revenir aux phrases d’origine', async c => {
+    const ui = preparerInterface(c);
+    localStorage.removeItem('cap_phrases_modifiables');
+    try {
+      ui.parId('ouvrir-reglages-phrases').click();
+      const fenetre = ui.parId('reglages-phrases');
+      attendre(fenetre.open, 'fenêtre ouverte');
+      attendre(!ui.parId('liste-rubriques-phrases-vue').hidden, 'liste des rubriques visible');
+      const boutons = Array.from(ui.parId('liste-rubriques-commande').querySelectorAll('button'));
+      const boutonCourses = boutons.find(b => b.textContent === 'Liste de courses');
+      attendre(Boolean(boutonCourses), 'rubrique Liste de courses présente');
+      boutonCourses.click();
+      attendre(!ui.parId('detail-rubrique-phrases').hidden, 'détail de la rubrique visible');
+      attendreEgal(ui.parId('titre-rubrique-phrases').textContent, 'Liste de courses', 'titre de la rubrique');
+      attendreEgal(
+        Array.from(ui.parId('liste-phrases-actives').querySelectorAll('li')).map(li => li.firstChild.textContent.trim()),
+        ['liste', 'listes'], 'phrases d’origine affichées');
+      ui.parId('saisie-phrase').value = 'courses';
+      ui.parId('formulaire-phrase').requestSubmit();
+      attendreEgal(ui.parId('statut-phrases').textContent, 'Phrase ajoutée.', 'message après ajout');
+      attendre(phrasesModifiablesEtat.obtenir().rubriques.liste_courses.phrases
+        .some(p => p.texte === 'courses' && p.retiree_le === null), 'nouvelle phrase gardée dans l’état');
+      const ligneCourses = Array.from(ui.parId('liste-phrases-actives').querySelectorAll('li'))
+        .find(li => li.firstChild.textContent.trim() === 'courses');
+      ligneCourses.querySelector('button').click();
+      attendreEgal([ui.parId('saisie-phrase').value, ui.parId('bouton-phrase-valider').textContent],
+        ['courses', 'Enregistrer'], 'formulaire prérempli pour modifier');
+      ui.parId('saisie-phrase').value = 'mes courses';
+      ui.parId('formulaire-phrase').requestSubmit();
+      attendreEgal(ui.parId('statut-phrases').textContent, 'Phrase modifiée.', 'message après modification');
+      const etatApresModif = phrasesModifiablesEtat.obtenir().rubriques.liste_courses.phrases;
+      attendre(etatApresModif.some(p => p.texte === 'courses' && p.retiree_le !== null), 'ancienne phrase marquée retirée, jamais effacée');
+      attendre(etatApresModif.some(p => p.texte === 'mes courses' && p.retiree_le === null), 'nouvelle phrase active');
+      const ligneMesCourses = Array.from(ui.parId('liste-phrases-actives').querySelectorAll('li'))
+        .find(li => li.firstChild.textContent.trim() === 'mes courses');
+      ligneMesCourses.querySelectorAll('button')[1].click();
+      attendreEgal(ui.parId('statut-phrases').textContent, 'Phrase retirée : « mes courses ».', 'message après retrait');
+      attendre(phrasesModifiablesEtat.obtenir().rubriques.liste_courses.phrases
+        .find(p => p.texte === 'mes courses').retiree_le !== null, 'phrase retirée marquée datée, pas effacée');
+      ui.parId('reinitialiser-rubrique-phrases').click();
+      attendreEgal(ui.parId('statut-phrases').textContent, 'Phrases d’origine restaurées.', 'message après réinitialisation');
+      attendreEgal(
+        Array.from(ui.parId('liste-phrases-actives').querySelectorAll('li')).map(li => li.firstChild.textContent.trim()),
+        ['liste', 'listes'], 'retour aux phrases d’origine');
+      ui.parId('retour-liste-phrases').click();
+      attendre(!ui.parId('liste-rubriques-phrases-vue').hidden && ui.parId('detail-rubrique-phrases').hidden, 'retour à la liste des rubriques');
+      fenetre.close();
+    } finally {
+      localStorage.removeItem('cap_phrases_modifiables');
+    }
+  });
+
   test('Voix : silence par défaut, puis Cap dit ce qu’il a fait en français', () => {
     const dits = [];
     const vraiConstructeur = window.SpeechSynthesisUtterance;

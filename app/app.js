@@ -1861,6 +1861,184 @@
     parId('texte-fiche-ia').value = '';
   });
 
+  // ---------- Mes phrases (réglages des phrases vocales, module phrases_modifiables.js) ----------
+
+  const reglagesPhrases = parId('reglages-phrases');
+  fermetureFenetres.installer(reglagesPhrases);
+  let rubriqueCourantePhrases = null;
+  let modifPhraseCourante = null;
+  let champVocalPhrase = false;
+
+  function etatPhrases() { return phrasesModifiablesEtat.obtenir(); }
+
+  function statutPhrases(message) {
+    const zone = parId('statut-phrases');
+    zone.textContent = message;
+    zone.hidden = !message;
+  }
+
+  function erreurPhrases(message) {
+    const zone = parId('erreur-phrases');
+    zone.textContent = message;
+    zone.hidden = !message;
+  }
+
+  function ligneRubriquePhrases(id, rubrique) {
+    const li = element('li');
+    const bouton = element('button', '', rubrique.libelle);
+    bouton.type = 'button';
+    bouton.addEventListener('click', () => ouvrirRubriquePhrases(id));
+    li.append(bouton);
+    return li;
+  }
+
+  function renduListeRubriquesPhrases() {
+    const rubriques = Object.entries(etatPhrases().rubriques);
+    parId('liste-rubriques-commande').replaceChildren(
+      ...rubriques.filter(([, r]) => r.type === 'commande').map(([id, r]) => ligneRubriquePhrases(id, r)));
+    parId('liste-rubriques-action').replaceChildren(
+      ...rubriques.filter(([, r]) => r.type === 'action').map(([id, r]) => ligneRubriquePhrases(id, r)));
+  }
+
+  function ligneActivePhrase(texte) {
+    const li = element('li');
+    li.append(document.createTextNode(`${texte} `));
+    const modifier = element('button', '', 'Modifier');
+    modifier.type = 'button';
+    modifier.addEventListener('click', () => demarrerModificationPhrase(texte));
+    const retirer = element('button', '', 'Retirer');
+    retirer.type = 'button';
+    retirer.addEventListener('click', () => retirerPhraseEcran(texte));
+    li.append(modifier, retirer);
+    return li;
+  }
+
+  function renduDetailPhrases() {
+    const rubrique = etatPhrases().rubriques[rubriqueCourantePhrases];
+    if (!rubrique) return;
+    parId('titre-rubrique-phrases').textContent = rubrique.libelle;
+    const actives = rubrique.phrases.filter(entree => entree.retiree_le === null).map(entree => entree.texte);
+    parId('liste-phrases-actives').replaceChildren(...actives.map(ligneActivePhrase));
+  }
+
+  function annulerModificationPhrase() {
+    modifPhraseCourante = null;
+    parId('saisie-phrase').value = '';
+    parId('bouton-phrase-valider').textContent = 'Ajouter';
+    parId('annuler-modif-phrase').hidden = true;
+  }
+
+  function demarrerModificationPhrase(texte) {
+    modifPhraseCourante = texte;
+    parId('saisie-phrase').value = texte;
+    parId('bouton-phrase-valider').textContent = 'Enregistrer';
+    parId('annuler-modif-phrase').hidden = false;
+    erreurPhrases('');
+    parId('saisie-phrase').focus({ preventScroll: true });
+  }
+
+  function retirerPhraseEcran(texte) {
+    const resultat = phrasesModifiables.retirerPhrase(etatPhrases(), rubriqueCourantePhrases, texte);
+    if (!resultat.ok) { erreurPhrases(resultat.erreur); return; }
+    phrasesModifiablesEtat.enregistrer(resultat.etat);
+    erreurPhrases('');
+    if (modifPhraseCourante === texte) annulerModificationPhrase();
+    renduDetailPhrases();
+    statutPhrases(`Phrase retirée : « ${texte} ».`);
+  }
+
+  parId('formulaire-phrase').addEventListener('submit', event => {
+    event.preventDefault();
+    const valeur = parId('saisie-phrase').value;
+    const resultat = modifPhraseCourante
+      ? phrasesModifiables.modifierPhrase(etatPhrases(), rubriqueCourantePhrases, modifPhraseCourante, valeur)
+      : phrasesModifiables.ajouterPhrase(etatPhrases(), rubriqueCourantePhrases, valeur);
+    if (!resultat.ok) { erreurPhrases(resultat.erreur); return; }
+    phrasesModifiablesEtat.enregistrer(resultat.etat);
+    erreurPhrases('');
+    statutPhrases(modifPhraseCourante ? 'Phrase modifiée.' : 'Phrase ajoutée.');
+    annulerModificationPhrase();
+    renduDetailPhrases();
+  });
+
+  parId('annuler-modif-phrase').addEventListener('click', () => {
+    annulerModificationPhrase();
+    erreurPhrases('');
+  });
+
+  parId('reinitialiser-rubrique-phrases').addEventListener('click', () => {
+    const resultat = phrasesModifiables.reinitialiser(etatPhrases(), rubriqueCourantePhrases);
+    if (!resultat.ok) { erreurPhrases(resultat.erreur); return; }
+    phrasesModifiablesEtat.enregistrer(resultat.etat);
+    erreurPhrases('');
+    annulerModificationPhrase();
+    renduDetailPhrases();
+    statutPhrases(resultat.ignorees && resultat.ignorees.length
+      ? `Phrases d’origine restaurées (sauf : ${resultat.ignorees.join(', ')}, déjà utilisées ailleurs).`
+      : 'Phrases d’origine restaurées.');
+  });
+
+  function ouvrirRubriquePhrases(id) {
+    rubriqueCourantePhrases = id;
+    annulerModificationPhrase();
+    statutPhrases('');
+    erreurPhrases('');
+    renduDetailPhrases();
+    parId('liste-rubriques-phrases-vue').hidden = true;
+    parId('detail-rubrique-phrases').hidden = false;
+    parId('saisie-phrase').focus({ preventScroll: true });
+  }
+
+  parId('retour-liste-phrases').addEventListener('click', () => {
+    parId('detail-rubrique-phrases').hidden = true;
+    parId('liste-rubriques-phrases-vue').hidden = false;
+    parId('liste-rubriques-commande').querySelector('button')?.focus({ preventScroll: true });
+  });
+
+  parId('ouvrir-reglages-phrases').addEventListener('click', event => {
+    parId('liste-rubriques-phrases-vue').hidden = false;
+    parId('detail-rubrique-phrases').hidden = true;
+    renduListeRubriquesPhrases();
+    for (const bouton of reglagesPhrases.querySelectorAll('.micro-champ')) bouton.hidden = !dictee.disponible();
+    ouvrir(reglagesPhrases, parId('titre-reglages-phrases'), event.currentTarget);
+  });
+
+  parId('reglages-phrases').querySelector('.micro-champ').addEventListener('click', event => {
+    const bouton = event.currentTarget;
+    if (!dictee.disponible()) return;
+    if (dictee.enCours() && champVocalPhrase) {
+      dictee.arreter();
+      return;
+    }
+    champVocalPhrase = true;
+    bouton.setAttribute('aria-pressed', 'true');
+    statutPhrases('Je t’écoute…');
+    let recu = false;
+    dictee.demarrer({
+      surProvisoire(texteRecu) {
+        if (!recu) statutPhrases(`J’entends : « ${texteRecu.trim()} »`);
+      },
+      surFinal(texteRecu) {
+        if (recu) return;
+        recu = true;
+        parId('saisie-phrase').value = texteRecu.trim();
+      },
+      surErreur() {},
+      surFin() {
+        champVocalPhrase = false;
+        bouton.setAttribute('aria-pressed', 'false');
+        statutPhrases(recu ? '' : 'Je n’ai rien entendu. Réessaie ou écris directement.');
+      }
+    });
+  });
+
+  reglagesPhrases.addEventListener('close', () => {
+    rubriqueCourantePhrases = null;
+    annulerModificationPhrase();
+    statutPhrases('');
+    erreurPhrases('');
+  });
+
   basculerVue.addEventListener('click', () => changerVue(ecranComplet.hidden));
   let debutGlissement = null;
   const surface = document.querySelector('.ecran');

@@ -65,6 +65,7 @@
       <section id="zone-cerveau" aria-label="Cerveau de Cap" data-vues="tuiles tout">
         <p id="texte-cerveau"></p>
         <button id="ouvrir-reglages-ia" type="button" aria-haspopup="dialog" aria-controls="reglages-ia">Réglages du cerveau</button>
+        <button id="ouvrir-reglages-phrases" type="button" aria-haspopup="dialog" aria-controls="reglages-phrases">Mes phrases</button>
       </section>
       <section id="rendez-vous" aria-labelledby="titre-rendez-vous" data-vues="tout rendez-vous" hidden>
         <h2 id="titre-rendez-vous">Prochains rendez-vous</h2>
@@ -468,6 +469,33 @@
     <h3>Historique de l’IA</h3>
     <ol id="liste-journal-ia"></ol>
     <button id="effacer-journal-ia" type="button">Effacer l’historique de l’IA</button>
+  </dialog>
+  <dialog id="reglages-phrases" aria-labelledby="titre-reglages-phrases">
+    <h2 id="titre-reglages-phrases" tabindex="-1">Mes phrases</h2>
+    <section id="liste-rubriques-phrases-vue">
+      <p>Touche une fonction pour voir ses phrases.</p>
+      <h3>Fonctions</h3>
+      <ul id="liste-rubriques-commande"></ul>
+      <h3>Mots d’action</h3>
+      <ul id="liste-rubriques-action"></ul>
+    </section>
+    <section id="detail-rubrique-phrases" hidden>
+      <button id="retour-liste-phrases" type="button">‹ Mes phrases</button>
+      <h3 id="titre-rubrique-phrases"></h3>
+      <p id="statut-phrases" role="status" aria-live="polite" hidden></p>
+      <p id="erreur-phrases" class="erreur" role="alert" hidden></p>
+      <ul id="liste-phrases-actives"></ul>
+      <form id="formulaire-phrase">
+        <label for="saisie-phrase">Nouvelle phrase</label>
+        <div class="champ-avec-micro">
+          <input id="saisie-phrase" type="text" autocomplete="off" spellcheck="false">
+          <button class="micro-champ" type="button" data-champ="phrase" aria-label="Dicter la phrase" hidden>🎤</button>
+        </div>
+        <button id="bouton-phrase-valider" type="submit">Ajouter</button>
+        <button id="annuler-modif-phrase" type="button" hidden>Annuler la modification</button>
+      </form>
+      <button id="reinitialiser-rubrique-phrases" type="button">Revenir aux phrases d’origine</button>
+    </section>
   </dialog>
   <dialog id="mode-trier" class="fenetre-tri" aria-labelledby="titre-mode-trier">
     <div class="contenu-tri"></div>
