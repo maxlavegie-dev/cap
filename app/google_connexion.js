@@ -20,21 +20,6 @@ const googleConnexion = (() => {
     try { return espace.getItem(cle); } catch (erreur) { return null; }
   }
 
-  // Sauvegarde de secours (étape C.3, 05/11/2026) : sur un vrai téléphone, la coque Android peut
-  // être tuée pendant que Google demande la connexion dans Chrome ; si ça arrive juste après avoir
-  // écrit le code de sécurité, l'écriture dans localStorage/sessionStorage peut ne pas avoir eu le
-  // temps d'être sauvegardée sur le disque. Le cookie est une troisième sauvegarde indépendante.
-  function lireEtatCookie() {
-    const trouve = document.cookie.split('; ').find(morceau => morceau.startsWith(cleEtat + '='));
-    return trouve ? decodeURIComponent(trouve.slice(cleEtat.length + 1)) : null;
-  }
-  function ecrireEtatCookie(etat) {
-    document.cookie = cleEtat + '=' + encodeURIComponent(etat) + '; path=/; max-age=600; SameSite=Lax; Secure';
-  }
-  function effacerEtatCookie() {
-    document.cookie = cleEtat + '=; path=/; max-age=0; SameSite=Lax; Secure';
-  }
-
   function deconnecter() {
     localStorage.removeItem(cleJeton);
     memoriserConnexion();
@@ -43,14 +28,13 @@ const googleConnexion = (() => {
   const retour = new URLSearchParams(location.hash.slice(1));
   if (retour.has('access_token') || retour.has('error')) {
     const etat = retour.get('state');
-    const valide = Boolean(etat) && (etat === lireEtat(sessionStorage) || etat === lireEtat(localStorage) || etat === lireEtatCookie());
+    const valide = Boolean(etat) && (etat === lireEtat(sessionStorage) || etat === lireEtat(localStorage));
     const silencieux = Boolean(etat) && etat === localStorage.getItem(cleEtatSilencieux);
     localStorage.removeItem(cleEtatSilencieux);
     history.replaceState(null, '', location.pathname + location.search);
     for (const espace of [sessionStorage, localStorage]) {
       try { espace.removeItem(cleEtat); } catch (erreur) {}
     }
-    effacerEtatCookie();
     try {
       if (!valide) throw new Error('Connexion Google refusée : la vérification de sécurité a échoué. Réessaie avec le bouton.');
       if (retour.has('error')) {
@@ -115,7 +99,6 @@ const googleConnexion = (() => {
     const etat = Array.from(octets, octet => octet.toString(16).padStart(2, '0')).join('');
     localStorage.setItem(cleEtat, etat);
     try { sessionStorage.setItem(cleEtat, etat); } catch (erreur) {}
-    try { ecrireEtatCookie(etat); } catch (erreur) {}
     const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     url.search = new URLSearchParams({
       client_id: REGLAGES_GOOGLE.id_client,
