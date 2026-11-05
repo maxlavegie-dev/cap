@@ -64,11 +64,15 @@ const scanDepot = (() => {
   // dossier créé à la main par Max et choisi une fois avec le sélecteur Google (droit drive.file,
   // aucun autre). Pas encore choisi : rien n'est créé nulle part, le scan reste sur le téléphone.
   async function dossierAClasser() {
-    const parent = googlePicker.dossierDocumentsPersonnels();
+    // Dans la coque, le dossier est choisi dans Chrome puis relu dans le Drive (voir google_picker.js).
+    const parent = googlePicker.dossierDocumentsPersonnels()
+      || await googlePicker.retrouverDepuisDrive('documents_personnels');
     if (!parent) {
       throw new Error(`Choisis d’abord le dossier « ${REGLAGES_GOOGLE.dossier_documents_personnels} » `
-        + 'dans « Réglages du Drive ». Ton scan reste sur le téléphone.');
+        + 'dans « Réglages du Drive », avec Cap ouvert dans Chrome. Ton scan reste sur le téléphone.');
     }
+    // Dossier choisi sur cet appareil mais pas encore rangé dans le Drive : on le range au passage.
+    try { await googlePicker.rangerDansDrive('documents_personnels'); } catch (erreur) {}
     const gardes = lireDossiers();
     if (gardes.parent === parent.id && gardes.a_classer && await dossierValide(gardes.a_classer)) return gardes.a_classer;
     const aClasser = await trouverOuCreerDossier(REGLAGES_GOOGLE.dossier_a_classer, parent.id);

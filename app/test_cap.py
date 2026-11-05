@@ -1207,13 +1207,15 @@ TESTS_JS = r"""
           && requete.url.origin === 'https://www.googleapis.com'
           && requete.url.pathname === `/calendar/v3/calendars/${encodeURIComponent(contexte.agendaModifiable)}/events/rdv-fictif`
           && contexte.agendaModifiable !== 'primary';
-        // Seule autre modification permise : ranger l'identifiant de l'agenda en information invisible
-        // du tableau (appProperties), sans toucher au contenu, au nom ni à rien d'autre du fichier.
+        // Seule autre modification permise : ranger l'identifiant de l'agenda ou du dossier des scans
+        // en information invisible du tableau (appProperties), une seule clé connue à la fois, sans
+        // toucher au contenu, au nom ni à rien d'autre du fichier.
+        const clesRangees = ['["cap_agenda_id"]', '["cap_dossier_documents_personnels"]'];
         const patchIdentifiantAgenda = requete.methode === 'PATCH'
           && requete.url.origin === 'https://www.googleapis.com'
           && requete.url.pathname.startsWith('/drive/v3/files/')
           && JSON.stringify(Object.keys(requete.corps || {})) === '["appProperties"]'
-          && JSON.stringify(Object.keys(requete.corps.appProperties || {})) === '["cap_agenda_id"]';
+          && clesRangees.includes(JSON.stringify(Object.keys(requete.corps.appProperties || {})));
         attendre(['GET', 'POST'].includes(requete.methode) || patchAgendaFictif || patchIdentifiantAgenda,
           'opération destructive interdite');
         attendre(!/:clear(?:\?|$)|:batchClear(?:\?|$)/.test(requete.url.href), 'effacement interdit');
@@ -1612,6 +1614,36 @@ TESTS_JS = r"""
     attendreEgal(c.requetes.filter(r => r.methode !== 'GET').length, 0, 'aucune création ni écriture');
     attendreEgal(await agenda.trouverOuCreer(), 'agenda-deja-cree-fictif', 'deuxième ouverture');
     attendreEgal(c.requetes.filter(r => r.url.pathname.startsWith('/drive/')).length, 1, 'Drive relu une seule fois');
+  });
+
+  await testAsync('Dossier des scans : choisi dans Chrome, rangé dans le Drive, retrouvé par la coque, oublié partout', async c => {
+    const sélecteur = espace => objetIsole(SOURCE_GOOGLE_PICKER, 'googlePicker', {
+      localStorage: espace, googleConnexion: c.googleConnexion, googleSheets: c.tableauAgenda,
+      REGLAGES_GOOGLE, clePicker: { presente: () => true, lire: () => 'cle-fictive' }, window: c.window
+    });
+    // Chrome : Max a choisi le dossier avec la fenêtre de Google.
+    const chrome = sélecteur(c.localStorage);
+    chrome.enregistrerDossier('dossier-docs-fictif', 'Documents Personnels', 'documents_personnels');
+    await chrome.rangerDansDrive('documents_personnels');
+    attendreEgal(c.proprietesDrive.cap_dossier_documents_personnels, 'dossier-docs-fictif', 'identifiant rangé dans le Drive');
+    await chrome.rangerDansDrive('documents_personnels');
+    attendreEgal(c.requetes.filter(r => r.methode === 'PATCH').length, 1, 'rangé une seule fois');
+    attendreEgal(chrome.dossierAppCap(), null, 'App Cap touché par le choix des scans');
+    // Coque : mémoire séparée, rien de choisi sur l'appareil.
+    const memoireCoque = espaceMemoire();
+    const coque = sélecteur(memoireCoque);
+    attendreEgal(coque.dossierDocumentsPersonnels(), null, 'choix présent avant relecture');
+    attendreEgal((await coque.retrouverDepuisDrive('documents_personnels')).id, 'dossier-docs-fictif', 'dossier retrouvé par la coque');
+    attendreEgal(coque.dossierDocumentsPersonnels().nom, 'Documents Personnels', 'nom affiché');
+    const lectures = c.requetes.length;
+    await coque.retrouverDepuisDrive('documents_personnels');
+    attendreEgal(c.requetes.length, lectures, 'Drive relu alors que le dossier est déjà connu');
+    // Oubli dans Chrome : effacé ici et dans le Drive ; un nouvel appareil ne le retrouve plus.
+    await chrome.oublierDossier('documents_personnels');
+    attendreEgal(chrome.dossierDocumentsPersonnels(), null, 'oubli sur l’appareil');
+    attendreEgal(c.proprietesDrive.cap_dossier_documents_personnels, null, 'oubli dans le Drive');
+    attendreEgal(await sélecteur(espaceMemoire()).retrouverDepuisDrive('documents_personnels'), null, 'dossier oublié retrouvé');
+    attendre(c.requetes.every(r => r.url.pathname === '/drive/v3/files/tableau-agenda-fictif'), 'autre fichier du Drive touché');
   });
 
   await testAsync('Google Agenda : Drive injoignable, aucun second agenda créé dans le doute', async c => {

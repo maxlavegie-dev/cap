@@ -338,7 +338,7 @@ TESTS_JS = r"""
 
   // ---------- Dépôt (réseau simulé) ----------
   const sourceDepot = await (await fetch('/src/scan_depot.js')).text();
-  function monterDepot({ connecte = true, enLigne = true, reponses, documents = { id: 'docs', nom: 'Documents Personnels' } }) {
+  function monterDepot({ connecte = true, enLigne = true, reponses, documents = { id: 'docs', nom: 'Documents Personnels' }, depuisDrive = null }) {
     const requetes = [];
     const memoire = {};
     const faux = {
@@ -353,10 +353,15 @@ TESTS_JS = r"""
       }
     };
     const stockageFaux = { getItem: c => (c in memoire ? memoire[c] : null), setItem: (c, v) => { memoire[c] = String(v); } };
-    const piqueur = { dossierDocumentsPersonnels: () => documents };
+    const rangements = [];
+    const piqueur = {
+      dossierDocumentsPersonnels: () => documents,
+      retrouverDepuisDrive: async role => { rangements.push('relu:' + role); return depuisDrive; },
+      rangerDansDrive: async role => { rangements.push('range:' + role); }
+    };
     const depot = new Function('googleConnexion', 'REGLAGES_GOOGLE', 'localStorage', 'navigator', 'googlePicker', sourceDepot + '\nreturn scanDepot;')(
       faux, REGLAGES_GOOGLE, stockageFaux, { onLine: enLigne }, piqueur);
-    return { depot, requetes, memoire };
+    return { depot, requetes, memoire, rangements };
   }
   const reponsesDrive = (etat = {}) => async r => {
     if (r.methode === 'GET' && r.chemin === '/drive/v3/files' && r.q.includes('folder')) {
@@ -412,6 +417,16 @@ TESTS_JS = r"""
     attendre(res.erreur.includes('Documents Personnels') && res.erreur.includes('Réglages du Drive'), 'message pour Max');
     egal(m.requetes.length, 0, 'aucune requête ni création sans dossier choisi');
     attendre((await f.enAttente())[0].pdf.size > 0, 'PDF perdu');
+  });
+
+  await test('dépôt : coque sans choix sur l’appareil = dossier relu dans le Drive, scan déposé dedans', async () => {
+    const etat = {};
+    const m = monterDepot({ reponses: reponsesDrive(etat), documents: null, depuisDrive: { id: 'docs', nom: 'Documents Personnels' } });
+    const f = await filePrete(['SCAN-i.pdf']);
+    const res = await m.depot.deposerEnAttente(f);
+    egal([res.deposes, res.restants, res.erreur], [1, 0, ''], 'déposé grâce au Drive');
+    egal(etat.crees[0].parents, ['docs'], '00_A_CLASSER créé dans le dossier relu');
+    attendre(m.rangements.includes('relu:documents_personnels'), 'Drive non relu');
   });
 
   await test('dépôt : ancien dossier FICTIF gardé en mémoire = jamais réutilisé, 00_A_CLASSER créé dans Documents Personnels', async () => {

@@ -95,9 +95,57 @@ const googlePicker = (() => {
     });
   }
 
-  function oublierDossier(role = 'app_cap') {
-    localStorage.removeItem(cleDe(role));
+  // Secours (05/11/2026) : la fenêtre du sélecteur ne s'ouvre pas dans la coque Android (elle n'a
+  // pas la session Google, restée dans Chrome). Max choisit donc « Documents Personnels » dans
+  // Chrome ; son identifiant est rangé en information invisible (appProperties) sur le tableau des
+  // tâches, que la coque retrouve avec le même droit drive.file, comme l'agenda (google_agenda.js).
+  const proprietesDrive = Object.freeze({ documents_personnels: 'cap_dossier_documents_personnels' });
+  const nomsParDefaut = Object.freeze({ documents_personnels: 'Documents Personnels' });
+  function cleRangeDrive(role) { return `${cleDe(role)}_drive`; }
+
+  async function adresseTableau() {
+    const tableau = await googleSheets.trouverOuCreer();
+    if (typeof tableau?.id !== 'string' || !tableau.id) throw new Error('Le tableau Google n’est pas encore prêt.');
+    return `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(tableau.id)}`;
   }
 
-  return { dossierAppCap, dossierDocumentsPersonnels, dossierChoisi, enregistrerDossier, oublierDossier, disponible, choisir };
+  async function ecrireDansDrive(role, valeur) {
+    await googleConnexion.appeler(`${await adresseTableau()}?fields=id`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ appProperties: { [proprietesDrive[role]]: valeur } })
+    });
+  }
+
+  // Range le dossier choisi sur cet appareil dans le Drive (une seule fois par dossier).
+  async function rangerDansDrive(role) {
+    const dossier = dossierChoisi(role);
+    if (!Object.hasOwn(proprietesDrive, role) || !dossier) return;
+    if (localStorage.getItem(cleRangeDrive(role)) === dossier.id) return;
+    await ecrireDansDrive(role, dossier.id);
+    localStorage.setItem(cleRangeDrive(role), dossier.id);
+  }
+
+  // Sur un appareil où le dossier n'a pas été choisi (la coque) : le relit dans le Drive.
+  async function retrouverDepuisDrive(role) {
+    const deja = dossierChoisi(role);
+    if (deja || !Object.hasOwn(proprietesDrive, role)) return deja;
+    const reponse = await googleConnexion.appeler(`${await adresseTableau()}?fields=appProperties`);
+    const id = (await reponse.json()).appProperties?.[proprietesDrive[role]];
+    if (typeof id !== 'string' || !id) return null;
+    enregistrerDossier(id, nomsParDefaut[role], role);
+    localStorage.setItem(cleRangeDrive(role), id);
+    return dossierChoisi(role);
+  }
+
+  // Oublie le dossier sur cet appareil, et aussi dans le Drive s'il y est rangé (sinon un autre
+  // appareil le retrouverait). Ne touche à aucun fichier ni dossier de Max.
+  async function oublierDossier(role = 'app_cap') {
+    localStorage.removeItem(cleDe(role));
+    localStorage.removeItem(cleRangeDrive(role));
+    if (Object.hasOwn(proprietesDrive, role)) await ecrireDansDrive(role, null);
+  }
+
+  return { dossierAppCap, dossierDocumentsPersonnels, dossierChoisi, enregistrerDossier, oublierDossier,
+    rangerDansDrive, retrouverDepuisDrive, disponible, choisir };
 })();

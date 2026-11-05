@@ -1784,7 +1784,10 @@
     const documents = googlePicker.dossierDocumentsPersonnels();
     parId('etat-dossier-documents').textContent = documents
       ? `Scans déposés dans « ${documents.nom || documents.id} › ${REGLAGES_GOOGLE.dossier_a_classer} ».`
-      : `Scans : aucun dossier choisi. Choisis « ${REGLAGES_GOOGLE.dossier_documents_personnels} ».`;
+      : window.PontMicroAndroid
+        // Dans la coque Android, la fenêtre de Google ne s'ouvre pas : le choix se fait dans Chrome.
+        ? `Scans : aucun dossier choisi. Choisis « ${REGLAGES_GOOGLE.dossier_documents_personnels} » dans Cap ouvert avec Chrome.`
+        : `Scans : aucun dossier choisi. Choisis « ${REGLAGES_GOOGLE.dossier_documents_personnels} ».`;
     parId('choisir-dossier-documents').disabled = !cle;
     parId('oublier-dossier-documents').hidden = !documents;
   }
@@ -1792,6 +1795,12 @@
   parId('ouvrir-reglages-drive').addEventListener('click', event => {
     ouvrir(reglagesDrive, parId('titre-reglages-drive'), event.currentTarget);
     afficherDrive();
+    // Coque Android : le dossier des scans, choisi dans Chrome, est relu dans le Drive.
+    if (!googlePicker.dossierDocumentsPersonnels() && googleConnexion.connecte()) {
+      googlePicker.retrouverDepuisDrive('documents_personnels')
+        .then(dossier => { if (dossier) afficherDrive(); })
+        .catch(() => {});
+    }
   });
   parId('formulaire-cle-picker').addEventListener('submit', event => {
     event.preventDefault();
@@ -1833,16 +1842,29 @@
     try {
       const dossier = await googlePicker.choisir('documents_personnels');
       erreurReglagesDrive('');
-      if (dossier) annoncer(`Dossier « ${dossier.nom || REGLAGES_GOOGLE.dossier_documents_personnels} » enregistré pour les scans.`, true);
       afficherDrive();
+      if (!dossier) return;
+      // Rangé aussi dans le Drive, pour que la coque Android le retrouve toute seule.
+      try {
+        await googlePicker.rangerDansDrive('documents_personnels');
+        annoncer(`Dossier « ${dossier.nom || REGLAGES_GOOGLE.dossier_documents_personnels} » enregistré pour les scans, `
+          + 'aussi pour l’application Cap du téléphone.', true);
+      } catch (erreur) {
+        erreurReglagesDrive('Dossier choisi ici, mais pas encore rangé dans le Drive : l’application Cap du téléphone '
+          + 'ne le retrouvera pas. Réessaie quand Google répond.');
+      }
     } catch (erreur) {
       erreurReglagesDrive(erreur.message);
     }
   });
-  parId('oublier-dossier-documents').addEventListener('click', () => {
-    googlePicker.oublierDossier('documents_personnels');
-    erreurReglagesDrive('');
-    annoncer('Dossier des scans oublié : choisis-en un à nouveau quand tu veux.', true);
+  parId('oublier-dossier-documents').addEventListener('click', async () => {
+    try {
+      await googlePicker.oublierDossier('documents_personnels');
+      erreurReglagesDrive('');
+      annoncer('Dossier des scans oublié : choisis-en un à nouveau quand tu veux.', true);
+    } catch (erreur) {
+      erreurReglagesDrive('Dossier oublié ici, mais pas dans le Drive : réessaie quand Google répond.');
+    }
     afficherDrive();
   });
 
