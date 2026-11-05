@@ -2619,3 +2619,9 @@ dialog .micro-tri[aria-pressed="true"] {
   margin: 0 0 8px;
   font-size: 1rem;
 }
+
+/* Diagnostic du sélecteur Google (05/11/2026) : une étape par ligne. */
+#diagnostic-picker {
+  white-space: pre-line;
+  font-size: 0.9em;
+}

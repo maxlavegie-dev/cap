@@ -62,13 +62,26 @@ const googlePicker = (() => {
   }
 
   // Ouvre la fenêtre Google : Max choisit "App Cap" une seule fois, son choix est gardé sur le téléphone.
-  async function choisir(role = 'app_cap') {
+  // Diagnostic (05/11/2026) : `noter` reçoit chaque étape franchie, en mots simples, pour l'afficher
+  // à Max ; `surSilence` est appelé si Google ne répond pas du tout. JAMAIS la clé ni le jeton dans
+  // ces textes : seulement des étapes et le type de réponse de Google (vérifié par les tests).
+  async function choisir(role = 'app_cap', { noter = () => {}, surSilence = () => {}, delaiSilence = 20000 } = {}) {
     cleDe(role);
     if (!clePicker.presente()) throw new Error('Le sélecteur Google n’est pas encore réglé : ajoute ta clé dans les réglages.');
+    noter('Clé du sélecteur : présente sur ce téléphone.');
     if (!googleConnexion.connecte()) throw new Error('Connecte-toi à Google avant de choisir un dossier.');
+    noter('Connexion à Google : oui.');
     await chargerScript();
+    noter('Bibliothèque de Google : chargée.');
     await chargerPicker();
+    noter('Sélecteur de Google : chargé.');
     return new Promise((resoudre, rejeter) => {
+      let repondu = false;
+      const minuterie = setTimeout(() => {
+        if (repondu) return;
+        noter(`La fenêtre de Google n’a pas répondu après ${Math.round(delaiSilence / 1000)} secondes.`);
+        surSilence();
+      }, delaiSilence);
       const vue = new google.picker.DocsView(google.picker.ViewId.FOLDERS)
         .setSelectFolderEnabled(true)
         .setIncludeFolders(true)
@@ -79,18 +92,25 @@ const googlePicker = (() => {
         .setDeveloperKey(clePicker.lire())
         .setTitle(titres[role])
         .setCallback(reponse => {
+          repondu = true;
+          noter(`Réponse de Google : « ${String(reponse && reponse.action).slice(0, 40)} ».`);
           if (reponse.action === google.picker.Action.PICKED) {
             const choix = reponse.docs && reponse.docs[0];
             if (choix && choix.id) {
+              clearTimeout(minuterie);
               enregistrerDossier(choix.id, choix.name, role);
               resoudre(dossierChoisi(role));
               return;
             }
           }
-          if (reponse.action === google.picker.Action.CANCEL) { resoudre(null); return; }
-          if (reponse.action !== google.picker.Action.LOADED) rejeter(new Error('Le choix du dossier a échoué.'));
+          if (reponse.action === google.picker.Action.CANCEL) { clearTimeout(minuterie); resoudre(null); return; }
+          if (reponse.action !== google.picker.Action.LOADED) {
+            clearTimeout(minuterie);
+            rejeter(new Error('Le choix du dossier a échoué.'));
+          }
         })
         .build();
+      noter('Fenêtre de Google demandée.');
       selecteur.setVisible(true);
     });
   }

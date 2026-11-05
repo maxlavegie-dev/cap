@@ -1821,15 +1821,49 @@
     annoncer('Clé du sélecteur Google retirée de ce téléphone.', true);
     afficherDrive();
   });
-  parId('choisir-dossier-drive').addEventListener('click', async () => {
-    try {
-      const dossier = await googlePicker.choisir();
-      erreurReglagesDrive('');
-      if (dossier) annoncer('Dossier « App Cap » enregistré.', true);
+  // Diagnostic du sélecteur (05/11/2026) : étapes franchies, affichées dans « Réglages du Drive ».
+  // Jamais la clé ni le jeton (google_picker.js ne les met jamais dans ces textes).
+  function diagnosticPicker(lignes) {
+    const zone = parId('diagnostic-picker');
+    zone.textContent = lignes.length ? `Diagnostic :\n${lignes.join('\n')}` : '';
+    zone.hidden = !lignes.length;
+  }
+
+  // « Réglages du Drive » est une fenêtre modale, toujours au-dessus de tout : la fenêtre de Google
+  // s'ouvrait derrière, invisible. On ferme donc les réglages pendant le choix, puis on les rouvre
+  // (aussi si Google ne répond pas du tout, pour que Max voie le diagnostic).
+  async function choisirDossierDrive(role, apres) {
+    const lignes = [];
+    const rouvrir = () => {
+      if (!reglagesDrive.open) reglagesDrive.showModal();
       afficherDrive();
+      diagnosticPicker(lignes);
+    };
+    const noter = texte => {
+      lignes.push(texte);
+      if (reglagesDrive.open) diagnosticPicker(lignes);
+    };
+    erreurReglagesDrive('');
+    diagnosticPicker([]);
+    try {
+      if (!clePicker.presente() || !googleConnexion.connecte()) {
+        await googlePicker.choisir(role, { noter });
+      }
+      if (reglagesDrive.open) reglagesDrive.close();
+      const dossier = await googlePicker.choisir(role, { noter, surSilence: rouvrir });
+      rouvrir();
+      if (dossier) await apres(dossier);
     } catch (erreur) {
+      noter(`Arrêt : ${erreur.message}`);
+      rouvrir();
       erreurReglagesDrive(erreur.message);
     }
+  }
+
+  parId('choisir-dossier-drive').addEventListener('click', () => {
+    void choisirDossierDrive('app_cap', async () => {
+      annoncer('Dossier « App Cap » enregistré.', true);
+    });
   });
   parId('oublier-dossier-drive').addEventListener('click', () => {
     googlePicker.oublierDossier();
@@ -1838,12 +1872,8 @@
     afficherDrive();
   });
 
-  parId('choisir-dossier-documents').addEventListener('click', async () => {
-    try {
-      const dossier = await googlePicker.choisir('documents_personnels');
-      erreurReglagesDrive('');
-      afficherDrive();
-      if (!dossier) return;
+  parId('choisir-dossier-documents').addEventListener('click', () => {
+    void choisirDossierDrive('documents_personnels', async dossier => {
       // Rangé aussi dans le Drive, pour que la coque Android le retrouve toute seule.
       try {
         await googlePicker.rangerDansDrive('documents_personnels');
@@ -1853,9 +1883,7 @@
         erreurReglagesDrive('Dossier choisi ici, mais pas encore rangé dans le Drive : l’application Cap du téléphone '
           + 'ne le retrouvera pas. Réessaie quand Google répond.');
       }
-    } catch (erreur) {
-      erreurReglagesDrive(erreur.message);
-    }
+    });
   });
   parId('oublier-dossier-documents').addEventListener('click', async () => {
     try {

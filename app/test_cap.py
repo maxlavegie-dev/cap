@@ -1646,6 +1646,61 @@ TESTS_JS = r"""
     attendre(c.requetes.every(r => r.url.pathname === '/drive/v3/files/tableau-agenda-fictif'), 'autre fichier du Drive touché');
   });
 
+  await testAsync('Sélecteur Google : diagnostic étape par étape, jamais la clé ni le jeton, alerte si Google se tait', async c => {
+    const CLE = 'CLE-SECRETE-FICTIVE-123456';
+    const JETON = 'JETON-SECRET-FICTIF-789';
+    function monter({ cle = true, connecte = true, reponses = [] } = {}) {
+      const fenetres = [];
+      const fauxGoogle = { picker: {
+        Action: { PICKED: 'picked', CANCEL: 'cancel', LOADED: 'loaded' },
+        ViewId: { FOLDERS: 'folders' },
+        DocsView: class { setSelectFolderEnabled() { return this; } setIncludeFolders() { return this; } setMimeTypes() { return this; } },
+        PickerBuilder: class {
+          addView() { return this; } setOAuthToken(j) { this.jeton = j; return this; } setDeveloperKey(k) { this.cle = k; return this; }
+          setTitle() { return this; } setCallback(f) { this.rappel = f; return this; }
+          build() { const b = this; return { setVisible: () => { fenetres.push(b); for (const r of reponses) b.rappel(r); } }; }
+        }
+      } };
+      const piqueur = objetIsole(SOURCE_GOOGLE_PICKER, 'googlePicker', {
+        localStorage: espaceMemoire(), googleConnexion: { connecte: () => connecte, jeton: () => JETON },
+        googleSheets: c.tableauAgenda, REGLAGES_GOOGLE, google: fauxGoogle,
+        clePicker: { presente: () => cle, lire: () => CLE },
+        window: { gapi: { load: (nom, options) => options.callback() } }
+      });
+      return { piqueur, fenetres };
+    }
+    const sansSecret = lignes => lignes.every(l => !l.includes(CLE) && !l.includes(JETON) && !l.includes('123456') && !l.includes('789'));
+
+    // Choix réussi : toutes les étapes, puis la réponse de Google.
+    let lignes = [];
+    let m = monter({ reponses: [{ action: 'loaded' }, { action: 'picked', docs: [{ id: 'dossier-fictif', name: 'Documents Personnels' }] }] });
+    const choisi = await m.piqueur.choisir('documents_personnels', { noter: t => lignes.push(t), delaiSilence: 50 });
+    attendreEgal(choisi.id, 'dossier-fictif', 'dossier choisi');
+    attendre(lignes.some(l => l.includes('Clé du sélecteur')) && lignes.some(l => l.includes('Fenêtre de Google demandée'))
+      && lignes.some(l => l.includes('« picked »')), `étapes manquantes : ${lignes.join(' | ')}`);
+    attendre(sansSecret(lignes), 'clé ou jeton dans le diagnostic');
+    attendreEgal([m.fenetres[0].cle, m.fenetres[0].jeton], [CLE, JETON], 'clé et jeton bien donnés à Google seulement');
+    await new Promise(r => setTimeout(r, 80));
+    attendre(!lignes.some(l => l.includes('pas répondu')), 'alerte de silence après une réponse');
+
+    // Google ne répond pas du tout : alerte et réouverture demandée.
+    lignes = [];
+    let silences = 0;
+    m = monter({ reponses: [] });
+    void m.piqueur.choisir('documents_personnels', { noter: t => lignes.push(t), surSilence: () => silences++, delaiSilence: 30 });
+    await new Promise(r => setTimeout(r, 80));
+    attendreEgal(silences, 1, 'réouverture non demandée');
+    attendre(lignes.some(l => l.includes('pas répondu')), 'alerte de silence absente');
+    attendre(sansSecret(lignes), 'clé ou jeton dans le diagnostic');
+
+    // Clé absente : arrêt immédiat, rien d'ouvert.
+    lignes = [];
+    m = monter({ cle: false });
+    await attendreRejet(() => m.piqueur.choisir('documents_personnels', { noter: t => lignes.push(t) }), 'clé');
+    attendreEgal(m.fenetres.length, 0, 'fenêtre ouverte sans clé');
+    attendre(sansSecret(lignes), 'clé ou jeton dans le diagnostic');
+  });
+
   await testAsync('Google Agenda : Drive injoignable, aucun second agenda créé dans le doute', async c => {
     c.tableauAgenda.trouverOuCreer = async () => { throw new Error('Drive injoignable FICTIF'); };
     c.repondre = async r => { throw new Error(`Requête inattendue : ${r.url}`); };
@@ -5191,8 +5246,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v38['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v38")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v39['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v39")
 
 
 def verifier_precache_fichiers_existent():
