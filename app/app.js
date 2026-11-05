@@ -1929,12 +1929,22 @@
     try {
       const lecture = await classement.lire();
       zone.textContent = [...lecture.etats, classement.texteResume(lecture.resume)].join('\n');
+      noterLecture('réussie', lecture.etats);
     } catch (erreur) {
       zone.textContent = '';
       zone.hidden = true;
       erreurReglagesDrive(erreur.message);
+      noterLecture('échouée', String(erreur.message).split('\n'));
     }
   });
+  // Journal Numérisation : une ligne par lecture (états seulement, jamais un nom ni un identifiant).
+  function noterLecture(resultat, etats) {
+    try {
+      journaux.ajouter('numerisation', { action: 'Lecture du classement', resultat, details: etats.join(' ; ') });
+    } catch (erreur) {
+      erreurReglagesDrive(`La ligne du Journal Numérisation n’a pas pu être gardée : ${erreur.message}`);
+    }
+  }
   parId('oublier-dossier-documents').addEventListener('click', async () => {
     try {
       await googlePicker.oublierDossier('documents_personnels');
@@ -2283,7 +2293,10 @@
   window.addEventListener('online', () => {
     void afficherRendezVous();
     void journalActions.envoyer();
+    void journaux.envoyer().catch(() => {});
   });
+  // Lignes des journaux de chantier restées sur le téléphone : nouvel essai au démarrage.
+  if (journaux.enAttente()) setTimeout(() => { void journaux.envoyer().catch(() => {}); }, 3000);
   try {
     scanEcran.initialiser({ annoncer });
   } catch (erreur) {

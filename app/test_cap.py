@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1211,7 +1211,8 @@ TESTS_JS = r"""
         // en information invisible du tableau (appProperties), une seule clé connue à la fois, sans
         // toucher au contenu, au nom ni à rien d'autre du fichier.
         const clesRangees = ['["cap_agenda_id"]', '["cap_dossier_documents_personnels"]',
-          '["cap_fichier_architecture"]', '["cap_fichier_tableur_classement"]'];
+          '["cap_fichier_architecture"]', '["cap_fichier_tableur_classement"]',
+          '["cap_dossier_journaux"]', '["cap_journal_numerisation"]', '["cap_journal_general"]'];
         const patchIdentifiantAgenda = requete.methode === 'PATCH'
           && requete.url.origin === 'https://www.googleapis.com'
           && requete.url.pathname.startsWith('/drive/v3/files/')
@@ -1891,6 +1892,142 @@ TESTS_JS = r"""
     await attendreRejet(() => neuf.piqueur.choisirFichier('tableur_classement'), 'n’est pas un tableur');
     attendreEgal(neuf.piqueur.dossierChoisi('tableur_classement'), null, 'mauvais fichier gardé');
     await attendreRejet(() => neuf.piqueur.choisirFichier('documents_personnels'), 'Fichier inconnu');
+  });
+
+  // ---------- Journaux de chantier (étape 2) : faux Drive, noms inventés ----------
+  function fauxDriveJournaux(c, etat) {
+    etat.fichiers ||= [];
+    etat.lignes ||= {};
+    return async r => {
+      if (r.url.hostname === 'www.googleapis.com' && r.url.pathname === '/drive/v3/files' && r.methode === 'GET') {
+        const q = r.url.searchParams.get('q');
+        const trouve = etat.fichiers.find(f => q.includes(`name='${f.name}'`) && q.includes(`mimeType='${f.mimeType}'`)
+          && q.includes(`'${f.parents[0]}' in parents`));
+        return reponseGoogle({ files: trouve ? [{ id: trouve.id }] : [] });
+      }
+      if (r.url.hostname === 'www.googleapis.com' && r.url.pathname === '/drive/v3/files' && r.methode === 'POST') {
+        const id = `cree-${etat.fichiers.length + 1}`;
+        etat.fichiers.push({ id, ...r.corps });
+        return reponseGoogle({ id });
+      }
+      const ajout = /^\/v4\/spreadsheets\/([^/]+)\/values\/A1:append$/.exec(r.url.pathname);
+      if (r.url.hostname === 'sheets.googleapis.com' && ajout && r.methode === 'POST') {
+        if (etat.panne) return reponseGoogle({ error: { code: 503 } }, 503);
+        attendreEgal([r.url.searchParams.get('valueInputOption'), r.url.searchParams.get('insertDataOption')],
+          ['RAW', 'INSERT_ROWS'], 'ajout en fin de tableur, texte tel quel');
+        (etat.lignes[ajout[1]] ||= []).push(...r.corps.values);
+        return reponseGoogle({});
+      }
+      throw new Error(`Requête inattendue : ${r.methode} ${r.url}`);
+    };
+  }
+  function monterJournaux(c, memoire = c.localStorage, navigateur = c.navigator) {
+    const piqueur = objetIsole(SOURCE_GOOGLE_PICKER, 'googlePicker', {
+      localStorage: memoire, googleConnexion: c.googleConnexion, googleSheets: c.tableauAgenda,
+      REGLAGES_GOOGLE, clePicker: { presente: () => true, lire: () => 'cle-fictive' }, window: c.window
+    });
+    const module = objetIsole(SOURCE_JOURNAUX, 'journaux', {
+      localStorage: memoire, googleConnexion: c.googleConnexion, googlePicker: piqueur, REGLAGES_GOOGLE, navigator: navigateur
+    });
+    return { piqueur, journaux: module };
+  }
+
+  await testAsync('Journaux : dossier « Journaux » et deux Google Sheets créés dans App Cap, noms exacts, une ligne ajoutée', async c => {
+    const etat = {};
+    c.repondre = fauxDriveJournaux(c, etat);
+    const { piqueur, journaux } = monterJournaux(c);
+    piqueur.enregistrerDossier('app-cap-fictif', 'App Cap', 'app_cap');
+    journaux.ajouter('numerisation', { action: 'Lecture du classement', resultat: 'réussie', details: 'Tableur : lu. ; Doc : lu.' });
+    const bilan = await journaux.envoyer();
+    attendreEgal(REGLAGES_GOOGLE.journaux, { numerisation: 'Journal Numérisation', general: 'Journal Général' }, 'noms exacts');
+    attendreEgal(etat.fichiers.map(f => [f.name, f.mimeType, f.parents[0]]), [
+      ['Journaux', 'application/vnd.google-apps.folder', 'app-cap-fictif'],
+      ['Journal Numérisation', 'application/vnd.google-apps.spreadsheet', 'cree-1'],
+      ['Journal Général', 'application/vnd.google-apps.spreadsheet', 'cree-1']
+    ], 'dossier et tableurs créés au bon endroit');
+    const numerisation = etat.lignes['cree-2'];
+    attendreEgal(numerisation[0], ['Date', 'Heure', 'Action', 'Résultat', 'Détails'], 'en-têtes du Journal Numérisation');
+    attendreEgal(numerisation[1].slice(2), ['Lecture du classement', 'réussie', 'Tableur : lu. ; Doc : lu.'], 'ligne ajoutée');
+    attendre(/^\d{4}-\d{2}-\d{2}$/.test(numerisation[1][0]) && /^\d{2}:\d{2}:\d{2}$/.test(numerisation[1][1]), 'date ou heure à la seconde');
+    const general = etat.lignes['cree-3'];
+    attendreEgal(general[0], ['Date', 'Heure', 'Action', 'Résultat', 'Détails', 'Chantier'], 'en-têtes du Journal Général');
+    attendreEgal(general.slice(1).map(l => l.slice(2)), [
+      ['Création du journal', 'créé', 'Journal Numérisation', 'Numérisation'],
+      ['Création du journal', 'créé', 'Journal Général', 'Numérisation']
+    ], 'créations notées dans le Journal Général');
+    attendreEgal([bilan.restantes, journaux.enAttente()], [0, 0], 'file vidée après réussite');
+    attendreEgal([c.proprietesDrive.cap_journal_numerisation, c.proprietesDrive.cap_journal_general, c.proprietesDrive.cap_dossier_journaux],
+      ['cree-2', 'cree-3', 'cree-1'], 'identifiants rangés dans le Drive pour la coque');
+    // Deuxième ligne : rien n'est recréé, seulement un ajout.
+    const avant = etat.fichiers.length;
+    journaux.ajouter('general', { action: 'Essai FICTIF', resultat: 'ok', chantier: 'Numérisation' });
+    await journaux.envoyer();
+    attendreEgal(etat.fichiers.length, avant, 'journal recréé');
+    attendreEgal(etat.lignes['cree-3'].at(-1).slice(2), ['Essai FICTIF', 'ok', '', 'Numérisation'], 'ligne ajoutée à la fin');
+    attendre(c.requetes.every(r => r.methode === 'GET' || r.methode === 'POST'
+      || (r.methode === 'PATCH' && Object.keys(r.corps || {}).join() === 'appProperties')), 'modification ou effacement');
+    attendre(c.requetes.every(r => !/:clear|batchClear|:batchUpdate|values\/[^:]*$/.test(r.url.pathname) || r.methode === 'GET'), 'écriture hors ajout');
+  });
+
+  await testAsync('Journaux : panne de Google ou hors connexion = lignes gardées sur le téléphone, envoyées ensuite, sans perte ni doublon', async c => {
+    preparerConnexion(c);
+    const etat = { panne: true };
+    c.repondre = fauxDriveJournaux(c, etat);
+    const { piqueur, journaux } = monterJournaux(c);
+    piqueur.enregistrerDossier('app-cap-fictif', 'App Cap', 'app_cap');
+    journaux.ajouter('numerisation', { action: 'Lecture du classement', resultat: 'échouée', details: 'Doc : refusé' });
+    await attendreRejet(() => journaux.envoyer(), '503');
+    // Attendent : la ligne, les en-têtes des deux journaux et les deux lignes de création.
+    attendreEgal(journaux.enAttente(), 5, 'ligne perdue pendant la panne');
+    c.navigator.onLine = false;
+    journaux.ajouter('numerisation', { action: 'Essai hors connexion FICTIF', resultat: 'gardé' });
+    const requetes = c.requetes.length;
+    attendreEgal((await journaux.envoyer()).envoyees, 0, 'envoi tenté hors connexion');
+    attendreEgal(c.requetes.length, requetes, 'requête hors connexion');
+    c.navigator.onLine = true;
+    etat.panne = false;
+    await journaux.envoyer();
+    attendreEgal(journaux.enAttente(), 0, 'file non vidée après le retour');
+    attendreEgal(etat.lignes['cree-2'][0], ['Date', 'Heure', 'Action', 'Résultat', 'Détails'], 'en-têtes perdus après la panne');
+    const lignes = etat.lignes['cree-2'].slice(1).map(l => l[2]);
+    attendreEgal(lignes, ['Lecture du classement', 'Essai hors connexion FICTIF'], 'lignes envoyées une seule fois, dans l’ordre');
+    attendreEgal(etat.lignes['cree-3'][0], ['Date', 'Heure', 'Action', 'Résultat', 'Détails', 'Chantier'], 'en-têtes du Journal Général perdus');
+    attendreEgal(etat.fichiers.filter(f => f.name === 'Journal Numérisation').length, 1, 'journal créé deux fois après la panne');
+  });
+
+  await testAsync('Journaux : coque sans App Cap = relit les tableurs rangés dans le Drive ; sinon rien de créé, lignes gardées', async c => {
+    const etat = {};
+    c.repondre = fauxDriveJournaux(c, etat);
+    // Coque toute neuve, rien de rangé : aucune création, la ligne attend.
+    const neuve = monterJournaux(c, espaceMemoire());
+    neuve.journaux.ajouter('numerisation', { action: 'Essai FICTIF', resultat: 'gardé' });
+    await attendreRejet(() => neuve.journaux.envoyer(), 'App Cap');
+    attendreEgal([etat.fichiers.length, neuve.journaux.enAttente()], [0, 1], 'création sans App Cap ou ligne perdue');
+    // Chrome a créé les journaux et rangé leurs identifiants : la coque les retrouve et ajoute seulement.
+    const chrome = monterJournaux(c);
+    chrome.piqueur.enregistrerDossier('app-cap-fictif', 'App Cap', 'app_cap');
+    chrome.journaux.ajouter('general', { action: 'Essai Chrome FICTIF', resultat: 'ok', chantier: 'Numérisation' });
+    await chrome.journaux.envoyer();
+    const crees = etat.fichiers.length;
+    await neuve.journaux.envoyer();
+    attendreEgal([etat.fichiers.length, neuve.journaux.enAttente()], [crees, 0], 'coque : recréation ou ligne non envoyée');
+    attendreEgal(etat.lignes['cree-2'].at(-1).slice(2, 4), ['Essai FICTIF', 'gardé'], 'ligne de la coque dans le bon journal');
+  });
+
+  await testAsync('Journaux : texte gardé tel quel (jamais une formule), action obligatoire, journal inconnu refusé', async c => {
+    const etat = {};
+    c.repondre = fauxDriveJournaux(c, etat);
+    const { piqueur, journaux } = monterJournaux(c);
+    piqueur.enregistrerDossier('app-cap-fictif', 'App Cap', 'app_cap');
+    journaux.ajouter('numerisation', { action: '=SOMME(A1:A9) FICTIF', resultat: '+1', details: 'ligne\nsur  deux' });
+    await journaux.envoyer();
+    attendreEgal(etat.lignes['cree-2'][1].slice(2), ['=SOMME(A1:A9) FICTIF', '+1', 'ligne sur deux'], 'texte modifié');
+    let message = '';
+    try { journaux.ajouter('numerisation', { action: '  ' }); } catch (erreur) { message = erreur.message; }
+    attendre(message.includes('action'), 'ligne sans action acceptée');
+    message = '';
+    try { journaux.ajouter('inconnu', { action: 'x' }); } catch (erreur) { message = erreur.message; }
+    attendre(message.includes('inconnu'), 'journal inconnu accepté');
   });
 
   await testAsync('Google Agenda : Drive injoignable, aucun second agenda créé dans le doute', async c => {
@@ -5440,8 +5577,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v43['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v43")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v44['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v44")
 
 
 def verifier_precache_fichiers_existent():
@@ -5551,6 +5688,7 @@ def construire_page():
         "SOURCE_SAUVEGARDE_DRIVE": "sauvegarde_drive.js",
         "SOURCE_GOOGLE_PICKER": "google_picker.js",
         "SOURCE_CLASSEMENT": "classement.js",
+        "SOURCE_JOURNAUX": "journaux.js",
         "SOURCE_FICHIERS_VOCAUX": "fichiers_vocaux.js",
         "SOURCE_FICHIERS_VOCAUX_DRIVE": "fichiers_vocaux_drive.js",
         "SOURCE_FICHIERS_VOCAUX_CONTROLEUR": "fichiers_vocaux_controleur.js",

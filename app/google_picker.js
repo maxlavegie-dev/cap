@@ -12,7 +12,11 @@ const googlePicker = (() => {
     documents_personnels: 'cap_dossier_documents_personnels_v1',
     // Classement des scans (05/11/2026) : deux FICHIERS choisis par Max (pas des dossiers).
     architecture: 'cap_fichier_architecture_v1',
-    tableur_classement: 'cap_fichier_tableur_classement_v1'
+    tableur_classement: 'cap_fichier_tableur_classement_v1',
+    // Journaux de chantier (05/11/2026) : créés par Cap (pas choisis), retenus de la même façon.
+    dossier_journaux: 'cap_dossier_journaux_v1',
+    journal_numerisation: 'cap_journal_numerisation_v1',
+    journal_general: 'cap_journal_general_v1'
   });
   const titres = Object.freeze({
     app_cap: 'Choisis le dossier « App Cap »',
@@ -196,12 +200,18 @@ const googlePicker = (() => {
   const proprietesDrive = Object.freeze({
     documents_personnels: 'cap_dossier_documents_personnels',
     architecture: 'cap_fichier_architecture',
-    tableur_classement: 'cap_fichier_tableur_classement'
+    tableur_classement: 'cap_fichier_tableur_classement',
+    dossier_journaux: 'cap_dossier_journaux',
+    journal_numerisation: 'cap_journal_numerisation',
+    journal_general: 'cap_journal_general'
   });
   const nomsParDefaut = Object.freeze({
     documents_personnels: 'Documents Personnels',
     architecture: 'Doc d’architecture',
-    tableur_classement: 'Tableur de classement'
+    tableur_classement: 'Tableur de classement',
+    dossier_journaux: 'Journaux',
+    journal_numerisation: 'Journal Numérisation',
+    journal_general: 'Journal Général'
   });
   function cleRangeDrive(role) { return `${cleDe(role)}_drive`; }
 

@@ -25,6 +25,9 @@ const REGLAGES_GOOGLE = Object.freeze({
   dossier_a_classer: '00_A_CLASSER',
   nom_agenda: 'Cap – FICTIF',
   dossier_fichiers_vocaux: 'Fichiers vocaux',
+  // Journaux de chantier (05/11/2026) : dans App Cap, créés par Cap, jamais dans GitHub.
+  dossier_journaux: 'Journaux',
+  journaux: Object.freeze({ numerisation: 'Journal Numérisation', general: 'Journal Général' }),
   fichiers_vocaux: Object.freeze({
     liste_courses: 'Liste de courses.md',
     choses_a_acheter: 'Choses à acheter.md',
