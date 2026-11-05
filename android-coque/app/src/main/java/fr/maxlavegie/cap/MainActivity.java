@@ -5,14 +5,18 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
+import androidx.browser.customtabs.CustomTabsIntent;
 
 import org.json.JSONObject;
 
@@ -23,6 +27,12 @@ import java.util.ArrayList;
 // la reconnaissance vocale d'Android remplace celle de Chrome, qu'une coque WebView ne sait pas
 // faire toute seule. Le site web lui-même n'est pas modifié : seul un petit script est injecté
 // dans la page pour qu'elle retrouve la même fonction `SpeechRecognition` qu'elle utilise déjà.
+//
+// Étape C (réparation de la connexion Google) : Google refuse d'afficher son écran de connexion
+// dans une fenêtre WebView embarquée (sécurité anti-hameçonnage). On ouvre donc cet écran dans le
+// vrai Chrome sécurisé du téléphone (Custom Tabs), et quand Google a fini, il renvoie vers
+// l'adresse de Cap ; la coque reconnaît cette adresse (voir AndroidManifest.xml) et se rouvre
+// directement dessus, pour que la page retrouve son jeton exactement comme sur le web.
 public class MainActivity extends Activity {
 
     private static final String URL_CAP = "https://maxlavegie-dev.github.io/cap/app/";
@@ -90,10 +100,51 @@ public class MainActivity extends Activity {
                 super.onPageStarted(view, url, favicon);
                 view.evaluateJavascript(SCRIPT_PONT_MICRO, null);
             }
+
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                Uri adresse = request.getUrl();
+                if ("accounts.google.com".equals(adresse.getHost())) {
+                    ouvrirDansChromeSecurise(adresse);
+                    return true;
+                }
+                return false;
+            }
         });
 
         setContentView(vue);
-        vue.loadUrl(URL_CAP);
+        vue.loadUrl(adresseDeDepart(getIntent()));
+    }
+
+    @Override
+    protected void onNewIntent(Intent intention) {
+        super.onNewIntent(intention);
+        setIntent(intention);
+        String adresseRetour = adresseDeRetourGoogle(intention);
+        if (adresseRetour != null && vue != null) {
+            vue.loadUrl(adresseRetour);
+        }
+    }
+
+    // Au premier lancement normal (icône de l'appli), on ouvre Cap comme d'habitude. Si la coque
+    // est relancée directement par le retour de Google (voir AndroidManifest.xml), on ouvre plutôt
+    // cette adresse de retour, qui contient le jeton de connexion dans son fragment (#...).
+    private String adresseDeDepart(Intent intention) {
+        String adresseRetour = adresseDeRetourGoogle(intention);
+        return adresseRetour != null ? adresseRetour : URL_CAP;
+    }
+
+    private String adresseDeRetourGoogle(Intent intention) {
+        if (intention == null || !Intent.ACTION_VIEW.equals(intention.getAction())) return null;
+        Uri donnees = intention.getData();
+        if (donnees == null || !"maxlavegie-dev.github.io".equals(donnees.getHost())) return null;
+        return donnees.toString();
+    }
+
+    // Ouvre l'écran de connexion Google dans le vrai Chrome sécurisé du téléphone (onglet,
+    // pas la WebView de la coque) : Google refuse de s'afficher dans une fenêtre embarquée.
+    private void ouvrirDansChromeSecurise(Uri adresse) {
+        new CustomTabsIntent.Builder().build().launchUrl(this, adresse);
     }
 
     @Override

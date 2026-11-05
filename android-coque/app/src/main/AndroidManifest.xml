@@ -13,10 +13,22 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
             android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Permet à la coque de reconnaître l'adresse de retour de Cap (après la connexion
+                 Google faite dans Chrome) et de rouvrir la coque directement dessus. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="maxlavegie-dev.github.io"
+                    android:pathPrefix="/cap/app/" />
             </intent-filter>
         </activity>
     </application>
