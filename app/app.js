@@ -1771,7 +1771,7 @@
   function afficherDrive() {
     const cle = clePicker.presente();
     parId('etat-picker').textContent = cle
-      ? `Clé enregistrée sur ce téléphone (${clePicker.apercu()}).`
+      ? 'Clé enregistrée sur ce téléphone.'
       : 'Aucune clé : le sélecteur de dossier Google n’est pas encore réglé.';
     parId('retirer-cle-picker').hidden = !cle;
     const dossier = googlePicker.dossierAppCap();

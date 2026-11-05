@@ -302,6 +302,8 @@ Zencoder note chaque étape dans ce journal AVANT de la commencer. Jamais deux o
 
 - 05/11/2026 à 20:23 : **COMMENCÉ : ne plus afficher les 4 derniers caractères de la clé du sélecteur Google, demandé par Max.** Aujourd'hui, « Réglages du Drive » affiche « Clé enregistrée sur ce téléphone (…XXXX) » (`app/app.js`, avec `clePicker.apercu()` de `app/cle_picker.js`). Prévu : afficher seulement « Clé enregistrée sur ce téléphone. », et retirer `apercu` de `cle_picker.js` (plus utilisée). La clé du cerveau (IA), qui s'affiche de la même façon, n'est pas touchée sans l'accord de Max. Commit local avant (cette note) et après. Rien publié.
 
+- 05/11/2026 à 20:25 : **TERMINÉ (en local) : la clé du sélecteur n'est plus du tout affichée ; 272/272 tests ; rien publié.** « Réglages du Drive » affiche seulement « Clé enregistrée sur ce téléphone. » (`app/app.js`) ; `apercu` retirée de `app/cle_picker.js`. Non touché, en attente de l'avis de Max : la clé du cerveau (IA) s'affiche encore de la même façon (4 derniers caractères) dans « Cerveau de Cap ». Commit local avant (`2da76bb`) et après. Qui a fait quoi : le modèle principal, aucun subagent.
+
 ### En cours
 - Étape B (pont du micro) : testée sur émulateur sans erreur, en attente du test réel de Max sur son téléphone.
 - Étape C.1 : nouvel APK de diagnostic prêt (`Cap-coque-etapeC1-debug.apk`), avec une bannière dans l'écran de Cap (plus de fenêtre native) et une écriture dans un fichier du téléphone. En attente du nouveau test de Max pour voir enfin le détail exact de l'erreur, avant de corriger la vraie cause puis de continuer vers le scanner ML Kit et le vrai dépôt Drive (étape C.2).

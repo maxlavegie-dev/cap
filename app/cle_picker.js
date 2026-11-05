@@ -36,11 +36,6 @@ const clePicker = (() => {
     }
   }
 
-  // Seulement les 4 derniers caractères, pour que Max reconnaisse sa clé.
-  function apercu() {
-    const texte = lire();
-    return texte ? `…${texte.slice(-4)}` : '';
-  }
-
-  return { lire, presente, enregistrer, retirer, apercu };
+  // Aucun aperçu de la clé (demande de Max, 05/11/2026) : l'écran dit seulement si elle est présente.
+  return { lire, presente, enregistrer, retirer };
 })();
