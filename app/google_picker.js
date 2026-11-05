@@ -130,6 +130,15 @@ const googlePicker = (() => {
     tableur_classement: { type: typeTableur, titre: 'Choisis le tableur de classement', libelle: 'un tableur Google Sheets' }
   });
 
+  // Numéro du projet Cap (05/11/2026) : avec le droit drive.file, Google ne rattache un fichier
+  // choisi à Cap que si la fenêtre connaît ce numéro (`setAppId`) ; sans lui : « appNotAuthorizedToFile »
+  // ou 404. C'est le début, public, de l'identifiant client (aucun secret, aucun droit en plus).
+  function numeroProjet() {
+    const numero = String(REGLAGES_GOOGLE.id_client || '').split('-')[0];
+    if (!/^\d+$/.test(numero)) throw new Error('Le numéro du projet Cap est introuvable dans les réglages Google.');
+    return numero;
+  }
+
   async function choisirFichier(role, { noter = () => {}, surSilence = () => {}, delaiSilence = 20000 } = {}) {
     if (!Object.hasOwn(fichiersAttendus, role)) throw new Error('Fichier inconnu.');
     const attendu = fichiersAttendus[role];
@@ -153,6 +162,7 @@ const googlePicker = (() => {
         .setMimeTypes(attendu.type);
       const selecteur = new google.picker.PickerBuilder()
         .addView(vue)
+        .setAppId(numeroProjet())
         .setOAuthToken(googleConnexion.jeton())
         .setDeveloperKey(clePicker.lire())
         .setTitle(attendu.titre)

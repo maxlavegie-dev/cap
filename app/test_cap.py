@@ -1841,6 +1841,7 @@ TESTS_JS = r"""
   await testAsync('Classement étape 1 : Doc et tableur choisis chacun à part, bon type vérifié, rien gardé sinon', async c => {
     function monter(docs, memoire = espaceMemoire()) {
       const fonctions = [];
+      const numeros = [];
       const vues = [];
       const fauxGoogle = { picker: {
         Action: { PICKED: 'picked', CANCEL: 'cancel', LOADED: 'loaded' }, ViewId: { DOCS: 'docs' },
@@ -1848,6 +1849,7 @@ TESTS_JS = r"""
         DocsView: class { constructor() { vues.push(this); } setIncludeFolders() { return this; } setMimeTypes(t) { this.types = t; return this; } },
         PickerBuilder: class {
           addView() { return this; } enableFeature(f) { fonctions.push(f); return this; } setOAuthToken() { return this; }
+          setAppId(numero) { numeros.push(numero); return this; }
           setDeveloperKey() { return this; } setTitle() { return this; } setCallback(f) { this.rappel = f; return this; }
           build() { const b = this; return { setVisible: () => b.rappel({ action: 'picked', docs }) }; }
         }
@@ -1857,7 +1859,7 @@ TESTS_JS = r"""
         googleSheets: c.tableauAgenda, REGLAGES_GOOGLE, google: fauxGoogle,
         clePicker: { presente: () => true, lire: () => 'cle-fictive' }, window: { gapi: { load: (n, o) => o.callback() } }
       });
-      return { piqueur, fonctions, vues, memoire };
+      return { piqueur, fonctions, numeros, vues, memoire };
     }
     const doc = { id: 'doc-fictif', name: 'Architecture FICTIVE', mimeType: 'application/vnd.google-apps.document' };
     const tableur = { id: 'tableur-fictif', name: 'Classement FICTIF', mimeType: 'application/vnd.google-apps.spreadsheet' };
@@ -1867,6 +1869,9 @@ TESTS_JS = r"""
     attendreEgal((await premier.piqueur.choisirFichier('architecture')).id, 'doc-fictif', 'Doc gardé');
     attendreEgal(premier.vues[0].types, 'application/vnd.google-apps.document', 'fenêtre limitée aux Docs');
     attendreEgal(premier.fonctions, [], 'sélection multiple encore demandée');
+    // Numéro du projet Cap donné à la fenêtre (début public de l'identifiant client), pour drive.file.
+    attendreEgal(premier.numeros, [REGLAGES_GOOGLE.id_client.split('-')[0]], 'numéro du projet absent');
+    attendre(/^\d+$/.test(premier.numeros[0]), 'numéro du projet mal formé');
     attendreEgal(premier.piqueur.dossierChoisi('tableur_classement'), null, 'tableur choisi sans le demander');
     // Puis le tableur, indépendamment : le Doc déjà choisi reste.
     const second = monter([tableur], memoire);
@@ -5435,8 +5440,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v42['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v42")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v43['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v43")
 
 
 def verifier_precache_fichiers_existent():
