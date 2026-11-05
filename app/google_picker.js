@@ -121,13 +121,21 @@ const googlePicker = (() => {
   const typeDoc = 'application/vnd.google-apps.document';
   const typeTableur = 'application/vnd.google-apps.spreadsheet';
 
-  // Classement des scans (05/11/2026) : UNE fenêtre Google à sélection multiple, où Max coche le
-  // Doc d'architecture ET le tableur de classement. Exactement un de chaque, sinon rien n'est gardé.
-  // Même diagnostic que choisir() : jamais la clé ni le jeton dans les textes de `noter`.
-  async function choisirFichiersClassement({ noter = () => {}, surSilence = () => {}, delaiSilence = 20000 } = {}) {
+  // Classement des scans (05/11/2026) : sur le téléphone, la fenêtre de Google ne permet pas la
+  // sélection multiple. Max choisit donc chaque fichier À PART : le Doc d'architecture, puis le
+  // tableur de classement. La fenêtre ne montre que le bon type, et le type est revérifié au retour
+  // (sinon rien n'est gardé). Même diagnostic que choisir() : jamais la clé ni le jeton.
+  const fichiersAttendus = Object.freeze({
+    architecture: { type: typeDoc, titre: 'Choisis le Doc d’architecture des archives', libelle: 'un Google Doc' },
+    tableur_classement: { type: typeTableur, titre: 'Choisis le tableur de classement', libelle: 'un tableur Google Sheets' }
+  });
+
+  async function choisirFichier(role, { noter = () => {}, surSilence = () => {}, delaiSilence = 20000 } = {}) {
+    if (!Object.hasOwn(fichiersAttendus, role)) throw new Error('Fichier inconnu.');
+    const attendu = fichiersAttendus[role];
     if (!clePicker.presente()) throw new Error('Le sélecteur Google n’est pas encore réglé : ajoute ta clé dans les réglages.');
     noter('Clé du sélecteur : présente sur ce téléphone.');
-    if (!googleConnexion.connecte()) throw new Error('Connecte-toi à Google avant de choisir les fichiers.');
+    if (!googleConnexion.connecte()) throw new Error('Connecte-toi à Google avant de choisir un fichier.');
     noter('Connexion à Google : oui.');
     await chargerScript();
     noter('Bibliothèque de Google : chargée.');
@@ -142,31 +150,28 @@ const googlePicker = (() => {
       }, delaiSilence);
       const vue = new google.picker.DocsView(google.picker.ViewId.DOCS)
         .setIncludeFolders(true)
-        .setMimeTypes(`${typeDoc},${typeTableur}`);
+        .setMimeTypes(attendu.type);
       const selecteur = new google.picker.PickerBuilder()
         .addView(vue)
-        .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
         .setOAuthToken(googleConnexion.jeton())
         .setDeveloperKey(clePicker.lire())
-        .setTitle('Coche le Doc d’architecture ET le tableur de classement')
+        .setTitle(attendu.titre)
         .setCallback(reponse => {
           repondu = true;
           noter(`Réponse de Google : « ${String(reponse && reponse.action).slice(0, 40)} ».`);
           if (reponse.action === google.picker.Action.LOADED) return;
           clearTimeout(minuterie);
           if (reponse.action === google.picker.Action.CANCEL) { resoudre(null); return; }
-          if (reponse.action !== google.picker.Action.PICKED) { rejeter(new Error('Le choix des fichiers a échoué.')); return; }
-          const docs = (reponse.docs || []).filter(doc => doc && doc.id);
-          const architecture = docs.filter(doc => doc.mimeType === typeDoc);
-          const tableur = docs.filter(doc => doc.mimeType === typeTableur);
-          noter(`Fichiers cochés : ${docs.length} (Doc : ${architecture.length}, tableur : ${tableur.length}).`);
-          if (architecture.length !== 1 || tableur.length !== 1) {
-            rejeter(new Error('Coche exactement deux fichiers : le Doc d’architecture et le tableur de classement. Rien n’a été gardé.'));
+          if (reponse.action !== google.picker.Action.PICKED) { rejeter(new Error('Le choix du fichier a échoué.')); return; }
+          const choix = (reponse.docs || []).find(doc => doc && doc.id);
+          if (!choix || choix.mimeType !== attendu.type) {
+            noter('Type du fichier choisi : pas le bon.');
+            rejeter(new Error(`Ce fichier n’est pas ${attendu.libelle}. Rien n’a été gardé.`));
             return;
           }
-          enregistrerDossier(architecture[0].id, architecture[0].name, 'architecture');
-          enregistrerDossier(tableur[0].id, tableur[0].name, 'tableur_classement');
-          resoudre({ architecture: dossierChoisi('architecture'), tableur: dossierChoisi('tableur_classement') });
+          noter('Type du fichier choisi : le bon.');
+          enregistrerDossier(choix.id, choix.name, role);
+          resoudre(dossierChoisi(role));
         })
         .build();
       noter('Fenêtre de Google demandée.');
@@ -234,5 +239,5 @@ const googlePicker = (() => {
   }
 
   return { dossierAppCap, dossierDocumentsPersonnels, dossierChoisi, enregistrerDossier, oublierDossier,
-    rangerDansDrive, retrouverDepuisDrive, disponible, choisir, choisirFichiersClassement };
+    rangerDansDrive, retrouverDepuisDrive, disponible, choisir, choisirFichier };
 })();

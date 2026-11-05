@@ -1808,45 +1808,54 @@ TESTS_JS = r"""
     attendreEgal(c.requetes.length, avant, 'requête sans fichier choisi');
   });
 
-  await testAsync('Classement étape 1 : une fenêtre à sélection multiple, exactement un Doc et un tableur', async c => {
-    function monter(docs) {
+  await testAsync('Classement étape 1 : Doc et tableur choisis chacun à part, bon type vérifié, rien gardé sinon', async c => {
+    function monter(docs, memoire = espaceMemoire()) {
       const fonctions = [];
+      const vues = [];
       const fauxGoogle = { picker: {
         Action: { PICKED: 'picked', CANCEL: 'cancel', LOADED: 'loaded' }, ViewId: { DOCS: 'docs' },
         Feature: { MULTISELECT_ENABLED: 'multi' },
-        DocsView: class { setIncludeFolders() { return this; } setMimeTypes(t) { this.types = t; return this; } },
+        DocsView: class { constructor() { vues.push(this); } setIncludeFolders() { return this; } setMimeTypes(t) { this.types = t; return this; } },
         PickerBuilder: class {
           addView() { return this; } enableFeature(f) { fonctions.push(f); return this; } setOAuthToken() { return this; }
           setDeveloperKey() { return this; } setTitle() { return this; } setCallback(f) { this.rappel = f; return this; }
           build() { const b = this; return { setVisible: () => b.rappel({ action: 'picked', docs }) }; }
         }
       } };
-      const memoire = espaceMemoire();
       const piqueur = objetIsole(SOURCE_GOOGLE_PICKER, 'googlePicker', {
         localStorage: memoire, googleConnexion: { connecte: () => true, jeton: () => 'jeton-fictif', appeler: c.fetch },
         googleSheets: c.tableauAgenda, REGLAGES_GOOGLE, google: fauxGoogle,
         clePicker: { presente: () => true, lire: () => 'cle-fictive' }, window: { gapi: { load: (n, o) => o.callback() } }
       });
-      return { piqueur, fonctions, memoire };
+      return { piqueur, fonctions, vues, memoire };
     }
     const doc = { id: 'doc-fictif', name: 'Architecture FICTIVE', mimeType: 'application/vnd.google-apps.document' };
     const tableur = { id: 'tableur-fictif', name: 'Classement FICTIF', mimeType: 'application/vnd.google-apps.spreadsheet' };
-    const bon = monter([doc, tableur]);
-    const choix = await bon.piqueur.choisirFichiersClassement();
-    attendreEgal([choix.architecture.id, choix.tableur.id], ['doc-fictif', 'tableur-fictif'], 'deux fichiers gardés');
-    attendreEgal(bon.fonctions, ['multi'], 'sélection multiple activée');
-    await bon.piqueur.rangerDansDrive('architecture');
-    await bon.piqueur.rangerDansDrive('tableur_classement');
+    const memoire = espaceMemoire();
+    // Le Doc d'abord : seul le type Doc est montré, et seul le Doc est gardé.
+    const premier = monter([doc], memoire);
+    attendreEgal((await premier.piqueur.choisirFichier('architecture')).id, 'doc-fictif', 'Doc gardé');
+    attendreEgal(premier.vues[0].types, 'application/vnd.google-apps.document', 'fenêtre limitée aux Docs');
+    attendreEgal(premier.fonctions, [], 'sélection multiple encore demandée');
+    attendreEgal(premier.piqueur.dossierChoisi('tableur_classement'), null, 'tableur choisi sans le demander');
+    // Puis le tableur, indépendamment : le Doc déjà choisi reste.
+    const second = monter([tableur], memoire);
+    attendreEgal((await second.piqueur.choisirFichier('tableur_classement')).id, 'tableur-fictif', 'tableur gardé');
+    attendreEgal(second.vues[0].types, 'application/vnd.google-apps.spreadsheet', 'fenêtre limitée aux tableurs');
+    attendreEgal(second.piqueur.dossierChoisi('architecture').id, 'doc-fictif', 'Doc perdu en choisissant le tableur');
+    await second.piqueur.rangerDansDrive('architecture');
+    await second.piqueur.rangerDansDrive('tableur_classement');
     attendreEgal([c.proprietesDrive.cap_fichier_architecture, c.proprietesDrive.cap_fichier_tableur_classement],
       ['doc-fictif', 'tableur-fictif'], 'identifiants rangés dans le Drive');
-    const coque = monter([]);
-    attendreEgal((await coque.piqueur.retrouverDepuisDrive('tableur_classement')).id, 'tableur-fictif', 'retrouvé par la coque');
-    for (const docs of [[doc], [doc, doc], [tableur, tableur], [doc, tableur, doc]]) {
-      const mauvais = monter(docs);
-      await attendreRejet(() => mauvais.piqueur.choisirFichiersClassement(), 'exactement deux fichiers');
-      attendreEgal([mauvais.piqueur.dossierChoisi('architecture'), mauvais.piqueur.dossierChoisi('tableur_classement')],
-        [null, null], 'choix partiel gardé');
-    }
+    attendreEgal((await monter([]).piqueur.retrouverDepuisDrive('tableur_classement')).id, 'tableur-fictif', 'retrouvé par la coque');
+    // Mauvais type : refus clair, rien gardé, l'ancien choix intact.
+    const mauvais = monter([tableur], memoire);
+    await attendreRejet(() => mauvais.piqueur.choisirFichier('architecture'), 'n’est pas un Google Doc');
+    attendreEgal(mauvais.piqueur.dossierChoisi('architecture').id, 'doc-fictif', 'ancien Doc remplacé par un mauvais fichier');
+    const neuf = monter([doc]);
+    await attendreRejet(() => neuf.piqueur.choisirFichier('tableur_classement'), 'n’est pas un tableur');
+    attendreEgal(neuf.piqueur.dossierChoisi('tableur_classement'), null, 'mauvais fichier gardé');
+    await attendreRejet(() => neuf.piqueur.choisirFichier('documents_personnels'), 'Fichier inconnu');
   });
 
   await testAsync('Google Agenda : Drive injoignable, aucun second agenda créé dans le doute', async c => {
@@ -5394,8 +5403,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v40['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v40")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v41['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v41")
 
 
 def verifier_precache_fichiers_existent():

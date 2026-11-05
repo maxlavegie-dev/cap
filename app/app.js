@@ -1793,13 +1793,13 @@
     // Classement des scans (05/11/2026) : Doc d'architecture et tableur, choisis dans Chrome.
     const architecture = googlePicker.dossierChoisi('architecture');
     const tableur = googlePicker.dossierChoisi('tableur_classement');
-    parId('etat-classement').textContent = architecture && tableur
-      ? `Classement : Doc « ${architecture.nom || architecture.id} » et tableur « ${tableur.nom || tableur.id} » choisis.`
-      : window.PontMicroAndroid
-        ? 'Classement : Doc d’architecture et tableur pas encore choisis. Choisis-les dans Cap ouvert avec Chrome.'
-        : 'Classement : Doc d’architecture et tableur pas encore choisis.';
-    parId('choisir-fichiers-classement').disabled = !cle;
-    parId('verifier-classement').hidden = !(architecture && tableur);
+    // Jamais d'identifiant ni de nom de fichier à l'écran : seulement choisi ou pas.
+    parId('etat-classement').textContent = `Classement : ${architecture ? 'Doc choisi' : 'Doc pas encore choisi'}, `
+      + `${tableur ? 'tableur choisi' : 'tableur pas encore choisi'}.`
+      + (!(architecture && tableur) && window.PontMicroAndroid ? ' Choisis-les dans Cap ouvert avec Chrome.' : '');
+    parId('choisir-architecture').disabled = !cle;
+    parId('choisir-tableur-classement').disabled = !cle;
+    parId('verifier-classement').disabled = !(architecture && tableur);
   }
 
   parId('ouvrir-reglages-drive').addEventListener('click', event => {
@@ -1903,20 +1903,23 @@
       }
     });
   });
-  parId('choisir-fichiers-classement').addEventListener('click', () => {
-    parId('resume-classement').hidden = true;
-    void choisirDansGoogle(options => googlePicker.choisirFichiersClassement(options), async () => {
-      // Rangés aussi dans le Drive, pour que la coque Android les retrouve toute seule.
-      try {
-        await googlePicker.rangerDansDrive('architecture');
-        await googlePicker.rangerDansDrive('tableur_classement');
-        annoncer('Doc d’architecture et tableur enregistrés, aussi pour l’application Cap du téléphone.', true);
-      } catch (erreur) {
-        erreurReglagesDrive('Fichiers choisis ici, mais pas encore rangés dans le Drive : l’application Cap du téléphone '
-          + 'ne les retrouvera pas. Réessaie quand Google répond.');
-      }
+  // Chaque fichier est choisi à part (la fenêtre de Google ne permet pas d'en cocher deux sur le téléphone).
+  for (const [bouton, role, libelle] of [['choisir-architecture', 'architecture', 'Doc d’architecture'],
+    ['choisir-tableur-classement', 'tableur_classement', 'Tableur de classement']]) {
+    parId(bouton).addEventListener('click', () => {
+      parId('resume-classement').hidden = true;
+      void choisirDansGoogle(options => googlePicker.choisirFichier(role, options), async () => {
+        // Rangé aussi dans le Drive, pour que la coque Android le retrouve toute seule.
+        try {
+          await googlePicker.rangerDansDrive(role);
+          annoncer(`${libelle} enregistré, aussi pour l’application Cap du téléphone.`, true);
+        } catch (erreur) {
+          erreurReglagesDrive(`${libelle} choisi ici, mais pas encore rangé dans le Drive : l’application Cap du téléphone `
+            + 'ne le retrouvera pas. Réessaie quand Google répond.');
+        }
+      });
     });
-  });
+  }
   // Étape 1 : lecture seule des deux fichiers, résumé en nombres seulement (aucun nom affiché).
   parId('verifier-classement').addEventListener('click', async () => {
     const zone = parId('resume-classement');
