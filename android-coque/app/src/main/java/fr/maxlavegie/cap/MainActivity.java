@@ -5,14 +5,11 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
-import android.view.Gravity;
-import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
@@ -22,10 +19,7 @@ import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.Button;
 import android.widget.FrameLayout;
-import android.widget.ScrollView;
-import android.widget.TextView;
 
 import androidx.browser.customtabs.CustomTabsIntent;
 
@@ -33,7 +27,6 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -91,38 +84,10 @@ public class MainActivity extends Activity {
         + "window.webkitSpeechRecognition=PontMicro;"
         + "})();";
 
-    // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque Android.
-    // Surveille les réponses 401/403 de Google (sans toucher au site web, qui reste tel qu'il est en
-    // ligne) pour afficher dans une fenêtre native le détail exact renvoyé par Google.
-    private static final String SCRIPT_DEBUG_GOOGLE =
-        "(function(){"
-        + "if(window.__debugGoogleInstalle){return;}window.__debugGoogleInstalle=true;"
-        + "var original=window.fetch;"
-        + "window.fetch=function(entree,options){"
-        + "return original(entree,options).then(function(reponse){"
-        + "try{"
-        + "var adresse=typeof entree==='string'?entree:(entree&&entree.url)||'';"
-        + "if((reponse.status===401||reponse.status===403)&&/googleapis\\.com|accounts\\.google\\.com/.test(adresse)){"
-        + "reponse.clone().text().then(function(corps){"
-        + "window.PontMicroAndroid&&window.PontMicroAndroid.afficherDebugGoogle("
-        + "'Reponse '+reponse.status+' pour '+adresse+' : '+corps.slice(0,500));"
-        + "}).catch(function(){});"
-        + "}"
-        + "}catch(erreur){}"
-        + "return reponse;"
-        + "});"
-        + "};"
-        + "})();";
-
     private FrameLayout racine;
     private WebView vue;
     private SpeechRecognizer reconnaisseur;
     private boolean ecouteEnCours = false;
-    // DEBUG TEMPORAIRE (étape C.3, 05/11/2026) : la bannière de diagnostic est maintenant une vue
-    // Android native, posée au-dessus de la WebView dans `racine` (pas injectée dans la page web).
-    // Elle s'affiche dès que le retour de Google est détecté, sans attendre que la page ait chargé,
-    // et la page web (app.js) ne peut jamais l'effacer puisqu'elle n'en fait pas partie.
-    private View banniereNative;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -146,7 +111,6 @@ public class MainActivity extends Activity {
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 view.evaluateJavascript(SCRIPT_PONT_MICRO, null);
-                view.evaluateJavascript(SCRIPT_DEBUG_GOOGLE, null);
             }
 
             // Version « essai » seulement : voir reponseLocale. Dans la coque normale, renvoie null.
@@ -183,12 +147,8 @@ public class MainActivity extends Activity {
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(racine);
 
+        effacerAncienDiagnostic();
         String adresseDepart = adresseDeDepart(getIntent());
-        // DEBUG TEMPORAIRE (étape C.1/C.3, 05/11/2026) : à retirer après le diagnostic de la coque
-        // Android. Sur un vrai téléphone, Android tue souvent la coque pendant que Chrome est
-        // ouvert : le retour de Google passe alors par onCreate (ici), pas par onNewIntent. La
-        // bannière s'affiche tout de suite, sans attendre que la page ait chargé.
-        afficherDebugSiRetourGoogle(adresseDepart, "onCreate");
         vue.loadUrl(adresseDepart);
     }
 
@@ -198,7 +158,6 @@ public class MainActivity extends Activity {
         setIntent(intention);
         String adresseRetour = adresseDeRetourGoogle(intention);
         if (adresseRetour != null && vue != null) {
-            afficherDebugSiRetourGoogle(adresseRetour, "onNewIntent");
             chargerAdresseRetour(adresseRetour);
         }
     }
@@ -223,78 +182,17 @@ public class MainActivity extends Activity {
         return position < 0 ? adresse : adresse.substring(0, position);
     }
 
-    // DEBUG TEMPORAIRE (étape C.1/C.3, 05/11/2026) : à retirer après le diagnostic de la coque
-    // Android. Affiche tout de suite le détail exact du retour de Google (fragment #...), sans
-    // attendre le chargement de la page : utile si Cap affiche une erreur de vérification de
-    // sécurité, car la page peut alors être remplacée avant qu'on ait eu le temps de la lire.
-    private void afficherDebugSiRetourGoogle(String adresse, String origine) {
-        if (adresse == null) return;
-        Uri uriRetour = Uri.parse(adresse);
-        String fragment = uriRetour.getFragment();
-        if (fragment != null && !fragment.isEmpty()) {
-            afficherDebug("Retour de Google (" + origine + ", fragment d'adresse) :\n" + fragment);
-        }
-    }
-
-    // DEBUG TEMPORAIRE (étape C.3, 05/11/2026) : à retirer après le diagnostic de la coque Android.
-    // Affiche le diagnostic dans une vue Android native posée au-dessus de la WebView (pas dans la
-    // page web) : la page web ne peut jamais l'effacer, même si elle se recharge ou se remplace par
-    // un écran d'erreur juste après. Reste affichée tant que « Fermer » n'est pas touché.
-    private void afficherDebug(String texte) {
-        injecterBanniereNative(texte);
-        ecrireDiagnosticFichier(texte);
-    }
-
-    private void injecterBanniereNative(String texte) {
-        runOnUiThread(() -> {
-            if (racine == null) return;
-            if (banniereNative != null) {
-                racine.removeView(banniereNative);
-                banniereNative = null;
-            }
-            FrameLayout bandeau = new FrameLayout(this);
-            bandeau.setBackgroundColor(Color.WHITE);
-
-            TextView corps = new TextView(this);
-            corps.setText(texte);
-            corps.setTextColor(Color.BLACK);
-            corps.setTextIsSelectable(true);
-            corps.setPadding(32, 140, 32, 32);
-            ScrollView defilement = new ScrollView(this);
-            defilement.addView(corps, new ScrollView.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            bandeau.addView(defilement, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-
-            Button bouton = new Button(this);
-            bouton.setText("Fermer");
-            bouton.setOnClickListener(v -> {
-                racine.removeView(bandeau);
-                if (banniereNative == bandeau) banniereNative = null;
-            });
-            FrameLayout.LayoutParams reglagesBouton = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START);
-            reglagesBouton.topMargin = 48;
-            reglagesBouton.leftMargin = 32;
-            bandeau.addView(bouton, reglagesBouton);
-
-            racine.addView(bandeau, new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-            bandeau.bringToFront();
-            banniereNative = bandeau;
-        });
-    }
-
-    private void ecrireDiagnosticFichier(String texte) {
+    // Les diagnostics temporaires (étapes C.1 à C.3) ont été retirés le 05/11/2026. Ils avaient pu
+    // écrire le retour de Google, jeton compris, dans ce fichier du téléphone : on l'efface s'il
+    // existe encore. Un échec n'empêche jamais la coque de démarrer.
+    private void effacerAncienDiagnostic() {
         try {
             File dossier = getExternalFilesDir(null);
             if (dossier == null) return;
             File fichier = new File(dossier, "diagnostic_google.txt");
-            try (FileWriter ecrivain = new FileWriter(fichier, false)) {
-                ecrivain.write(texte);
-            }
+            if (fichier.exists()) fichier.delete();
         } catch (Exception erreur) {
-            // Diagnostic de confort uniquement : un échec d'écriture ne doit jamais faire planter la coque.
+            // Rien à faire : le fichier sera effacé au prochain démarrage.
         }
     }
 
@@ -443,12 +341,6 @@ public class MainActivity extends Activity {
                 ecouteEnCours = true;
                 reconnaisseur.startListening(intention);
             });
-        }
-
-        // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque Android.
-        @JavascriptInterface
-        public void afficherDebugGoogle(final String texte) {
-            afficherDebug(texte);
         }
 
         @JavascriptInterface
