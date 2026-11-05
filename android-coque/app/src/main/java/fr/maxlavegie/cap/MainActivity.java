@@ -3,6 +3,7 @@ package fr.maxlavegie.cap;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -73,6 +74,29 @@ public class MainActivity extends Activity {
         + "window.webkitSpeechRecognition=PontMicro;"
         + "})();";
 
+    // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque Android.
+    // Surveille les réponses 401/403 de Google (sans toucher au site web, qui reste tel qu'il est en
+    // ligne) pour afficher dans une fenêtre native le détail exact renvoyé par Google.
+    private static final String SCRIPT_DEBUG_GOOGLE =
+        "(function(){"
+        + "if(window.__debugGoogleInstalle){return;}window.__debugGoogleInstalle=true;"
+        + "var original=window.fetch;"
+        + "window.fetch=function(entree,options){"
+        + "return original(entree,options).then(function(reponse){"
+        + "try{"
+        + "var adresse=typeof entree==='string'?entree:(entree&&entree.url)||'';"
+        + "if((reponse.status===401||reponse.status===403)&&/googleapis\\.com|accounts\\.google\\.com/.test(adresse)){"
+        + "reponse.clone().text().then(function(corps){"
+        + "window.PontMicroAndroid&&window.PontMicroAndroid.afficherDebugGoogle("
+        + "'Reponse '+reponse.status+' pour '+adresse+' : '+corps.slice(0,500));"
+        + "}).catch(function(){});"
+        + "}"
+        + "}catch(erreur){}"
+        + "return reponse;"
+        + "});"
+        + "};"
+        + "})();";
+
     private WebView vue;
     private SpeechRecognizer reconnaisseur;
     private boolean ecouteEnCours = false;
@@ -99,6 +123,7 @@ public class MainActivity extends Activity {
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 view.evaluateJavascript(SCRIPT_PONT_MICRO, null);
+                view.evaluateJavascript(SCRIPT_DEBUG_GOOGLE, null);
             }
 
             @Override
@@ -122,8 +147,25 @@ public class MainActivity extends Activity {
         setIntent(intention);
         String adresseRetour = adresseDeRetourGoogle(intention);
         if (adresseRetour != null && vue != null) {
+            // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque
+            // Android. Affiche le détail exact du retour de Google (fragment #...) avant que la page
+            // ne le lise et l'efface : utile si Cap affiche une erreur de vérification de sécurité.
+            Uri uriRetour = Uri.parse(adresseRetour);
+            String fragment = uriRetour.getFragment();
+            if (fragment != null && !fragment.isEmpty()) {
+                afficherDebug("Retour de Google (fragment d'adresse) :\n" + fragment);
+            }
             vue.loadUrl(adresseRetour);
         }
+    }
+
+    // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque Android.
+    private void afficherDebug(String texte) {
+        runOnUiThread(() -> new AlertDialog.Builder(this)
+            .setTitle("Diagnostic (temporaire)")
+            .setMessage(texte)
+            .setPositiveButton("OK", null)
+            .show());
     }
 
     // Au premier lancement normal (icône de l'appli), on ouvre Cap comme d'habitude. Si la coque
@@ -230,6 +272,12 @@ public class MainActivity extends Activity {
                 ecouteEnCours = true;
                 reconnaisseur.startListening(intention);
             });
+        }
+
+        // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque Android.
+        @JavascriptInterface
+        public void afficherDebugGoogle(final String texte) {
+            afficherDebug(texte);
         }
 
         @JavascriptInterface
