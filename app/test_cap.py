@@ -1719,7 +1719,7 @@ TESTS_JS = r"""
       + '<p class="c5"><span>Commentaire libre sans puce</span></p>'
       + puces(0, ['Prenom_fictif'])
       + puces(1, ['Remboursements', 'Médecine_du_travail_et_expertises', 'Medecins'])
-      + puces(2, ['Cardiologie', 'Pneumologie'])
+      + puces(2, ['Cardiologie', 'Dermatologie'])
       + puces(0, ['Autre_fictif (aucun sous-dossier pour l’instant)'])
       + ajout + '</body></html>';
   }
@@ -1744,7 +1744,7 @@ TESTS_JS = r"""
     const sante = arbre.racine.enfants[1];
     attendreEgal(sante.enfants.map(e => e.nom), ['Prenom_fictif', 'Autre_fictif'], 'niveau 1 et parenthèse retirée');
     attendreEgal(sante.enfants[0].enfants.map(e => e.nom), ['Remboursements', 'Médecine_du_travail_et_expertises', 'Medecins'], 'niveau 2, accent gardé');
-    attendreEgal(sante.enfants[0].enfants[2].enfants.map(e => e.nom), ['Cardiologie', 'Pneumologie'], 'niveau 3');
+    attendreEgal(sante.enfants[0].enfants[2].enfants.map(e => e.nom), ['Cardiologie', 'Dermatologie'], 'niveau 3');
     attendre(!JSON.stringify(arbre).includes('Règle fictive') && !JSON.stringify(arbre).includes('Dossier_main_fictif'), 'règle ou archive faite main lue comme dossier');
     attendreEgal(arbre.doutes.length, 0, 'doutes inattendus');
   });
