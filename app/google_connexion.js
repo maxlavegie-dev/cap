@@ -36,17 +36,13 @@ const googleConnexion = (() => {
       try { espace.removeItem(cleEtat); } catch (erreur) {}
     }
     try {
-      // DEBUG TEMPORAIRE (étape C, 05/11/2026) : à retirer après le diagnostic de la coque Android.
-      if (!valide) throw new Error('Connexion Google refusée : la vérification de sécurité a échoué. Réessaie avec le bouton.'
-        + ` [debug : etat=${etat ? 'present' : 'absent'} silencieux=${silencieux}]`);
+      if (!valide) throw new Error('Connexion Google refusée : la vérification de sécurité a échoué. Réessaie avec le bouton.');
       if (retour.has('error')) {
         besoinGeste = silencieux && ['interaction_required', 'login_required', 'consent_required',
           'account_selection_required'].includes(retour.get('error'));
         if (besoinGeste) localStorage.setItem(cleGeste, 'oui');
-        // DEBUG TEMPORAIRE (étape C, 05/11/2026) : à retirer après le diagnostic de la coque Android.
-        throw new Error((besoinGeste ? 'Google demande ton accord pour continuer.'
-          : 'La connexion Google n’a pas été autorisée. Tu peux réessayer avec le bouton.')
-          + ` [debug : erreur_google=${retour.get('error')} description=${retour.get('error_description') || ''}]`);
+        throw new Error(besoinGeste ? 'Google demande ton accord pour continuer.'
+          : 'La connexion Google n’a pas été autorisée. Tu peux réessayer avec le bouton.');
       }
       const secondes = Number(retour.get('expires_in'));
       if (!retour.get('access_token') || !Number.isFinite(secondes) || secondes <= 60
@@ -133,12 +129,6 @@ const googleConnexion = (() => {
     if (reponse.status === 401 || reponse.status === 403) {
       message = reponse.status === 401 ? 'La connexion Google a expiré. Touche « Se reconnecter ».'
         : 'Google a refusé l’accès (erreur 403). Redonne l’accès avec le bouton.';
-      const messageOrigine = message;
-      // DEBUG TEMPORAIRE (étape C, 05/11/2026) : à retirer après le diagnostic de la coque Android.
-      // Lu en arrière-plan (sans attendre) pour ne pas retarder la déconnexion ni l'évènement ci-dessous.
-      reponse.clone().text().then(corps => {
-        if (message === messageOrigine) message += ` [debug : ${corps.slice(0, 300)}]`;
-      }).catch(() => {});
       deconnecter();
       window.dispatchEvent(new Event('cap-google-deconnecte'));
       const erreur = new Error(message);
