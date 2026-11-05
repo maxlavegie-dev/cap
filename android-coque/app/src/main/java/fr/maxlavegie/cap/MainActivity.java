@@ -5,9 +5,13 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.widget.Toast;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -32,10 +36,15 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 // Coque Android qui ouvre Cap tel qu'il est en ligne aujourd'hui (la version web publiée),
@@ -62,6 +71,7 @@ public class MainActivity extends Activity {
     private PermissionRequest demandeCameraEnAttente;
     private ValueCallback<Uri[]> retourPhotoEnAttente;
     private Uri photoEnCours;
+    private File fichierPhotoEnCours;
 
     // Petit script injecté dans la page : il fabrique une classe qui ressemble à la vraie
     // SpeechRecognition du navigateur, mais qui parle en coulisses avec le code Android ci-dessous.
@@ -362,6 +372,7 @@ public class MainActivity extends Activity {
             File dossier = dossierPhotos();
             if (!dossier.isDirectory() && !dossier.mkdirs()) throw new IOException("dossier photos");
             File fichier = new File(dossier, "page_" + System.currentTimeMillis() + ".jpg");
+            fichierPhotoEnCours = fichier;
             photoEnCours = FileProvider.getUriForFile(this, "fr.maxlavegie.cap.photos", fichier);
             Intent intention = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
             intention.putExtra(MediaStore.EXTRA_OUTPUT, photoEnCours);
@@ -369,8 +380,56 @@ public class MainActivity extends Activity {
             startActivityForResult(intention, CODE_PHOTO);
         } catch (Exception erreur) {
             photoEnCours = null;
+            fichierPhotoEnCours = null;
             rendrePhoto(null);
         }
+    }
+
+    // Demande de Max (05/11/2026) : la photo du bouton « appareil photo du téléphone » est aussi
+    // rangée dans la galerie, album « Cap » (Pictures/Cap), comme ses autres photos. Copie faite à
+    // côté, sans retarder Cap ; un échec est dit à Max, et la photo part quand même dans Cap.
+    // Android 10 et plus seulement : aucun droit Android de plus n'est nécessaire.
+    private void copierDansGalerie(final File source) {
+        if (source == null) return;
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            direAMax("Photo non copiée dans la galerie : téléphone trop ancien.");
+            return;
+        }
+        new Thread(() -> {
+            ContentResolver resolveur = getContentResolver();
+            Uri cible = null;
+            try {
+                String nom = "Cap_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.FRANCE).format(new Date()) + ".jpg";
+                ContentValues valeurs = new ContentValues();
+                valeurs.put(MediaStore.Images.Media.DISPLAY_NAME, nom);
+                valeurs.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+                valeurs.put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/Cap");
+                valeurs.put(MediaStore.Images.Media.IS_PENDING, 1);
+                cible = resolveur.insert(MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY), valeurs);
+                if (cible == null) throw new IOException("galerie indisponible");
+                try (InputStream entree = new FileInputStream(source);
+                     OutputStream sortie = resolveur.openOutputStream(cible)) {
+                    if (sortie == null) throw new IOException("galerie indisponible");
+                    byte[] tampon = new byte[64 * 1024];
+                    int lus;
+                    while ((lus = entree.read(tampon)) > 0) sortie.write(tampon, 0, lus);
+                }
+                ContentValues fin = new ContentValues();
+                fin.put(MediaStore.Images.Media.IS_PENDING, 0);
+                resolveur.update(cible, fin, null, null);
+                direAMax("Photo enregistrée dans la galerie (album Cap).");
+            } catch (Exception erreur) {
+                // Copie à moitié faite : on retire l'entrée vide de la galerie (jamais la photo de Cap).
+                if (cible != null) {
+                    try { resolveur.delete(cible, null, null); } catch (Exception ignoree) { }
+                }
+                direAMax("Photo non enregistrée dans la galerie. Elle est quand même dans Cap.");
+            }
+        }).start();
+    }
+
+    private void direAMax(final String texte) {
+        runOnUiThread(() -> Toast.makeText(this, texte, Toast.LENGTH_LONG).show());
     }
 
     // Rend toujours une réponse à la page, même vide : sinon le bouton de Cap ne répond plus.
@@ -384,11 +443,14 @@ public class MainActivity extends Activity {
         super.onActivityResult(code, resultat, donnees);
         if (code != CODE_PHOTO) return;
         Uri photo = photoEnCours;
+        File fichierPhoto = fichierPhotoEnCours;
         photoEnCours = null;
+        fichierPhotoEnCours = null;
         if (resultat != RESULT_OK) {
             rendrePhoto(null);
         } else if (photo != null) {
             rendrePhoto(new Uri[]{photo});
+            if (fichierPhoto != null && fichierPhoto.length() > 0) copierDansGalerie(fichierPhoto);
         } else {
             rendrePhoto(WebChromeClient.FileChooserParams.parseResult(resultat, donnees));
         }
