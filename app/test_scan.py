@@ -338,7 +338,7 @@ TESTS_JS = r"""
 
   // ---------- Dépôt (réseau simulé) ----------
   const sourceDepot = await (await fetch('/src/scan_depot.js')).text();
-  function monterDepot({ connecte = true, enLigne = true, reponses }) {
+  function monterDepot({ connecte = true, enLigne = true, reponses, documents = { id: 'docs', nom: 'Documents Personnels' } }) {
     const requetes = [];
     const memoire = {};
     const faux = {
@@ -353,13 +353,14 @@ TESTS_JS = r"""
       }
     };
     const stockageFaux = { getItem: c => (c in memoire ? memoire[c] : null), setItem: (c, v) => { memoire[c] = String(v); } };
-    const depot = new Function('googleConnexion', 'REGLAGES_GOOGLE', 'localStorage', 'navigator', sourceDepot + '\nreturn scanDepot;')(
-      faux, REGLAGES_GOOGLE, stockageFaux, { onLine: enLigne });
+    const piqueur = { dossierDocumentsPersonnels: () => documents };
+    const depot = new Function('googleConnexion', 'REGLAGES_GOOGLE', 'localStorage', 'navigator', 'googlePicker', sourceDepot + '\nreturn scanDepot;')(
+      faux, REGLAGES_GOOGLE, stockageFaux, { onLine: enLigne }, piqueur);
     return { depot, requetes, memoire };
   }
   const reponsesDrive = (etat = {}) => async r => {
     if (r.methode === 'GET' && r.chemin === '/drive/v3/files' && r.q.includes('folder')) {
-      if (r.q.includes('ARCHIVES_PERSONNELLES')) return { files: etat.archives ? [{ id: 'arch' }] : [] };
+      (etat.recherches ||= []).push(r.q);
       return { files: etat.aclasser ? [{ id: 'acl' }] : [] };
     }
     if (r.methode === 'GET' && r.chemin.startsWith('/drive/v3/files/')) return { id: 'x', trashed: false };
@@ -367,7 +368,7 @@ TESTS_JS = r"""
     if (r.methode === 'POST' && r.chemin === '/drive/v3/files') {
       const meta = JSON.parse(r.corps);
       (etat.crees ||= []).push(meta);
-      return { id: meta.name === REGLAGES_GOOGLE.dossier_archives ? 'arch' : 'acl' };
+      return { id: 'acl' };
     }
     if (r.methode === 'POST' && r.chemin === '/upload/drive/v3/files') {
       if (etat.echecEnvoi) return new Error('Réseau coupé.');
@@ -382,16 +383,18 @@ TESTS_JS = r"""
     return f;
   }
 
-  await test('dépôt : crée les faux dossiers, envoie les scans, jamais de suppression', async () => {
-    attendre(REGLAGES_GOOGLE.dossier_archives.includes('FICTIF'), 'le dossier racine doit être marqué FICTIF');
+  await test('dépôt : crée 00_A_CLASSER dans Documents Personnels, envoie les scans, jamais de suppression', async () => {
     egal(REGLAGES_GOOGLE.dossier_a_classer, '00_A_CLASSER', 'nom du dossier');
+    egal(REGLAGES_GOOGLE.dossier_documents_personnels, 'Documents Personnels', 'dossier parent');
+    attendre(!('dossier_archives' in REGLAGES_GOOGLE), 'ancien dossier racine encore réglé');
     const etat = {};
     const m = monterDepot({ reponses: reponsesDrive(etat) });
     const f = await filePrete(['SCAN-a.pdf', 'SCAN-b.pdf']);
     const res = await m.depot.deposerEnAttente(f);
     egal([res.deposes, res.restants, res.erreur], [2, 0, ''], 'résultat');
-    egal(etat.crees.map(c => c.name), [REGLAGES_GOOGLE.dossier_archives, '00_A_CLASSER'], 'dossiers créés');
-    egal(etat.crees[1].parents, ['arch'], 'parent de 00_A_CLASSER');
+    egal(etat.crees.map(c => c.name), ['00_A_CLASSER'], 'un seul dossier créé, rien à la racine');
+    egal(etat.crees[0].parents, ['docs'], 'parent de 00_A_CLASSER');
+    attendre(etat.recherches.every(q => q.includes("'docs' in parents")), 'recherche hors de Documents Personnels');
     attendre(m.requetes.every(r => r.methode !== 'DELETE' && r.methode !== 'PATCH'), 'suppression ou modification');
     egal(etat.envoyes.length, 2, 'envois');
     const corps = await etat.envoyes[0].corps.text();
@@ -401,8 +404,29 @@ TESTS_JS = r"""
     egal(gardes.map(x => x.etat), ['depose', 'depose'], 'fiches');
   });
 
+  await test('dépôt : Documents Personnels pas encore choisi = aucune requête, scan gardé, Max prévenu', async () => {
+    const m = monterDepot({ reponses: reponsesDrive({}), documents: null });
+    const f = await filePrete(['SCAN-g.pdf']);
+    const res = await m.depot.deposerEnAttente(f);
+    egal([res.deposes, res.restants], [0, 1], 'scan gardé sur le téléphone');
+    attendre(res.erreur.includes('Documents Personnels') && res.erreur.includes('Réglages du Drive'), 'message pour Max');
+    egal(m.requetes.length, 0, 'aucune requête ni création sans dossier choisi');
+    attendre((await f.enAttente())[0].pdf.size > 0, 'PDF perdu');
+  });
+
+  await test('dépôt : ancien dossier FICTIF gardé en mémoire = jamais réutilisé, 00_A_CLASSER créé dans Documents Personnels', async () => {
+    const etat = {};
+    const m = monterDepot({ reponses: reponsesDrive(etat) });
+    m.memoire.cap_scan_dossiers_v1 = JSON.stringify({ archives: 'arch', a_classer: 'ancien-acl' });
+    const f = await filePrete(['SCAN-h.pdf']);
+    const res = await m.depot.deposerEnAttente(f);
+    egal(res.deposes, 1, 'déposé');
+    egal(etat.crees[0].parents, ['docs'], 'créé dans Documents Personnels');
+    attendre(!(await etat.envoyes[0].corps.text()).includes('ancien-acl'), 'ancien dossier FICTIF réutilisé');
+  });
+
   await test('dépôt : dossiers existants réutilisés, pas de doublon de fichier', async () => {
-    const etat = { archives: true, aclasser: true, existant: true };
+    const etat = { aclasser: true, existant: true };
     const m = monterDepot({ reponses: reponsesDrive(etat) });
     const f = await filePrete(['SCAN-c.pdf']);
     const res = await m.depot.deposerEnAttente(f);

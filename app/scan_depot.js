@@ -1,6 +1,6 @@
 'use strict';
 
-// Dépôt des scans dans le dossier 00_A_CLASSER du Drive (ici un faux dossier FICTIF créé par Cap).
+// Dépôt des scans dans le dossier 00_A_CLASSER, créé par Cap dans « Documents Personnels » (choisi par Max).
 // Aucune suppression, aucune modification d'un fichier existant : seulement des créations.
 const scanDepot = (() => {
   const cleDossiers = 'cap_scan_dossiers_v1';
@@ -60,15 +60,19 @@ const scanDepot = (() => {
     return cree.id;
   }
 
+  // Demande de Max (05/11/2026) : 00_A_CLASSER est créé par Cap dans « Documents Personnels »,
+  // dossier créé à la main par Max et choisi une fois avec le sélecteur Google (droit drive.file,
+  // aucun autre). Pas encore choisi : rien n'est créé nulle part, le scan reste sur le téléphone.
   async function dossierAClasser() {
-    const gardes = lireDossiers();
-    if (gardes.a_classer && await dossierValide(gardes.a_classer)) return gardes.a_classer;
-    let racine = gardes.archives;
-    if (!(racine && await dossierValide(racine))) {
-      racine = await trouverOuCreerDossier(REGLAGES_GOOGLE.dossier_archives, '');
+    const parent = googlePicker.dossierDocumentsPersonnels();
+    if (!parent) {
+      throw new Error(`Choisis d’abord le dossier « ${REGLAGES_GOOGLE.dossier_documents_personnels} » `
+        + 'dans « Réglages du Drive ». Ton scan reste sur le téléphone.');
     }
-    const aClasser = await trouverOuCreerDossier(REGLAGES_GOOGLE.dossier_a_classer, racine);
-    garderDossiers({ archives: racine, a_classer: aClasser });
+    const gardes = lireDossiers();
+    if (gardes.parent === parent.id && gardes.a_classer && await dossierValide(gardes.a_classer)) return gardes.a_classer;
+    const aClasser = await trouverOuCreerDossier(REGLAGES_GOOGLE.dossier_a_classer, parent.id);
+    garderDossiers({ parent: parent.id, a_classer: aClasser });
     return aClasser;
   }
 

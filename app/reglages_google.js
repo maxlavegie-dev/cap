@@ -20,7 +20,8 @@ const REGLAGES_GOOGLE = Object.freeze({
   }),
   dossier_sauvegardes: 'Cap – FICTIF – Sauvegardes',
   sauvegardes_a_garder: 5,
-  dossier_archives: 'ARCHIVES_PERSONNELLES - FICTIF',
+  // Dossier créé à la main par Max (dans App Cap), choisi une fois avec le sélecteur Google.
+  dossier_documents_personnels: 'Documents Personnels',
   dossier_a_classer: '00_A_CLASSER',
   nom_agenda: 'Cap – FICTIF',
   dossier_fichiers_vocaux: 'Fichiers vocaux',

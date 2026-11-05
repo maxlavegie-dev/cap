@@ -5,20 +5,36 @@
 // Max), Max doit le choisir une fois dans la fenêtre officielle de Google ; Cap garde ensuite
 // l'accès à ce dossier précis, sans jamais voir le reste du Drive de Max.
 const googlePicker = (() => {
-  const cleDossier = 'cap_dossier_app_cap_v1';
+  // Un dossier choisi par rôle (05/11/2026) : « App Cap » (fichiers vocaux) et « Documents
+  // Personnels » (où Cap crée 00_A_CLASSER pour les scans). Chacun est choisi une fois par Max.
+  const cles = Object.freeze({
+    app_cap: 'cap_dossier_app_cap_v1',
+    documents_personnels: 'cap_dossier_documents_personnels_v1'
+  });
+  const titres = Object.freeze({
+    app_cap: 'Choisis le dossier « App Cap »',
+    documents_personnels: 'Choisis le dossier « Documents Personnels »'
+  });
+  function cleDe(role) {
+    if (!Object.hasOwn(cles, role)) throw new Error('Dossier inconnu.');
+    return cles[role];
+  }
   let chargement = null;
 
-  function dossierAppCap() {
+  function dossierChoisi(role) {
     try {
-      const brut = JSON.parse(localStorage.getItem(cleDossier));
+      const brut = JSON.parse(localStorage.getItem(cleDe(role)));
       return brut && typeof brut.id === 'string' && brut.id ? brut : null;
     } catch (erreur) {
       return null;
     }
   }
 
-  function enregistrerDossier(id, nom) {
-    localStorage.setItem(cleDossier, JSON.stringify({ id, nom: nom || '' }));
+  function dossierAppCap() { return dossierChoisi('app_cap'); }
+  function dossierDocumentsPersonnels() { return dossierChoisi('documents_personnels'); }
+
+  function enregistrerDossier(id, nom, role = 'app_cap') {
+    localStorage.setItem(cleDe(role), JSON.stringify({ id, nom: nom || '' }));
   }
 
   function disponible() {
@@ -46,7 +62,8 @@ const googlePicker = (() => {
   }
 
   // Ouvre la fenêtre Google : Max choisit "App Cap" une seule fois, son choix est gardé sur le téléphone.
-  async function choisir() {
+  async function choisir(role = 'app_cap') {
+    cleDe(role);
     if (!clePicker.presente()) throw new Error('Le sélecteur Google n’est pas encore réglé : ajoute ta clé dans les réglages.');
     if (!googleConnexion.connecte()) throw new Error('Connecte-toi à Google avant de choisir un dossier.');
     await chargerScript();
@@ -60,12 +77,13 @@ const googlePicker = (() => {
         .addView(vue)
         .setOAuthToken(googleConnexion.jeton())
         .setDeveloperKey(clePicker.lire())
+        .setTitle(titres[role])
         .setCallback(reponse => {
           if (reponse.action === google.picker.Action.PICKED) {
             const choix = reponse.docs && reponse.docs[0];
             if (choix && choix.id) {
-              enregistrerDossier(choix.id, choix.name);
-              resoudre(dossierAppCap());
+              enregistrerDossier(choix.id, choix.name, role);
+              resoudre(dossierChoisi(role));
               return;
             }
           }
@@ -77,9 +95,9 @@ const googlePicker = (() => {
     });
   }
 
-  function oublierDossier() {
-    localStorage.removeItem(cleDossier);
+  function oublierDossier(role = 'app_cap') {
+    localStorage.removeItem(cleDe(role));
   }
 
-  return { dossierAppCap, enregistrerDossier, oublierDossier, disponible, choisir };
+  return { dossierAppCap, dossierDocumentsPersonnels, dossierChoisi, enregistrerDossier, oublierDossier, disponible, choisir };
 })();

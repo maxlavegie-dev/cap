@@ -1780,6 +1780,13 @@
       : 'Aucun dossier choisi pour l’instant.';
     parId('choisir-dossier-drive').disabled = !cle;
     parId('oublier-dossier-drive').hidden = !dossier;
+    // Dossier des scans (05/11/2026) : Cap y crée lui-même 00_A_CLASSER.
+    const documents = googlePicker.dossierDocumentsPersonnels();
+    parId('etat-dossier-documents').textContent = documents
+      ? `Scans déposés dans « ${documents.nom || documents.id} › ${REGLAGES_GOOGLE.dossier_a_classer} ».`
+      : `Scans : aucun dossier choisi. Choisis « ${REGLAGES_GOOGLE.dossier_documents_personnels} ».`;
+    parId('choisir-dossier-documents').disabled = !cle;
+    parId('oublier-dossier-documents').hidden = !documents;
   }
 
   parId('ouvrir-reglages-drive').addEventListener('click', event => {
@@ -1819,6 +1826,23 @@
     googlePicker.oublierDossier();
     erreurReglagesDrive('');
     annoncer('Dossier oublié : choisis-en un à nouveau quand tu veux.', true);
+    afficherDrive();
+  });
+
+  parId('choisir-dossier-documents').addEventListener('click', async () => {
+    try {
+      const dossier = await googlePicker.choisir('documents_personnels');
+      erreurReglagesDrive('');
+      if (dossier) annoncer(`Dossier « ${dossier.nom || REGLAGES_GOOGLE.dossier_documents_personnels} » enregistré pour les scans.`, true);
+      afficherDrive();
+    } catch (erreur) {
+      erreurReglagesDrive(erreur.message);
+    }
+  });
+  parId('oublier-dossier-documents').addEventListener('click', () => {
+    googlePicker.oublierDossier('documents_personnels');
+    erreurReglagesDrive('');
+    annoncer('Dossier des scans oublié : choisis-en un à nouveau quand tu veux.', true);
     afficherDrive();
   });
 
