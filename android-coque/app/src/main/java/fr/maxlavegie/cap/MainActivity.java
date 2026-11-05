@@ -16,6 +16,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
+import android.webkit.ServiceWorkerClient;
+import android.webkit.ServiceWorkerController;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -28,9 +31,14 @@ import androidx.browser.customtabs.CustomTabsIntent;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 // Coque Android qui ouvre Cap tel qu'il est en ligne aujourd'hui (la version web publiée),
 // dans une fenêtre plein écran sans barre d'adresse, avec en plus le pont du micro (étape B) :
@@ -141,6 +149,13 @@ public class MainActivity extends Activity {
                 view.evaluateJavascript(SCRIPT_DEBUG_GOOGLE, null);
             }
 
+            // Version « essai » seulement : voir reponseLocale. Dans la coque normale, renvoie null.
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                WebResourceResponse locale = reponseLocale(request.getUrl());
+                return locale != null ? locale : super.shouldInterceptRequest(view, request);
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri adresse = request.getUrl();
@@ -151,6 +166,17 @@ public class MainActivity extends Activity {
                 return false;
             }
         });
+
+        // Version « essai » seulement : Cap installe un service worker, dont les téléchargements ne
+        // passent pas par le WebViewClient ; on les sert aussi depuis les fichiers de l'APK.
+        if (BuildConfig.FICHIERS_LOCAUX) {
+            ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
+                @Override
+                public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                    return reponseLocale(request.getUrl());
+                }
+            });
+        }
 
         racine = new FrameLayout(this);
         racine.addView(vue, new FrameLayout.LayoutParams(
@@ -285,6 +311,47 @@ public class MainActivity extends Activity {
         Uri donnees = intention.getData();
         if (donnees == null || !"maxlavegie-dev.github.io".equals(donnees.getHost())) return null;
         return donnees.toString();
+    }
+
+    // Version « essai » (05/11/2026), pour tester sans rien publier : l'adresse reste celle du site
+    // en ligne (même mémoire, même retour de Google), mais chaque fichier de Cap est lu dans l'APK
+    // (copie du dossier app/ du PC) au lieu d'être téléchargé. Fichier absent : 404, jamais la
+    // version en ligne, pour ne pas mélanger deux versions. Coque normale : renvoie toujours null.
+    private static final String PREFIXE_CAP = "/cap/app/";
+
+    private WebResourceResponse reponseLocale(Uri adresse) {
+        if (!BuildConfig.FICHIERS_LOCAUX || adresse == null) return null;
+        if (!"https".equals(adresse.getScheme()) || !"maxlavegie-dev.github.io".equals(adresse.getHost())) return null;
+        String chemin = adresse.getPath();
+        if (chemin == null || !chemin.startsWith(PREFIXE_CAP)) return null;
+        String fichier = chemin.substring(PREFIXE_CAP.length());
+        if (fichier.isEmpty()) fichier = "index.html";
+        Map<String, String> entetes = new HashMap<>();
+        entetes.put("Cache-Control", "no-store");
+        if (!fichier.contains("..")) {
+            try {
+                InputStream flux = getAssets().open(fichier);
+                return new WebResourceResponse(typeDe(fichier), "UTF-8", 200, "OK", entetes, flux);
+            } catch (IOException erreur) {
+                // Fichier absent de l'APK : 404 ci-dessous.
+            }
+        }
+        return new WebResourceResponse("text/plain", "UTF-8", 404, "Not Found", entetes,
+            new ByteArrayInputStream(new byte[0]));
+    }
+
+    private static String typeDe(String fichier) {
+        String nom = fichier.toLowerCase();
+        if (nom.endsWith(".html")) return "text/html";
+        if (nom.endsWith(".js")) return "application/javascript";
+        if (nom.endsWith(".css")) return "text/css";
+        if (nom.endsWith(".webmanifest")) return "application/manifest+json";
+        if (nom.endsWith(".json")) return "application/json";
+        if (nom.endsWith(".png")) return "image/png";
+        if (nom.endsWith(".svg")) return "image/svg+xml";
+        if (nom.endsWith(".ico")) return "image/x-icon";
+        if (nom.endsWith(".txt")) return "text/plain";
+        return "application/octet-stream";
     }
 
     // Ouvre l'écran de connexion Google dans le vrai Chrome sécurisé du téléphone (onglet,

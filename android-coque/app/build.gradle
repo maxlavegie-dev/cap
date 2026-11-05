@@ -14,10 +14,38 @@ android {
         versionName = "1.0"
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     buildTypes {
+        debug {
+            buildConfigField("boolean", "FICHIERS_LOCAUX", "false")
+        }
         release {
             minifyEnabled = false
+            buildConfigField("boolean", "FICHIERS_LOCAUX", "false")
         }
+        // Version « essai » (05/11/2026), pour tester sur le téléphone sans rien publier : même nom
+        // d'appli et même signature que la coque normale (le lien vérifié du retour Google marche
+        // toujours), mais les fichiers de Cap viennent du PC (dossier app/ rangé dans l'APK) au lieu
+        // du site en ligne. Construite seulement à la demande : gradle assembleEssai.
+        essai {
+            initWith(debug)
+            signingConfig = signingConfigs.debug
+            buildConfigField("boolean", "FICHIERS_LOCAUX", "true")
+        }
+    }
+
+    sourceSets {
+        essai {
+            assets.srcDirs = ['../../app']
+        }
+    }
+
+    // Jamais dans l'APK : fichiers de test Python, dossiers techniques (« _… »), fichiers cachés.
+    androidResources {
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.py"
     }
 
     compileOptions {

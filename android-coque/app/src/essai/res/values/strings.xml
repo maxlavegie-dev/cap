@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Version « essai » seulement : nom visible sur le téléphone, pour la distinguer de la coque normale. -->
+<resources>
+    <string name="app_name">Cap ESSAI</string>
+</resources>
