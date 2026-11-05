@@ -3,6 +3,8 @@
 const googleAgenda = (() => {
   const cleStockage = 'cap_google_agenda_v1';
   const cleCache = 'cap_google_rendezvous_v1';
+  const cleRangeDrive = 'cap_google_agenda_drive_v1';
+  const proprieteDrive = 'cap_agenda_id';
   const racine = 'https://www.googleapis.com/calendar/v3';
   const fuseau = 'Europe/Paris';
   let ouverture = null;
@@ -138,22 +140,36 @@ const googleAgenda = (() => {
     }
   }
 
-  async function chercherAgendaExistant() {
-    let jeton = '';
-    do {
-      const url = `${racine}/users/me/calendarList?maxResults=250${jeton ? `&pageToken=${encodeURIComponent(jeton)}` : ''}`;
-      let donnees;
-      try {
-        donnees = await (await requete(url)).json();
-      } catch (erreur) {
-        if (statutDe(erreur) === 403) return '';
-        throw erreur;
-      }
-      const trouve = (donnees.items || []).find(agenda => agenda.summary === REGLAGES_GOOGLE.nom_agenda && !agenda.primary && idValide(agenda.id));
-      if (trouve) return trouve.id;
-      jeton = donnees.nextPageToken || '';
-    } while (jeton);
-    return '';
+  // Étape C.5 (05/11/2026) : l'identifiant de l'agenda de Cap est aussi rangé dans le Drive de Max,
+  // en information invisible (appProperties) sur le tableau des tâches, que Cap retrouve partout
+  // avec le droit drive.file. Un nouvel appareil (la coque Android, un autre téléphone) retrouve
+  // ainsi le même agenda au lieu d'en créer un second. On ne lit plus jamais la liste des agendas
+  // de Max (calendarList) : le droit calendar.app.created ne le permet pas (erreur 403).
+  async function adresseTableau() {
+    const tableau = await googleSheets.trouverOuCreer();
+    if (typeof tableau?.id !== 'string' || !tableau.id) throw new Error('Le tableau Google n’est pas encore prêt.');
+    return `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(tableau.id)}`;
+  }
+
+  async function lireDepuisDrive() {
+    const donnees = await (await requete(`${await adresseTableau()}?fields=appProperties`)).json();
+    const id = donnees.appProperties?.[proprieteDrive];
+    return idValide(id) ? id : '';
+  }
+
+  // Sans bloquer l'agenda : si le Drive ne répond pas, on réessaiera à la prochaine ouverture.
+  async function rangerDansDrive(id) {
+    if (lireStockage(cleRangeDrive) === id) return;
+    try {
+      await requete(`${await adresseTableau()}?fields=id`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appProperties: { [proprieteDrive]: id } })
+      });
+      ecrireStockage(cleRangeDrive, id);
+    } catch (erreur) {
+      return;
+    }
   }
 
   async function creerAgenda() {
@@ -208,16 +224,22 @@ const googleAgenda = (() => {
 
   async function ouvrir() {
     const stocke = lireStockage(cleStockage);
-    if (idValide(stocke) && await agendaExiste(stocke)) return stocke;
+    if (idValide(stocke) && await agendaExiste(stocke)) {
+      await rangerDansDrive(stocke);
+      return stocke;
+    }
 
-    const existant = await chercherAgendaExistant();
-    if (existant) {
-      ecrireStockage(cleStockage, existant);
-      return existant;
+    // Si le Drive ne répond pas, l'erreur remonte : on ne crée pas un second agenda dans le doute.
+    const range = await lireDepuisDrive();
+    if (range && range !== stocke && await agendaExiste(range)) {
+      ecrireStockage(cleStockage, range);
+      ecrireStockage(cleRangeDrive, range);
+      return range;
     }
 
     const id = await creerAgenda();
     ecrireStockage(cleStockage, id);
+    await rangerDansDrive(id);
     await creerEvenementsFictifs(id);
     return id;
   }

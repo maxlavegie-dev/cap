@@ -1146,8 +1146,16 @@ TESTS_JS = r"""
       const requete = { url: new URL(adresse), methode: options.method || 'GET', options,
         corps: options.body ? JSON.parse(options.body) : null };
       contexte.requetes.push(requete);
+      // Faux Drive pour l'identifiant de l'agenda (appProperties du tableau des tâches FICTIF).
+      if (requete.url.pathname === '/drive/v3/files/tableau-agenda-fictif') {
+        if (requete.methode === 'PATCH') Object.assign(contexte.proprietesDrive, requete.corps.appProperties);
+        return reponseGoogle(requete.methode === 'PATCH' ? { id: 'tableau-agenda-fictif' }
+          : { appProperties: { ...contexte.proprietesDrive } });
+      }
       return contexte.repondre(requete);
     };
+    contexte.proprietesDrive = {};
+    contexte.tableauAgenda = { trouverOuCreer: async () => ({ id: 'tableau-agenda-fictif', cree: false }) };
     contexte.googleConnexion = { connecte: () => true, appeler: contexte.fetch };
     contexte.stockage = objetIsole(SOURCE_STOCKAGE, 'stockage', {
       localStorage: contexte.localStorage, TACHES_FICTIVES
@@ -1172,7 +1180,7 @@ TESTS_JS = r"""
     });
     contexte.agenda = () => objetIsole(SOURCE_GOOGLE_AGENDA, 'googleAgenda', {
       localStorage: contexte.localStorage, googleConnexion: contexte.googleConnexion, REGLAGES_GOOGLE,
-      navigator: contexte.navigator
+      navigator: contexte.navigator, googleSheets: contexte.tableauAgenda
     });
     return contexte;
   }
@@ -1199,7 +1207,15 @@ TESTS_JS = r"""
           && requete.url.origin === 'https://www.googleapis.com'
           && requete.url.pathname === `/calendar/v3/calendars/${encodeURIComponent(contexte.agendaModifiable)}/events/rdv-fictif`
           && contexte.agendaModifiable !== 'primary';
-        attendre(['GET', 'POST'].includes(requete.methode) || patchAgendaFictif, 'opération destructive interdite');
+        // Seule autre modification permise : ranger l'identifiant de l'agenda en information invisible
+        // du tableau (appProperties), sans toucher au contenu, au nom ni à rien d'autre du fichier.
+        const patchIdentifiantAgenda = requete.methode === 'PATCH'
+          && requete.url.origin === 'https://www.googleapis.com'
+          && requete.url.pathname.startsWith('/drive/v3/files/')
+          && JSON.stringify(Object.keys(requete.corps || {})) === '["appProperties"]'
+          && JSON.stringify(Object.keys(requete.corps.appProperties || {})) === '["cap_agenda_id"]';
+        attendre(['GET', 'POST'].includes(requete.methode) || patchAgendaFictif || patchIdentifiantAgenda,
+          'opération destructive interdite');
         attendre(!/:clear(?:\?|$)|:batchClear(?:\?|$)/.test(requete.url.href), 'effacement interdit');
         attendre(!requete.corps?.requests?.some(action => Object.keys(action).some(cle => /delete|cutPaste/i.test(cle))),
           'suppression de lignes ou de feuilles interdite');
@@ -1542,15 +1558,15 @@ TESTS_JS = r"""
       { titre: 'Autre FICTIF', date: '2030-01-12', heure: '09:05', journee_entiere: true },
       { titre: 'Sans heure FICTIF', date: '2030-01-13', heure: '', journee_entiere: true }
     ], 'rendez-vous normalisés');
-    attendre(c.requetes.every(r => r.methode === 'GET'), 'lecture seule de l’agenda existant');
+    attendre(c.requetes.filter(r => r.url.pathname.startsWith('/calendar/')).every(r => r.methode === 'GET'),
+      'lecture seule de l’agenda existant');
+    attendreEgal(c.proprietesDrive.cap_agenda_id, 'agenda-fictif', 'identifiant de l’agenda rangé dans le Drive');
   });
 
   await testAsync('Google Agenda : agenda secondaire, quatre FICTIF, jamais le principal', async c => {
     c.localStorage.setItem('cap_google_agenda_v1', 'primary');
+    c.proprietesDrive.cap_agenda_id = 'primary';
     c.repondre = async r => {
-      if (r.methode === 'GET' && r.url.pathname === '/calendar/v3/users/me/calendarList') {
-        return reponseGoogle({ items: [{ id: 'primary', summary: REGLAGES_GOOGLE.nom_agenda, primary: true }] });
-      }
       if (r.methode === 'POST' && r.url.pathname === '/calendar/v3/calendars') {
         attendreEgal(r.corps.summary, REGLAGES_GOOGLE.nom_agenda, 'nom de l’agenda secondaire');
         return reponseGoogle({ id: 'agenda-secondaire-fictif' });
@@ -1578,18 +1594,55 @@ TESTS_JS = r"""
     attendreEgal(await agenda.trouverOuCreer(), 'agenda-secondaire-fictif', 'agenda réutilisé');
     attendreEgal(c.requetes.filter(r => r.methode === 'POST').length, 5, 'aucune seconde création');
     attendre(c.requetes.every(r => !r.url.pathname.includes('/calendars/primary')), 'agenda principal touché');
+    attendreEgal(c.proprietesDrive.cap_agenda_id, 'agenda-secondaire-fictif', 'nouvel agenda rangé dans le Drive');
+    attendre(c.requetes.every(r => !r.url.pathname.includes('calendarList')), 'liste des agendas lue sans droit');
   });
 
-  await testAsync('Google Agenda : accès liste refusé et formats d’heures en description', async c => {
+  await testAsync('Google Agenda : nouvel appareil, agenda retrouvé par le Drive, aucune création', async c => {
+    c.proprietesDrive.cap_agenda_id = 'agenda-deja-cree-fictif';
+    c.repondre = async r => {
+      if (r.methode === 'GET' && r.url.pathname === '/calendar/v3/calendars/agenda-deja-cree-fictif') {
+        return reponseGoogle({ id: 'agenda-deja-cree-fictif' });
+      }
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const agenda = c.agenda();
+    attendreEgal(await agenda.trouverOuCreer(), 'agenda-deja-cree-fictif', 'agenda du Drive réutilisé');
+    attendreEgal(c.localStorage.getItem('cap_google_agenda_v1'), 'agenda-deja-cree-fictif', 'identifiant gardé sur l’appareil');
+    attendreEgal(c.requetes.filter(r => r.methode !== 'GET').length, 0, 'aucune création ni écriture');
+    attendreEgal(await agenda.trouverOuCreer(), 'agenda-deja-cree-fictif', 'deuxième ouverture');
+    attendreEgal(c.requetes.filter(r => r.url.pathname.startsWith('/drive/')).length, 1, 'Drive relu une seule fois');
+  });
+
+  await testAsync('Google Agenda : Drive injoignable, aucun second agenda créé dans le doute', async c => {
+    c.tableauAgenda.trouverOuCreer = async () => { throw new Error('Drive injoignable FICTIF'); };
+    c.repondre = async r => { throw new Error(`Requête inattendue : ${r.url}`); };
+    await attendreRejet(() => c.agenda().trouverOuCreer(), 'Drive injoignable FICTIF');
+    attendreEgal(c.requetes.filter(r => r.methode === 'POST').length, 0, 'agenda créé malgré le doute');
+  });
+
+  await testAsync('Google Agenda : vraie connexion, sans identifiant gardé, jamais déconnecté par un 403', async c => {
+    preparerConnexion(c);
+    let deconnexions = 0;
+    c.window.addEventListener('cap-google-deconnecte', () => deconnexions++);
+    c.repondre = async r => {
+      if (r.url.pathname.includes('calendarList')) return reponseGoogle({ error: { code: 403 } }, 403);
+      if (r.methode === 'POST' && r.url.pathname === '/calendar/v3/calendars') return reponseGoogle({ id: 'agenda-coque-fictif' });
+      if (r.methode === 'POST' && r.url.pathname === '/calendar/v3/calendars/agenda-coque-fictif/events') return reponseGoogle({});
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    attendreEgal(await c.agenda().trouverOuCreer(), 'agenda-coque-fictif', 'agenda créé avec la vraie connexion');
+    attendreEgal(deconnexions, 0, 'déconnexion pendant l’ouverture de l’agenda');
+    attendre(c.googleConnexion.connecte(), 'jeton retiré pendant l’ouverture de l’agenda');
+    attendre(c.requetes.every(r => !r.url.pathname.includes('calendarList')), 'liste des agendas lue sans droit');
+    attendreEgal(c.proprietesDrive.cap_agenda_id, 'agenda-coque-fictif', 'identifiant rangé dans le Drive');
+  });
+
+  await testAsync('Google Agenda : formats d’heures en description', async c => {
     let cree = false;
     const descriptions = ['14h30 – FICTIF', '14h – FICTIF', '14:30 – FICTIF', '9h05 – FICTIF',
       '25h30 – FICTIF', '14h99 – FICTIF', '14h300 – FICTIF', 'FICTIF à 14h'];
     c.repondre = async r => {
-      if (r.url.pathname.endsWith('/users/me/calendarList')) {
-        const erreur = new Error('Accès refusé FICTIF');
-        erreur.statut = 403;
-        throw erreur;
-      }
       if (r.methode === 'POST' && r.url.pathname === '/calendar/v3/calendars') {
         cree = true;
         return reponseGoogle({ id: 'agenda-secondaire-fictif' });
@@ -1603,7 +1656,7 @@ TESTS_JS = r"""
       throw new Error('Requête inattendue FICTIF');
     };
     const rendezVous = await c.agenda().prochainsRendezVous(8);
-    attendre(cree, '403 ne doit pas empêcher la création de l’agenda secondaire');
+    attendre(cree, 'agenda secondaire non créé');
     attendreEgal(rendezVous.map(rendezVous => rendezVous.heure),
       ['14:30', '14:00', '14:30', '09:05', '', '', '', ''], 'formats exacts et heures invalides');
   });
@@ -1620,6 +1673,8 @@ TESTS_JS = r"""
     };
     c.agendaModifiable = 'agenda-fictif';
     c.localStorage.setItem('cap_google_agenda_v1', c.agendaModifiable);
+    // Identifiant déjà rangé dans le Drive : les tests de fiche ne voient que les appels à l'agenda.
+    c.localStorage.setItem('cap_google_agenda_drive_v1', c.agendaModifiable);
     c.repondre = async r => {
       const base = `/calendar/v3/calendars/${encodeURIComponent(c.agendaModifiable)}`;
       if (r.methode === 'GET' && r.url.pathname === base) {
@@ -1744,10 +1799,8 @@ TESTS_JS = r"""
     const evenement = preparerFicheRendezVous(c);
     c.localStorage.setItem('cap_google_agenda_v1', 'primary');
     c.agendaModifiable = 'agenda-decouvert-fictif';
-    const repondre = c.repondre;
-    c.repondre = async r => r.url.pathname === '/calendar/v3/users/me/calendarList'
-      ? reponseGoogle({ items: [{ id: 'primary', summary: REGLAGES_GOOGLE.nom_agenda, primary: true },
-        { id: c.agendaModifiable, summary: REGLAGES_GOOGLE.nom_agenda, primary: false }] }) : repondre(r);
+    c.localStorage.removeItem('cap_google_agenda_drive_v1');
+    c.proprietesDrive.cap_agenda_id = c.agendaModifiable;
     await c.agenda().modifierRendezVous(evenement.id, { lieu: 'Autre lieu FICTIF' });
     attendreEgal(c.localStorage.getItem('cap_google_agenda_v1'), c.agendaModifiable, 'identifiant découvert mémorisé');
     attendreEgal(c.requetes.filter(r => r.methode === 'PATCH').map(r => r.url.pathname),
@@ -5106,8 +5159,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v36['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v36")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v37['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v37")
 
 
 def verifier_precache_fichiers_existent():
