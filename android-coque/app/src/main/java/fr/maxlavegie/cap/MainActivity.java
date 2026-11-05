@@ -443,6 +443,7 @@ public class MainActivity extends Activity {
                         int lus;
                         while ((lus = entree.read(tampon)) > 0) sortie.write(tampon, 0, lus);
                     }
+                    // Lecture du texte de CETTE page ; un échec est signalé pour cette page seulement.
                     String texte = "";
                     boolean lu = true;
                     try {
@@ -451,10 +452,14 @@ public class MainActivity extends Activity {
                     } catch (Exception erreur) {
                         lu = false;
                     }
-                    liste.put(new JSONObject()
+                    JSONObject page = new JSONObject()
                         .put("url", "https://maxlavegie-dev.github.io" + PREFIXE_SCANS + nom)
+                        .put("numero", i + 1)
                         .put("texte", texte)
-                        .put("lu", lu));
+                        .put("caracteres", texte.length())
+                        .put("lu", lu);
+                    if (!lu) page.put("erreur", "Lecture du texte échouée sur la page " + (i + 1) + ".");
+                    liste.put(page);
                 }
                 scanEnCours = false;
                 renvoyerScan(new JSONObject().put("pages", liste));

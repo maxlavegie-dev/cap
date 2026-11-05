@@ -1022,7 +1022,19 @@ TESTS_JS = r"""
     return { lignes, appels, options: { journaux: journauxFaux, scannerAndroid: scanneur, classement: classementFaux } };
   }
 
-  await test('écran Google : pages reçues, nom proposé, « Oui » = nom retenu, une ligne au Journal Numérisation', async () => {
+  async function scanGoogle(g, pages) {
+    const e = await demarrerEcran(g.options);
+    cliquer(e.id('ouvrir-scanner'));
+    await pause(200);
+    await e.ecran.recevoirScanGoogle({ pages: pages.map(p => ({ url: pageJpegFictive(), lu: true, ...p })) });
+    return e;
+  }
+  async function terminerPuisVoir(e) {
+    cliquer(e.id('scanner-terminer'));
+    await pause(300);
+  }
+
+  await test('écran Google : rien d’enregistré avant « Terminé » et la réponse ; fenêtre en haut ; « Oui » = nom retenu ; journal précis', async () => {
     const g = monterGoogle();
     const e = await demarrerEcran(g.options);
     cliquer(e.id('ouvrir-scanner'));
@@ -1036,61 +1048,89 @@ TESTS_JS = r"""
     ] });
     egal(res.pages, 2, 'pages reçues');
     attendre(g.appels.includes('oublier'), 'pages laissées sur le téléphone');
-    attendre(!e.id('scanner-proposition').hidden, 'proposition cachée');
+    attendre(e.id('scanner-proposition').hidden, 'fenêtre affichée avant « Terminé »');
+    await terminerPuisVoir(e);
+    attendre(!e.id('scanner-proposition').hidden, 'fenêtre absente après « Terminé »');
+    const fenetre = e.id('scanner');
+    attendre(fenetre.querySelector('header').nextElementSibling === e.id('scanner-proposition'), 'fenêtre pas en haut');
+    egal((await e.file.lister()).length, 0, 'scan enregistré avant la réponse');
     egal(e.id('scanner-proposition-nom').textContent, '2026-03-12 Releve mutuelle fictive Prenom_fictif.pdf', 'nom proposé');
+    attendre(e.id('scanner-proposition-info').textContent.includes('36 caractères lus'), `caractères : ${e.id('scanner-proposition-info').textContent}`);
+    attendre(e.id('scanner-proposition-daccord').hidden && !e.id('scanner-proposition-oui').hidden, 'mauvais boutons avec un nom');
     cliquer(e.id('scanner-proposition-oui'));
-    cliquer(e.id('scanner-terminer'));
     await pause(1500);
     const fiche = (await e.file.lister())[0];
     egal([fiche.pages, fiche.nom_valide], [2, '2026-03-12 Releve mutuelle fictive Prenom_fictif.pdf'], 'nom retenu après Oui');
     attendre(fiche.nom.startsWith('SCAN-'), 'nom d’origine perdu');
     egal(g.lignes.length, 1, 'ligne au Journal Numérisation');
     const l = g.lignes[0];
-    egal([l.journal, l.action, l.resultat], ['numerisation', 'Lecture du texte', 'mutuelle fictive'], 'ligne du journal');
-    attendre(l.details.includes('réponse : Oui') && l.details.includes(`ancien nom : ${fiche.nom}`)
-      && l.details.includes('nom proposé : 2026-03-12 Releve mutuelle fictive Prenom_fictif.pdf'), `détails : ${l.details}`);
-    attendre(!l.details.includes('Relevé du 12/03/2026'), 'texte lu recopié dans le journal');
+    egal([l.journal, l.action, l.resultat], ['numerisation', 'Lecture du texte', 'mot-clé : mutuelle fictive'], 'ligne du journal');
+    attendre(l.details.includes('caractères lus : 36') && l.details.includes('pages lues : 2 sur 2') && l.details.includes('réponse : Oui')
+      && l.details.includes(`ancien nom : ${fiche.nom}`), `détails : ${l.details}`);
+    attendre(!l.details.includes('Relevé du 12/03/2026') && !l.details.includes('MUTUELLE FICTIVE'), 'texte lu recopié dans le journal');
   });
 
-  await test('écran Google : « Non » ou aucune réponse = nom SCAN-… gardé ; « Modifier » = nom changé par Max', async () => {
-    for (const [action, attendu, reponse] of [['non', '', 'Non'], ['rien', '', 'sans réponse'], ['modifier', '2026-03-12 Mutuelle corrigee FICTIF.pdf', 'Modifié']]) {
+  await test('écran Google : « Non », « Modifier », aucun mot-clé (« D’accord » ou nom écrit par Max)', async () => {
+    const cas = [
+      ['non', 'MUTUELLE FICTIVE le 12/03/2026', '', 'Non', 'mot-clé : mutuelle fictive'],
+      ['modifier', 'MUTUELLE FICTIVE le 12/03/2026', '2026-03-12 Mutuelle corrigee FICTIF.pdf', 'Modifié', 'mot-clé : mutuelle fictive'],
+      ['daccord', 'Prospectus FICTIF', '', 'D’accord', 'aucun mot-clé trouvé'],
+      ['ecrire', 'Prospectus FICTIF', 'Prospectus FICTIF ecrit par Max.pdf', 'Écrit par Max', 'aucun mot-clé trouvé']
+    ];
+    for (const [action, texte, attendu, reponse, resultat] of cas) {
       const g = monterGoogle();
-      const e = await demarrerEcran(g.options);
-      cliquer(e.id('ouvrir-scanner'));
-      await pause(200);
-      await e.ecran.recevoirScanGoogle({ pages: [{ url: pageJpegFictive(), texte: 'MUTUELLE FICTIVE le 12/03/2026', lu: true }] });
+      const e = await scanGoogle(g, [{ texte }]);
+      await terminerPuisVoir(e);
       if (action === 'non') cliquer(e.id('scanner-proposition-non'));
-      if (action === 'modifier') {
-        cliquer(e.id('scanner-proposition-modifier'));
-        attendre(!e.id('scanner-proposition-modification').hidden, 'champ de modification caché');
-        e.id('scanner-proposition-champ').value = '2026-03-12 Mutuelle corrigee FICTIF';
+      if (action === 'daccord') {
+        attendre(e.id('scanner-proposition-oui').hidden && !e.id('scanner-proposition-daccord').hidden && !e.id('scanner-proposition-ecrire').hidden, 'boutons sans mot-clé');
+        attendre(e.id('scanner-proposition-info').textContent.includes('aucun mot-clé du tableur trouvé'), 'message sans mot-clé');
+        cliquer(e.id('scanner-proposition-daccord'));
+      }
+      if (action === 'modifier' || action === 'ecrire') {
+        cliquer(e.id(action === 'modifier' ? 'scanner-proposition-modifier' : 'scanner-proposition-ecrire'));
+        attendre(!e.id('scanner-proposition-modification').hidden && !e.id('scanner-proposition-oui').hidden, 'saisie absente');
+        egal((await e.file.lister()).length, 0, `enregistré avant « Oui » (${action})`);
+        e.id('scanner-proposition-champ').value = attendu.replace(/\.pdf$/, '');
         cliquer(e.id('scanner-proposition-oui'));
       }
-      cliquer(e.id('scanner-terminer'));
       await pause(1500);
       const fiche = (await e.file.lister())[0];
       egal(fiche.nom_valide, attendu, `nom retenu (${action})`);
-      attendre(g.lignes.length === 1 && g.lignes[0].details.includes(`réponse : ${reponse}`), `réponse au journal (${action}) : ${JSON.stringify(g.lignes)}`);
+      attendre(g.lignes.length === 1 && g.lignes[0].resultat === resultat && g.lignes[0].details.includes(`réponse : ${reponse}`),
+        `journal (${action}) : ${JSON.stringify(g.lignes)}`);
     }
   });
 
-  await test('écran Google : aucun mot-clé, tableur injoignable ou annulation = aucune proposition, rien renommé', async () => {
+  await test('écran Google : lecture échouée page par page, aucun texte lu, tableur non lu, annulation', async () => {
     let g = monterGoogle();
-    let e = await demarrerEcran(g.options);
-    cliquer(e.id('ouvrir-scanner'));
-    await pause(200);
-    await e.ecran.recevoirScanGoogle({ pages: [{ url: pageJpegFictive(), texte: 'Prospectus FICTIF', lu: true }] });
-    attendre(e.id('scanner-proposition-oui').hidden && e.id('scanner-proposition-info').textContent.includes('SCAN-'), 'proposition sans mot-clé');
-    cliquer(e.id('scanner-terminer'));
+    let e = await scanGoogle(g, [{ texte: 'MUTUELLE FICTIVE' }, { lu: false, texte: '' }]);
+    attendre(e.id('scanner-message').textContent.includes('Lecture échouée : page 2'), `échec non signalé : ${e.id('scanner-message').textContent}`);
+    await terminerPuisVoir(e);
+    attendre(e.id('scanner-proposition-info').textContent.includes('lecture échouée : page 2'), 'échec absent de la fenêtre');
+    cliquer(e.id('scanner-proposition-non'));
     await pause(1500);
-    egal((await e.file.lister())[0].nom_valide, '', 'renommé sans mot-clé');
-    egal(g.lignes[0].resultat, 'aucun', 'journal : aucun mot-clé');
+    attendre(g.lignes[0].details.includes('pages lues : 1 sur 2') && g.lignes[0].details.includes('lecture échouée : page 2'), `journal : ${g.lignes[0].details}`);
+    g = monterGoogle();
+    e = await scanGoogle(g, [{ lu: false, texte: '' }]);
+    await terminerPuisVoir(e);
+    attendre(e.id('scanner-proposition-info').textContent.includes('Lecture du texte échouée sur toutes les pages'), 'échec total non dit');
+    cliquer(e.id('scanner-proposition-daccord'));
+    await pause(1500);
+    egal(g.lignes[0].resultat, 'lecture échouée', 'journal : lecture échouée');
+    g = monterGoogle();
+    e = await scanGoogle(g, [{ texte: '   ' }]);
+    await terminerPuisVoir(e);
+    cliquer(e.id('scanner-proposition-daccord'));
+    await pause(1500);
+    egal(g.lignes[0].resultat, 'aucun texte lu', 'journal : aucun texte lu');
     g = monterGoogle({ tableurEnPanne: true });
-    e = await demarrerEcran(g.options);
-    cliquer(e.id('ouvrir-scanner'));
-    await pause(200);
-    await e.ecran.recevoirScanGoogle({ pages: [{ url: pageJpegFictive(), texte: 'MUTUELLE FICTIVE', lu: true }] });
-    attendre(e.id('scanner-proposition-oui').hidden && e.id('scanner-proposition-info').textContent.includes('tableur'), 'panne du tableur non dite');
+    e = await scanGoogle(g, [{ texte: 'MUTUELLE FICTIVE' }]);
+    await terminerPuisVoir(e);
+    attendre(e.id('scanner-proposition-info').textContent.includes('tableur injoignable FICTIF'), 'panne du tableur non dite');
+    cliquer(e.id('scanner-proposition-daccord'));
+    await pause(1500);
+    egal(g.lignes[0].resultat, 'tableur non lu (tableur injoignable FICTIF)', 'journal : tableur non lu');
     g = monterGoogle();
     e = await demarrerEcran(g.options);
     cliquer(e.id('ouvrir-scanner'));
