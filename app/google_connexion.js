@@ -118,7 +118,7 @@ const googleConnexion = (() => {
 
   async function appeler(adresse, options = {}) {
     const url = new URL(adresse);
-    if (url.protocol !== 'https:' || !['www.googleapis.com', 'sheets.googleapis.com'].includes(url.hostname)) {
+    if (url.protocol !== 'https:' || !['www.googleapis.com', 'sheets.googleapis.com', 'docs.googleapis.com'].includes(url.hostname)) {
       throw new Error('Adresse Google non autorisée.');
     }
     const valeur = jeton();

@@ -1790,16 +1790,29 @@
         : `Scans : aucun dossier choisi. Choisis « ${REGLAGES_GOOGLE.dossier_documents_personnels} ».`;
     parId('choisir-dossier-documents').disabled = !cle;
     parId('oublier-dossier-documents').hidden = !documents;
+    // Classement des scans (05/11/2026) : Doc d'architecture et tableur, choisis dans Chrome.
+    const architecture = googlePicker.dossierChoisi('architecture');
+    const tableur = googlePicker.dossierChoisi('tableur_classement');
+    parId('etat-classement').textContent = architecture && tableur
+      ? `Classement : Doc « ${architecture.nom || architecture.id} » et tableur « ${tableur.nom || tableur.id} » choisis.`
+      : window.PontMicroAndroid
+        ? 'Classement : Doc d’architecture et tableur pas encore choisis. Choisis-les dans Cap ouvert avec Chrome.'
+        : 'Classement : Doc d’architecture et tableur pas encore choisis.';
+    parId('choisir-fichiers-classement').disabled = !cle;
+    parId('verifier-classement').hidden = !(architecture && tableur);
   }
 
   parId('ouvrir-reglages-drive').addEventListener('click', event => {
     ouvrir(reglagesDrive, parId('titre-reglages-drive'), event.currentTarget);
     afficherDrive();
     // Coque Android : le dossier des scans, choisi dans Chrome, est relu dans le Drive.
-    if (!googlePicker.dossierDocumentsPersonnels() && googleConnexion.connecte()) {
-      googlePicker.retrouverDepuisDrive('documents_personnels')
-        .then(dossier => { if (dossier) afficherDrive(); })
-        .catch(() => {});
+    if (googleConnexion.connecte()) {
+      for (const role of ['documents_personnels', 'architecture', 'tableur_classement']) {
+        if (googlePicker.dossierChoisi(role)) continue;
+        googlePicker.retrouverDepuisDrive(role)
+          .then(dossier => { if (dossier) afficherDrive(); })
+          .catch(() => {});
+      }
     }
   });
   parId('formulaire-cle-picker').addEventListener('submit', event => {
@@ -1833,6 +1846,11 @@
   // s'ouvrait derrière, invisible. On ferme donc les réglages pendant le choix, puis on les rouvre
   // (aussi si Google ne répond pas du tout, pour que Max voie le diagnostic).
   async function choisirDossierDrive(role, apres) {
+    return choisirDansGoogle(options => googlePicker.choisir(role, options), apres);
+  }
+
+  // Ouvre une fenêtre du sélecteur Google (`lancer`), réglages fermés, puis les rouvre avec le diagnostic.
+  async function choisirDansGoogle(lancer, apres) {
     const lignes = [];
     const rouvrir = () => {
       if (!reglagesDrive.open) reglagesDrive.showModal();
@@ -1847,10 +1865,10 @@
     diagnosticPicker([]);
     try {
       if (!clePicker.presente() || !googleConnexion.connecte()) {
-        await googlePicker.choisir(role, { noter });
+        await lancer({ noter });
       }
       if (reglagesDrive.open) reglagesDrive.close();
-      const dossier = await googlePicker.choisir(role, { noter, surSilence: rouvrir });
+      const dossier = await lancer({ noter, surSilence: rouvrir });
       rouvrir();
       if (dossier) await apres(dossier);
     } catch (erreur) {
@@ -1884,6 +1902,35 @@
           + 'ne le retrouvera pas. Réessaie quand Google répond.');
       }
     });
+  });
+  parId('choisir-fichiers-classement').addEventListener('click', () => {
+    parId('resume-classement').hidden = true;
+    void choisirDansGoogle(options => googlePicker.choisirFichiersClassement(options), async () => {
+      // Rangés aussi dans le Drive, pour que la coque Android les retrouve toute seule.
+      try {
+        await googlePicker.rangerDansDrive('architecture');
+        await googlePicker.rangerDansDrive('tableur_classement');
+        annoncer('Doc d’architecture et tableur enregistrés, aussi pour l’application Cap du téléphone.', true);
+      } catch (erreur) {
+        erreurReglagesDrive('Fichiers choisis ici, mais pas encore rangés dans le Drive : l’application Cap du téléphone '
+          + 'ne les retrouvera pas. Réessaie quand Google répond.');
+      }
+    });
+  });
+  // Étape 1 : lecture seule des deux fichiers, résumé en nombres seulement (aucun nom affiché).
+  parId('verifier-classement').addEventListener('click', async () => {
+    const zone = parId('resume-classement');
+    zone.hidden = false;
+    zone.textContent = 'Lecture du Doc et du tableur…';
+    erreurReglagesDrive('');
+    try {
+      const lecture = await classement.lire();
+      zone.textContent = classement.texteResume(lecture.resume);
+    } catch (erreur) {
+      zone.textContent = '';
+      zone.hidden = true;
+      erreurReglagesDrive(erreur.message);
+    }
   });
   parId('oublier-dossier-documents').addEventListener('click', async () => {
     try {

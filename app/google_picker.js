@@ -9,7 +9,10 @@ const googlePicker = (() => {
   // Personnels » (où Cap crée 00_A_CLASSER pour les scans). Chacun est choisi une fois par Max.
   const cles = Object.freeze({
     app_cap: 'cap_dossier_app_cap_v1',
-    documents_personnels: 'cap_dossier_documents_personnels_v1'
+    documents_personnels: 'cap_dossier_documents_personnels_v1',
+    // Classement des scans (05/11/2026) : deux FICHIERS choisis par Max (pas des dossiers).
+    architecture: 'cap_fichier_architecture_v1',
+    tableur_classement: 'cap_fichier_tableur_classement_v1'
   });
   const titres = Object.freeze({
     app_cap: 'Choisis le dossier « App Cap »',
@@ -115,12 +118,76 @@ const googlePicker = (() => {
     });
   }
 
+  const typeDoc = 'application/vnd.google-apps.document';
+  const typeTableur = 'application/vnd.google-apps.spreadsheet';
+
+  // Classement des scans (05/11/2026) : UNE fenêtre Google à sélection multiple, où Max coche le
+  // Doc d'architecture ET le tableur de classement. Exactement un de chaque, sinon rien n'est gardé.
+  // Même diagnostic que choisir() : jamais la clé ni le jeton dans les textes de `noter`.
+  async function choisirFichiersClassement({ noter = () => {}, surSilence = () => {}, delaiSilence = 20000 } = {}) {
+    if (!clePicker.presente()) throw new Error('Le sélecteur Google n’est pas encore réglé : ajoute ta clé dans les réglages.');
+    noter('Clé du sélecteur : présente sur ce téléphone.');
+    if (!googleConnexion.connecte()) throw new Error('Connecte-toi à Google avant de choisir les fichiers.');
+    noter('Connexion à Google : oui.');
+    await chargerScript();
+    noter('Bibliothèque de Google : chargée.');
+    await chargerPicker();
+    noter('Sélecteur de Google : chargé.');
+    return new Promise((resoudre, rejeter) => {
+      let repondu = false;
+      const minuterie = setTimeout(() => {
+        if (repondu) return;
+        noter(`La fenêtre de Google n’a pas répondu après ${Math.round(delaiSilence / 1000)} secondes.`);
+        surSilence();
+      }, delaiSilence);
+      const vue = new google.picker.DocsView(google.picker.ViewId.DOCS)
+        .setIncludeFolders(true)
+        .setMimeTypes(`${typeDoc},${typeTableur}`);
+      const selecteur = new google.picker.PickerBuilder()
+        .addView(vue)
+        .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+        .setOAuthToken(googleConnexion.jeton())
+        .setDeveloperKey(clePicker.lire())
+        .setTitle('Coche le Doc d’architecture ET le tableur de classement')
+        .setCallback(reponse => {
+          repondu = true;
+          noter(`Réponse de Google : « ${String(reponse && reponse.action).slice(0, 40)} ».`);
+          if (reponse.action === google.picker.Action.LOADED) return;
+          clearTimeout(minuterie);
+          if (reponse.action === google.picker.Action.CANCEL) { resoudre(null); return; }
+          if (reponse.action !== google.picker.Action.PICKED) { rejeter(new Error('Le choix des fichiers a échoué.')); return; }
+          const docs = (reponse.docs || []).filter(doc => doc && doc.id);
+          const architecture = docs.filter(doc => doc.mimeType === typeDoc);
+          const tableur = docs.filter(doc => doc.mimeType === typeTableur);
+          noter(`Fichiers cochés : ${docs.length} (Doc : ${architecture.length}, tableur : ${tableur.length}).`);
+          if (architecture.length !== 1 || tableur.length !== 1) {
+            rejeter(new Error('Coche exactement deux fichiers : le Doc d’architecture et le tableur de classement. Rien n’a été gardé.'));
+            return;
+          }
+          enregistrerDossier(architecture[0].id, architecture[0].name, 'architecture');
+          enregistrerDossier(tableur[0].id, tableur[0].name, 'tableur_classement');
+          resoudre({ architecture: dossierChoisi('architecture'), tableur: dossierChoisi('tableur_classement') });
+        })
+        .build();
+      noter('Fenêtre de Google demandée.');
+      selecteur.setVisible(true);
+    });
+  }
+
   // Secours (05/11/2026) : la fenêtre du sélecteur ne s'ouvre pas dans la coque Android (elle n'a
   // pas la session Google, restée dans Chrome). Max choisit donc « Documents Personnels » dans
   // Chrome ; son identifiant est rangé en information invisible (appProperties) sur le tableau des
   // tâches, que la coque retrouve avec le même droit drive.file, comme l'agenda (google_agenda.js).
-  const proprietesDrive = Object.freeze({ documents_personnels: 'cap_dossier_documents_personnels' });
-  const nomsParDefaut = Object.freeze({ documents_personnels: 'Documents Personnels' });
+  const proprietesDrive = Object.freeze({
+    documents_personnels: 'cap_dossier_documents_personnels',
+    architecture: 'cap_fichier_architecture',
+    tableur_classement: 'cap_fichier_tableur_classement'
+  });
+  const nomsParDefaut = Object.freeze({
+    documents_personnels: 'Documents Personnels',
+    architecture: 'Doc d’architecture',
+    tableur_classement: 'Tableur de classement'
+  });
   function cleRangeDrive(role) { return `${cleDe(role)}_drive`; }
 
   async function adresseTableau() {
@@ -167,5 +234,5 @@ const googlePicker = (() => {
   }
 
   return { dossierAppCap, dossierDocumentsPersonnels, dossierChoisi, enregistrerDossier, oublierDossier,
-    rangerDansDrive, retrouverDepuisDrive, disponible, choisir };
+    rangerDansDrive, retrouverDepuisDrive, disponible, choisir, choisirFichiersClassement };
 })();

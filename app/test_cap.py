@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "scan_lecture.js", "scan_nommage.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1210,7 +1210,8 @@ TESTS_JS = r"""
         // Seule autre modification permise : ranger l'identifiant de l'agenda ou du dossier des scans
         // en information invisible du tableau (appProperties), une seule clé connue à la fois, sans
         // toucher au contenu, au nom ni à rien d'autre du fichier.
-        const clesRangees = ['["cap_agenda_id"]', '["cap_dossier_documents_personnels"]'];
+        const clesRangees = ['["cap_agenda_id"]', '["cap_dossier_documents_personnels"]',
+          '["cap_fichier_architecture"]', '["cap_fichier_tableur_classement"]'];
         const patchIdentifiantAgenda = requete.methode === 'PATCH'
           && requete.url.origin === 'https://www.googleapis.com'
           && requete.url.pathname.startsWith('/drive/v3/files/')
@@ -1699,6 +1700,153 @@ TESTS_JS = r"""
     await attendreRejet(() => m.piqueur.choisir('documents_personnels', { noter: t => lignes.push(t) }), 'clé');
     attendreEgal(m.fenetres.length, 0, 'fenêtre ouverte sans clé');
     attendre(sansSecret(lignes), 'clé ou jeton dans le diagnostic');
+  });
+
+  // ---------- Classement des scans, étape 1 : FAUX Doc et FAUX tableur (noms inventés) ----------
+  function fauxDocArchitecture() {
+    const p = (style, texte, niveau) => ({ paragraph: {
+      paragraphStyle: { namedStyleType: style },
+      ...(niveau === undefined ? {} : { bullet: { nestingLevel: niveau } }),
+      elements: [{ textRun: { content: texte + '\n' } }]
+    } });
+    return { body: { content: [
+      p('TITLE', 'Architecture FICTIVE des archives'),
+      p('HEADING_2', 'Règles pour Cap'),
+      ...Array.from({ length: 7 }, (_, i) => p('NORMAL_TEXT', `Règle fictive ${i + 1}`, 0)),
+      p('HEADING_2', '00_A_CLASSER (le premier)'),
+      p('NORMAL_TEXT', 'Dossier_main_fictif', 0),
+      p('HEADING_2', '01_IDENTITE_ET_ETAT_CIVIL'),
+      p('NORMAL_TEXT', 'Pieces_identite', 0),
+      p('HEADING_2', '02_SANTE'),
+      p('NORMAL_TEXT', 'Commentaire libre sans puce'),
+      p('NORMAL_TEXT', 'Prenom_fictif', 0),
+      p('NORMAL_TEXT', 'Remboursements', 1),
+      p('NORMAL_TEXT', 'Médecine_du_travail_et_expertises', 1),
+      p('NORMAL_TEXT', 'Medecins', 1),
+      p('NORMAL_TEXT', 'Cardiologie', 2),
+      p('NORMAL_TEXT', 'Pneumologie', 2),
+      p('NORMAL_TEXT', 'Autre_fictif (aucun sous-dossier pour l’instant)', 0)
+    ] } };
+  }
+  function fauxTableurClassement() {
+    return [
+      ['Mot-clé repéré', 'Organisme', 'Chemin de destination', 'Type de document', 'Modèle de titre'],
+      ['carte test Prenom_fictif', 'Mairie Fictive', '01_IDENTITE_ET_ETAT_CIVIL / Pieces_identite', 'Carte d’identité', '[date] Carte test Prenom_fictif Nom_fictif'],
+      ['mutuelle fictive', 'Mutuelle Fictive', '02_SANTE / Prenom_fictif / Remboursements', 'Relevé', '[date] Releve mutuelle fictive Prenom_fictif'],
+      ['ordonnance fictive', 'Cabinet Fictif', '02_SANTE / Prenom_fictif / Medecins / Cardiologie', 'Ordonnance', '[date] Ordonnance cardiologie Prenom_fictif'],
+      ['medecine du travail fictive', 'Service Fictif', '02_SANTE / Prenom_fictif / Medecine_du_travail_et_expertises', 'Convocation', '[date] Convocation medecine du travail Prenom_fictif'],
+      ['banque fictive', 'Banque Fictive', '04_BANQUE_ET_FINANCES / Prenom_fictif / Comptes_bancaires', 'Relevé', '[date] Releve banque fictive'],
+      ['', '', '', '', ''],
+      ['ligne incomplète fictive', 'Organisme Fictif', '', 'Courrier', '']
+    ];
+  }
+
+  await testAsync('Classement étape 1 : Doc lu par niveaux, règles et 00_A_CLASSER écartés, parenthèses retirées', async c => {
+    const classementIsole = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: {} });
+    const arbre = classementIsole.analyserArchitecture(fauxDocArchitecture());
+    attendreEgal(arbre.racine.enfants.map(e => e.nom), ['01_IDENTITE_ET_ETAT_CIVIL', '02_SANTE'], 'dossiers principaux');
+    attendreEgal(arbre.sections_ignorees, 2, 'règles et 00_A_CLASSER écartés');
+    const sante = arbre.racine.enfants[1];
+    attendreEgal(sante.enfants.map(e => e.nom), ['Prenom_fictif', 'Autre_fictif'], 'niveau 1 et parenthèse retirée');
+    attendreEgal(sante.enfants[0].enfants.map(e => e.nom), ['Remboursements', 'Médecine_du_travail_et_expertises', 'Medecins'], 'niveau 2, accent gardé');
+    attendreEgal(sante.enfants[0].enfants[2].enfants.map(e => e.nom), ['Cardiologie', 'Pneumologie'], 'niveau 3');
+    attendre(!JSON.stringify(arbre).includes('Règle fictive') && !JSON.stringify(arbre).includes('Dossier_main_fictif'), 'règle ou archive faite main lue comme dossier');
+    attendreEgal(arbre.doutes.length, 0, 'doutes inattendus');
+  });
+
+  await testAsync('Classement étape 1 : tableur de 5 lignes, chemins vérifiés dans le Doc, nom exact du Doc gardé', async c => {
+    const classementIsole = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: {} });
+    const arbre = classementIsole.analyserArchitecture(fauxDocArchitecture());
+    const tableur = classementIsole.analyserTableur(fauxTableurClassement());
+    attendreEgal(tableur.lignes.length, 5, 'lignes lues');
+    attendreEgal(tableur.ignorees.map(l => l.numero), [8], 'ligne incomplète écartée (ligne 8), ligne vide ignorée');
+    attendreEgal(tableur.lignes[2].chemin, ['02_SANTE', 'Prenom_fictif', 'Medecins', 'Cardiologie'], 'chemin coupé sur « / »');
+    const v = tableur.lignes.map(l => classementIsole.verifierChemin(l.chemin, arbre));
+    attendreEgal(v.map(x => x.ok), [true, true, true, true, false], 'chemins trouvés');
+    attendreEgal(v[3].noms[2], 'Médecine_du_travail_et_expertises', 'sans accent dans le tableur, nom exact du Doc');
+    attendreEgal([v[4].raison, v[4].niveau], ['absent_du_doc', 0], 'chemin absent du Doc refusé');
+    const resume = classementIsole.resumer(tableur, arbre);
+    attendreEgal([resume.lignes, resume.lignes_ignorees, resume.dossiers_principaux, resume.chemins_trouves, resume.chemins_absents],
+      [5, 1, 2, 4, 1], 'résumé');
+    const texte = classementIsole.texteResume(resume);
+    attendre(['Prenom_fictif', 'Fictive', 'SANTE', 'carte test'].every(mot => !texte.includes(mot)), 'un nom apparaît dans le résumé');
+    // Doublon dans le Doc : deux noms identiques sans accents au même endroit = refus, jamais de choix.
+    const double = fauxDocArchitecture();
+    double.body.content.push({ paragraph: { paragraphStyle: { namedStyleType: 'NORMAL_TEXT' }, bullet: { nestingLevel: 0 },
+      elements: [{ textRun: { content: 'prénom_FICTIF\n' } }] } });
+    const arbreDouble = classementIsole.analyserArchitecture(double);
+    attendreEgal(arbreDouble.doutes.map(d => d.type), ['double'], 'doublon signalé');
+    attendreEgal(classementIsole.verifierChemin(['02_SANTE', 'Prenom_fictif', 'Remboursements'], arbreDouble).raison,
+      'double_dans_le_doc', 'chemin passant par un doublon refusé');
+  });
+
+  await testAsync('Classement étape 1 : lecture dans le Drive, première feuille quel que soit son nom, lecture seule', async c => {
+    const piqueur = {
+      dossierChoisi: role => ({ architecture: { id: 'doc-fictif' }, tableur_classement: { id: 'tableur-fictif' } })[role],
+      retrouverDepuisDrive: async () => null
+    };
+    c.repondre = async r => {
+      if (r.url.hostname === 'sheets.googleapis.com' && r.url.pathname === '/v4/spreadsheets/tableur-fictif') {
+        return reponseGoogle({ sheets: [{ properties: { title: 'Feuille fictive' } }, { properties: { title: 'Autre' } }] });
+      }
+      if (r.url.hostname === 'sheets.googleapis.com' && r.url.pathname.startsWith('/v4/spreadsheets/tableur-fictif/values/')) {
+        attendreEgal(decodeURIComponent(r.url.pathname.split('/values/')[1]), "'Feuille fictive'!A:E", 'première feuille lue');
+        return reponseGoogle({ values: fauxTableurClassement() });
+      }
+      if (r.url.hostname === 'docs.googleapis.com' && r.url.pathname === '/v1/documents/doc-fictif') return reponseGoogle(fauxDocArchitecture());
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const classementIsole = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: piqueur });
+    const lecture = await classementIsole.lire();
+    attendreEgal([lecture.resume.lignes, lecture.resume.chemins_trouves], [5, 4], 'lecture complète');
+    attendre(c.requetes.every(r => r.methode === 'GET'), 'écriture pendant la lecture');
+    // Rien de choisi : Cap le dit, sans aucune requête.
+    const sansChoix = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion,
+      googlePicker: { dossierChoisi: () => null, retrouverDepuisDrive: async () => null } });
+    const avant = c.requetes.length;
+    await attendreRejet(() => sansChoix.lire(), 'Choisis d’abord le Doc');
+    attendreEgal(c.requetes.length, avant, 'requête sans fichier choisi');
+  });
+
+  await testAsync('Classement étape 1 : une fenêtre à sélection multiple, exactement un Doc et un tableur', async c => {
+    function monter(docs) {
+      const fonctions = [];
+      const fauxGoogle = { picker: {
+        Action: { PICKED: 'picked', CANCEL: 'cancel', LOADED: 'loaded' }, ViewId: { DOCS: 'docs' },
+        Feature: { MULTISELECT_ENABLED: 'multi' },
+        DocsView: class { setIncludeFolders() { return this; } setMimeTypes(t) { this.types = t; return this; } },
+        PickerBuilder: class {
+          addView() { return this; } enableFeature(f) { fonctions.push(f); return this; } setOAuthToken() { return this; }
+          setDeveloperKey() { return this; } setTitle() { return this; } setCallback(f) { this.rappel = f; return this; }
+          build() { const b = this; return { setVisible: () => b.rappel({ action: 'picked', docs }) }; }
+        }
+      } };
+      const memoire = espaceMemoire();
+      const piqueur = objetIsole(SOURCE_GOOGLE_PICKER, 'googlePicker', {
+        localStorage: memoire, googleConnexion: { connecte: () => true, jeton: () => 'jeton-fictif', appeler: c.fetch },
+        googleSheets: c.tableauAgenda, REGLAGES_GOOGLE, google: fauxGoogle,
+        clePicker: { presente: () => true, lire: () => 'cle-fictive' }, window: { gapi: { load: (n, o) => o.callback() } }
+      });
+      return { piqueur, fonctions, memoire };
+    }
+    const doc = { id: 'doc-fictif', name: 'Architecture FICTIVE', mimeType: 'application/vnd.google-apps.document' };
+    const tableur = { id: 'tableur-fictif', name: 'Classement FICTIF', mimeType: 'application/vnd.google-apps.spreadsheet' };
+    const bon = monter([doc, tableur]);
+    const choix = await bon.piqueur.choisirFichiersClassement();
+    attendreEgal([choix.architecture.id, choix.tableur.id], ['doc-fictif', 'tableur-fictif'], 'deux fichiers gardés');
+    attendreEgal(bon.fonctions, ['multi'], 'sélection multiple activée');
+    await bon.piqueur.rangerDansDrive('architecture');
+    await bon.piqueur.rangerDansDrive('tableur_classement');
+    attendreEgal([c.proprietesDrive.cap_fichier_architecture, c.proprietesDrive.cap_fichier_tableur_classement],
+      ['doc-fictif', 'tableur-fictif'], 'identifiants rangés dans le Drive');
+    const coque = monter([]);
+    attendreEgal((await coque.piqueur.retrouverDepuisDrive('tableur_classement')).id, 'tableur-fictif', 'retrouvé par la coque');
+    for (const docs of [[doc], [doc, doc], [tableur, tableur], [doc, tableur, doc]]) {
+      const mauvais = monter(docs);
+      await attendreRejet(() => mauvais.piqueur.choisirFichiersClassement(), 'exactement deux fichiers');
+      attendreEgal([mauvais.piqueur.dossierChoisi('architecture'), mauvais.piqueur.dossierChoisi('tableur_classement')],
+        [null, null], 'choix partiel gardé');
+    }
   });
 
   await testAsync('Google Agenda : Drive injoignable, aucun second agenda créé dans le doute', async c => {
@@ -5246,8 +5394,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v39['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v39")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v40['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v40")
 
 
 def verifier_precache_fichiers_existent():
@@ -5356,6 +5504,7 @@ def construire_page():
         "SOURCE_SYNCHRO_LISTES": "synchro_listes.js",
         "SOURCE_SAUVEGARDE_DRIVE": "sauvegarde_drive.js",
         "SOURCE_GOOGLE_PICKER": "google_picker.js",
+        "SOURCE_CLASSEMENT": "classement.js",
         "SOURCE_FICHIERS_VOCAUX": "fichiers_vocaux.js",
         "SOURCE_FICHIERS_VOCAUX_DRIVE": "fichiers_vocaux_drive.js",
         "SOURCE_FICHIERS_VOCAUX_CONTROLEUR": "fichiers_vocaux_controleur.js",
