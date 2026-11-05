@@ -173,8 +173,28 @@ public class MainActivity extends Activity {
         String adresseRetour = adresseDeRetourGoogle(intention);
         if (adresseRetour != null && vue != null) {
             afficherDebugSiRetourGoogle(adresseRetour, "onNewIntent");
+            chargerAdresseRetour(adresseRetour);
+        }
+    }
+
+    // Étape C.4 (05/11/2026) : quand la coque est restée ouverte pendant la connexion, Cap est déjà
+    // affiché sur la même page que l'adresse de retour ; seule la partie après « # » (le jeton)
+    // change. Dans ce cas, le navigateur ne recharge pas la page et Cap ne lit jamais le jeton
+    // (il ne le lit qu'au démarrage, dans google_connexion.js). On force donc un vrai
+    // rechargement sur l'adresse de retour, exactement comme Google le fait sur le web.
+    private void chargerAdresseRetour(String adresseRetour) {
+        String actuelle = vue.getUrl();
+        if (actuelle != null && sansFragment(actuelle).equals(sansFragment(adresseRetour))) {
+            vue.evaluateJavascript("location.replace(" + JSONObject.quote(adresseRetour) + ");"
+                + "location.reload();", null);
+        } else {
             vue.loadUrl(adresseRetour);
         }
+    }
+
+    private static String sansFragment(String adresse) {
+        int position = adresse.indexOf('#');
+        return position < 0 ? adresse : adresse.substring(0, position);
     }
 
     // DEBUG TEMPORAIRE (étape C.1/C.3, 05/11/2026) : à retirer après le diagnostic de la coque
