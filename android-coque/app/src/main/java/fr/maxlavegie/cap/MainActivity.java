@@ -32,6 +32,18 @@ import android.widget.FrameLayout;
 import androidx.browser.customtabs.CustomTabsIntent;
 import androidx.core.content.FileProvider;
 
+import com.google.android.gms.tasks.Tasks;
+import com.google.mlkit.vision.common.InputImage;
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanner;
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions;
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning;
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult;
+import com.google.mlkit.vision.text.Text;
+import com.google.mlkit.vision.text.TextRecognition;
+import com.google.mlkit.vision.text.TextRecognizer;
+import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
@@ -65,6 +77,11 @@ public class MainActivity extends Activity {
     private static final int CODE_PERMISSION_CAMERA_PAGE = 101;
     private static final int CODE_PERMISSION_CAMERA_PHOTO = 102;
     private static final int CODE_PHOTO = 200;
+    private static final int CODE_SCANNER = 300;
+    // Numérisation, étape 3 (05/11/2026) : pages du scanner de Google, servies à Cap depuis ce
+    // dossier temporaire privé, puis effacées (à la demande de Cap, et à chaque démarrage).
+    private static final String PREFIXE_SCANS = "/cap/app/__coque__/scan/";
+    private boolean scanEnCours = false;
 
     // Caméra (05/11/2026) : demande de caméra de la page en attente de l'accord d'Android, et
     // bouton « appareil photo du téléphone » en attente de la photo.
@@ -130,6 +147,7 @@ public class MainActivity extends Activity {
         reglages.setDatabaseEnabled(true);
         reglages.setMediaPlaybackRequiresUserGesture(false);
         vue.addJavascriptInterface(new PontMicroAndroid(), "PontMicroAndroid");
+        vue.addJavascriptInterface(new ScannerAndroid(), "ScannerAndroid");
         vue.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
@@ -140,6 +158,8 @@ public class MainActivity extends Activity {
             // Version « essai » seulement : voir reponseLocale. Dans la coque normale, renvoie null.
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                WebResourceResponse scan = reponseScan(request.getUrl());
+                if (scan != null) return scan;
                 WebResourceResponse locale = reponseLocale(request.getUrl());
                 return locale != null ? locale : super.shouldInterceptRequest(view, request);
             }
@@ -176,16 +196,15 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Version « essai » seulement : Cap installe un service worker, dont les téléchargements ne
-        // passent pas par le WebViewClient ; on les sert aussi depuis les fichiers de l'APK.
-        if (BuildConfig.FICHIERS_LOCAUX) {
-            ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
-                @Override
-                public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
-                    return reponseLocale(request.getUrl());
-                }
-            });
-        }
+        // Cap installe un service worker, dont les téléchargements ne passent pas par le WebViewClient :
+        // les pages du scanner (toutes versions) et, en version « essai », les fichiers de Cap de l'APK.
+        ServiceWorkerController.getInstance().setServiceWorkerClient(new ServiceWorkerClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebResourceRequest request) {
+                WebResourceResponse scan = reponseScan(request.getUrl());
+                return scan != null ? scan : reponseLocale(request.getUrl());
+            }
+        });
 
         racine = new FrameLayout(this);
         racine.addView(vue, new FrameLayout.LayoutParams(
@@ -194,6 +213,7 @@ public class MainActivity extends Activity {
 
         effacerAncienDiagnostic();
         viderPhotosTemporaires();
+        viderScans();
         String adresseDepart = adresseDeDepart(getIntent());
         vue.loadUrl(adresseDepart);
     }
@@ -302,6 +322,149 @@ public class MainActivity extends Activity {
     // pas la WebView de la coque) : Google refuse de s'afficher dans une fenêtre embarquée.
     private void ouvrirDansChromeSecurise(Uri adresse) {
         new CustomTabsIntent.Builder().build().launchUrl(this, adresse);
+    }
+
+    // ----- Numérisation, étape 3 (05/11/2026) : scanner de Google + lecture du texte -----
+    // Cap appelle ScannerAndroid.scanner() ; l'écran de scan de Google s'ouvre (bords, nettoyage,
+    // plusieurs pages). Au retour, chaque page est copiée dans un dossier temporaire privé, son
+    // texte est lu SUR LE TÉLÉPHONE (aucun envoi, aucune IA), puis Cap reçoit, par
+    // window.__scannerAndroidResultat, la liste {url, texte} des pages. Aucune autorisation Google.
+
+    private File dossierScans() {
+        return new File(getCacheDir(), "scans");
+    }
+
+    // Les pages peuvent être des documents personnels : effacées dès que Cap les a prises.
+    private void viderScans() {
+        File[] fichiers = dossierScans().listFiles();
+        if (fichiers == null) return;
+        for (File fichier : fichiers) {
+            if (!fichier.delete()) fichier.deleteOnExit();
+        }
+    }
+
+    // Sert une page du scanner à Cap, sous l'adresse de Cap (même origine), depuis le dossier privé.
+    private WebResourceResponse reponseScan(Uri adresse) {
+        if (adresse == null || !"https".equals(adresse.getScheme())
+            || !"maxlavegie-dev.github.io".equals(adresse.getHost())) return null;
+        String chemin = adresse.getPath();
+        if (chemin == null || !chemin.startsWith(PREFIXE_SCANS)) return null;
+        String nom = chemin.substring(PREFIXE_SCANS.length());
+        Map<String, String> entetes = new HashMap<>();
+        entetes.put("Cache-Control", "no-store");
+        if (nom.matches("[A-Za-z0-9_.-]{1,80}") && !nom.contains("..")) {
+            try {
+                return new WebResourceResponse("image/jpeg", null, 200, "OK", entetes,
+                    new java.io.FileInputStream(new File(dossierScans(), nom)));
+            } catch (IOException erreur) {
+                // Page absente : 404 ci-dessous.
+            }
+        }
+        return new WebResourceResponse("text/plain", "UTF-8", 404, "Not Found", entetes,
+            new ByteArrayInputStream(new byte[0]));
+    }
+
+    private void renvoyerScan(JSONObject resultat) {
+        runOnUiThread(() -> appelerJs("window.__scannerAndroidResultat && window.__scannerAndroidResultat("
+            + resultat.toString() + ");"));
+    }
+
+    private void renvoyerErreurScan(String message) {
+        scanEnCours = false;
+        try {
+            renvoyerScan(new JSONObject().put("erreur", message));
+        } catch (Exception ignoree) {
+            // JSON impossible : rien à renvoyer.
+        }
+    }
+
+    private class ScannerAndroid {
+        @JavascriptInterface
+        public void scanner() {
+            runOnUiThread(() -> {
+                if (scanEnCours) return;
+                scanEnCours = true;
+                GmsDocumentScannerOptions options = new GmsDocumentScannerOptions.Builder()
+                    .setGalleryImportAllowed(false)
+                    .setPageLimit(30)
+                    .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
+                    .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
+                    .build();
+                GmsDocumentScanner scanneur = GmsDocumentScanning.getClient(options);
+                scanneur.getStartScanIntent(MainActivity.this)
+                    .addOnSuccessListener(intention -> {
+                        try {
+                            startIntentSenderForResult(intention, CODE_SCANNER, null, 0, 0, 0);
+                        } catch (Exception erreur) {
+                            renvoyerErreurScan("L’écran de scan de Google n’a pas pu s’ouvrir.");
+                        }
+                    })
+                    .addOnFailureListener(erreur -> renvoyerErreurScan(
+                        "Le scanner de Google n’est pas disponible sur ce téléphone pour l’instant "
+                        + "(services Google à jour et internet nécessaires la première fois)."));
+            });
+        }
+
+        // Cap a pris les pages : on les efface du téléphone.
+        @JavascriptInterface
+        public void oublierPages() {
+            viderScans();
+        }
+    }
+
+    private void recevoirScan(int resultat, Intent donnees) {
+        if (resultat != RESULT_OK) {
+            scanEnCours = false;
+            try { renvoyerScan(new JSONObject().put("annule", true)); } catch (Exception ignoree) { }
+            return;
+        }
+        GmsDocumentScanningResult scan = GmsDocumentScanningResult.fromActivityResultIntent(donnees);
+        if (scan == null || scan.getPages() == null || scan.getPages().isEmpty()) {
+            renvoyerErreurScan("Le scanner de Google n’a rendu aucune page.");
+            return;
+        }
+        final java.util.List<GmsDocumentScanningResult.Page> pages = scan.getPages();
+        new Thread(() -> {
+            TextRecognizer lecteur = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+            try {
+                viderScans();
+                File dossier = dossierScans();
+                if (!dossier.isDirectory() && !dossier.mkdirs()) throw new IOException("dossier scans");
+                String lot = String.valueOf(System.currentTimeMillis());
+                JSONArray liste = new JSONArray();
+                for (int i = 0; i < pages.size(); i++) {
+                    Uri source = pages.get(i).getImageUri();
+                    String nom = "page_" + lot + "_" + (i + 1) + ".jpg";
+                    File cible = new File(dossier, nom);
+                    try (InputStream entree = getContentResolver().openInputStream(source);
+                         java.io.OutputStream sortie = new java.io.FileOutputStream(cible)) {
+                        if (entree == null) throw new IOException("page illisible");
+                        byte[] tampon = new byte[64 * 1024];
+                        int lus;
+                        while ((lus = entree.read(tampon)) > 0) sortie.write(tampon, 0, lus);
+                    }
+                    String texte = "";
+                    boolean lu = true;
+                    try {
+                        Text resultatTexte = Tasks.await(lecteur.process(InputImage.fromFilePath(MainActivity.this, Uri.fromFile(cible))));
+                        texte = resultatTexte.getText();
+                    } catch (Exception erreur) {
+                        lu = false;
+                    }
+                    liste.put(new JSONObject()
+                        .put("url", "https://maxlavegie-dev.github.io" + PREFIXE_SCANS + nom)
+                        .put("texte", texte)
+                        .put("lu", lu));
+                }
+                scanEnCours = false;
+                renvoyerScan(new JSONObject().put("pages", liste));
+            } catch (Exception erreur) {
+                viderScans();
+                renvoyerErreurScan("Les pages du scanner n’ont pas pu être préparées.");
+            } finally {
+                lecteur.close();
+            }
+        }).start();
     }
 
     // ----- Caméra (05/11/2026) -----
@@ -441,6 +604,10 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int code, int resultat, Intent donnees) {
         super.onActivityResult(code, resultat, donnees);
+        if (code == CODE_SCANNER) {
+            recevoirScan(resultat, donnees);
+            return;
+        }
         if (code != CODE_PHOTO) return;
         Uri photo = photoEnCours;
         File fichierPhoto = fichierPhotoEnCours;

@@ -14,6 +14,10 @@ const scanEcran = (() => {
     const annoncer = options.annoncer || (() => {});
     const file = options.file || scanFile.creer();
     const depot = options.depot || scanDepot;
+    // Étape 3 (05/11/2026) : scanner de Google et texte lu sur le téléphone, dans la coque seulement.
+    const sourceClassement = options.classement || (typeof classement !== 'undefined' ? classement : null);
+    const journauxChantier = options.journaux || (typeof journaux !== 'undefined' ? journaux : null);
+    const scannerAndroid = options.scannerAndroid || (typeof window !== 'undefined' ? window.ScannerAndroid : null);
     const maintenant = options.maintenant || (() => new Date());
     const session = scanDocuments.creerSession();
     const rafale = scanDocuments.creerRafale(options.delaiRafale);
@@ -45,6 +49,19 @@ const scanEcran = (() => {
     let nomPropose = '';
     let nomValide = '';
     let lectureEnCours = false;
+
+    const boutonGoogle = parId('scanner-google');
+    const zoneProposition = parId('scanner-proposition');
+    const propositionInfo = parId('scanner-proposition-info');
+    const propositionNom = parId('scanner-proposition-nom');
+    const propositionModification = parId('scanner-proposition-modification');
+    const propositionChamp = parId('scanner-proposition-champ');
+    const propositionErreur = parId('scanner-proposition-erreur');
+    const propositionStatut = parId('scanner-proposition-statut');
+    const boutonsProposition = ['scanner-proposition-oui', 'scanner-proposition-modifier', 'scanner-proposition-non'].map(parId);
+    // { texte, mot_cle, nom_propose, raison, reponse } : texte lu sur le téléphone, jamais envoyé.
+    let lectureGoogle = null;
+    let nomGoogle = '';
 
     const indicateur = parId('scans-en-attente');
     let minuteurIndicateur = null;
@@ -315,6 +332,176 @@ const scanEcran = (() => {
       nomStatut.textContent = '';
       nomErreur.hidden = true;
       nomErreur.textContent = '';
+      lectureGoogle = null;
+      nomGoogle = '';
+      zoneProposition.hidden = true;
+      propositionModification.hidden = true;
+      propositionErreur.hidden = true;
+      propositionStatut.textContent = '';
+    }
+
+    // ----- Étape 3 : scanner de Google (coque) et nom proposé à partir du texte lu -----
+
+    // Page déjà redressée et nettoyée par Google : pas de second traitement, seulement la taille.
+    async function pageDepuisBlob(blob) {
+      const bitmap = await createImageBitmap(blob);
+      const echelle = Math.min(1, cote_photo_max / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bitmap.width * echelle));
+      canvas.height = Math.max(1, Math.round(bitmap.height * echelle));
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      if (bitmap.close) bitmap.close();
+      const jpeg = await enJpeg(canvas);
+      return { page: { jpeg, largeur: canvas.width, hauteur: canvas.height, vide: false, alertes: [], miniature: miniature(canvas) }, canvas };
+    }
+
+    function lancerScannerGoogle() {
+      if (!scannerAndroid) return;
+      arreterCamera();
+      boutonGoogle.disabled = true;
+      window.__scannerAndroidResultat = resultat => { void recevoirScanGoogle(resultat); };
+      dire('L’écran de scan de Google s’ouvre…');
+      try {
+        scannerAndroid.scanner();
+      } catch (erreur) {
+        boutonGoogle.disabled = false;
+        dire('Le scanner de Google n’a pas pu s’ouvrir.');
+      }
+    }
+
+    async function recevoirScanGoogle(resultat) {
+      boutonGoogle.disabled = false;
+      if (!resultat || resultat.annule) {
+        dire('Scan annulé : rien n’a été gardé.');
+        montrerCamera();
+        void demarrerCamera();
+        return { pages: 0 };
+      }
+      if (resultat.erreur) { dire(String(resultat.erreur)); return { pages: 0, erreur: String(resultat.erreur) }; }
+      const pages = Array.isArray(resultat.pages) ? resultat.pages : [];
+      const textes = [];
+      let illisibles = 0;
+      let prises = 0;
+      validerPage();
+      pageARefaire = null;
+      try {
+        for (const [i, morceau] of pages.entries()) {
+          const reponse = await fetch(morceau.url, { cache: 'no-store' });
+          if (!reponse.ok) throw new Error('Une page du scanner n’a pas pu être récupérée.');
+          const { page, canvas } = await pageDepuisBlob(await reponse.blob());
+          if (i < pages.length - 1) {
+            session.ajouter(page);
+          } else {
+            enRevue = { page, canvas, bords: true, redressee: true };
+            apercu.width = canvas.width;
+            apercu.height = canvas.height;
+            apercu.getContext('2d').drawImage(canvas, 0, 0);
+          }
+          prises++;
+          if (morceau.lu === false) illisibles++;
+          if (morceau.texte) textes.push(String(morceau.texte));
+        }
+      } catch (erreur) {
+        afficherPages();
+        dire(`${erreur.message} Les pages déjà prises sont gardées.`);
+        return { pages: prises, erreur: erreur.message };
+      } finally {
+        try { if (scannerAndroid && scannerAndroid.oublierPages) scannerAndroid.oublierPages(); } catch (erreur) {}
+      }
+      afficherPages();
+      if (enRevue) montrerRevue();
+      lectureGoogle = { texte: [lectureGoogle && lectureGoogle.texte, ...textes].filter(Boolean).join('\n'),
+        mot_cle: '', nom_propose: '', raison: '', reponse: '' };
+      dire(`${prises} page${prises > 1 ? 's' : ''} reçue${prises > 1 ? 's' : ''} du scanner de Google.`
+        + (illisibles ? ` ${illisibles} sans texte lisible.` : ''));
+      await preparerProposition();
+      return { pages: prises, proposition: lectureGoogle.nom_propose };
+    }
+
+    async function preparerProposition() {
+      nomGoogle = '';
+      lectureGoogle.reponse = '';
+      propositionModification.hidden = true;
+      propositionErreur.hidden = true;
+      propositionStatut.textContent = '';
+      let lignes = null;
+      let probleme = '';
+      try {
+        if (!sourceClassement) throw new Error('le tableur n’est pas disponible ici');
+        lignes = await sourceClassement.lireTableurChoisi();
+      } catch (erreur) {
+        probleme = `Je n’ai pas pu lire le tableur de classement (${erreur.message}). Le scan gardera son nom SCAN-… dans 00_A_CLASSER.`;
+      }
+      const p = lignes ? nommageScan.proposer(lectureGoogle.texte, lignes) : { nom: '', mot_cle: '', raison: 'tableur', date: '' };
+      lectureGoogle.mot_cle = p.mot_cle;
+      lectureGoogle.nom_propose = p.nom;
+      lectureGoogle.raison = p.raison;
+      const avecNom = Boolean(p.nom);
+      boutonsProposition.forEach(bouton => { bouton.hidden = !avecNom; });
+      propositionNom.textContent = avecNom ? `${p.nom}.pdf` : '';
+      propositionInfo.textContent = probleme || ({
+        trouve: `Mot-clé repéré : « ${p.mot_cle} ».${p.date ? '' : ' Aucune date lisible : « DATE A PRECISER ».'} Rien n’est renommé tant que tu n’as pas dit Oui.`,
+        aucun: 'Aucun mot-clé du tableur dans le texte lu : le scan gardera son nom SCAN-… dans 00_A_CLASSER.',
+        contradictoire: 'Plusieurs mots-clés qui ne vont pas ensemble : je ne choisis pas. Le scan gardera son nom SCAN-… dans 00_A_CLASSER.',
+        sans_texte: 'Je n’ai pas pu lire de texte sur ces pages : le scan gardera son nom SCAN-… dans 00_A_CLASSER.'
+      })[p.raison];
+      zoneProposition.hidden = false;
+    }
+
+    function repondreOui() {
+      if (!lectureGoogle || !lectureGoogle.nom_propose) return;
+      const modifie = !propositionModification.hidden;
+      const verdict = nommageScan.verifierNom(modifie ? propositionChamp.value : lectureGoogle.nom_propose);
+      if (!verdict.ok) {
+        propositionErreur.textContent = verdict.raison;
+        propositionErreur.hidden = false;
+        return;
+      }
+      propositionErreur.hidden = true;
+      nomGoogle = verdict.base;
+      lectureGoogle.reponse = modifie ? 'Modifié' : 'Oui';
+      propositionModification.hidden = true;
+      propositionNom.textContent = `${verdict.base}.pdf`;
+      const texte = `Nom retenu : ${verdict.base}.pdf. Il sera utilisé quand tu appuieras sur « Terminé ».`;
+      propositionStatut.textContent = texte;
+      dire(texte);
+    }
+
+    function repondreModifier() {
+      if (!lectureGoogle || !lectureGoogle.nom_propose) return;
+      propositionChamp.value = nomGoogle || lectureGoogle.nom_propose;
+      propositionModification.hidden = false;
+      propositionErreur.hidden = true;
+      propositionStatut.textContent = 'Change le nom, puis touche « Oui ».';
+      propositionChamp.focus();
+    }
+
+    function repondreNon() {
+      if (!lectureGoogle) return;
+      nomGoogle = '';
+      lectureGoogle.reponse = 'Non';
+      propositionModification.hidden = true;
+      propositionErreur.hidden = true;
+      const texte = 'D’accord : le scan gardera son nom SCAN-… dans 00_A_CLASSER.';
+      propositionStatut.textContent = texte;
+      dire(texte);
+    }
+
+    // Journal Numérisation : une ligne par lecture (jamais le texte lu), écrite à « Terminé ».
+    function noterLectureGoogle(fiche) {
+      if (!lectureGoogle || !journauxChantier) return;
+      const resultat = lectureGoogle.raison === 'trouve' ? lectureGoogle.mot_cle
+        : lectureGoogle.raison === 'contradictoire' ? `mots-clés contradictoires : ${lectureGoogle.mot_cle}` : 'aucun';
+      try {
+        journauxChantier.ajouter('numerisation', {
+          action: 'Lecture du texte', resultat,
+          details: [`nom proposé : ${lectureGoogle.nom_propose ? `${lectureGoogle.nom_propose}.pdf` : 'aucun'}`,
+            `ancien nom : ${fiche.nom}`, `nom retenu : ${fiche.nom_valide || fiche.nom}`,
+            `réponse : ${lectureGoogle.reponse || 'sans réponse'}`].join(' ; ')
+        });
+      } catch (erreur) {
+        annoncer(`La ligne du Journal Numérisation n’a pas pu être gardée : ${erreur.message}`, false);
+      }
     }
 
     function nomsDejaPris(fiches) {
@@ -424,15 +611,19 @@ const scanEcran = (() => {
         const pdf = scanPdf.assembler(pages.map(p => ({ jpeg: p.jpeg, largeur: p.largeur, hauteur: p.hauteur })));
         const existants = nomsDejaPris(await file.lister());
         const base = nomValide ? scanNommage.verifier(nomValide) : null;
+        // Nom tiré du tableur : seulement après le « Oui » de Max ; sinon, comme avant.
+        const nomRetenu = nomGoogle ? scanNommage.uniqueAvecExtension(nomGoogle, existants)
+          : base && base.ok ? scanNommage.uniqueAvecExtension(base.base, existants) : '';
         fiche = {
           nom: scanDocuments.nomFichier(maintenant(), existants),
           pdf: new Blob([pdf], { type: 'application/pdf' }),
           pages: nombre,
-          texte: texteDocument,
-          nom_propose: nomPropose,
-          nom_valide: base && base.ok ? scanNommage.uniqueAvecExtension(base.base, existants) : ''
+          texte: texteDocument || (lectureGoogle ? lectureGoogle.texte : ''),
+          nom_propose: nomPropose || (lectureGoogle && lectureGoogle.nom_propose ? `${lectureGoogle.nom_propose}.pdf` : ''),
+          nom_valide: nomRetenu
         };
         await file.ajouter(fiche);
+        noterLectureGoogle(fiche);
       } catch (erreur) {
         dire(`Le scan n’a pas pu être enregistré : ${erreur.message} Tes pages sont toujours là.`);
         afficherPages();
@@ -504,6 +695,12 @@ const scanEcran = (() => {
     }
 
     parId('ouvrir-scanner').addEventListener('click', () => { void ouvrir(); });
+    // Le scanner de Google n'existe que dans la coque Android (pont ScannerAndroid).
+    boutonGoogle.hidden = !scannerAndroid;
+    boutonGoogle.addEventListener('click', lancerScannerGoogle);
+    parId('scanner-proposition-oui').addEventListener('click', repondreOui);
+    parId('scanner-proposition-modifier').addEventListener('click', repondreModifier);
+    parId('scanner-proposition-non').addEventListener('click', repondreNon);
     boutonCapturer.addEventListener('click', () => { void capturerDepuisCamera().catch(e => dire(e.message)); });
     parId('scanner-fichier').addEventListener('change', event => {
       const fichier = event.target.files && event.target.files[0];
@@ -551,7 +748,7 @@ const scanEcran = (() => {
 
     return {
       ouvrir, fermer, recevoirImage, terminerDocument, validerPage, lancerDepot, finRafale, afficherEtat,
-      session, rafale, reprendrePage, demanderLecture, accepterLecture, refuserLecture
+      session, rafale, reprendrePage, demanderLecture, accepterLecture, refuserLecture, recevoirScanGoogle
     };
   }
 

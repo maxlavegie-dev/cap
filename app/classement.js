@@ -205,6 +205,13 @@ const classement = (() => {
     return { tableur: lignes, architecture: arbre, resume: resumer(lignes, arbre), etats };
   }
 
+  // Étape 3 : pour proposer un nom, seul le tableur est lu (à chaque scan, rien gardé).
+  async function lireTableurChoisi() {
+    const tableur = await fichierChoisi('tableur_classement');
+    if (!tableur) throw new Error('Choisis d’abord le tableur de classement dans « Réglages du Drive », avec Cap ouvert dans Chrome.');
+    return (await lireTableur(tableur.id)).lignes;
+  }
+
   function refus(erreur) {
     if (erreur && erreur.statut) {
       return `refusé (erreur ${erreur.statut}${erreur.raison ? `, raison : ${erreur.raison}` : ''}).`;
@@ -212,5 +219,5 @@ const classement = (() => {
     return `pas lu (${erreur && erreur.message ? erreur.message : 'erreur inconnue'}).`;
   }
 
-  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire };
+  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire, lireTableurChoisi };
 })();

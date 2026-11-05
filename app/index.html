@@ -534,6 +534,7 @@
       <p id="scanner-aide">Place le document dans le cadre, bien à plat, sur un fond plus sombre.</p>
     </div>
     <p id="scanner-message" role="status" aria-live="polite" hidden></p>
+    <button id="scanner-google" type="button" hidden>Scanner avec Google (recommandé)</button>
     <button id="scanner-capturer" type="button">Prendre la photo</button>
     <label class="bouton-fichier">
       <span>Utiliser l’appareil photo du téléphone</span>
@@ -572,6 +573,22 @@
         <button id="scanner-nom-provisoire" type="button">Garder le nom provisoire</button>
       </div>
       <p id="scanner-nom-statut" role="status"></p>
+    </section>
+    <section id="scanner-proposition" class="proposition-scan" aria-label="Nom proposé à partir du texte lu" hidden>
+      <h3>Nom proposé</h3>
+      <p id="scanner-proposition-info" role="status"></p>
+      <p id="scanner-proposition-nom" class="nom-propose"></p>
+      <label id="scanner-proposition-modification" class="champ-nom-scan" for="scanner-proposition-champ" hidden>
+        <input id="scanner-proposition-champ" type="text" autocomplete="off" spellcheck="false">
+        <span>.pdf</span>
+      </label>
+      <p id="scanner-proposition-erreur" role="alert" hidden></p>
+      <div class="actions-scanner">
+        <button id="scanner-proposition-oui" type="button">Oui</button>
+        <button id="scanner-proposition-modifier" type="button">Modifier</button>
+        <button id="scanner-proposition-non" type="button">Non</button>
+      </div>
+      <p id="scanner-proposition-statut" role="status"></p>
     </section>
     <ol id="scanner-pages" aria-label="Pages du document"></ol>
     <p id="scanner-etat" role="status"></p>
@@ -677,6 +694,7 @@
   <script src="journaux.js"></script>
   <script src="scan_lecture.js"></script>
   <script src="scan_nommage.js"></script>
+  <script src="nommage_scan.js"></script>
   <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>

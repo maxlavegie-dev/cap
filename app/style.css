@@ -2627,3 +2627,17 @@ dialog .micro-tri[aria-pressed="true"] {
   white-space: pre-line;
   font-size: 0.9em;
 }
+
+/* Nom proposé à partir du texte lu (étape 3, 05/11/2026) : fenêtre très lisible, Oui / Modifier / Non. */
+.proposition-scan {
+  font-size: 1.2em;
+}
+.proposition-scan .nom-propose {
+  font-size: 1.3em;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+.proposition-scan .actions-scanner button {
+  min-height: 3.2em;
+  font-size: 1.1em;
+}
