@@ -3,7 +3,6 @@ package fr.maxlavegie.cap;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -21,6 +20,8 @@ import androidx.browser.customtabs.CustomTabsIntent;
 
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 
 // Coque Android qui ouvre Cap tel qu'il est en ligne aujourd'hui (la version web publiée),
@@ -100,6 +101,9 @@ public class MainActivity extends Activity {
     private WebView vue;
     private SpeechRecognizer reconnaisseur;
     private boolean ecouteEnCours = false;
+    // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : diagnostic à afficher dès que la page de retour
+    // de Google aura fini de charger (la page n'existe pas encore au moment où ce texte est connu).
+    private String diagnosticEnAttente;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -126,6 +130,18 @@ public class MainActivity extends Activity {
                 view.evaluateJavascript(SCRIPT_DEBUG_GOOGLE, null);
             }
 
+            // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque
+            // Android. La page est maintenant prête (DOM chargé) : c'est le bon moment pour afficher
+            // le diagnostic capturé avant le chargement (le fragment de retour de Google).
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (diagnosticEnAttente != null) {
+                    afficherDebug(diagnosticEnAttente);
+                    diagnosticEnAttente = null;
+                }
+            }
+
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri adresse = request.getUrl();
@@ -138,7 +154,12 @@ public class MainActivity extends Activity {
         });
 
         setContentView(vue);
-        vue.loadUrl(adresseDeDepart(getIntent()));
+        String adresseDepart = adresseDeDepart(getIntent());
+        // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque
+        // Android. Sur un vrai téléphone, Android tue souvent la coque pendant que Chrome est
+        // ouvert : le retour de Google passe alors par onCreate (ici), pas par onNewIntent.
+        afficherDebugSiRetourGoogle(adresseDepart, "onCreate");
+        vue.loadUrl(adresseDepart);
     }
 
     @Override
@@ -147,25 +168,67 @@ public class MainActivity extends Activity {
         setIntent(intention);
         String adresseRetour = adresseDeRetourGoogle(intention);
         if (adresseRetour != null && vue != null) {
-            // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque
-            // Android. Affiche le détail exact du retour de Google (fragment #...) avant que la page
-            // ne le lise et l'efface : utile si Cap affiche une erreur de vérification de sécurité.
-            Uri uriRetour = Uri.parse(adresseRetour);
-            String fragment = uriRetour.getFragment();
-            if (fragment != null && !fragment.isEmpty()) {
-                afficherDebug("Retour de Google (fragment d'adresse) :\n" + fragment);
-            }
+            afficherDebugSiRetourGoogle(adresseRetour, "onNewIntent");
             vue.loadUrl(adresseRetour);
         }
     }
 
+    // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque
+    // Android. Mémorise le détail exact du retour de Google (fragment #...), pour affichage dès
+    // que la page suivante aura fini de charger (voir onPageFinished) : utile si Cap affiche une
+    // erreur de vérification de sécurité.
+    private void afficherDebugSiRetourGoogle(String adresse, String origine) {
+        if (adresse == null) return;
+        Uri uriRetour = Uri.parse(adresse);
+        String fragment = uriRetour.getFragment();
+        if (fragment != null && !fragment.isEmpty()) {
+            diagnosticEnAttente = "Retour de Google (" + origine + ", fragment d'adresse) :\n" + fragment;
+        }
+    }
+
     // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque Android.
+    // Affiche le diagnostic en grand dans l'écran de Cap (pas de fenêtre native, pas de disparition
+    // automatique, bouton Fermer) et l'écrit en complément dans un fichier du téléphone.
     private void afficherDebug(String texte) {
-        runOnUiThread(() -> new AlertDialog.Builder(this)
-            .setTitle("Diagnostic (temporaire)")
-            .setMessage(texte)
-            .setPositiveButton("OK", null)
-            .show());
+        injecterBanniereDebug(texte);
+        ecrireDiagnosticFichier(texte);
+    }
+
+    private void injecterBanniereDebug(String texte) {
+        if (vue == null) return;
+        String script = "(function(){"
+            + "var ancienne=document.getElementById('cap-diagnostic-temporaire');"
+            + "if(ancienne){ancienne.remove();}"
+            + "var bandeau=document.createElement('div');"
+            + "bandeau.id='cap-diagnostic-temporaire';"
+            + "bandeau.style.cssText='position:fixed;inset:0;background:#fff;color:#000;"
+            + "z-index:2147483647;overflow:auto;padding:16px;font-family:monospace;"
+            + "font-size:14px;';"
+            + "var bouton=document.createElement('button');"
+            + "bouton.textContent='Fermer';"
+            + "bouton.style.cssText='display:block;margin-bottom:12px;padding:12px 20px;"
+            + "font-size:18px;';"
+            + "bouton.onclick=function(){bandeau.remove();};"
+            + "var corps=document.createElement('pre');"
+            + "corps.style.cssText='white-space:pre-wrap;word-break:break-all;margin:0;';"
+            + "corps.textContent=" + JSONObject.quote(texte) + ";"
+            + "bandeau.appendChild(bouton);bandeau.appendChild(corps);"
+            + "(document.body||document.documentElement).appendChild(bandeau);"
+            + "})();";
+        runOnUiThread(() -> vue.evaluateJavascript(script, null));
+    }
+
+    private void ecrireDiagnosticFichier(String texte) {
+        try {
+            File dossier = getExternalFilesDir(null);
+            if (dossier == null) return;
+            File fichier = new File(dossier, "diagnostic_google.txt");
+            try (FileWriter ecrivain = new FileWriter(fichier, false)) {
+                ecrivain.write(texte);
+            }
+        } catch (Exception erreur) {
+            // Diagnostic de confort uniquement : un échec d'écriture ne doit jamais faire planter la coque.
+        }
     }
 
     // Au premier lancement normal (icône de l'appli), on ouvre Cap comme d'habitude. Si la coque
