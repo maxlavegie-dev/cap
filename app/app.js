@@ -1928,7 +1928,7 @@
     erreurReglagesDrive('');
     try {
       const lecture = await classement.lire();
-      zone.textContent = classement.texteResume(lecture.resume);
+      zone.textContent = [...lecture.etats, classement.texteResume(lecture.resume)].join('\n');
     } catch (erreur) {
       zone.textContent = '';
       zone.hidden = true;

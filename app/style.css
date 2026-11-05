@@ -2622,7 +2622,8 @@ dialog .micro-tri[aria-pressed="true"] {
 
 /* Diagnostic du sélecteur Google (05/11/2026) : une étape par ligne. */
 #diagnostic-picker,
-#resume-classement {
+#resume-classement,
+#reglages-drive .erreur {
   white-space: pre-line;
   font-size: 0.9em;
 }

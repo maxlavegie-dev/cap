@@ -1703,30 +1703,24 @@ TESTS_JS = r"""
   });
 
   // ---------- Classement des scans, étape 1 : FAUX Doc et FAUX tableur (noms inventés) ----------
-  function fauxDocArchitecture() {
-    const p = (style, texte, niveau) => ({ paragraph: {
-      paragraphStyle: { namedStyleType: style },
-      ...(niveau === undefined ? {} : { bullet: { nestingLevel: niveau } }),
-      elements: [{ textRun: { content: texte + '\n' } }]
-    } });
-    return { body: { content: [
-      p('TITLE', 'Architecture FICTIVE des archives'),
-      p('HEADING_2', 'Règles pour Cap'),
-      ...Array.from({ length: 7 }, (_, i) => p('NORMAL_TEXT', `Règle fictive ${i + 1}`, 0)),
-      p('HEADING_2', '00_A_CLASSER (le premier)'),
-      p('NORMAL_TEXT', 'Dossier_main_fictif', 0),
-      p('HEADING_2', '01_IDENTITE_ET_ETAT_CIVIL'),
-      p('NORMAL_TEXT', 'Pieces_identite', 0),
-      p('HEADING_2', '02_SANTE'),
-      p('NORMAL_TEXT', 'Commentaire libre sans puce'),
-      p('NORMAL_TEXT', 'Prenom_fictif', 0),
-      p('NORMAL_TEXT', 'Remboursements', 1),
-      p('NORMAL_TEXT', 'Médecine_du_travail_et_expertises', 1),
-      p('NORMAL_TEXT', 'Medecins', 1),
-      p('NORMAL_TEXT', 'Cardiologie', 2),
-      p('NORMAL_TEXT', 'Pneumologie', 2),
-      p('NORMAL_TEXT', 'Autre_fictif (aucun sous-dossier pour l’instant)', 0)
-    ] } };
+  // Faux Doc au format de l'export HTML du Drive : chaque niveau de puce est une liste à part, dont
+  // la classe finit par « -N » ; titre du Doc en p.title ; titres en h1…h6 ; textes dans des span.
+  function fauxDocArchitecture(ajout = '') {
+    const puces = (niveau, noms) => `<ul class="lst-kix_fictif-${niveau} start">`
+      + noms.map(nom => `<li class="c1 li-bullet-0"><span class="c0">${nom}</span></li>`).join('') + '</ul>';
+    return '<html><head><style>.c0{font-weight:400}</style></head><body class="c2 doc-content">'
+      + '<p class="c3 title"><span>Architecture FICTIVE des archives</span></p>'
+      + '<h2 class="c4"><span>Règles pour Cap</span></h2>'
+      + puces(0, Array.from({ length: 7 }, (_, i) => `Règle fictive ${i + 1}`))
+      + '<h2 class="c4"><span>00_A_CLASSER (le premier)</span></h2>' + puces(0, ['Dossier_main_fictif'])
+      + '<h2 class="c4"><span>01_IDENTITE_ET_ETAT_CIVIL</span></h2>' + puces(0, ['Pieces_identite'])
+      + '<h2 class="c4"><span>02_SANTE</span></h2>'
+      + '<p class="c5"><span>Commentaire libre sans puce</span></p>'
+      + puces(0, ['Prenom_fictif'])
+      + puces(1, ['Remboursements', 'Médecine_du_travail_et_expertises', 'Medecins'])
+      + puces(2, ['Cardiologie', 'Pneumologie'])
+      + puces(0, ['Autre_fictif (aucun sous-dossier pour l’instant)'])
+      + ajout + '</body></html>';
   }
   function fauxTableurClassement() {
     return [
@@ -1771,9 +1765,7 @@ TESTS_JS = r"""
     const texte = classementIsole.texteResume(resume);
     attendre(['Prenom_fictif', 'Fictive', 'SANTE', 'carte test'].every(mot => !texte.includes(mot)), 'un nom apparaît dans le résumé');
     // Doublon dans le Doc : deux noms identiques sans accents au même endroit = refus, jamais de choix.
-    const double = fauxDocArchitecture();
-    double.body.content.push({ paragraph: { paragraphStyle: { namedStyleType: 'NORMAL_TEXT' }, bullet: { nestingLevel: 0 },
-      elements: [{ textRun: { content: 'prénom_FICTIF\n' } }] } });
+    const double = fauxDocArchitecture('<ul class="lst-kix_autre-0 start"><li><span>prénom_FICTIF</span></li></ul>');
     const arbreDouble = classementIsole.analyserArchitecture(double);
     attendreEgal(arbreDouble.doutes.map(d => d.type), ['double'], 'doublon signalé');
     attendreEgal(classementIsole.verifierChemin(['02_SANTE', 'Prenom_fictif', 'Remboursements'], arbreDouble).raison,
@@ -1793,19 +1785,57 @@ TESTS_JS = r"""
         attendreEgal(decodeURIComponent(r.url.pathname.split('/values/')[1]), "'Feuille fictive'!A:E", 'première feuille lue');
         return reponseGoogle({ values: fauxTableurClassement() });
       }
-      if (r.url.hostname === 'docs.googleapis.com' && r.url.pathname === '/v1/documents/doc-fictif') return reponseGoogle(fauxDocArchitecture());
+      if (r.url.hostname === 'www.googleapis.com' && r.url.pathname === '/drive/v3/files/doc-fictif/export') {
+        attendreEgal(r.url.searchParams.get('mimeType'), 'text/html', 'Doc exporté en page HTML par le Drive');
+        return new Response(fauxDocArchitecture(), { status: 200, headers: { 'Content-Type': 'text/html' } });
+      }
       throw new Error(`Requête inattendue : ${r.url}`);
     };
     const classementIsole = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: piqueur });
     const lecture = await classementIsole.lire();
     attendreEgal([lecture.resume.lignes, lecture.resume.chemins_trouves], [5, 4], 'lecture complète');
+    attendreEgal(lecture.etats, ['Tableur : lu.', 'Doc : lu.'], 'un message par fichier');
     attendre(c.requetes.every(r => r.methode === 'GET'), 'écriture pendant la lecture');
+    attendre(c.requetes.every(r => r.url.hostname !== 'docs.googleapis.com'), 'service Google Docs utilisé');
     // Rien de choisi : Cap le dit, sans aucune requête.
     const sansChoix = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion,
       googlePicker: { dossierChoisi: () => null, retrouverDepuisDrive: async () => null } });
     const avant = c.requetes.length;
     await attendreRejet(() => sansChoix.lire(), 'Choisis d’abord le Doc');
     attendreEgal(c.requetes.length, avant, 'requête sans fichier choisi');
+  });
+
+  await testAsync('Classement : Doc refusé par Google (service non activé) = raison affichée, tableur lu, connexion gardée', async c => {
+    preparerConnexion(c);
+    let deconnexions = 0;
+    c.window.addEventListener('cap-google-deconnecte', () => deconnexions++);
+    const piqueur = {
+      dossierChoisi: role => ({ architecture: { id: 'doc-fictif' }, tableur_classement: { id: 'tableur-fictif' } })[role],
+      retrouverDepuisDrive: async () => null
+    };
+    c.repondre = async r => {
+      if (r.url.pathname === '/v4/spreadsheets/tableur-fictif') return reponseGoogle({ sheets: [{ properties: { title: 'Feuille fictive' } }] });
+      if (r.url.pathname.startsWith('/v4/spreadsheets/tableur-fictif/values/')) return reponseGoogle({ values: fauxTableurClassement() });
+      if (r.url.pathname === '/drive/v3/files/doc-fictif/export') {
+        return reponseGoogle({ error: { code: 403, status: 'PERMISSION_DENIED', message: 'Message FICTIF de Google',
+          details: [{ reason: 'SERVICE_DISABLED' }] } }, 403);
+      }
+      throw new Error(`Requête inattendue : ${r.url}`);
+    };
+    const classementIsole = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: piqueur });
+    let message = '';
+    try { await classementIsole.lire(); } catch (erreur) { message = erreur.message; }
+    attendre(message.includes('Tableur : lu.'), `tableur non signalé lu : ${message}`);
+    attendre(message.includes('Doc : refusé (erreur 403, raison : SERVICE_DISABLED)'), `raison absente : ${message}`);
+    attendre(!message.includes('jeton-fictif') && !message.includes('doc-fictif') && !message.includes('Message FICTIF'), 'jeton, identifiant ou texte brut affiché');
+    attendreEgal(deconnexions, 0, 'déconnexion pour un service non activé');
+    attendre(c.googleConnexion.connecte(), 'jeton retiré pour un service non activé');
+    // Un 403 sans raison connue : comportement d'avant, déconnexion (redonner l'accès).
+    c.repondre = async () => reponseGoogle({}, 403);
+    await attendreRejet(() => c.googleConnexion.appeler('https://www.googleapis.com/drive/v3/files/doc-fictif'), '403');
+    attendreEgal(deconnexions, 1, 'déconnexion attendue pour un 403 sans raison');
+    // L'ancien service Google Docs n'est plus une adresse permise.
+    await attendreRejet(() => c.connexion().appeler('https://docs.googleapis.com/v1/documents/doc-fictif'), 'Adresse Google non autorisée');
   });
 
   await testAsync('Classement étape 1 : Doc et tableur choisis chacun à part, bon type vérifié, rien gardé sinon', async c => {
@@ -2588,6 +2618,8 @@ TESTS_JS = r"""
     c.window.addEventListener('cap-google-deconnecte', () => evenements++);
     ui.parId('basculer-vue').click();
     ui.parId('synchroniser-maintenant').click();
+    // La raison du refus est lue dans la réponse de Google avant de décider : une attente de plus.
+    for (let essai = 0; essai < 50 && evenements < 1; essai++) await new Promise(resoudre => setTimeout(resoudre, 10));
     await viderMicrotaches();
     attendreEgal(evenements, 1, 'événement de déconnexion absent');
     attendreEgal(c.localStorage.getItem('cap_google_jeton_v1'), null, 'jeton non retiré');
@@ -5403,8 +5435,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v41['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v41")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v42['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v42")
 
 
 def verifier_precache_fichiers_existent():

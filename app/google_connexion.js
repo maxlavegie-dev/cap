@@ -116,9 +116,25 @@ const googleConnexion = (() => {
     location.assign(url.href);
   }
 
+  const raisonsSansDeconnexion = new Set(['SERVICE_DISABLED', 'accessNotConfigured', 'appNotAuthorizedToFile',
+    'cannotExportFile', 'exportSizeLimitExceeded', 'rateLimitExceeded', 'userRateLimitExceeded',
+    'dailyLimitExceeded', 'storageQuotaExceeded', 'RATE_LIMIT_EXCEEDED']);
+
+  // Code de raison donné par Google dans sa réponse d'erreur (lettres et « _ » seulement).
+  async function raisonRefus(reponse) {
+    try {
+      const corps = await reponse.clone().json();
+      const brute = corps?.error?.details?.find(detail => detail?.reason)?.reason
+        || corps?.error?.errors?.[0]?.reason || corps?.error?.status || '';
+      return /^[A-Za-z_]{1,60}$/.test(brute) ? brute : '';
+    } catch (erreur) {
+      return '';
+    }
+  }
+
   async function appeler(adresse, options = {}) {
     const url = new URL(adresse);
-    if (url.protocol !== 'https:' || !['www.googleapis.com', 'sheets.googleapis.com', 'docs.googleapis.com'].includes(url.hostname)) {
+    if (url.protocol !== 'https:' || !['www.googleapis.com', 'sheets.googleapis.com'].includes(url.hostname)) {
       throw new Error('Adresse Google non autorisée.');
     }
     const valeur = jeton();
@@ -126,6 +142,18 @@ const googleConnexion = (() => {
     const entetes = new Headers(options.headers);
     entetes.set('Authorization', `Bearer ${valeur}`);
     const reponse = await fetch(url.href, { ...options, headers: entetes, cache: 'no-store', redirect: 'error' });
+    // Refus 403 dont la raison n'est PAS la connexion (05/11/2026) : service non activé, fichier non
+    // accessible, limites. Se déconnecter n'y changerait rien : on garde la connexion et on donne la
+    // raison de Google (un code court, jamais le jeton). Raison inconnue ou de droits : comme avant.
+    if (reponse.status === 403) {
+      const raison = await raisonRefus(reponse);
+      if (raisonsSansDeconnexion.has(raison)) {
+        const erreur = new Error(`Google a refusé cette action (erreur 403, raison : ${raison}). La connexion reste active.`);
+        erreur.statut = 403;
+        erreur.raison = raison;
+        throw erreur;
+      }
+    }
     if (reponse.status === 401 || reponse.status === 403) {
       message = reponse.status === 401 ? 'La connexion Google a expiré. Touche « Se reconnecter ».'
         : 'Google a refusé l’accès (erreur 403). Redonne l’accès avec le bouton.';

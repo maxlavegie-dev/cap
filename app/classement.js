@@ -19,11 +19,6 @@ const classement = (() => {
     return String(texte || '').replace(/\u000b/g, ' ').split('(')[0].replace(/\s+/g, ' ').trim();
   }
 
-  function texteParagraphe(paragraphe) {
-    return (paragraphe.elements || []).map(element => element.textRun?.content || '').join('')
-      .replace(/\n$/, '');
-  }
-
   // Sections jamais lues comme des dossiers : les règles pour Cap, et les archives faites à la
   // main (« 00_A_CLASSER (le premier) »), que Cap ne crée jamais.
   function sectionIgnoree(titre) {
@@ -31,20 +26,40 @@ const classement = (() => {
     return texte.startsWith('regles pour cap') || texte.startsWith('00_a_classer');
   }
 
-  // Structure du Doc (API Docs) → arbre : un titre de niveau 2 = un dossier principal ; dessous,
-  // une puce par sous-dossier, un retrait (nestingLevel) par niveau. Tout le reste est ignoré.
-  function analyserArchitecture(document) {
+  // Le Doc est lu par le Drive, exporté en page HTML (05/11/2026 : le service Google Docs n'est pas
+  // utilisé). Google y écrit chaque niveau de puce comme une liste à part, dont la classe finit par
+  // « -N » (N = retrait, 0 pour le premier niveau) ; les titres sont h1…h6, le titre du Doc p.title.
+  function paragraphesDepuisHtml(html) {
+    const page = new DOMParser().parseFromString(String(html || ''), 'text/html');
+    const paragraphes = [];
+    for (const element of page.body ? page.body.querySelectorAll('h1,h2,h3,h4,h5,h6,p,li') : []) {
+      const balise = element.tagName.toLowerCase();
+      if (balise === 'p' && element.closest('li')) continue;
+      const texte = element.textContent.replace(/\u00a0/g, ' ');
+      if (balise === 'li') {
+        const liste = element.closest('ul,ol');
+        const retrait = /(?:^|\s)lst-[^\s]*-(\d+)(?:\s|$)/.exec(liste ? liste.className : '');
+        paragraphes.push({ style: 'NORMAL_TEXT', texte, niveau: retrait ? Number(retrait[1]) : 0 });
+      } else if (/^h\d$/.test(balise)) {
+        paragraphes.push({ style: `HEADING_${balise[1]}`, texte });
+      } else {
+        const titre = element.classList.contains('title') || element.classList.contains('subtitle');
+        paragraphes.push({ style: titre ? 'TITLE' : 'NORMAL_TEXT', texte });
+      }
+    }
+    return paragraphes;
+  }
+
+  // Structure du Doc → arbre : un titre de niveau 2 = un dossier principal ; dessous, une puce par
+  // sous-dossier, un retrait par niveau. Tout le reste est ignoré. Reçoit la page HTML exportée.
+  function analyserArchitecture(html) {
     const racine = { nom: '', enfants: [] };
     const doutes = [];
     let principal = null;
     let pile = [];
     let ignorees = 0;
-    for (const bloc of document?.body?.content || []) {
-      const paragraphe = bloc.paragraph;
-      if (!paragraphe) continue;
-      const style = paragraphe.paragraphStyle?.namedStyleType || 'NORMAL_TEXT';
-      const texte = texteParagraphe(paragraphe);
-      if (/^(HEADING_\d|TITLE|SUBTITLE)$/.test(style)) {
+    for (const { style, texte, niveau } of paragraphesDepuisHtml(html)) {
+      if (/^(HEADING_\d|TITLE)$/.test(style)) {
         principal = null;
         pile = [];
         if (style !== 'HEADING_2') continue;
@@ -54,10 +69,9 @@ const classement = (() => {
         principal = ajouterEnfant(racine, nom, doutes);
         continue;
       }
-      if (!paragraphe.bullet || !principal) continue;
+      if (niveau === undefined || !principal) continue;
       const nom = nomDossier(texte);
       if (!nom) continue;
-      const niveau = Number(paragraphe.bullet.nestingLevel || 0);
       const parent = niveau === 0 ? principal : pile[niveau - 1];
       if (!parent) {
         doutes.push({ type: 'niveau_saute', nom });
@@ -163,9 +177,9 @@ const classement = (() => {
   }
 
   async function lireArchitecture(id) {
-    const champs = 'body.content(paragraph(paragraphStyle.namedStyleType,bullet.nestingLevel,elements.textRun.content))';
-    const document = await lireJson(`https://docs.googleapis.com/v1/documents/${encodeURIComponent(id)}?fields=${encodeURIComponent(champs)}`);
-    return analyserArchitecture(document);
+    const reponse = await googleConnexion.appeler(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}/export?mimeType=${encodeURIComponent('text/html')}`);
+    return analyserArchitecture(await reponse.text());
   }
 
   async function fichierChoisi(role) {
@@ -180,9 +194,23 @@ const classement = (() => {
       throw new Error('Choisis d’abord le Doc d’architecture et le tableur de classement dans « Réglages du Drive », '
         + 'avec Cap ouvert dans Chrome.');
     }
-    const [lignes, arbre] = await Promise.all([lireTableur(tableur.id), lireArchitecture(architecture.id)]);
-    return { tableur: lignes, architecture: arbre, resume: resumer(lignes, arbre) };
+    // L'un après l'autre, avec un message par fichier (seulement l'erreur et le code de raison de
+    // Google, jamais un nom, un identifiant, la clé ni le jeton).
+    let lignes = null;
+    let arbre = null;
+    const etats = [];
+    try { lignes = await lireTableur(tableur.id); etats.push('Tableur : lu.'); } catch (erreur) { etats.push(`Tableur : ${refus(erreur)}`); }
+    try { arbre = await lireArchitecture(architecture.id); etats.push('Doc : lu.'); } catch (erreur) { etats.push(`Doc : ${refus(erreur)}`); }
+    if (!lignes || !arbre) throw new Error(etats.join('\n'));
+    return { tableur: lignes, architecture: arbre, resume: resumer(lignes, arbre), etats };
   }
 
-  return { cle, nomDossier, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire };
+  function refus(erreur) {
+    if (erreur && erreur.statut) {
+      return `refusé (erreur ${erreur.statut}${erreur.raison ? `, raison : ${erreur.raison}` : ''}).`;
+    }
+    return `pas lu (${erreur && erreur.message ? erreur.message : 'erreur inconnue'}).`;
+  }
+
+  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire };
 })();
