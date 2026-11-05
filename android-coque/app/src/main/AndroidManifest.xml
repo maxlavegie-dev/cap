@@ -3,6 +3,10 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Caméra (05/11/2026) : pour le scanner de Cap et le bouton « appareil photo du téléphone ».
+         Autorisation du téléphone, demandée à Max au premier usage ; pas un droit Google. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:label="@string/app_name"
@@ -34,5 +38,17 @@
                     android:pathPrefix="/cap/app/" />
             </intent-filter>
         </activity>
+        <!-- Donne à l'appareil photo du téléphone, le temps d'une photo, un fichier où écrire la
+             photo en pleine taille. Dossier temporaire privé de la coque (voir chemins_photos.xml),
+             vidé à chaque nouvelle photo et à chaque démarrage. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="fr.maxlavegie.cap.photos"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/chemins_photos" />
+        </provider>
     </application>
 </manifest>

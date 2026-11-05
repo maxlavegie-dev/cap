@@ -7,11 +7,15 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
+import android.webkit.PermissionRequest;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.ServiceWorkerClient;
 import android.webkit.ServiceWorkerController;
@@ -22,6 +26,7 @@ import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
 import androidx.browser.customtabs.CustomTabsIntent;
+import androidx.core.content.FileProvider;
 
 import org.json.JSONObject;
 
@@ -48,6 +53,15 @@ public class MainActivity extends Activity {
 
     private static final String URL_CAP = "https://maxlavegie-dev.github.io/cap/app/";
     private static final int CODE_PERMISSION_MICRO = 100;
+    private static final int CODE_PERMISSION_CAMERA_PAGE = 101;
+    private static final int CODE_PERMISSION_CAMERA_PHOTO = 102;
+    private static final int CODE_PHOTO = 200;
+
+    // Caméra (05/11/2026) : demande de caméra de la page en attente de l'accord d'Android, et
+    // bouton « appareil photo du téléphone » en attente de la photo.
+    private PermissionRequest demandeCameraEnAttente;
+    private ValueCallback<Uri[]> retourPhotoEnAttente;
+    private Uri photoEnCours;
 
     // Petit script injecté dans la page : il fabrique une classe qui ressemble à la vraie
     // SpeechRecognition du navigateur, mais qui parle en coulisses avec le code Android ci-dessous.
@@ -131,6 +145,27 @@ public class MainActivity extends Activity {
             }
         });
 
+        vue.setWebChromeClient(new WebChromeClient() {
+            // Le scanner de Cap demande la caméra (getUserMedia). Accordée seulement aux pages de
+            // Cap, seulement la vidéo, et seulement si Max a autorisé la caméra dans Android.
+            @Override
+            public void onPermissionRequest(final PermissionRequest demande) {
+                runOnUiThread(() -> traiterDemandeCamera(demande));
+            }
+
+            @Override
+            public void onPermissionRequestCanceled(PermissionRequest demande) {
+                if (demande == demandeCameraEnAttente) demandeCameraEnAttente = null;
+            }
+
+            // Bouton « appareil photo du téléphone » (champ fichier de Cap).
+            @Override
+            public boolean onShowFileChooser(WebView vueWeb, ValueCallback<Uri[]> retour,
+                                             FileChooserParams parametres) {
+                return ouvrirChoixPhoto(retour, parametres);
+            }
+        });
+
         // Version « essai » seulement : Cap installe un service worker, dont les téléchargements ne
         // passent pas par le WebViewClient ; on les sert aussi depuis les fichiers de l'APK.
         if (BuildConfig.FICHIERS_LOCAUX) {
@@ -148,6 +183,7 @@ public class MainActivity extends Activity {
         setContentView(racine);
 
         effacerAncienDiagnostic();
+        viderPhotosTemporaires();
         String adresseDepart = adresseDeDepart(getIntent());
         vue.loadUrl(adresseDepart);
     }
@@ -256,6 +292,120 @@ public class MainActivity extends Activity {
     // pas la WebView de la coque) : Google refuse de s'afficher dans une fenêtre embarquée.
     private void ouvrirDansChromeSecurise(Uri adresse) {
         new CustomTabsIntent.Builder().build().launchUrl(this, adresse);
+    }
+
+    // ----- Caméra (05/11/2026) -----
+
+    private boolean cameraAccordee() {
+        return checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private static boolean pageDeCap(Uri origine) {
+        return origine != null && "https".equals(origine.getScheme())
+            && "maxlavegie-dev.github.io".equals(origine.getHost());
+    }
+
+    private void traiterDemandeCamera(PermissionRequest demande) {
+        boolean video = false;
+        for (String ressource : demande.getResources()) {
+            if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(ressource)) video = true;
+        }
+        if (!video || !pageDeCap(demande.getOrigin())) {
+            demande.deny();
+            return;
+        }
+        if (cameraAccordee()) {
+            demande.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            return;
+        }
+        if (demandeCameraEnAttente != null) demandeCameraEnAttente.deny();
+        demandeCameraEnAttente = demande;
+        requestPermissions(new String[]{Manifest.permission.CAMERA}, CODE_PERMISSION_CAMERA_PAGE);
+    }
+
+    private boolean ouvrirChoixPhoto(ValueCallback<Uri[]> retour, WebChromeClient.FileChooserParams parametres) {
+        // Une seule demande à la fois : l'ancienne est annulée proprement (sinon le bouton reste bloqué).
+        if (retourPhotoEnAttente != null) retourPhotoEnAttente.onReceiveValue(null);
+        retourPhotoEnAttente = retour;
+        if (!parametres.isCaptureEnabled()) {
+            // Champ sans « capture » : simple choix d'un fichier existant.
+            try {
+                startActivityForResult(parametres.createIntent(), CODE_PHOTO);
+            } catch (Exception erreur) {
+                rendrePhoto(null);
+            }
+            return true;
+        }
+        // Android interdit d'ouvrir l'appareil photo à une appli qui déclare la caméra sans l'avoir
+        // reçue : on demande donc d'abord l'autorisation si besoin.
+        if (cameraAccordee()) lancerAppareilPhoto();
+        else requestPermissions(new String[]{Manifest.permission.CAMERA}, CODE_PERMISSION_CAMERA_PHOTO);
+        return true;
+    }
+
+    private File dossierPhotos() {
+        return new File(getCacheDir(), "photos");
+    }
+
+    // Les photos peuvent être des documents personnels : jamais gardées au-delà de leur usage.
+    private void viderPhotosTemporaires() {
+        File[] fichiers = dossierPhotos().listFiles();
+        if (fichiers == null) return;
+        for (File fichier : fichiers) {
+            if (!fichier.delete()) fichier.deleteOnExit();
+        }
+    }
+
+    private void lancerAppareilPhoto() {
+        try {
+            viderPhotosTemporaires();
+            File dossier = dossierPhotos();
+            if (!dossier.isDirectory() && !dossier.mkdirs()) throw new IOException("dossier photos");
+            File fichier = new File(dossier, "page_" + System.currentTimeMillis() + ".jpg");
+            photoEnCours = FileProvider.getUriForFile(this, "fr.maxlavegie.cap.photos", fichier);
+            Intent intention = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            intention.putExtra(MediaStore.EXTRA_OUTPUT, photoEnCours);
+            intention.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            startActivityForResult(intention, CODE_PHOTO);
+        } catch (Exception erreur) {
+            photoEnCours = null;
+            rendrePhoto(null);
+        }
+    }
+
+    // Rend toujours une réponse à la page, même vide : sinon le bouton de Cap ne répond plus.
+    private void rendrePhoto(Uri[] resultat) {
+        if (retourPhotoEnAttente != null) retourPhotoEnAttente.onReceiveValue(resultat);
+        retourPhotoEnAttente = null;
+    }
+
+    @Override
+    protected void onActivityResult(int code, int resultat, Intent donnees) {
+        super.onActivityResult(code, resultat, donnees);
+        if (code != CODE_PHOTO) return;
+        Uri photo = photoEnCours;
+        photoEnCours = null;
+        if (resultat != RESULT_OK) {
+            rendrePhoto(null);
+        } else if (photo != null) {
+            rendrePhoto(new Uri[]{photo});
+        } else {
+            rendrePhoto(WebChromeClient.FileChooserParams.parseResult(resultat, donnees));
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] permissions, int[] resultats) {
+        super.onRequestPermissionsResult(code, permissions, resultats);
+        boolean accordee = resultats.length > 0 && resultats[0] == PackageManager.PERMISSION_GRANTED;
+        if (code == CODE_PERMISSION_CAMERA_PAGE && demandeCameraEnAttente != null) {
+            if (accordee) demandeCameraEnAttente.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            else demandeCameraEnAttente.deny();
+            demandeCameraEnAttente = null;
+        } else if (code == CODE_PERMISSION_CAMERA_PHOTO) {
+            if (accordee) lancerAppareilPhoto();
+            else rendrePhoto(null);
+        }
     }
 
     @Override
