@@ -2,6 +2,36 @@
 
 Ce fichier dit à tout moment où en est le projet. Il est mis à jour après chaque étape.
 
+## À LIRE EN PREMIER PAR ZENCODER, 05/11/2026
+
+### 1. Ce qui a été fait aujourd'hui
+- **La connexion Google marche maintenant dans la coque Android.** La vraie cause de l'échec était le navigateur par défaut du téléphone de Max, Qwant, qui gardait le retour de Google pour lui. **Il faut garder Chrome comme navigateur par défaut sur le téléphone.** Avec Chrome par défaut, la coque reçoit bien le retour (étape C.2).
+- Quand la coque était restée ouverte, Cap ne lisait pas le jeton. Corrigé dans la coque, qui force un vrai rechargement (étape C.4, testée par Max : la connexion marche).
+- Cap appelait la liste des agendas de Max, interdite avec nos droits (erreur 403, qui déconnectait Cap). Corrigé dans `app/google_agenda.js` : l'identifiant de l'agenda est rangé dans le Drive (étape C.5, 270/270 tests, PAS encore testée sur le téléphone).
+- `cap-coque-c3.apk` a été retiré du suivi git et de l'historique local (il contenait une donnée privée).
+- Le cookie inutile de l'étape C.3 a été retiré de `app/google_connexion.js`, revenu à la version en ligne.
+- La bascule vers Android natif, rang 1 du tableau « Chantier Cap » (d'après Max), est en cours. Le prochain pas est le scanner.
+
+### 2. Ce qui est en local et PAS publié
+19 commits, du plus récent au plus ancien : `dd6cb7a`, `50b921d`, `8893368`, `b79cfad`, `6f4b57e`, `90ca3ff`, `4cdd9a2`, `4b7adf7`, et les 11 commits des étapes A, B et C.1 (`git log origin/main..main` pour la liste complète).
+Fichiers qui changeraient en ligne :
+- `.gitignore`, `JOURNAL_DE_BORD.md`
+- `app/google_agenda.js`, `app/service-worker.js` (cache `cap-v37`), `app/test_cap.py`
+- `android-coque/` : `.gitignore`, `build.gradle`, `gradle.properties`, `settings.gradle`, `app/build.gradle`, `app/src/main/AndroidManifest.xml`, `app/src/main/java/fr/maxlavegie/cap/MainActivity.java`, `app/src/main/res/values/strings.xml`
+
+### 3. Les interdits
+- Ne rien publier (aucun `git push`) sans l'accord explicite de Max.
+- Ne JAMAIS publier les tags de sauvegarde (pas de `git push --tags`). Deux d'entre eux contiennent encore `cap-coque-c3.apk` : `sauvegarde-avant-c5-agenda-drive` et `sauvegarde-avant-retrait-apk-historique`. La copie interne `refs/original/refs/heads/main` aussi.
+- Ne jamais remettre `cap-coque-c3.apk` (ni aucun APK) dans git.
+- Ne pas réécrire l'historique git sans l'accord de Max.
+
+### 4. Ce qui reste à décider avec Max
+- Les diagnostics temporaires de la coque : une page qui affiche le jeton Google en clair, une copie dans le fichier `diagnostic_google.txt` du téléphone, et un espion des refus de Google. Max a décidé de les retirer APRÈS le test de la correction de l'agenda.
+- Le test de la correction de l'agenda sur le téléphone, sans rien publier : piste proposée, un APK de test qui affiche les fichiers de Cap du PC. Pas encore validée par Max.
+
+### 5. Une règle
+Zencoder note chaque étape dans ce journal AVANT de la commencer. Jamais deux outils en même temps sur le projet.
+
 ---
 
 ## Où on en est
