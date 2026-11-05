@@ -5,16 +5,24 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
 
 import androidx.browser.customtabs.CustomTabsIntent;
 
@@ -98,12 +106,15 @@ public class MainActivity extends Activity {
         + "};"
         + "})();";
 
+    private FrameLayout racine;
     private WebView vue;
     private SpeechRecognizer reconnaisseur;
     private boolean ecouteEnCours = false;
-    // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : diagnostic à afficher dès que la page de retour
-    // de Google aura fini de charger (la page n'existe pas encore au moment où ce texte est connu).
-    private String diagnosticEnAttente;
+    // DEBUG TEMPORAIRE (étape C.3, 05/11/2026) : la bannière de diagnostic est maintenant une vue
+    // Android native, posée au-dessus de la WebView dans `racine` (pas injectée dans la page web).
+    // Elle s'affiche dès que le retour de Google est détecté, sans attendre que la page ait chargé,
+    // et la page web (app.js) ne peut jamais l'effacer puisqu'elle n'en fait pas partie.
+    private View banniereNative;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -130,18 +141,6 @@ public class MainActivity extends Activity {
                 view.evaluateJavascript(SCRIPT_DEBUG_GOOGLE, null);
             }
 
-            // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque
-            // Android. La page est maintenant prête (DOM chargé) : c'est le bon moment pour afficher
-            // le diagnostic capturé avant le chargement (le fragment de retour de Google).
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                if (diagnosticEnAttente != null) {
-                    afficherDebug(diagnosticEnAttente);
-                    diagnosticEnAttente = null;
-                }
-            }
-
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri adresse = request.getUrl();
@@ -153,11 +152,16 @@ public class MainActivity extends Activity {
             }
         });
 
-        setContentView(vue);
+        racine = new FrameLayout(this);
+        racine.addView(vue, new FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        setContentView(racine);
+
         String adresseDepart = adresseDeDepart(getIntent());
-        // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque
+        // DEBUG TEMPORAIRE (étape C.1/C.3, 05/11/2026) : à retirer après le diagnostic de la coque
         // Android. Sur un vrai téléphone, Android tue souvent la coque pendant que Chrome est
-        // ouvert : le retour de Google passe alors par onCreate (ici), pas par onNewIntent.
+        // ouvert : le retour de Google passe alors par onCreate (ici), pas par onNewIntent. La
+        // bannière s'affiche tout de suite, sans attendre que la page ait chargé.
         afficherDebugSiRetourGoogle(adresseDepart, "onCreate");
         vue.loadUrl(adresseDepart);
     }
@@ -173,49 +177,66 @@ public class MainActivity extends Activity {
         }
     }
 
-    // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque
-    // Android. Mémorise le détail exact du retour de Google (fragment #...), pour affichage dès
-    // que la page suivante aura fini de charger (voir onPageFinished) : utile si Cap affiche une
-    // erreur de vérification de sécurité.
+    // DEBUG TEMPORAIRE (étape C.1/C.3, 05/11/2026) : à retirer après le diagnostic de la coque
+    // Android. Affiche tout de suite le détail exact du retour de Google (fragment #...), sans
+    // attendre le chargement de la page : utile si Cap affiche une erreur de vérification de
+    // sécurité, car la page peut alors être remplacée avant qu'on ait eu le temps de la lire.
     private void afficherDebugSiRetourGoogle(String adresse, String origine) {
         if (adresse == null) return;
         Uri uriRetour = Uri.parse(adresse);
         String fragment = uriRetour.getFragment();
         if (fragment != null && !fragment.isEmpty()) {
-            diagnosticEnAttente = "Retour de Google (" + origine + ", fragment d'adresse) :\n" + fragment;
+            afficherDebug("Retour de Google (" + origine + ", fragment d'adresse) :\n" + fragment);
         }
     }
 
-    // DEBUG TEMPORAIRE (étape C.1, 05/11/2026) : à retirer après le diagnostic de la coque Android.
-    // Affiche le diagnostic en grand dans l'écran de Cap (pas de fenêtre native, pas de disparition
-    // automatique, bouton Fermer) et l'écrit en complément dans un fichier du téléphone.
+    // DEBUG TEMPORAIRE (étape C.3, 05/11/2026) : à retirer après le diagnostic de la coque Android.
+    // Affiche le diagnostic dans une vue Android native posée au-dessus de la WebView (pas dans la
+    // page web) : la page web ne peut jamais l'effacer, même si elle se recharge ou se remplace par
+    // un écran d'erreur juste après. Reste affichée tant que « Fermer » n'est pas touché.
     private void afficherDebug(String texte) {
-        injecterBanniereDebug(texte);
+        injecterBanniereNative(texte);
         ecrireDiagnosticFichier(texte);
     }
 
-    private void injecterBanniereDebug(String texte) {
-        if (vue == null) return;
-        String script = "(function(){"
-            + "var ancienne=document.getElementById('cap-diagnostic-temporaire');"
-            + "if(ancienne){ancienne.remove();}"
-            + "var bandeau=document.createElement('div');"
-            + "bandeau.id='cap-diagnostic-temporaire';"
-            + "bandeau.style.cssText='position:fixed;inset:0;background:#fff;color:#000;"
-            + "z-index:2147483647;overflow:auto;padding:16px;font-family:monospace;"
-            + "font-size:14px;';"
-            + "var bouton=document.createElement('button');"
-            + "bouton.textContent='Fermer';"
-            + "bouton.style.cssText='display:block;margin-bottom:12px;padding:12px 20px;"
-            + "font-size:18px;';"
-            + "bouton.onclick=function(){bandeau.remove();};"
-            + "var corps=document.createElement('pre');"
-            + "corps.style.cssText='white-space:pre-wrap;word-break:break-all;margin:0;';"
-            + "corps.textContent=" + JSONObject.quote(texte) + ";"
-            + "bandeau.appendChild(bouton);bandeau.appendChild(corps);"
-            + "(document.body||document.documentElement).appendChild(bandeau);"
-            + "})();";
-        runOnUiThread(() -> vue.evaluateJavascript(script, null));
+    private void injecterBanniereNative(String texte) {
+        runOnUiThread(() -> {
+            if (racine == null) return;
+            if (banniereNative != null) {
+                racine.removeView(banniereNative);
+                banniereNative = null;
+            }
+            FrameLayout bandeau = new FrameLayout(this);
+            bandeau.setBackgroundColor(Color.WHITE);
+
+            TextView corps = new TextView(this);
+            corps.setText(texte);
+            corps.setTextColor(Color.BLACK);
+            corps.setTextIsSelectable(true);
+            corps.setPadding(32, 140, 32, 32);
+            ScrollView defilement = new ScrollView(this);
+            defilement.addView(corps, new ScrollView.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            bandeau.addView(defilement, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+            Button bouton = new Button(this);
+            bouton.setText("Fermer");
+            bouton.setOnClickListener(v -> {
+                racine.removeView(bandeau);
+                if (banniereNative == bandeau) banniereNative = null;
+            });
+            FrameLayout.LayoutParams reglagesBouton = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.START);
+            reglagesBouton.topMargin = 48;
+            reglagesBouton.leftMargin = 32;
+            bandeau.addView(bouton, reglagesBouton);
+
+            racine.addView(bandeau, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            bandeau.bringToFront();
+            banniereNative = bandeau;
+        });
     }
 
     private void ecrireDiagnosticFichier(String texte) {
