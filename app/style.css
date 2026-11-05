@@ -2632,6 +2632,10 @@ dialog .micro-tri[aria-pressed="true"] {
 .proposition-scan {
   font-size: 1.2em;
 }
+.proposition-scan .diagnostic-scan {
+  font-size: 0.75em;
+  white-space: pre-line;
+}
 .proposition-scan .nom-propose {
   font-size: 1.3em;
   font-weight: 700;

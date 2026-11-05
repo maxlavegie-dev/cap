@@ -1140,6 +1140,26 @@ TESTS_JS = r"""
     attendre(e.id('scanner-proposition').hidden, 'proposition après annulation');
   });
 
+  await test('écran Google : diagnostic par page (taille, rotation, blocs, lignes, caractères) dans la fenêtre et le journal, jamais le texte', async () => {
+    const g = monterGoogle();
+    const e = await scanGoogle(g, [
+      { texte: 'MUTUELLE FICTIVE texte secret FICTIF', largeur: 2480, hauteur: 3508, rotation: 90, rotation_exif: 0, blocs: 3, lignes: 7, caracteres: 36, essais: 4 },
+      { lu: false, texte: '' },
+      { texte: 'Autre page FICTIVE' }
+    ]);
+    await terminerPuisVoir(e);
+    const diag = e.id('scanner-proposition-diagnostic');
+    attendre(!diag.hidden, 'diagnostic caché');
+    attendre(diag.textContent.includes('page 1 : 2480×3508 px, rotation 90° (photo 0°), 3 bloc(s), 7 ligne(s), 36 caractère(s), 4 sens essayés'), `diagnostic : ${diag.textContent}`);
+    attendre(diag.textContent.includes('page 2 : lecture échouée') && diag.textContent.includes('page 3 : diagnostic absent'), `pages 2 et 3 : ${diag.textContent}`);
+    attendre(!diag.textContent.includes('secret'), 'texte lu dans le diagnostic');
+    cliquer(e.id('scanner-proposition-non'));
+    await pause(1500);
+    const details = g.lignes[0].details;
+    attendre(details.includes('diagnostic : page 1 : 2480×3508 px, rotation 90°') && details.includes('page 2 : lecture échouée'), `journal : ${details}`);
+    attendre(!details.includes('secret') && !details.includes('MUTUELLE FICTIVE'), 'texte lu dans le journal');
+  });
+
   await test('écran : sans la coque Android, pas de bouton du scanner de Google', async () => {
     const e = await demarrerEcran({ scannerAndroid: null });
     attendre(e.id('scanner-google').hidden, 'bouton visible hors de la coque');

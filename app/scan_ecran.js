@@ -58,6 +58,7 @@ const scanEcran = (() => {
     const propositionChamp = parId('scanner-proposition-champ');
     const propositionErreur = parId('scanner-proposition-erreur');
     const propositionStatut = parId('scanner-proposition-statut');
+    const propositionDiagnostic = parId('scanner-proposition-diagnostic');
     const boutonsAvecNom = ['scanner-proposition-oui', 'scanner-proposition-modifier', 'scanner-proposition-non'].map(parId);
     const boutonsSansNom = ['scanner-proposition-daccord', 'scanner-proposition-ecrire'].map(parId);
     // Texte lu sur le téléphone (jamais envoyé), nombres de caractères et de pages, proposition, réponse.
@@ -384,6 +385,7 @@ const scanEcran = (() => {
       const pages = Array.isArray(resultat.pages) ? resultat.pages : [];
       const textes = [];
       const echecs = [];
+      const diagnostics = [];
       let prises = 0;
       validerPage();
       pageARefaire = null;
@@ -402,6 +404,7 @@ const scanEcran = (() => {
             apercu.getContext('2d').drawImage(canvas, 0, 0);
           }
           prises++;
+          diagnostics.push(diagnosticPage(morceau, dejaDansLeDocument + i + 1));
           if (morceau.lu === false) echecs.push(dejaDansLeDocument + i + 1);
           else textes.push(String(morceau.texte || '').trim());
         }
@@ -414,13 +417,14 @@ const scanEcran = (() => {
       }
       afficherPages();
       if (enRevue) montrerRevue();
-      const avant = lectureGoogle || { texte: '', caracteres: 0, pages_lues: 0, pages_total: 0, echecs: [] };
+      const avant = lectureGoogle || { texte: '', caracteres: 0, pages_lues: 0, pages_total: 0, echecs: [], diagnostics: [] };
       lectureGoogle = {
         texte: [avant.texte, ...textes].filter(Boolean).join('\n'),
         caracteres: avant.caracteres + textes.reduce((total, texte) => total + texte.length, 0),
         pages_lues: avant.pages_lues + textes.length,
         pages_total: avant.pages_total + prises,
         echecs: [...avant.echecs, ...echecs],
+        diagnostics: [...avant.diagnostics, ...diagnostics],
         mot_cle: '', nom_propose: '', raison: '', erreur_tableur: '', reponse: '', repondu: false
       };
       dire(`${prises} page${prises > 1 ? 's' : ''} reçue${prises > 1 ? 's' : ''} du scanner de Google. `
@@ -431,6 +435,23 @@ const scanEcran = (() => {
     }
 
     const nombreFrancais = new Intl.NumberFormat('fr-FR');
+
+    // Diagnostic d'une page (06/11/2026), donné par la coque : JAMAIS le texte, seulement des nombres.
+    function entier(valeur) {
+      const nombre = Number(valeur);
+      return Number.isFinite(nombre) ? Math.round(nombre) : null;
+    }
+    function diagnosticPage(morceau, numero) {
+      if (morceau.lu === false) return `page ${numero} : lecture échouée`;
+      const largeur = entier(morceau.largeur);
+      const hauteur = entier(morceau.hauteur);
+      if (largeur === null || hauteur === null) return `page ${numero} : diagnostic absent`;
+      const essais = entier(morceau.essais) || 1;
+      return `page ${numero} : ${largeur}×${hauteur} px, rotation ${entier(morceau.rotation) || 0}°`
+        + ` (photo ${entier(morceau.rotation_exif) || 0}°), ${entier(morceau.blocs) || 0} bloc(s),`
+        + ` ${entier(morceau.lignes) || 0} ligne(s), ${entier(morceau.caracteres) || 0} caractère(s)`
+        + (essais > 1 ? `, ${essais} sens essayés` : '');
+    }
 
     // À « Terminé » : recherche dans le tableur, puis fenêtre EN HAUT, toujours (même sans mot-clé).
     async function preparerProposition() {
@@ -469,6 +490,8 @@ const scanEcran = (() => {
         echec: `Lecture du texte échouée sur toutes les pages (${lecture.pages_total}) : ${garde}`,
         tableur: `${lus}, mais je n’ai pas pu lire le tableur de classement (${lecture.erreur_tableur}) : ${garde}`
       })[p.raison];
+      propositionDiagnostic.textContent = lecture.diagnostics.length ? ['Diagnostic :', ...lecture.diagnostics].join('\n') : '';
+      propositionDiagnostic.hidden = !lecture.diagnostics.length;
       zoneProposition.hidden = false;
       if (zoneProposition.scrollIntoView) zoneProposition.scrollIntoView({ block: 'start' });
     }
@@ -552,6 +575,7 @@ const scanEcran = (() => {
           action: 'Lecture du texte', resultat: resultatJournal(l),
           details: [`caractères lus : ${l.caracteres}`, `pages lues : ${l.pages_lues} sur ${l.pages_total}`,
             ...(l.echecs.length ? [`lecture échouée : page${l.echecs.length > 1 ? 's' : ''} ${l.echecs.join(', ')}`] : []),
+            ...(l.diagnostics.length ? [`diagnostic : ${l.diagnostics.join(' | ')}`] : []),
             `nom proposé : ${l.nom_propose ? `${l.nom_propose}.pdf` : 'aucun'}`,
             `ancien nom : ${fiche.nom}`, `nom retenu : ${fiche.nom_valide || fiche.nom}`,
             `réponse : ${l.reponse || 'sans réponse'}`].join(' ; ')

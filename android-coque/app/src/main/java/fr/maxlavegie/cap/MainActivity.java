@@ -443,22 +443,12 @@ public class MainActivity extends Activity {
                         int lus;
                         while ((lus = entree.read(tampon)) > 0) sortie.write(tampon, 0, lus);
                     }
-                    // Lecture du texte de CETTE page ; un échec est signalé pour cette page seulement.
-                    String texte = "";
-                    boolean lu = true;
-                    try {
-                        Text resultatTexte = Tasks.await(lecteur.process(InputImage.fromFilePath(MainActivity.this, Uri.fromFile(cible))));
-                        texte = resultatTexte.getText();
-                    } catch (Exception erreur) {
-                        lu = false;
-                    }
-                    JSONObject page = new JSONObject()
+                    // Lecture du texte de CETTE page, avec diagnostic (jamais le texte dans le diagnostic) ;
+                    // un échec est signalé pour cette page seulement.
+                    JSONObject page = lirePage(lecteur, cible)
                         .put("url", "https://maxlavegie-dev.github.io" + PREFIXE_SCANS + nom)
-                        .put("numero", i + 1)
-                        .put("texte", texte)
-                        .put("caracteres", texte.length())
-                        .put("lu", lu);
-                    if (!lu) page.put("erreur", "Lecture du texte échouée sur la page " + (i + 1) + ".");
+                        .put("numero", i + 1);
+                    if (!page.optBoolean("lu")) page.put("erreur", "Lecture du texte échouée sur la page " + (i + 1) + ".");
                     liste.put(page);
                 }
                 scanEnCours = false;
@@ -470,6 +460,65 @@ public class MainActivity extends Activity {
                 lecteur.close();
             }
         }).start();
+    }
+
+    // Lecture robuste d'une page (06/11/2026). L'orientation écrite dans la photo (EXIF) est
+    // appliquée d'abord ; si la page donne moins de 20 caractères, elle est relue tournée d'un quart,
+    // d'un demi et de trois quarts de tour, et la lecture qui donne le plus de texte est gardée.
+    // Diagnostic renvoyé : taille en pixels, rotation EXIF, rotation ajoutée, blocs, lignes,
+    // caractères, nombre d'essais. Le texte n'est renvoyé qu'à Cap (champ « texte »), jamais journalisé ici.
+    private static final int CARACTERES_MINIMUM = 20;
+
+    private JSONObject lirePage(TextRecognizer lecteur, File fichier) throws org.json.JSONException {
+        JSONObject resultat = new JSONObject().put("lu", false).put("texte", "").put("caracteres", 0);
+        android.graphics.Bitmap image = null;
+        try {
+            image = android.graphics.BitmapFactory.decodeFile(fichier.getAbsolutePath());
+            if (image == null) return resultat;
+            int exif = rotationExif(fichier);
+            resultat.put("largeur", image.getWidth()).put("hauteur", image.getHeight()).put("rotation_exif", exif);
+            Text meilleur = null;
+            int meilleureRotation = 0;
+            int essais = 0;
+            for (int ajout : new int[]{0, 90, 180, 270}) {
+                Text lecture;
+                try {
+                    lecture = Tasks.await(lecteur.process(InputImage.fromBitmap(image, (exif + ajout) % 360)));
+                } catch (Exception erreur) {
+                    continue;
+                }
+                essais++;
+                if (meilleur == null || lecture.getText().length() > meilleur.getText().length()) {
+                    meilleur = lecture;
+                    meilleureRotation = ajout;
+                }
+                if (ajout == 0 && lecture.getText().length() >= CARACTERES_MINIMUM) break;
+            }
+            resultat.put("essais", essais);
+            if (meilleur == null) return resultat;
+            int lignes = 0;
+            for (Text.TextBlock bloc : meilleur.getTextBlocks()) lignes += bloc.getLines().size();
+            String texte = meilleur.getText();
+            return resultat.put("lu", true).put("texte", texte).put("caracteres", texte.length())
+                .put("rotation", meilleureRotation).put("blocs", meilleur.getTextBlocks().size()).put("lignes", lignes);
+        } finally {
+            if (image != null) image.recycle();
+        }
+    }
+
+    private static int rotationExif(File fichier) {
+        try {
+            int orientation = new android.media.ExifInterface(fichier.getAbsolutePath())
+                .getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, android.media.ExifInterface.ORIENTATION_NORMAL);
+            switch (orientation) {
+                case android.media.ExifInterface.ORIENTATION_ROTATE_90: return 90;
+                case android.media.ExifInterface.ORIENTATION_ROTATE_180: return 180;
+                case android.media.ExifInterface.ORIENTATION_ROTATE_270: return 270;
+                default: return 0;
+            }
+        } catch (IOException erreur) {
+            return 0;
+        }
     }
 
     // ----- Caméra (05/11/2026) -----
