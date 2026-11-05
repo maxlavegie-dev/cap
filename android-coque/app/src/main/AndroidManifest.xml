@@ -20,8 +20,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
             <!-- Permet à la coque de reconnaître l'adresse de retour de Cap (après la connexion
-                 Google faite dans Chrome) et de rouvrir la coque directement dessus. -->
-            <intent-filter>
+                 Google faite dans Chrome) et de rouvrir la coque directement dessus.
+                 autoVerify="true" : demande à Android de vérifier que la coque est bien
+                 propriétaire de ce lien (fichier assetlinks.json sur le site), sinon Chrome
+                 garde le retour de Google pour lui-même au lieu de rouvrir la coque. -->
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
