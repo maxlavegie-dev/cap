@@ -1144,7 +1144,7 @@ TESTS_JS = r"""
     contexte.repondre = async () => { throw new Error('Requête simulée non prévue'); };
     contexte.fetch = async (adresse, options = {}) => {
       const requete = { url: new URL(adresse), methode: options.method || 'GET', options,
-        corps: options.body ? JSON.parse(options.body) : null };
+        corps: (() => { try { return options.body ? JSON.parse(options.body) : null; } catch (e) { return null; } })() };
       contexte.requetes.push(requete);
       // Faux Drive pour l'identifiant de l'agenda (appProperties du tableau des tâches FICTIF).
       if (requete.url.pathname === '/drive/v3/files/tableau-agenda-fictif') {
@@ -1975,13 +1975,26 @@ TESTS_JS = r"""
     const f = { fichiers: [], creations: 0, coupureApres };
     let numero = 0;
     c.repondre = async r => {
-      attendreEgal(r.url.origin + r.url.pathname, 'https://www.googleapis.com/drive/v3/files', `adresse inattendue : ${r.url}`);
+      const envoiTexte = r.url.pathname === '/upload/drive/v3/files';
+      attendre(['https://www.googleapis.com/drive/v3/files', 'https://www.googleapis.com/upload/drive/v3/files'].includes(r.url.origin + r.url.pathname), `adresse inattendue : ${r.url}`);
       if (r.methode === 'POST') {
         if (f.creations >= f.coupureApres) throw new Error('coupure FICTIVE du réseau');
+        let infos = r.corps;
+        let contenu = '';
+        if (envoiTexte) {
+          attendreEgal(r.url.searchParams.get('uploadType'), 'multipart', 'envoi multipart');
+          const limite = /boundary=(\S+)/.exec(r.options.headers['Content-Type'])[1];
+          const morceaux = r.options.body.split(`--${limite}`).slice(1, -1).map(m => m.replace(/^\r\n/, '').replace(/\r\n$/, ''));
+          const [enteteInfos, json] = morceaux[0].split('\r\n\r\n');
+          const [enteteTexte, texte] = morceaux[1].split('\r\n\r\n');
+          attendre(/application\/json; charset=UTF-8/.test(enteteInfos) && /text\/plain; charset=UTF-8/.test(enteteTexte), 'en-têtes de l’envoi');
+          infos = JSON.parse(json);
+          contenu = texte;
+        }
         f.creations++;
-        const nouveau = { id: `fictif-${++numero}`, name: r.corps.name, mimeType: r.corps.mimeType, parents: r.corps.parents, appProperties: r.corps.appProperties || {}, trashed: false };
+        const nouveau = { id: `fictif-${++numero}`, name: infos.name, mimeType: infos.mimeType, parents: infos.parents, appProperties: infos.appProperties || {}, trashed: false, contenu };
         f.fichiers.push(nouveau);
-        return reponseGoogle({ id: nouveau.id });
+        return reponseGoogle({ id: nouveau.id, mimeType: nouveau.mimeType });
       }
       attendreEgal(r.methode, 'GET', 'méthode inattendue');
       const q = r.url.searchParams.get('q') || '';
@@ -1999,10 +2012,12 @@ TESTS_JS = r"""
   function dictionnaireCreationFictif() {
     return [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif', 'Personne'], ['Jeanne', 'Exemple-FICTIF', 'Personne']];
   }
-  function creationIsolee(c) {
+  function creationIsolee(c, instant = null) {
     const lignes = [];
     const journal = { ajouter: (j, l) => lignes.push([j, l]) };
-    const module = objetIsole(SOURCE_RELATIONS_CREATION, 'relationsCreation', { googleConnexion: { appeler: c.fetch }, relations, journaux: journal });
+    // Horloge fixée (instant FICTIF) : seule la date « maintenant » est remplacée.
+    const DateFixe = instant === null ? Date : class extends Date { constructor(...a) { super(...(a.length ? a : [instant])); } static now() { return new Date(instant).getTime(); } };
+    const module = objetIsole(SOURCE_RELATIONS_CREATION, 'relationsCreation', { googleConnexion: { appeler: c.fetch }, relations, journaux: journal, Date: DateFixe });
     return { module, lignes };
   }
   const ATTENDUS_DEUX = ['Envoyés', 'Envoyés', 'Journal de bord', 'Journal de bord', 'Relations', 'Reçus', 'Reçus', 'r_Jean Fictif', 'r_Jeanne Exemple-FICTIF'];
@@ -2116,6 +2131,51 @@ TESTS_JS = r"""
     el('relations-corriger').click();
     attendre(/rien n’est créé/.test(el('relations-etat').textContent), 'message après « je corrige »');
     el('relations-fermer').click();
+  });
+
+  // 06/11/2026, demande de Max : le « Journal de bord » naît avec sa première entrée datée (heure de Paris).
+  await testAsync('Relations (FAUX Drive) : le « Journal de bord » naît avec sa première entrée datée (heure de Paris, horloge fixée, accents), étiquette gardée, reprise sans doublon', async c => {
+    // Hiver : 21:50 en temps universel = 22:50 à Paris (instant FICTIF).
+    const drive = fauxDriveRelations(c, { coupureApres: 2 });
+    const { module, lignes } = creationIsolee(c, '2026-11-06T21:50:00Z');
+    const valeurs = [['Prénom', 'Nom', 'Type'], ['Zoé-FICTIF (Zézé)', 'Lefèvre-FICTIF', 'Personne'], ['Jean', 'Fictif', 'Personne']];
+    // Coupure juste avant le premier « Journal de bord » : rien d'autre n'est perdu ni doublé.
+    await attendreRejet(async () => module.lancer(await module.preparer(valeurs, 'appcap-fictif'), { appCap: 'appcap-fictif' }), 'coupure FICTIVE');
+    attendreEgal(drive.fichiers.map(x => x.name), ['Relations', 'r_Zézé Lefèvre-FICTIF'], 'créés avant la coupure');
+    drive.coupureApres = Infinity;
+    await module.lancer(await module.preparer(valeurs, 'appcap-fictif'), { appCap: 'appcap-fictif' });
+    const journauxDeBord = drive.fichiers.filter(x => x.name === 'Journal de bord');
+    attendreEgal(journauxDeBord.length, 2, 'un Journal de bord par personne, sans doublon');
+    const dossierDe = nom => drive.fichiers.find(x => x.name === nom).id;
+    const texteDe = nom => journauxDeBord.find(x => x.parents[0] === dossierDe(nom)).contenu;
+    attendreEgal(texteDe('r_Zézé Lefèvre-FICTIF'), '06/11/2026, 22:50 : création du dossier Relations de Zézé Lefèvre-FICTIF', 'première entrée (texte exact, accents)');
+    attendreEgal(texteDe('r_Jean Fictif'), '06/11/2026, 22:50 : création du dossier Relations de Jean Fictif', 'première entrée de la seconde personne');
+    attendre(journauxDeBord.every(x => x.mimeType === 'application/vnd.google-apps.document' && x.appProperties.cap_relation_partie === 'journal'), 'type ou étiquette du Journal de bord');
+    attendre(drive.fichiers.filter(x => x.name !== 'Journal de bord').every(x => x.contenu === ''), 'texte ailleurs que dans le Journal de bord');
+    attendreEgal(drive.fichiers.length, 9, 'éléments créés');
+    attendreEgal(lignes.length, 9, 'lignes du Journal Général');
+    // Une nouvelle passe ne réécrit ni ne recrée aucun Journal de bord.
+    await module.lancer(await module.preparer(valeurs, 'appcap-fictif'), { appCap: 'appcap-fictif' });
+    attendreEgal(drive.fichiers.length, 9, 'doublon');
+    attendre(c.requetes.every(r => ['GET', 'POST'].includes(r.methode) && r.url.hostname === 'www.googleapis.com'), 'adresse ou méthode non permise');
+    attendreEgal(c.requetes.filter(r => r.url.pathname.startsWith('/upload/')).length, 3, 'envois de texte (2 réussis, 1 coupé)');
+    // Été (heure d'été de Paris) : 08:05 en temps universel = 10:05 ; minuit passé : la date de Paris.
+    attendreEgal(creationIsolee(c, '2026-07-01T08:05:00Z').module.premiereEntree({ nomDossier: 'r_Jean Fictif' }), '01/07/2026, 10:05 : création du dossier Relations de Jean Fictif', 'heure d’été');
+    attendreEgal(creationIsolee(c, '2026-12-31T23:30:00Z').module.premiereEntree({ nomDossier: 'r_Jean Fictif' }), '01/01/2027, 00:30 : création du dossier Relations de Jean Fictif', 'changement de jour à Paris');
+  });
+
+  await testAsync('Relations (FAUX Drive) : si Google ne fait pas un Google Doc du « Journal de bord », Cap s’arrête (rien d’autre créé, rien supprimé)', async c => {
+    const drive = fauxDriveRelations(c);
+    const repondre = c.repondre;
+    c.repondre = async r => {
+      const reponse = await repondre(r);
+      if (r.url.pathname.startsWith('/upload/')) return reponseGoogle({ id: 'fictif-texte', mimeType: 'text/plain' });
+      return reponse;
+    };
+    const { module } = creationIsolee(c, '2026-11-06T21:50:00Z');
+    await attendreRejet(async () => module.lancer(await module.preparer(dictionnaireCreationFictif(), 'appcap-fictif'), { appCap: 'appcap-fictif' }), 'pas été converti');
+    attendreEgal(drive.fichiers.map(x => x.name), ['Relations', 'r_Jean Fictif', 'Journal de bord'], 'création après l’arrêt');
+    attendre(c.requetes.every(r => ['GET', 'POST'].includes(r.methode)), 'méthode non permise');
   });
 
   // Étape 4 : essai sur UNE personne (toujours sur le FAUX Drive dans les tests).
@@ -6306,8 +6366,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v59['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v59")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v60['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v60")
 
 
 def verifier_precache_fichiers_existent():

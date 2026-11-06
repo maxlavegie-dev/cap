@@ -19,6 +19,7 @@
 //    question de l'écran de vérification.
 const relationsCreation = (() => {
   const drive = 'https://www.googleapis.com/drive/v3/files';
+  const envoi = 'https://www.googleapis.com/upload/drive/v3/files';
   const DOSSIER = 'application/vnd.google-apps.folder';
   const DOC = 'application/vnd.google-apps.document';
   const NOM_RACINE = 'Relations';
@@ -55,13 +56,41 @@ const relationsCreation = (() => {
     return (await lister(q))[0]?.id || '';
   }
 
-  async function creer(nom, type, parent, proprietes) {
+  async function creer(nom, type, parent, proprietes, texte = '') {
+    const infos = { name: nom, mimeType: type, parents: [parent], appProperties: proprietes };
+    if (texte) return creerAvecTexte(infos, texte);
     const cree = await lireJson(`${drive}?fields=id`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: nom, mimeType: type, parents: [parent], appProperties: proprietes })
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(infos)
     });
     if (!cree.id) throw new Error(`« ${nom} » n’a pas pu être créé.`);
     return cree.id;
+  }
+
+  // 06/11/2026, demande de Max : le « Journal de bord » naît avec sa première entrée. Le document est
+  // créé par l'envoi de fichiers du Drive (même adresse que les scans, droit drive.file) : un petit
+  // texte que Google convertit lui-même en Google Doc. Pas de service Google Docs.
+  async function creerAvecTexte(infos, texte) {
+    const limite = `cap${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+    const corps = `--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(infos)}\r\n`
+      + `--${limite}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${texte}\r\n--${limite}--`;
+    const cree = await lireJson(`${envoi}?uploadType=multipart&fields=id,mimeType`, {
+      method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${limite}` }, body: corps
+    });
+    if (!cree.id) throw new Error(`« ${infos.name} » n’a pas pu être créé.`);
+    // Google n'a pas fait un Google Doc : on s'arrête (rien d'autre n'est créé, rien n'est supprimé).
+    if (cree.mimeType && cree.mimeType !== infos.mimeType) throw new Error(`« ${infos.name} » n’a pas été converti en Google Doc : arrêt.`);
+    return cree.id;
+  }
+
+  // Jour et heure de la première entrée : l'horloge du téléphone, écrite à l'heure de Paris.
+  function dateHeure(date = new Date()) {
+    const parties = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit',
+      day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date);
+    const v = type => parties.find(p => p.type === type).value;
+    return `${v('day')}/${v('month')}/${v('year')}, ${v('hour')}:${v('minute')}`;
+  }
+  function premiereEntree(fiche, date = new Date()) {
+    return `${dateHeure(date)} : création du dossier ${NOM_RACINE} de ${fiche.nomDossier.slice(relations.PREFIXE.length)}`;
   }
 
   function noter(details) {
@@ -120,7 +149,8 @@ const relationsCreation = (() => {
     }
     for (const partie of PARTIES) {
       if (await trouver(ETIQUETTES.partie, partie.cle, dossier, partie.type)) continue;
-      await fabriquer(partie.nom, partie.type, dossier, { [ETIQUETTES.partie]: partie.cle });
+      await fabriquer(partie.nom, partie.type, dossier, { [ETIQUETTES.partie]: partie.cle },
+        partie.cle === 'journal' ? premiereEntree(fiche) : '');
       noter(`${NOM_RACINE} › ${fiche.nomDossier} › ${partie.nom}`);
       crees++;
     }
@@ -284,7 +314,7 @@ const relationsCreation = (() => {
     });
   }
 
-  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, preparer, planEssai, lancer, ecran, brancherEssai };
+  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, premiereEntree, preparer, planEssai, lancer, ecran, brancherEssai };
 })();
 
 // Seul point de départ dans Cap : le bouton d'essai (étape 4). Jamais au démarrage, jamais dans les tests.
