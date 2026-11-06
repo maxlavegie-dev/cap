@@ -1,8 +1,9 @@
 'use strict';
 
 // Dossiers « Relations », ÉTAPE 3 (06/11/2026) : création des dossiers, testée UNIQUEMENT sur un faux
-// Drive et un faux Dictionnaire (FICTIF). À cette étape, rien dans Cap n'appelle ce module avec le
-// vrai Drive : aucun bouton ne le lance (étapes 4 et 5, chacune après le Oui de Max).
+// Drive et un faux Dictionnaire (FICTIF). ÉTAPE 4 (06/11/2026, décision de Max) : un seul bouton,
+// « Créer UN dossier d'essai », pour UNE personne choisie par Max (au plus 5 éléments créés) ; la
+// création de toutes les personnes (étape 5) n'a aucun bouton.
 // Ce qui sera créé, dans « App Cap » : « Relations » › « r_Prénom Nom » › « Journal de bord » (Google
 // Doc vide), « Reçus », « Envoyés ».
 // Verrous :
@@ -90,22 +91,36 @@ const relationsCreation = (() => {
       else plan.aFaire.push(fiche);
     }
     plan.orphelins = sansFiche.filter(e => !plan.renommages.some(r => r.ancien === e.nom)).map(e => e.nom);
+    plan.nombreExistants = existants.length;
     plan.bloque = calcul.homonymes.length + calcul.incompletes.length + calcul.typeAbsent.length + plan.renommages.length > 0;
     return plan;
   }
 
+  // Étape 4 (essai, décision de Max) : UNE seule personne, choisie par Max. Refusé si Cap a déjà créé
+  // le dossier d'une AUTRE personne (jamais plus d'un dossier de personne avant l'étape 5).
+  function planEssai(plan, numero) {
+    const fiche = [...plan.aFaire, ...plan.deja].find(f => f.numero === numero);
+    if (!fiche) throw new Error('Cette fiche ne peut pas servir d’essai. Rien n’a été créé.');
+    const deja = plan.deja.includes(fiche);
+    if (plan.nombreExistants > (deja ? 1 : 0)) {
+      throw new Error('Un dossier d’essai existe déjà pour une autre personne : les autres attendent l’étape 5. Rien n’a été créé.');
+    }
+    return { calcul: plan.calcul, aFaire: deja ? [] : [fiche], deja: deja ? [fiche] : [], renommages: [], orphelins: [],
+      nombreExistants: plan.nombreExistants, bloque: false, essai: true };
+  }
+
   // Une personne : son dossier, puis ses trois parties ; chaque élément est cherché juste avant.
-  async function creerPersonne(fiche, racine) {
+  async function creerPersonne(fiche, racine, fabriquer) {
     let crees = 0;
     let dossier = await trouver(ETIQUETTES.personne, fiche.cle, racine, DOSSIER);
     if (!dossier) {
-      dossier = await creer(fiche.nomDossier, DOSSIER, racine, { [ETIQUETTES.personne]: fiche.cle, [ETIQUETTES.ligne]: String(fiche.numero) });
+      dossier = await fabriquer(fiche.nomDossier, DOSSIER, racine, { [ETIQUETTES.personne]: fiche.cle, [ETIQUETTES.ligne]: String(fiche.numero) });
       noter(`${NOM_RACINE} › ${fiche.nomDossier}`);
       crees++;
     }
     for (const partie of PARTIES) {
       if (await trouver(ETIQUETTES.partie, partie.cle, dossier, partie.type)) continue;
-      await creer(partie.nom, partie.type, dossier, { [ETIQUETTES.partie]: partie.cle });
+      await fabriquer(partie.nom, partie.type, dossier, { [ETIQUETTES.partie]: partie.cle });
       noter(`${NOM_RACINE} › ${fiche.nomDossier} › ${partie.nom}`);
       crees++;
     }
@@ -114,21 +129,27 @@ const relationsCreation = (() => {
 
   async function executer(plan, { appCap, sansLesFichesAChoisir = false, surProgres = () => {} }) {
     if (plan.bloque && !sansLesFichesAChoisir) return { arrete: true, crees: 0, personnes: 0 };
-    let racine = await trouver(ETIQUETTES.racine, 'racine', appCap, DOSSIER);
-    let crees = 0;
     const liste = [...plan.aFaire, ...plan.deja];
+    if (plan.essai && liste.length !== 1) throw new Error('Essai : une seule personne à la fois. Rien n’a été créé.');
+    // Plafond : « Relations » + 4 éléments par personne (essai : au plus 5), jamais au-delà.
+    const plafond = 1 + liste.length * (1 + PARTIES.length);
+    let crees = 0;
+    const fabriquer = async (...args) => {
+      if (crees >= plafond) throw new Error('Plafond de créations atteint : arrêt, rien de plus n’est créé.');
+      const id = await creer(...args);
+      crees++;
+      return id;
+    };
+    let racine = await trouver(ETIQUETTES.racine, 'racine', appCap, DOSSIER);
     if (!liste.length) return { arrete: false, crees: 0, personnes: 0 };
     if (!racine) {
-      racine = await creer(NOM_RACINE, DOSSIER, appCap, { [ETIQUETTES.racine]: 'racine' });
+      racine = await fabriquer(NOM_RACINE, DOSSIER, appCap, { [ETIQUETTES.racine]: 'racine' });
       noter(NOM_RACINE);
-      crees++;
     }
     let personnes = 0;
     for (const [i, fiche] of liste.entries()) {
       surProgres(i + 1, liste.length);
-      const n = await creerPersonne(fiche, racine);
-      crees += n;
-      if (n) personnes++;
+      if (await creerPersonne(fiche, racine, fabriquer)) personnes++;
     }
     return { arrete: false, crees, personnes };
   }
@@ -155,9 +176,18 @@ const relationsCreation = (() => {
     let sansLesFichesAChoisir = false;
     let refuse = false;
 
-    el('relations-nombre').textContent = `${plan.aFaire.length} dossier(s) « r_ » à créer dans « ${NOM_RACINE} »`
-      + (plan.deja.length ? ` ; ${plan.deja.length} déjà créé(s) par Cap (complétés s’il leur manque une partie).` : '.');
-    liste(el('relations-liste'), plan.aFaire.map(f => f.nomDossier));
+    if (plan.essai) {
+      // Étape 4 : ce qui sera créé, élément par élément, avant toute question.
+      const nom = [...plan.aFaire, ...plan.deja][0].nomDossier;
+      el('relations-nombre').textContent = plan.deja.length
+        ? 'Ce dossier d’essai existe déjà : Cap ajoutera seulement ce qui manque, sans doublon :'
+        : 'Ce qui sera créé (un seul dossier d’essai) :';
+      liste(el('relations-liste'), [`App Cap › ${NOM_RACINE} › ${nom}`, ...PARTIES.map(p => `${nom} › ${p.nom}`)]);
+    } else {
+      el('relations-nombre').textContent = `${plan.aFaire.length} dossier(s) « r_ » à créer dans « ${NOM_RACINE} »`
+        + (plan.deja.length ? ` ; ${plan.deja.length} déjà créé(s) par Cap (complétés s’il leur manque une partie).` : '.');
+      liste(el('relations-liste'), plan.aFaire.map(f => f.nomDossier));
+    }
     const problemes = [
       ...plan.calcul.homonymesNoms.map(h => `Homonymes : ${h.nomDossier} (lignes ${h.numeros.join(', ')}). Lequel est qui ?`),
       ...plan.calcul.incompletes.map(n => `Fiche incomplète (prénom ou nom manquant) : ligne ${n}.`),
@@ -191,7 +221,7 @@ const relationsCreation = (() => {
       if (refuse) return;
       montrer('relations-question', false);
       if (!nombre) { etat('Rien à créer.'); return; }
-      el('relations-creer').textContent = `Oui, crée ces ${nombre} dossier(s), une personne après l’autre`;
+      el('relations-creer').textContent = plan.essai ? 'Oui, crée ce dossier' : `Oui, crée ces ${nombre} dossier(s), une personne après l’autre`;
       montrer('relations-confirmer', true);
     };
     const travail = { promesse: null };
@@ -218,5 +248,47 @@ const relationsCreation = (() => {
     return travail;
   }
 
-  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, preparer, lancer, ecran };
+  // Bouton « Créer UN dossier d'essai » (Réglages du Drive) : lit le Dictionnaire (Prénom, Nom, Type),
+  // montre les personnes possibles ; Max en touche UNE ; l'écran de vérification s'ouvre. Rien n'est
+  // créé avant « Oui, crée ce dossier ».
+  function brancherEssai(doc, { lire, appCap }) {
+    const bouton = doc.getElementById('essai-relations');
+    const zone = doc.getElementById('resume-essai-relations');
+    const choix = doc.getElementById('choix-essai-relations');
+    if (!bouton || !zone || !choix) return;
+    bouton.addEventListener('click', async () => {
+      while (choix.firstChild) choix.firstChild.remove();
+      zone.hidden = false;
+      zone.textContent = 'Lecture de l’onglet « Dictionnaire »… (rien n’est créé)';
+      try {
+        const dossier = await appCap();
+        if (!dossier) { zone.textContent = 'Choisis d’abord le dossier « App Cap » dans « Réglages du Drive », avec Cap ouvert dans Chrome. Rien n’a été créé.'; return; }
+        const valeurs = await lire();
+        if (!valeurs) { zone.textContent = 'Choisis d’abord le Dictionnaire général dans « Réglages du Drive ». Rien n’a été créé.'; return; }
+        const plan = await preparer(valeurs, dossier.id);
+        const possibles = [...plan.aFaire, ...plan.deja].sort((a, b) => a.nomDossier.localeCompare(b.nomDossier, 'fr'));
+        zone.textContent = possibles.length ? 'Touche UNE personne pour l’essai (rien n’est encore créé) :' : 'Aucune fiche possible pour l’essai. Rien n’a été créé.';
+        for (const fiche of possibles) {
+          const b = doc.createElement('button');
+          b.type = 'button';
+          b.className = 'relations-gros-bouton';
+          b.textContent = fiche.nomDossier;
+          b.addEventListener('click', () => {
+            try { ecran(doc, planEssai(plan, fiche.numero), { appCap: dossier.id }); } catch (erreur) { zone.textContent = erreur.message; }
+          });
+          choix.append(b);
+        }
+      } catch (erreur) {
+        zone.textContent = `Le Dictionnaire n’a pas pu être lu (${String(erreur && erreur.message || 'raison inconnue').slice(0, 120)}). Rien n’a été créé.`;
+      }
+    });
+  }
+
+  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, preparer, planEssai, lancer, ecran, brancherEssai };
 })();
+
+// Seul point de départ dans Cap : le bouton d'essai (étape 4). Jamais au démarrage, jamais dans les tests.
+if (typeof document !== 'undefined' && document.getElementById('essai-relations')
+  && !(typeof window !== 'undefined' && window.CAP_TESTS) && typeof classement !== 'undefined' && typeof googlePicker !== 'undefined') {
+  relationsCreation.brancherEssai(document, { lire: () => classement.lireDictionnairePersonnes(), appCap: async () => googlePicker.dossierAppCap() });
+}

@@ -19,6 +19,12 @@ const relations = (() => {
   function colonne(entetes, nom) {
     return entetes.findIndex(e => cle(e).replace(/[^a-z ]/g, '').trim() === nom);
   }
+  // Prénom écrit « Prénom (Diminutif) » : le dossier ne porte que le diminutif, sans parenthèse
+  // (décision de Max, 06/11/2026). Sans parenthèse : le prénom tel quel.
+  function prenomDuDossier(prenom) {
+    const morceaux = /^(.*?)\s*\(([^()]*)\)\s*$/.exec(prenom);
+    return morceaux && propre(morceaux[2]) ? propre(morceaux[2]) : prenom;
+  }
   // Les SEULES colonnes demandées au Drive pour ce calcul : Prénom, Nom, Type (numéros, 0 = A).
   const COLONNES = Object.freeze(['prenom', 'nom', 'type']);
   function colonnesALire(entetes) {
@@ -37,7 +43,7 @@ const relations = (() => {
     const parCle = new Map();
     lignes.forEach((ligne, i) => {
       const numero = i + 2;
-      const prenom = propre(iPrenom >= 0 ? ligne[iPrenom] : '');
+      const prenom = prenomDuDossier(propre(iPrenom >= 0 ? ligne[iPrenom] : ''));
       const nom = propre(iNom >= 0 ? ligne[iNom] : '');
       const type = cle(iType >= 0 ? ligne[iType] : '');
       if (!prenom && !nom && !type) return; // ligne vide
@@ -93,7 +99,7 @@ const relations = (() => {
     });
   }
 
-  return { PREFIXE, ONGLET: 'Dictionnaire', colonnesALire, calculer, resumer, brancher };
+  return { PREFIXE, ONGLET: 'Dictionnaire', colonnesALire, prenomDuDossier, calculer, resumer, brancher };
 })();
 
 if (typeof document !== 'undefined' && document.getElementById('calculer-relations')

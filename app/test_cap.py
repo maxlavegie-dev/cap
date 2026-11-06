@@ -1886,19 +1886,24 @@ TESTS_JS = r"""
       ['Jeanne', 'Exemple-FICTIF', 'personne'],
       ['Paul', 'Modèle-FICTIF', 'Personne'],
       ['paul', 'modele-fictif', 'Personne'],
-      ['Lucie', '', 'Personne'],
+      ['Séverine-FICTIF', '', 'Personne'],
       ['', 'Dupont-FICTIF', 'Personne'],
       ['Cabinet FICTIF', '', 'Organisme'],
       ['Marc', 'Essai-FICTIF', ''],
       ['', '', ''],
-      [' Zoé ', ' Test   FICTIF ', 'Personne (pro)']
+      [' Zoé ', ' Test   FICTIF ', 'Personne (pro)'],
+      ['Jean-Baptiste-FICTIF (Jibé)', 'Essai-FICTIF', 'Personne']
     ];
   }
 
   test('Relations (étape 2) : calcul de la liste sur un faux Dictionnaire, homonymes, fiches incomplètes, rien d’autre', () => {
     const r = relations.calculer(dictionnaireRelationsFictif());
-    attendreEgal(r.lues, 9, 'fiches lues (ligne vide ignorée)');
-    attendreEgal(r.aCreer.map(d => [d.numero, d.nomDossier]), [[2, 'r_Jean Fictif'], [3, 'r_Jeanne Exemple-FICTIF'], [11, 'r_Zoé Test FICTIF']], 'dossiers à prévoir');
+    attendreEgal(r.lues, 10, 'fiches lues (ligne vide ignorée)');
+    attendreEgal(r.aCreer.map(d => [d.numero, d.nomDossier]), [[2, 'r_Jean Fictif'], [3, 'r_Jeanne Exemple-FICTIF'], [11, 'r_Zoé Test FICTIF'], [12, 'r_Jibé Essai-FICTIF']], 'dossiers à prévoir');
+    // Décision de Max : « Prénom (Diminutif) » → le dossier ne porte que le diminutif et le nom, sans parenthèse.
+    attendre(r.aCreer.every(d => !/[()]/.test(d.nomDossier)), 'parenthèse dans un nom de dossier');
+    attendreEgal(['Jean-Baptiste-FICTIF (Jibé)', 'Jean-Baptiste-FICTIF', '(Jibé)', 'Jean-Baptiste-FICTIF ( )', 'Jean-Baptiste-FICTIF  ( Jibé )'].map(relations.prenomDuDossier),
+      ['Jibé', 'Jean-Baptiste-FICTIF', 'Jibé', 'Jean-Baptiste-FICTIF ( )', 'Jibé'], 'prénom du dossier');
     attendreEgal(r.homonymes, [[4, 5]], 'homonymes (majuscules et accents ignorés), aucun dossier prévu pour eux');
     attendreEgal(r.incompletes, [6, 7], 'fiches incomplètes');
     attendreEgal(r.typeAbsent, [9], 'fiche sans type : à vérifier, rien de prévu');
@@ -1906,13 +1911,13 @@ TESTS_JS = r"""
     // Colonnes dans un autre ordre, avec d'autres colonnes autour : même résultat.
     const melange = dictionnaireRelationsFictif().map(l => ['x', l[2], 'y', l[1], l[0]]);
     melange[0] = ['Note pour IA', 'Type', 'Téléphone', 'NOM', 'prénom'];
-    attendreEgal(relations.calculer(melange).aCreer.length, 3, 'colonnes reconnues par leur titre');
+    attendreEgal(relations.calculer(melange).aCreer.length, 4, 'colonnes reconnues par leur titre');
     attendreEgal(relations.colonnesALire(['Note pour IA', 'Type', 'Téléphone', 'NOM', 'prénom', 'Date de naissance']), [1, 3, 4], 'seules Prénom, Nom, Type sont à lire');
     attendreEgal(relations.calculer([]).lues, 0, 'Dictionnaire vide');
     // Le résumé ne montre que des nombres, jamais un nom.
     const texte = relations.resumer(r);
-    for (const mot of ['Jean', 'Fictif', 'Paul', 'Zoé', 'Lucie', 'Marc', 'Cabinet', 'FICTIF']) attendre(!texte.includes(mot), `un nom apparaît à l’écran : ${mot}`);
-    attendre(texte.includes('Dossiers « r_ » à prévoir : 3.') && texte.includes('Homonymes à départager : 1 nom(s), 2 fiche(s)')
+    for (const mot of ['Jean', 'Fictif', 'Paul', 'Zoé', 'Séverine-FICTIF', 'Marc', 'Cabinet', 'FICTIF']) attendre(!texte.includes(mot), `un nom apparaît à l’écran : ${mot}`);
+    attendre(texte.includes('Dossiers « r_ » à prévoir : 4.') && texte.includes('Homonymes à départager : 1 nom(s), 2 fiche(s)')
       && texte.includes('Fiches incomplètes (prénom ou nom manquant) : 2.') && texte.includes('rien n’est créé'), `résumé : ${texte}`);
     // Le module ne parle jamais au Drive, n'écrit rien sur le téléphone, ne crée rien.
     for (const interdit of ['googleConnexion', 'fetch(', 'POST', 'PATCH', 'DELETE', 'localStorage', 'sessionStorage', 'indexedDB', 'innerHTML', 'cerveau', 'files?']) {
@@ -1929,7 +1934,7 @@ TESTS_JS = r"""
     const reponses = [async () => dictionnaireRelationsFictif(), async () => null, async () => { throw new Error('refus FICTIF'); }];
     relations.brancher(ui.doc, { lireDictionnairePersonnes: () => reponses[appels++]() });
     bouton.click();
-    await attendreQue(() => /prévoir : 3/.test(zone.textContent), `résumé absent : ${zone.textContent}`);
+    await attendreQue(() => /prévoir : 4/.test(zone.textContent), `résumé absent : ${zone.textContent}`);
     attendre(!zone.hidden && !/Jean|Fictif|Paul|Zoé/i.test(zone.textContent), 'un nom est affiché');
     bouton.click();
     await attendreQue(() => /Choisis d’abord le Dictionnaire/.test(zone.textContent), 'message sans Dictionnaire');
@@ -1941,7 +1946,7 @@ TESTS_JS = r"""
   await testAsync('Relations (étape 2) : lecture du Dictionnaire = onglet « Dictionnaire », colonnes Prénom, Nom, Type seulement, GET seulement, rien gardé', async c => {
     const piqueur = { dossierChoisi: role => (role === 'dictionnaire' ? { id: 'dico-fictif' } : null), retrouverDepuisDrive: async () => null };
     const entetes = ['Prénom', 'Note pour IA', 'Nom', 'Téléphone', 'Type', 'Date de naissance / anniversaire'];
-    const colonnes = { A: ['Prénom', 'Jean', 'Lucie'], C: ['Nom', 'Fictif'], E: ['Type', 'Personne', 'Personne'] };
+    const colonnes = { A: ['Prénom', 'Jean', 'Séverine-FICTIF'], C: ['Nom', 'Fictif'], E: ['Type', 'Personne', 'Personne'] };
     const demandees = [];
     c.repondre = async r => {
       if (r.url.hostname !== 'sheets.googleapis.com' || r.url.pathname !== '/v4/spreadsheets/dico-fictif/values:batchGet') throw new Error(`Requête inattendue : ${r.url}`);
@@ -1955,7 +1960,7 @@ TESTS_JS = r"""
     const classementIsole = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: piqueur, emetteur, relations, localStorage: espion, sessionStorage: espion, indexedDB: undefined });
     const lignes = await classementIsole.lireDictionnairePersonnes();
     attendreEgal(demandees, ["'Dictionnaire'!1:1", "'Dictionnaire'!A:A", "'Dictionnaire'!C:C", "'Dictionnaire'!E:E"], 'colonnes demandées');
-    attendreEgal(lignes, [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif', 'Personne'], ['Lucie', '', 'Personne']], 'lignes reconstituées');
+    attendreEgal(lignes, [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif', 'Personne'], ['Séverine-FICTIF', '', 'Personne']], 'lignes reconstituées');
     attendreEgal(relations.calculer(lignes).incompletes, [3], 'calcul sur la lecture');
     attendre(c.requetes.every(r => r.methode === 'GET'), 'écriture dans le Drive');
     attendre(!ecrit, 'quelque chose a été écrit sur le téléphone');
@@ -2050,7 +2055,7 @@ TESTS_JS = r"""
     const drive = fauxDriveRelations(c);
     const { module } = creationIsolee(c);
     const valeurs = [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif', 'Personne'], ['Paul', 'Modèle-FICTIF', 'Personne'], ['paul', 'modele-fictif', 'Personne'],
-      ['Lucie', '', 'Personne'], ['Marc', 'Essai-FICTIF', '']];
+      ['Séverine-FICTIF', '', 'Personne'], ['Marc', 'Essai-FICTIF', '']];
     const plan = await module.preparer(valeurs, 'appcap-fictif');
     attendre(plan.bloque, 'pas d’arrêt malgré les fiches à choisir');
     const r = await module.lancer(plan, { appCap: 'appcap-fictif' });
@@ -2102,7 +2107,7 @@ TESTS_JS = r"""
     attendreEgal(drive.fichiers.length, 9, 'création après Non puis Oui (un seul passage)');
     attendre(/Terminé : 9 élément/.test(el('relations-etat').textContent), `état : ${el('relations-etat').textContent}`);
     // Arrêt : choix montrés en très gros.
-    const bloque = await module.preparer([['Prénom', 'Nom', 'Type'], ['Lucie', '', 'Personne']], 'appcap-fictif');
+    const bloque = await module.preparer([['Prénom', 'Nom', 'Type'], ['Séverine-FICTIF', '', 'Personne']], 'appcap-fictif');
     module.ecran(ui.doc, bloque, { appCap: 'appcap-fictif' });
     attendre(!el('relations-arret').hidden && el('relations-question').hidden, 'arrêt non montré');
     attendre(/ligne 2/.test(el('relations-problemes').textContent), 'fiche à choisir non montrée');
@@ -2113,11 +2118,94 @@ TESTS_JS = r"""
     el('relations-fermer').click();
   });
 
-  test('Relations (étape 3) : aucun bouton de Cap ne lance la création avec le vrai Drive ; le module ne supprime, ne renomme, ne déplace rien', () => {
+  // Étape 4 : essai sur UNE personne (toujours sur le FAUX Drive dans les tests).
+  function dictionnaireEssaiFictif() {
+    return [['Prénom', 'Nom', 'Type', 'Note pour IA'],
+      ['Jean', 'Fictif', 'Personne', 'note FICTIVE jamais lue'],
+      ['Jean-Baptiste-FICTIF (Jibé)', 'Essai-FICTIF', 'Personne', ''],
+      ['Paul', 'Modèle-FICTIF', 'Personne', ''], ['paul', 'modele-fictif', 'Personne', ''],
+      ['Séverine-FICTIF', '', 'Personne', '']];
+  }
+
+  await testAsync('Relations (étape 4, FAUX Drive) : essai sur UNE personne choisie : écran (ce qui sera créé, question), puis « Oui, crée ce dossier » = 5 éléments au plus, un seul dossier de personne', async c => {
+    const ui = preparerInterface(c);
+    const drive = fauxDriveRelations(c);
+    const { module, lignes } = creationIsolee(c);
+    const el = id => ui.parId(id);
+    let lectures = 0;
+    module.brancherEssai(ui.doc, { lire: async () => { lectures++; return dictionnaireEssaiFictif(); }, appCap: async () => ({ id: 'appcap-fictif' }) });
+    el('essai-relations').click();
+    await attendreQue(() => el('choix-essai-relations').children.length > 0, `choix absents : ${el('resume-essai-relations').textContent}`);
+    // Les homonymes et la fiche incomplète ne sont pas proposés ; le prénom avec parenthèse donne le diminutif.
+    attendreEgal([...el('choix-essai-relations').children].map(b => b.textContent), ['r_Jean Fictif', 'r_Jibé Essai-FICTIF'], 'personnes proposées');
+    attendreEgal(drive.creations, 0, 'création avant le choix');
+    [...el('choix-essai-relations').children][1].click();
+    attendre(el('verification-relations').open, 'écran de vérification fermé');
+    attendreEgal(el('relations-nombre').textContent, 'Ce qui sera créé (un seul dossier d’essai) :', 'titre');
+    attendreEgal([...el('relations-liste').children].map(li => li.textContent),
+      ['App Cap › Relations › r_Jibé Essai-FICTIF', 'r_Jibé Essai-FICTIF › Journal de bord', 'r_Jibé Essai-FICTIF › Reçus', 'r_Jibé Essai-FICTIF › Envoyés'], 'ce qui sera créé');
+    attendre(!el('relations-question').hidden && el('relations-confirmer').hidden, 'question absente ou bouton visible trop tôt');
+    attendreEgal(el('relations-question-texte').textContent, 'As-tu déjà créé toi-même un dossier r_ pour l’une de ces personnes ?', 'question');
+    el('relations-non-jamais').click();
+    attendreEgal(el('relations-creer').textContent, 'Oui, crée ce dossier', 'bouton');
+    attendreEgal(drive.creations, 0, 'création avant « Oui, crée ce dossier »');
+    // Le travail est lancé par le clic ; on attend sa fin en regardant l'état affiché.
+    el('relations-creer').click();
+    el('relations-creer').click();
+    await attendreQue(() => /Terminé/.test(el('relations-etat').textContent), `état : ${el('relations-etat').textContent}`);
+    attendreEgal(drive.noms(), ['Envoyés', 'Journal de bord', 'Relations', 'Reçus', 'r_Jibé Essai-FICTIF'], 'éléments créés');
+    attendreEgal(drive.creations, 5, 'plus de 5 éléments');
+    attendreEgal(lignes.length, 5, 'lignes du Journal Général');
+    attendreEgal(lectures, 1, 'Dictionnaire relu');
+    // Second essai sur une AUTRE personne : refusé, rien créé (jamais plus d'un dossier de personne).
+    el('essai-relations').click();
+    await attendreQue(() => el('choix-essai-relations').children.length > 0, 'choix absents au second essai');
+    [...el('choix-essai-relations').children].find(b => b.textContent === 'r_Jean Fictif').click();
+    attendre(/existe déjà pour une autre personne/.test(el('resume-essai-relations').textContent), `second essai : ${el('resume-essai-relations').textContent}`);
+    // Même personne une seconde fois : rien de recréé.
+    [...el('choix-essai-relations').children].find(b => b.textContent === 'r_Jibé Essai-FICTIF').click();
+    attendre(/existe déjà/.test(el('relations-nombre').textContent), 'dossier existant non signalé');
+    el('relations-non-jamais').click();
+    el('relations-creer').click();
+    await attendreQue(() => /Terminé : 0 élément/.test(el('relations-etat').textContent), `état : ${el('relations-etat').textContent}`);
+    attendreEgal(drive.creations, 5, 'doublon au second passage');
+    el('relations-fermer').click();
+    attendre(c.requetes.every(r => ['GET', 'POST'].includes(r.methode) && r.url.hostname === 'www.googleapis.com'), 'adresse ou méthode non permise');
+  });
+
+  await testAsync('Relations (étape 4, FAUX Drive) : plafond de l’essai, « Oui j’ai déjà créé » = rien, App Cap ou Dictionnaire absents = rien', async c => {
+    const drive = fauxDriveRelations(c);
+    const { module } = creationIsolee(c);
+    const plan = await module.preparer(dictionnaireEssaiFictif(), 'appcap-fictif');
+    // Un plan d'essai trafiqué avec deux personnes : refusé avant toute création.
+    const triche = { ...module.planEssai(plan, 2), aFaire: plan.aFaire };
+    await attendreRejet(() => module.lancer(triche, { appCap: 'appcap-fictif' }), 'une seule personne');
+    attendreEgal(drive.creations, 0, 'création malgré deux personnes');
+    await attendreRejet(async () => module.planEssai(plan, 4), 'ne peut pas servir');
+    // Écran : « Oui » à la question = rien créé.
+    const ui = preparerInterface(c);
+    fauxDriveRelations(c);
+    module.ecran(ui.doc, module.planEssai(plan, 2), { appCap: 'appcap-fictif' });
+    ui.parId('relations-oui-deja').click();
+    ui.parId('relations-creer').click();
+    await new Promise(r => setTimeout(r, 50));
+    attendre(c.requetes.every(r => r.methode === 'GET'), 'création malgré « Oui, j’ai déjà créé »');
+    // App Cap pas choisi, Dictionnaire pas choisi : message, aucune requête.
+    const avant = c.requetes.length;
+    module.brancherEssai(ui.doc, { lire: async () => dictionnaireEssaiFictif(), appCap: async () => null });
+    ui.parId('essai-relations').click();
+    await attendreQue(() => /App Cap/.test(ui.parId('resume-essai-relations').textContent), 'message sans App Cap');
+    attendreEgal(c.requetes.length, avant, 'requête sans App Cap');
+  });
+
+  test('Relations (étapes 3 et 4) : seul le bouton d’essai lance la création (jamais au démarrage ni dans les tests) ; le module ne supprime, ne renomme, ne déplace rien', () => {
     for (const nom of ['SOURCE_APP', 'SOURCE_RELATIONS']) {
       attendre(!/relationsCreation/.test({ SOURCE_APP, SOURCE_RELATIONS }[nom]), `${nom} appelle déjà la création`);
     }
-    attendre(SOURCE_RELATIONS_CREATION.trim().endsWith('})();'), 'du code se lance tout seul après le module');
+    const apres = SOURCE_RELATIONS_CREATION.split('\n})();')[1] || '';
+    attendreEgal((apres.match(/relationsCreation\.\w+/g) || []), ['relationsCreation.brancherEssai'], 'point de départ autre que le bouton d’essai');
+    attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(apres), 'le bouton d’essai serait branché dans les tests');
+    attendre(!/lancer\(/.test(apres), 'création lancée au démarrage');
     for (const interdit of ["'DELETE'", "'PATCH'", "'PUT'", 'trashed: true', 'removeParents', 'addParents', 'innerHTML', 'localStorage', 'cerveau', 'docs.googleapis']) {
       attendre(!SOURCE_RELATIONS_CREATION.includes(interdit), `relations_creation.js contient « ${interdit} »`);
     }
@@ -6218,8 +6306,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v58['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v58")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v59['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v59")
 
 
 def verifier_precache_fichiers_existent():
