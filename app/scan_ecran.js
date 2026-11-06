@@ -59,6 +59,7 @@ const scanEcran = (() => {
     const propositionErreur = parId('scanner-proposition-erreur');
     const propositionStatut = parId('scanner-proposition-statut');
     const propositionDiagnostic = parId('scanner-proposition-diagnostic');
+    const propositionChoix = parId('scanner-proposition-choix');
     const boutonsAvecNom = ['scanner-proposition-oui', 'scanner-proposition-modifier', 'scanner-proposition-non'].map(parId);
     const boutonsSansNom = ['scanner-proposition-daccord', 'scanner-proposition-ecrire'].map(parId);
     // Texte lu sur le téléphone (jamais envoyé), nombres de caractères et de pages, proposition, réponse.
@@ -425,7 +426,8 @@ const scanEcran = (() => {
         pages_total: avant.pages_total + prises,
         echecs: [...avant.echecs, ...echecs],
         diagnostics: [...avant.diagnostics, ...diagnostics],
-        mot_cle: '', nom_propose: '', raison: '', erreur_tableur: '', reponse: '', repondu: false
+        mot_cle: '', nom_propose: '', raison: '', erreur_tableur: '', reponse: '', repondu: false,
+        score: 0, choix: [], choix_retenu: 0, recherche: '', personne_incertaine: false
       };
       dire(`${prises} page${prises > 1 ? 's' : ''} reçue${prises > 1 ? 's' : ''} du scanner de Google. `
         + `Texte lu sur ${lectureGoogle.pages_lues} page${lectureGoogle.pages_lues > 1 ? 's' : ''} sur ${lectureGoogle.pages_total}.`
@@ -465,7 +467,20 @@ const scanEcran = (() => {
       if (lecture.pages_lues) {
         try {
           if (!sourceClassement) throw new Error('tableur non disponible ici');
-          p = nommageScan.proposer(lecture.texte, await sourceClassement.lireTableurChoisi());
+          const lignes = await sourceClassement.lireTableurChoisi();
+          // 06/11/2026 : recherche par score avec le tableur des mots-clés courts, s'il est choisi ;
+          // sinon (ou s'il ne se lit pas), l'ancienne recherche stricte, et Cap le dit.
+          let mots = null;
+          lecture.recherche = 'stricte (tableur des mots-clés courts pas choisi)';
+          if (sourceClassement.lireMotsCourts) {
+            try {
+              mots = await sourceClassement.lireMotsCourts();
+            } catch (erreur) {
+              lecture.recherche = `stricte (mots-clés courts non lus : ${String(erreur.message || 'raison inconnue').slice(0, 120)})`;
+            }
+          }
+          if (mots) lecture.recherche = 'par score';
+          p = mots ? motsCourts.proposer(lecture.texte, lignes, mots) : nommageScan.proposer(lecture.texte, lignes);
         } catch (erreur) {
           p = { nom: '', mot_cle: '', raison: 'tableur', date: '' };
           lecture.erreur_tableur = String(erreur.message || 'raison inconnue').slice(0, 160);
@@ -474,7 +489,12 @@ const scanEcran = (() => {
       lecture.mot_cle = p.mot_cle;
       lecture.nom_propose = p.nom;
       lecture.raison = p.raison;
-      const avecNom = Boolean(p.nom);
+      lecture.score = p.score || 0;
+      lecture.choix = p.raison === 'choix' ? p.choix : [];
+      lecture.choix_retenu = 0;
+      lecture.personne_incertaine = Boolean(p.personne_incertaine);
+      afficherChoix(lecture);
+      const avecNom = Boolean(p.nom) || lecture.choix.length > 0;
       boutonsAvecNom.forEach(bouton => { bouton.hidden = !avecNom; });
       boutonsSansNom.forEach(bouton => { bouton.hidden = avecNom; });
       propositionNom.textContent = avecNom ? `${p.nom}.pdf` : '';
@@ -482,8 +502,14 @@ const scanEcran = (() => {
         + ` (texte lu sur ${lecture.pages_lues} page${lecture.pages_lues > 1 ? 's' : ''} sur ${lecture.pages_total})`
         + (lecture.echecs.length ? `, lecture échouée : page${lecture.echecs.length > 1 ? 's' : ''} ${lecture.echecs.join(', ')}` : '');
       const garde = 'le scan gardera son nom SCAN-… dans 00_A_CLASSER.';
+      const score = p.score ? ` (score ${nombreFrancais.format(p.score)})` : '';
+      const sansDate = p.date ? '' : ' Aucune date lisible : « DATE A PRECISER ».';
+      const personne = p.personne_incertaine ? ' Personne pas sûre (prénom non lu).' : '';
+      const nombreChoix = (p.choix || []).length;
       propositionInfo.textContent = ({
-        trouve: `${lus}, mot-clé du tableur repéré : « ${p.mot_cle} ».${p.date ? '' : ' Aucune date lisible : « DATE A PRECISER ».'} Rien n’est renommé tant que tu n’as pas dit Oui.`,
+        trouve: `${lus}, mot-clé du tableur repéré : « ${p.mot_cle} »${score}.${personne}${sansDate} Rien n’est renommé tant que tu n’as pas dit Oui.`,
+        choix: `${lus}, ${nombreChoix} titres possibles, trop proches pour que je choisisse seul.${personne}${sansDate} Touche le bon titre, puis Oui. Rien n’est renommé avant.`,
+        trop_proches: `${lus}, plus de ${nombreChoix} titres possibles et trop proches : je ne choisis pas, ${garde}`,
         aucun: `${lus}, aucun mot-clé du tableur trouvé : ${garde}`,
         contradictoire: `${lus}, plusieurs mots-clés du tableur qui ne vont pas ensemble : je ne choisis pas, ${garde}`,
         sans_texte: `${lus} : aucun texte lu, ${garde}`,
@@ -496,8 +522,36 @@ const scanEcran = (() => {
       if (zoneProposition.scrollIntoView) zoneProposition.scrollIntoView({ block: 'start' });
     }
 
+    // 2 ou 3 titres proches : un bouton par titre ; le titre touché devient la proposition.
+    function afficherChoix(lecture) {
+      propositionChoix.replaceChildren();
+      propositionChoix.hidden = !lecture.choix.length;
+      lecture.choix.forEach((choix, index) => {
+        const bouton = document.createElement('button');
+        bouton.type = 'button';
+        bouton.className = 'choix-nom-scan';
+        bouton.textContent = `${choix.nom}.pdf`;
+        bouton.setAttribute('aria-pressed', 'false');
+        bouton.addEventListener('click', () => choisirTitre(index));
+        propositionChoix.append(bouton);
+      });
+    }
+    function choisirTitre(index) {
+      const lecture = lectureGoogle;
+      if (!lecture || lecture.repondu || !lecture.choix[index]) return;
+      const choix = lecture.choix[index];
+      lecture.nom_propose = choix.nom;
+      lecture.mot_cle = choix.mot_cle;
+      lecture.score = choix.score;
+      lecture.choix_retenu = index + 1;
+      nomGoogle = '';
+      [...propositionChoix.children].forEach((bouton, i) => bouton.setAttribute('aria-pressed', String(i === index)));
+      propositionNom.textContent = `${choix.nom}.pdf`;
+      propositionStatut.textContent = 'Titre choisi. Touche Oui pour le garder, Modifier pour le changer, ou Non.';
+    }
+
     function nomPourOui() {
-      if (!propositionModification.hidden) return { texte: propositionChamp.value, reponse: lectureGoogle.nom_propose ? 'Modifié' : 'Écrit par Max' };
+      if (!propositionModification.hidden) return { texte: propositionChamp.value, reponse: lectureGoogle.nom_propose || lectureGoogle.choix.length ? 'Modifié' : 'Écrit par Max' };
       return lectureGoogle.nom_propose ? { texte: lectureGoogle.nom_propose, reponse: 'Oui' } : null;
     }
 
@@ -505,7 +559,10 @@ const scanEcran = (() => {
     async function repondreOui() {
       if (!lectureGoogle || lectureGoogle.repondu) return;
       const choix = nomPourOui();
-      if (!choix) return;
+      if (!choix) {
+        if (lectureGoogle.choix.length) propositionStatut.textContent = 'Touche d’abord un des titres proposés (ou Modifier, ou Non).';
+        return;
+      }
       const verdict = nommageScan.verifierNom(choix.texte);
       if (!verdict.ok) {
         propositionErreur.textContent = verdict.raison;
@@ -528,8 +585,8 @@ const scanEcran = (() => {
     }
 
     function repondreModifier() {
-      if (!lectureGoogle || lectureGoogle.repondu || !lectureGoogle.nom_propose) return;
-      ouvrirSaisie(nomGoogle || lectureGoogle.nom_propose, 'Change le nom, puis touche « Oui ».');
+      if (!lectureGoogle || lectureGoogle.repondu || !(lectureGoogle.nom_propose || lectureGoogle.choix.length)) return;
+      ouvrirSaisie(nomGoogle || lectureGoogle.nom_propose || lectureGoogle.choix[0].nom, 'Change le nom, puis touche « Oui ».');
     }
 
     function repondreEcrire() {
@@ -555,7 +612,9 @@ const scanEcran = (() => {
 
     function resultatJournal(lecture) {
       switch (lecture.raison) {
-        case 'trouve': return `mot-clé : ${lecture.mot_cle}`;
+        case 'trouve': return `mot-clé : ${lecture.mot_cle}${lecture.score ? ` ; score : ${lecture.score}` : ''}`;
+        case 'choix': return `choix entre ${lecture.choix.length} titres : ${lecture.choix.map(c => `${c.mot_cle} (score ${c.score})`).join(' / ')}`;
+        case 'trop_proches': return 'trop de titres proches : aucune proposition';
         case 'contradictoire': return `mots-clés contradictoires : ${lecture.mot_cle}`;
         case 'aucun': return 'aucun mot-clé trouvé';
         case 'sans_texte': return 'aucun texte lu';
@@ -576,6 +635,10 @@ const scanEcran = (() => {
           details: [`caractères lus : ${l.caracteres}`, `pages lues : ${l.pages_lues} sur ${l.pages_total}`,
             ...(l.echecs.length ? [`lecture échouée : page${l.echecs.length > 1 ? 's' : ''} ${l.echecs.join(', ')}`] : []),
             ...(l.diagnostics.length ? [`diagnostic : ${l.diagnostics.join(' | ')}`] : []),
+            ...(l.recherche ? [`recherche : ${l.recherche}`] : []),
+            ...(l.personne_incertaine ? ['personne incertaine (prénom non lu)'] : []),
+            ...(l.choix.length ? [`titres proposés : ${l.choix.map(c => `${c.nom}.pdf`).join(' / ')}`,
+              `titre touché : ${l.choix_retenu ? `n° ${l.choix_retenu} (${l.mot_cle}, score ${l.score})` : 'aucun'}`] : []),
             `nom proposé : ${l.nom_propose ? `${l.nom_propose}.pdf` : 'aucun'}`,
             `ancien nom : ${fiche.nom}`, `nom retenu : ${fiche.nom_valide || fiche.nom}`,
             `réponse : ${l.reponse || 'sans réponse'}`].join(' ; ')

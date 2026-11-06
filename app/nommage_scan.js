@@ -42,7 +42,10 @@ const nommageScan = (() => {
     for (const m of plat.matchAll(new RegExp(`(?<!\\d)(\\d{1,2})(?:er)?\\s+(${noms})\\s+(\\d{4})(?!\\d)`, 'g'))) {
       trouvees.push({ position: m.index, date: dateValide(Number(m[3]), mois[m[2]], Number(m[1])) });
     }
-    const bonne = trouvees.filter(t => t.date).sort((a, b) => a.position - b.position)[0];
+    // 06/11/2026 : une date de naissance (« né le », « née le », « naissance », « DDN ») n'est
+    // jamais la date du document (un courrier médical commence souvent par elle).
+    const naissance = position => /(?:\bnee?\s*(?:\(e\))?\s*le|naissance|\bddn)\W*$/.test(plat.slice(Math.max(0, position - 30), position));
+    const bonne = trouvees.filter(t => t.date && !naissance(t.position)).sort((a, b) => a.position - b.position)[0];
     return bonne ? bonne.date : '';
   }
 

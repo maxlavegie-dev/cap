@@ -2645,3 +2645,20 @@ dialog .micro-tri[aria-pressed="true"] {
   min-height: 3.2em;
   font-size: 1.1em;
 }
+
+/* 2 ou 3 titres proches (06/11/2026) : un gros bouton par titre, le titre touché est marqué. */
+.proposition-scan .choix-noms-scan {
+  display: grid;
+  gap: 0.5em;
+  margin: 0.5em 0;
+}
+.proposition-scan .choix-nom-scan {
+  min-height: 3.2em;
+  font-size: 1em;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.proposition-scan .choix-nom-scan[aria-pressed="true"] {
+  outline: 3px solid currentColor;
+  font-weight: 700;
+}

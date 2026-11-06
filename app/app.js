@@ -1793,12 +1793,15 @@
     // Classement des scans (05/11/2026) : Doc d'architecture et tableur, choisis dans Chrome.
     const architecture = googlePicker.dossierChoisi('architecture');
     const tableur = googlePicker.dossierChoisi('tableur_classement');
+    const motsCourtsChoisis = googlePicker.dossierChoisi('mots_cles_courts');
     // Jamais d'identifiant ni de nom de fichier à l'écran : seulement choisi ou pas.
     parId('etat-classement').textContent = `Classement : ${architecture ? 'Doc choisi' : 'Doc pas encore choisi'}, `
-      + `${tableur ? 'tableur choisi' : 'tableur pas encore choisi'}.`
-      + (!(architecture && tableur) && window.PontMicroAndroid ? ' Choisis-les dans Cap ouvert avec Chrome.' : '');
+      + `${tableur ? 'tableur choisi' : 'tableur pas encore choisi'}, `
+      + `${motsCourtsChoisis ? 'mots-clés courts choisis' : 'mots-clés courts pas encore choisis (recherche stricte)'}.`
+      + (!(architecture && tableur && motsCourtsChoisis) && window.PontMicroAndroid ? ' Choisis-les dans Cap ouvert avec Chrome.' : '');
     parId('choisir-architecture').disabled = !cle;
     parId('choisir-tableur-classement').disabled = !cle;
+    parId('choisir-mots-courts').disabled = !cle;
     parId('verifier-classement').disabled = !(architecture && tableur);
   }
 
@@ -1807,7 +1810,7 @@
     afficherDrive();
     // Coque Android : le dossier des scans, choisi dans Chrome, est relu dans le Drive.
     if (googleConnexion.connecte()) {
-      for (const role of ['documents_personnels', 'architecture', 'tableur_classement']) {
+      for (const role of ['documents_personnels', 'architecture', 'tableur_classement', 'mots_cles_courts']) {
         if (googlePicker.dossierChoisi(role)) continue;
         googlePicker.retrouverDepuisDrive(role)
           .then(dossier => { if (dossier) afficherDrive(); })
@@ -1905,7 +1908,8 @@
   });
   // Chaque fichier est choisi à part (la fenêtre de Google ne permet pas d'en cocher deux sur le téléphone).
   for (const [bouton, role, libelle] of [['choisir-architecture', 'architecture', 'Doc d’architecture'],
-    ['choisir-tableur-classement', 'tableur_classement', 'Tableur de classement']]) {
+    ['choisir-tableur-classement', 'tableur_classement', 'Tableur de classement'],
+    ['choisir-mots-courts', 'mots_cles_courts', 'Tableur des mots-clés courts']]) {
     parId(bouton).addEventListener('click', () => {
       parId('resume-classement').hidden = true;
       void choisirDansGoogle(options => googlePicker.choisirFichier(role, options), async () => {

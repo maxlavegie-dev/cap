@@ -445,6 +445,7 @@
     <p id="etat-classement"></p>
     <button id="choisir-architecture" type="button">Choisir le Doc d’architecture</button>
     <button id="choisir-tableur-classement" type="button">Choisir le tableur de classement</button>
+    <button id="choisir-mots-courts" type="button">Choisir le tableur des mots-clés courts</button>
     <button id="verifier-classement" type="button" disabled>Vérifier la lecture</button>
     <p id="resume-classement" role="status" hidden></p>
     <p id="diagnostic-picker" role="status" hidden></p>
@@ -529,6 +530,7 @@
       <h3>Nom proposé</h3>
       <p id="scanner-proposition-info" role="status"></p>
       <p id="scanner-proposition-nom" class="nom-propose"></p>
+      <div id="scanner-proposition-choix" class="choix-noms-scan" role="group" aria-label="Titres possibles" hidden></div>
       <label id="scanner-proposition-modification" class="champ-nom-scan" for="scanner-proposition-champ" hidden>
         <input id="scanner-proposition-champ" type="text" autocomplete="off" spellcheck="false">
         <span>.pdf</span>
@@ -698,6 +700,7 @@
   <script src="scan_lecture.js"></script>
   <script src="scan_nommage.js"></script>
   <script src="nommage_scan.js"></script>
+  <script src="mots_courts.js"></script>
   <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>

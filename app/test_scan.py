@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["reglages_google.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "scan_ecran.js"]
+SOURCES = ["reglages_google.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "scan_ecran.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1100,6 +1100,154 @@ TESTS_JS = r"""
       attendre(g.lignes.length === 1 && g.lignes[0].resultat === resultat && g.lignes[0].details.includes(`réponse : ${reponse}`),
         `journal (${action}) : ${JSON.stringify(g.lignes)}`);
     }
+  });
+
+  // ---------- 06/11/2026 : recherche par mots-clés courts et par score, FAUX courrier, FAUX noms ----------
+  const tableurSante = [
+    { numero: 2, mot_cle: 'compte rendu de suivi Théo Exemplaire', organisme: 'Hôpital fictif', modele: '[date] Compte rendu suivi Théo Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 3, mot_cle: 'compte rendu Théo Exemplaire', organisme: '', modele: '[date] Compte rendu Théo Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 4, mot_cle: 'bilan ophtalmologique Théo Exemplaire', organisme: 'Hôpital fictif', modele: '[date] Bilan ophtalmologique Théo Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 5, mot_cle: 'compte rendu de suivi Lina Exemplaire', organisme: '', modele: '[date] Compte rendu suivi Lina Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 6, mot_cle: 'compte rendu ophtalmologie Lina Exemplaire', organisme: '', modele: '[date] Compte rendu ophtalmologie Lina Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 7, mot_cle: 'bilan ophtalmologique Lina Exemplaire', organisme: '', modele: '[date] Bilan ophtalmologique Lina Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 8, mot_cle: 'radio Théo Exemplaire', organisme: '', modele: '[date] Radio Théo Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 10, mot_cle: 'radiographie Théo Exemplaire', organisme: '', modele: '[date] Radiographie Théo Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 9, mot_cle: 'relevé bancaire Théo Exemplaire', organisme: 'Banque fictive', modele: '[date] Releve bancaire Théo Exemplaire', chemin: ['04_BANQUE'] }
+  ];
+  const ongletsFictifs = {
+    types: [
+      ['Expression du tableur (sans la personne)', 'Lignes du tableur d\'origine', 'Nombre de lignes', 'Mots courts proposés (type)', 'Mots trop courants dans cette ligne', 'Suffit seul ?', 'Statut', 'Proposé le', 'Correction de Max'],
+      ['compte rendu de suivi', '2, 5', '2', 'compte rendu suivi', 'compte rendu', 'Oui', 'À valider', '2026-11-06', ''],
+      ['compte rendu', '3', '1', 'compte rendu', 'compte rendu', 'Non (jamais seul)', 'À valider', '2026-11-06', ''],
+      ['bilan ophtalmologique', '4, 7', '2', 'bilan ophtalmologique', 'bilan', 'Oui', 'À valider', '2026-11-06', ''],
+      ['compte rendu ophtalmologie', '6', '1', 'compte rendu ophtalmologie', 'compte rendu', 'Oui', 'À valider', '2026-11-06', ''],
+      ['radio', '8', '1', 'radio', 'radio', 'Non (jamais seul)', 'À valider', '2026-11-06', ''],
+      ['radiographie', '10', '1', 'radiographie', '', 'Oui', 'À valider', '2026-11-06', ''],
+      ['relevé bancaire', '9', '1', 'relevé', 'relevé', 'Oui', 'Corrigé', '2026-11-06', 'relevé bancaire | extrait bancaire (note FICTIVE)']
+    ],
+    organismes: [
+      ['Organisme du tableur', 'Nombre de lignes', 'Mots courts proposés (séparés par |)', 'Remarque', 'Statut', 'Proposé le', 'Correction de Max'],
+      ['Hôpital fictif', '2', 'hôpital fictif', '', 'À valider', '2026-11-06', ''],
+      ['Banque fictive', '1', 'banque fictive', '', 'Refusé', '2026-11-06', '']
+    ],
+    personnes: [
+      ['Nom écrit dans le tableur', 'Nombre de lignes', 'Prénom cherché dans le texte', 'Remarque', 'Statut', 'Proposé le', 'Correction de Max'],
+      ['Théo Exemplaire', '5', 'Théo', '', 'Corrigé', '2026-11-06', 'Théo | Théodore (note FICTIVE : le courrier écrit « Théodore », pas « Théo ».)'],
+      ['Lina Exemplaire', '3', 'Lina', '', 'À valider', '2026-11-06', '']
+    ],
+    courants: [
+      ['Mot (sans accents ni majuscules)', 'Nombre d\'expressions où il apparaît', 'Jamais seul ?', 'Statut', 'Proposé le', 'Correction de Max'],
+      ['compte', '3', 'Oui', 'À valider', '2026-11-06', ''], ['rendu', '3', 'Oui', 'À valider', '2026-11-06', ''],
+      ['bilan', '2', 'Oui', 'À valider', '2026-11-06', ''], ['radio', '1', 'Oui', 'À valider', '2026-11-06', ''],
+      ['releve', '1', 'Oui', 'À valider', '2026-11-06', ''], ['bancaire', '1', 'Oui', 'Refusé', '2026-11-06', '']
+    ]
+  };
+  // Faux courrier d'un médecin à un confrère (rien de vrai). La date de naissance vient en premier.
+  function courrierFictif(patient, { bilan = false } = {}) {
+    return ['CENTRE HOSPITALIER FICTIF – Service de OPHTALMOLOGIE', `Patient : ${patient}, né le 03/02/1970`,
+      'COMPTE RENDU DE SUIVI EN OPHTALMOLOGIE', 'Cher confrère,',
+      `J'ai revu ${patient} pour une gêne visuelle. Champ visuel normal.`,
+      'Radiographie du poignet sans anomalie.',
+      bilan ? 'Un bilan ophtalmologique complet est prévu dans trois mois.' : 'Pas d’examen supplémentaire.',
+      'Bien confraternellement, Dr FICTIF', 'Fait le 14/10/2026'].join('\n');
+  }
+
+  await test('mots courts : la correction de Max prime (avant la parenthèse, formes « | »), « Refusé » ignoré', async () => {
+    egal(motsCourts.valeurRetenue('Théo', 'Corrigé', 'Théo | Théodore (note)'), 'Théo | Théodore', 'correction avant la parenthèse');
+    egal(motsCourts.valeurRetenue('Théo', 'À valider', ''), 'Théo', 'proposition sans correction');
+    egal(motsCourts.valeurRetenue('banque fictive', 'Refusé', ''), '', 'refus sans correction');
+    egal(motsCourts.valeurRetenue('x', 'Refusé', 'y'), 'y', 'refus avec correction');
+    const mots = motsCourts.analyser(ongletsFictifs);
+    egal(mots.personnes.find(p => p.nom === 'theo exemplaire').prenoms, ['theo', 'theodore'], 'deux formes du prénom');
+    egal(mots.types.get('releve bancaire').alternatives, [['releve', 'bancaire'], ['extrait', 'bancaire']], 'correction du type');
+    egal(mots.types.get('compte rendu').seul, false, 'jamais seul');
+    egal(mots.organismes.get('banque fictive'), [], 'organisme refusé');
+    attendre(mots.courants.has('compte') && !mots.courants.has('bancaire'), 'mots trop courants (refus compris)');
+  });
+
+  await test('mots courts : courrier FICTIF d’ophtalmologie, prénom long, prénom court, nom de famille seul', async () => {
+    const mots = motsCourts.analyser(ongletsFictifs);
+    // 1. Prénom long (correction de Max) : une seule proposition, la date de naissance écartée ;
+    //    la « radiographie » citée en passant ne l'emporte pas sur le titre (mots côte à côte, en haut).
+    let p = motsCourts.proposer(courrierFictif('M. Théodore EXEMPLAIRE'), tableurSante, mots);
+    egal([p.raison, p.nom, p.mot_cle, p.personne_incertaine], ['trouve', '2026-10-14 Compte rendu suivi Théo Exemplaire',
+      'compte rendu suivi + prénom', false], 'prénom long');
+    attendre(p.score > 5, `score : ${p.score}`);
+    // 2. Prénom court : même résultat.
+    p = motsCourts.proposer(courrierFictif('M. Théo EXEMPLAIRE'), tableurSante, mots);
+    egal([p.raison, p.nom], ['trouve', '2026-10-14 Compte rendu suivi Théo Exemplaire'], 'prénom court');
+    // 3. Nom de famille seul : personne incertaine, 3 titres proches proposés.
+    p = motsCourts.proposer(courrierFictif('M. EXEMPLAIRE'), tableurSante, mots);
+    egal([p.raison, p.personne_incertaine, p.choix.length], ['choix', true, 3], 'nom de famille seul');
+    egal(p.choix.map(c => c.nom).sort(), ['2026-10-14 Compte rendu ophtalmologie Lina Exemplaire', '2026-10-14 Compte rendu suivi Lina Exemplaire',
+      '2026-10-14 Compte rendu suivi Théo Exemplaire'], 'titres proposés');
+    // 4. Le courrier parle aussi d'un « bilan ophtalmologique » : deux titres proches, Cap ne choisit pas seul.
+    p = motsCourts.proposer(courrierFictif('M. Théodore EXEMPLAIRE', { bilan: true }), tableurSante, mots);
+    egal([p.raison, p.choix.map(c => c.nom)], ['choix', ['2026-10-14 Compte rendu suivi Théo Exemplaire',
+      '2026-10-14 Bilan ophtalmologique Théo Exemplaire']], 'deux titres proches');
+  });
+
+  await test('mots courts : mots trop courants jamais seuls, autre personne écartée, aucun texte, pluriel', async () => {
+    const mots = motsCourts.analyser(ongletsFictifs);
+    egal(motsCourts.proposer('Compte rendu de Théodore Exemplaire. Radio du poignet.', tableurSante, mots).raison, 'aucun', 'mots courants seuls');
+    egal(motsCourts.proposer('Compte rendu de suivi pour Lina Exemplaire', tableurSante, mots).nom,
+      'DATE A PRECISER Compte rendu suivi Lina Exemplaire', 'la bonne personne, l’autre écartée');
+    egal(motsCourts.proposer('   ', tableurSante, mots).raison, 'sans_texte', 'texte vide');
+    egal(motsCourts.proposer('Extraits bancaires de Théo, le 02/01/2026', tableurSante, mots).nom,
+      '2026-01-02 Releve bancaire Théo Exemplaire', 'forme corrigée et pluriel');
+    egal(nommageScan.dateDuTexte('Née le 12/05/1980. Courrier du 03/09/2026'), '2026-09-03', 'date de naissance écartée');
+  });
+
+  function monterScore(options = {}) {
+    const g = monterGoogle();
+    g.options.classement = { lireTableurChoisi: async () => tableurSante,
+      lireMotsCourts: options.motsEnPanne ? async () => { throw new Error('mots injoignables FICTIF'); } : async () => motsCourts.analyser(ongletsFictifs) };
+    return g;
+  }
+
+  await test('écran Google : titre trouvé par score, journal avec mot-clé, score et réponse, jamais le texte', async () => {
+    const g = monterScore();
+    const e = await scanGoogle(g, [{ texte: courrierFictif('M. Théodore EXEMPLAIRE') }]);
+    await terminerPuisVoir(e);
+    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi Théo Exemplaire.pdf', 'nom proposé');
+    attendre(e.id('scanner-proposition-info').textContent.includes('score'), `score absent : ${e.id('scanner-proposition-info').textContent}`);
+    attendre(e.id('scanner-proposition-choix').hidden, 'choix affichés pour une seule proposition');
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(1500);
+    egal((await e.file.lister())[0].nom_valide, '2026-10-14 Compte rendu suivi Théo Exemplaire.pdf', 'nom retenu après Oui');
+    const l = g.lignes[0];
+    attendre(/^mot-clé : compte rendu suivi \+ prénom ; score : \d/.test(l.resultat), `résultat : ${l.resultat}`);
+    attendre(l.details.includes('recherche : par score') && l.details.includes('réponse : Oui'), `détails : ${l.details}`);
+    attendre(!l.details.includes('gêne') && !l.resultat.includes('gêne'), 'texte lu recopié dans le journal');
+  });
+
+  await test('écran Google : 2 ou 3 titres proches, rien sans choix puis « Oui » ; mots-clés courts en panne', async () => {
+    let g = monterScore();
+    let e = await scanGoogle(g, [{ texte: courrierFictif('M. EXEMPLAIRE') }]);
+    await terminerPuisVoir(e);
+    const boutons = [...e.id('scanner-proposition-choix').querySelectorAll('button')];
+    egal(boutons.length, 3, 'trois titres proposés');
+    attendre(e.id('scanner-proposition-info').textContent.includes('Personne pas sûre'), 'personne incertaine non dite');
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(500);
+    egal((await e.file.lister()).length, 0, 'enregistré sans titre choisi');
+    attendre(e.id('scanner-proposition-statut').textContent.includes('Touche d’abord'), 'consigne absente');
+    cliquer(boutons[1]);
+    egal(boutons[1].getAttribute('aria-pressed'), 'true', 'titre touché non marqué');
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(1500);
+    const attendu = `${boutons[1].textContent}`;
+    egal((await e.file.lister())[0].nom_valide, attendu, 'titre choisi retenu');
+    const l = g.lignes[0];
+    attendre(l.resultat.startsWith('choix entre 3 titres') && l.details.includes('titre touché : n° 2') && l.details.includes('personne incertaine'),
+      `journal : ${l.resultat} | ${l.details}`);
+    // Mots-clés courts illisibles : recherche stricte, et le journal le dit.
+    g = monterScore({ motsEnPanne: true });
+    e = await scanGoogle(g, [{ texte: courrierFictif('M. Théodore EXEMPLAIRE') }]);
+    await terminerPuisVoir(e);
+    cliquer(e.id('scanner-proposition-daccord'));
+    await pause(1500);
+    attendre(g.lignes[0].details.includes('recherche : stricte (mots-clés courts non lus : mots injoignables FICTIF)'), `journal : ${g.lignes[0].details}`);
   });
 
   await test('écran Google : lecture échouée page par page, aucun texte lu, tableur non lu, annulation', async () => {

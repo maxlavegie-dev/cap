@@ -212,6 +212,20 @@ const classement = (() => {
     return (await lireTableur(tableur.id)).lignes;
   }
 
+  // 06/11/2026 : tableur « Cap – Mots-clés courts – à valider », choisi une fois par Max. Ses quatre
+  // onglets sont lus à chaque scan (rien gardé). Pas encore choisi : null (recherche stricte).
+  const ONGLETS_MOTS_COURTS = Object.freeze({ types: 'Types', organismes: 'Organismes', personnes: 'Personnes', courants: 'Mots trop courants' });
+  async function lireMotsCourts() {
+    const fichier = await fichierChoisi('mots_cles_courts');
+    if (!fichier) return null;
+    const base = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(fichier.id)}/values:batchGet`;
+    const plages = Object.values(ONGLETS_MOTS_COURTS).map(titre => `ranges=${encodeURIComponent(`'${titre.replace(/'/g, "''")}'!A:J`)}`);
+    const donnees = await lireJson(`${base}?${plages.join('&')}&valueRenderOption=FORMATTED_VALUE`);
+    const valeurs = (donnees.valueRanges || []).map(plage => plage.values || []);
+    const onglets = Object.fromEntries(Object.keys(ONGLETS_MOTS_COURTS).map((nom, i) => [nom, valeurs[i] || []]));
+    return motsCourts.analyser(onglets);
+  }
+
   function refus(erreur) {
     if (erreur && erreur.statut) {
       return `refusé (erreur ${erreur.statut}${erreur.raison ? `, raison : ${erreur.raison}` : ''}).`;
@@ -219,5 +233,5 @@ const classement = (() => {
     return `pas lu (${erreur && erreur.message ? erreur.message : 'erreur inconnue'}).`;
   }
 
-  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire, lireTableurChoisi };
+  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire, lireTableurChoisi, lireMotsCourts };
 })();
