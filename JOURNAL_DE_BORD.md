@@ -5,7 +5,11 @@ Ce fichier dit à tout moment où en est le projet. Il est mis à jour après ch
 ## ÉTAT AU 06/11/2026 — À LIRE EN PREMIER (par tout nouvel arrivant, dont Zencoder)
 
 ### 1. État exact
-- **JALON du 06/11/2026 à 18:30 (le plus récent : il fait foi sur les lignes qui suivent) — numérisation EN PAUSE, décision de Max.**
+- **CORRECTION du 06/11/2026 (soir), demandée par Max : JALON du 06/11/2026 à 21:39 (le plus récent : il fait foi sur tout ce qui suit).**
+  - **En ligne : `cap-v56` depuis le 06/11/2026 à 21:39** (lots c19 à c22, branche main seulement, aucun tag ; voir l'entrée datée de 21:39). Les mentions `cap-v52` ci-dessous sont PÉRIMÉES.
+  - **En local, pas publié :** dossiers « Relations », étapes 2 et 3 (cache `cap-v58`, 299/299 tests Cap, 78/78 scanner) et des notes du journal (liste exacte : `git log origin/main..main`).
+  - **En attente :** étape 4 des « Relations » (dossier de Max seulement), après l'accord de Max.
+- **JALON du 06/11/2026 à 18:30 (PÉRIMÉ, voir la correction de 21:39 juste au-dessus ; texte d'origine : « le plus récent : il fait foi sur les lignes qui suivent ») — numérisation EN PAUSE, décision de Max.**
   - **En ligne :** `cap-v52` (publié à 18:25, branche main seulement, aucun tag), qui contient `cap-v51`. Tests : 78/78 scanner, 282/282 Cap.
   - **Fait et publié pour la numérisation :** scanner de Google et lecture du texte sur le téléphone ; recherche par mots-clés courts et par score (2 ou 3 choix) ; règle de nommage validée par Max (« AAAA-MM-JJ Type - Émetteur - Personne », DATE-A-PRECISER, date du scan seulement sur demande, caractères remplacés, « (2) », description) ; émetteur reconnu par le Dictionnaire général (trois onglets, colonnes autorisées seulement, gardé en mémoire, appellations, « Dr Nom » avec prénom au milieu) ; grandes fenêtres de choix (émetteur, personne) ; lecture de la date élargie ; diagnostics en nombres (émetteur, date) au Journal Numérisation. Tout reste dans 00_A_CLASSER (rangement : pas tranché par Max, aucune nouvelle autorisation).
   - **Téléphone de Max :** `cap-coque-essai-c18.apk` (`cap-v52`) installé.
