@@ -150,5 +150,20 @@ Le bouton « Scanner » ouvre la caméra. Chaque photo est redressée et éclair
 - `scan_ecran.js` : l'écran, la caméra et les boutons.
 Limites : il faut un papier clair sur un fond plus sombre ; la mise au point ne peut pas être forcée par une page web ; la précision reste en dessous du module de scan de Google.
 
+## Le scanner de Google et la lecture du texte (étape 3, 05 et 06/11/2026)
+Dans l'application Cap du téléphone (la « coque » Android), le bouton « Scanner avec Google » ouvre l'écran de scan de Google (bords, nettoyage, plusieurs pages). Le texte de chaque page est lu sur le téléphone, sans IA et sans rien envoyer. Le texte lu n'est jamais écrit dans un journal : seulement le nombre de caractères et un diagnostic en nombres.
+- `nommage_scan.js` : trouve la date du document (jamais une date de naissance, jamais une date inventée : sinon « DATE A PRECISER ») et vérifie un nom de fichier.
+- `mots_courts.js` (06/11/2026) : la recherche par mots-clés courts et par score, expliquée ci-dessous.
+- `classement.js` : lit le tableur de classement de Max (la base : modèles de titre et chemins) et le tableur des mots-clés courts.
+
+## La recherche par score (06/11/2026)
+Le tableur de classement de Max reste la base. Un second tableur, « Cap – Mots-clés courts – à valider » (dans le Drive de Max, jamais dans le dépôt), découpe chaque ligne en trois petites recherches : le type (1 à 3 mots), la personne (prénom seul, plusieurs formes séparées par « | ») et l'organisme. Max le relit : sa « Correction de Max » passe avant la proposition (seul ce qui précède la parenthèse compte) ; « Refusé » sans correction : la proposition n'est pas utilisée.
+- Les mots sont cherchés n'importe où dans le texte, sans majuscules ni accents, pluriel simple accepté.
+- Score : un mot rare compte beaucoup, un mot trop courant peu (et jamais seul) ; bonus si les mots sont côte à côte et dans le haut du document (là où est le titre) ; bonus pour le prénom, petit bonus pour l'organisme. Un prénom d'une autre personne de la famille, sans le bon : la ligne est écartée. Aucun prénom lu : « personne pas sûre ».
+- Une ligne nettement en tête : Cap propose son nom. Deux ou trois lignes proches : un bouton par titre. Plus : rien, le scan garde son nom SCAN-… dans 00_A_CLASSER.
+- Rien n'est renommé sans le « Oui » de Max (Oui / Modifier / Non). Le Journal Numérisation garde le mot-clé trouvé, le score et la réponse, jamais le texte lu.
+- Pour que Cap lise ce tableur, Max le choisit une fois dans Cap ouvert avec Chrome (« Réglages du Drive » › « Choisir le tableur des mots-clés courts »). Pas choisi : Cap fait l'ancienne recherche stricte et le dit.
+- Limite connue : sans titre en haut du document, un mot cité en passant peut l'emporter ; le « Oui » de Max protège.
+
 ## Comment lancer les vérifications automatiques
 Dans un terminal ouvert dans le dossier du projet, taper `python app\test_cap.py` (application) puis `python app\test_scan.py` (scanner). Il faut que Microsoft Edge soit installé.

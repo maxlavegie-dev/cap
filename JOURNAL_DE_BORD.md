@@ -2,7 +2,52 @@
 
 Ce fichier dit à tout moment où en est le projet. Il est mis à jour après chaque étape.
 
-## À LIRE EN PREMIER PAR ZENCODER, 05/11/2026
+## ÉTAT AU 06/11/2026 — À LIRE EN PREMIER (par tout nouvel arrivant, dont Zencoder)
+
+### 1. État exact
+- **En ligne :** https://maxlavegie-dev.github.io/cap/app/, cache `cap-v48`, publié le 06/11/2026 à 10:30 avec l'accord de Max (15 commits, branche `main` seulement, aucun tag). Contient : scanner de Google et lecture du texte dans la coque Android, recherche par mots-clés courts et par score.
+- **En local, pas publié :** seulement les notes du journal et du fichier d'explications écrites après 10:30 (liste exacte : `git log origin/main..main`).
+- **Tests :** `python app\test_scan.py` 62/62, `python app\test_cap.py` 281/281.
+- **Confidentialité :** deux corrections faites le 06/11/2026 (le type du document de Max remplacé par « document de santé » ; la spécialité du faux document de test remplacée par une autre, inventée). Aucun des commits publiés ce jour ne contient de nom réel ni de type médical.
+- **Téléphone de Max :** l'essai c13 (lecture du texte) a réussi. `cap-coque-essai-c14.apk` est prêt, pas encore installé.
+- **Prochaine étape (Max) :** dans Chrome, désactiver « Ouvrir les liens compatibles » de l'appli Cap, choisir le tableur « Cap – Mots-clés courts – à valider » (Réglages du Drive), puis RÉACTIVER ce réglage ; installer l'APK c14 ; refaire le scan.
+
+### 2. Règles de Max (toutes)
+- Aucun vrai nom de proche, aucune vraie donnée, aucun type de document de santé dans le code, les tests, le journal ou GitHub. Dans le dépôt : seulement du faux, marqué FICTIF. Le dépôt est public.
+- Rien n'est publié (`git push`) sans l'accord explicite de Max, après lui avoir montré ce qui part. Branche `main` seulement.
+- Jamais `git push --tags`, jamais un tag envoyé.
+- Aucune nouvelle autorisation Google (ni élargie) sans l'accord de Max : on s'arrête et on demande. Aujourd'hui : `drive.file` et `calendar.app.created` seulement.
+- Aucun accès aux vraies données de Max, aucun envoi de mail, sans son accord.
+- On marque et on date, on n'efface jamais. Sauvegarde (tag local daté) avant toute grosse modification.
+- Pas de réécriture de l'historique sans l'accord de Max ; jamais l'historique déjà publié.
+- Un chantier, un seul ouvrier : jamais deux outils en même temps sur le même sujet.
+- La NUMÉRISATION (scanner, lecture du texte, nommage, dossiers, rangement, journaux de chantier, tableurs de classement et de mots-clés courts) est confiée à Claude Code SEUL.
+- Rien n'est renommé ni rangé sans le « Oui » de Max.
+
+### 3. Règles pour Zencoder
+- Il travaille HORS de `Projet_Cap`, dans un dossier séparé, SANS git.
+- Il ne fait ni commit, ni push, ni tag, ni reset, ni aucune autre commande git.
+- Il ne touche pas à la numérisation.
+- Il ne modifie aucun fichier existant de `Projet_Cap`.
+- Claude Code intègre ensuite son travail dans Cap et le publie, avec l'accord de Max.
+- Sa première tâche en arrivant : lire ce journal, puis `AGENTS.md`, en lecture seule.
+- **Travail en cours de Zencoder :** la page « eau calme », une page d'essai séparée (hors `Projet_Cap`, sans git). Sa consigne est dans le Google Doc « Consigne esthétique pour Zencoder » (lien gardé hors du dépôt public, dans le Drive de Max)
+
+### 4. Tags et copies à ne JAMAIS publier
+Rappel : jamais `git push --tags` ; on publie la branche `main` seulement. Tous les tags de sauvegarde locaux restent sur l'ordinateur ; certains contiennent des versions d'avant les corrections de confidentialité ou un APK privé.
+- La copie interne de git `refs/original/refs/heads/main`.
+- Du 06/11/2026 : `sauvegarde-avant-mots-courts-score`, `sauvegarde-2026-11-06-avant-confidentialite`, `sauvegarde-2026-11-06-avant-changement-specialite`, `sauvegarde-2026-11-06-avant-reecriture-test-cap`.
+- Du 05/11/2026 : `sauvegarde-avant-c5-agenda-drive`, `sauvegarde-avant-retrait-apk-historique`, `sauvegarde-avant-etape3-mlkit`, `sauvegarde-avant-retrait-cookie`, `sauvegarde-etape-a-coque-android`, `sauvegarde-etape-b-pont-micro`, `sauvegarde-etape-c1-connexion-google`.
+- Du 04/11/2026 : `sauvegarde-avant-corrections-groupe8-post-test`, `sauvegarde-avant-groupe8-annuaire`, `sauvegarde-avant-push-reglages-drive`.
+- Du 03/11/2026 : `sauvegarde-avant-push-annuaire`, `sauvegarde-avant-push-fichiers-vocaux-complets`, `sauvegarde-avant-push-groupes-1-3`, `sauvegarde-avant-push-groupes-4-7`, `sauvegarde-avant-push-telephone-une-ligne`, `sauvegarde-avant-push-texte-entendu`.
+- Du 30/10/2026 : `sauvegarde-avant-fiche-haiku`, `sauvegarde-avant-lot-3-1`, `sauvegarde-avant-lot6-20261030`, `sauvegarde-avant-propositions-haiku`.
+- Du 29/10/2026 : `sauvegarde-avant-lot2-20261029`, `sauvegarde-avant-lot3-20261029`, `sauvegarde-avant-lot4-20261029`, `sauvegarde-avant-lot4-tuiles-20261029`, `sauvegarde-avant-lot5-demande2-20261030`.
+- Du 28/10/2026 : `sauvegarde-avant-fiche-rdv-20261028`, `sauvegarde-avant-lot1-accueil-20261029`, `sauvegarde-avant-partie1`, `sauvegarde-avant-partie2`, `sauvegarde-avant-partie3`, `sauvegarde-avant-reconnexion-20261028-2012`, `sauvegarde-partie2-20261028-2036`.
+(36 tags en tout le 06/11/2026 ; liste à jour : `git tag -l`. Vérifier qu'aucun n'est en ligne : `git ls-remote --tags origin` doit ne rien afficher.)
+
+---
+
+## À LIRE EN PREMIER PAR ZENCODER, 05/11/2026 — PÉRIMÉ, remplacé le 06/11/2026 par le bloc « ÉTAT AU 06/11/2026 » ci-dessus (gardé pour l'historique)
 
 ### 1. Ce qui a été fait aujourd'hui
 - **La connexion Google marche maintenant dans la coque Android.** La vraie cause de l'échec était le navigateur par défaut du téléphone de Max, Qwant, qui gardait le retour de Google pour lui. **Il faut garder Chrome comme navigateur par défaut sur le téléphone.** Avec Chrome par défaut, la coque reçoit bien le retour (étape C.2).
@@ -39,7 +84,7 @@ Zencoder note chaque étape dans ce journal AVANT de la commencer. Jamais deux o
 
 ## Où on en est
 
-**Étape actuelle :** Lot 3 (fenêtre « Ajouter une tâche ») publié le 29/10/2026, à essayer sur le téléphone.
+**Étape actuelle (PÉRIMÉ, remplacé le 06/11/2026 : voir le bloc « ÉTAT AU 06/11/2026 » en haut) :** Lot 3 (fenêtre « Ajouter une tâche ») publié le 29/10/2026, à essayer sur le téléphone.
 
 ### Fait
 - 27/10/2026 : cahier des charges de Max rangé dans le projet (`PROMPT_CAP.txt`).
@@ -377,12 +422,12 @@ Zencoder note chaque étape dans ce journal AVANT de la commencer. Jamais deux o
 - 06/11/2026 à 10:30 : **PUBLIÉ, avec l'accord explicite de Max : 15 commits envoyés** (`adaa0c7..e554516`), un seul `git push origin main`, sans aucun tag (vérifié : aucun tag en ligne). Avant l'envoi : contrôle des mots privés sur les fichiers et les messages des 15 commits (aucun ; une seule fausse alerte dans des octets de l'image `icone/icone_cap_essai1.png`, inchangée et déjà en ligne), aucune trace de la spécialité du vrai document, aucun APK ni fichier secret ; 62/62 tests scanner, 281/281 Cap. Historique déjà publié non touché. Vérifié en ligne à 10:30 : page de Cap 200, cache `cap-v48`, `mots_courts.js`, `classement.js`, `google_picker.js`, `scan_ecran.js` en 200, bouton « Choisir le tableur des mots-clés courts » présent, lecture du tableur de classement (`lireTableurChoisi`) présente et inchangée. Prochaine étape pour Max : dans Chrome (« Ouvrir les liens compatibles » de la coque désactivé le temps du choix, puis RÉACTIVÉ), Réglages du Drive › « Choisir le tableur des mots-clés courts » ; puis installer `cap-coque-essai-c14.apk` et refaire le scan. Cette note reste en local (pas de nouvelle publication sans accord).
 
 ### En cours
-- Étape B (pont du micro) : testée sur émulateur sans erreur, en attente du test réel de Max sur son téléphone.
-- Étape C.1 : nouvel APK de diagnostic prêt (`Cap-coque-etapeC1-debug.apk`), avec une bannière dans l'écran de Cap (plus de fenêtre native) et une écriture dans un fichier du téléphone. En attente du nouveau test de Max pour voir enfin le détail exact de l'erreur, avant de corriger la vraie cause puis de continuer vers le scanner ML Kit et le vrai dépôt Drive (étape C.2).
-- Lot 3.1 publié et validé ; hors connexion et lot 3.2 faits en local, à publier avec l'accord de Max puis à essayer sur son téléphone.
-- Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
-- Lot 6 : Haiku prêt, fiche à coller par Max dans Cap ; en attente de son feu vert sur la clé. Étape suivante : verrouillage par empreinte, obligatoire avant toute vraie donnée. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
-- Question en attente : le texte des Lots 7 à 16 n'est pas dans le projet, et le Complément 6 interdit le Lot 7 sans validation complète du Lot 6.
+- TERMINÉE le 05/11/2026 (marqué le 06/11/2026) : Étape B (pont du micro) : testée sur émulateur sans erreur, en attente du test réel de Max sur son téléphone.
+- TERMINÉE le 05/11/2026 (marqué le 06/11/2026 ; suite : étapes C.2 à C.5, connexion Google réussie sur le téléphone) : Étape C.1 : nouvel APK de diagnostic prêt (`Cap-coque-etapeC1-debug.apk`), avec une bannière dans l'écran de Cap (plus de fenêtre native) et une écriture dans un fichier du téléphone. En attente du nouveau test de Max pour voir enfin le détail exact de l'erreur, avant de corriger la vraie cause puis de continuer vers le scanner ML Kit et le vrai dépôt Drive (étape C.2).
+- À VÉRIFIER AVEC MAX (06/11/2026) : Lot 3.1 publié et validé ; hors connexion et lot 3.2 faits en local, à publier avec l'accord de Max puis à essayer sur son téléphone.
+- À VÉRIFIER AVEC MAX (06/11/2026) : Lot 5 publié : à tester par Max sur son téléphone (c'est lui qui valide la fin du Lot 5).
+- À VÉRIFIER AVEC MAX (06/11/2026) : Lot 6 : Haiku prêt, fiche à coller par Max dans Cap ; en attente de son feu vert sur la clé. Étape suivante : verrouillage par empreinte, obligatoire avant toute vraie donnée. Ensuite : rendez-vous fictifs, questions sur les tâches, fabrication de tâches fictives.
+- À VÉRIFIER AVEC MAX (06/11/2026) : Question en attente : le texte des Lots 7 à 16 n'est pas dans le projet, et le Complément 6 interdit le Lot 7 sans validation complète du Lot 6.
 - Plus tard : mode conversation continue (pas commencé).
 
 ### À faire (semaine 1)
