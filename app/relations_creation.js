@@ -401,12 +401,37 @@ const relationsCreation = (() => {
       `Total visible : ${total('mp3')} MP3, ${total('images')} image(s), ${total('sousDossiers')} sous-dossier(s), ${total('autres')} autre(s).`
     ].join('\n');
   }
+  // 07/11/2026 (accord de Max) : après « Montrer « Relations » à Google », dire QUEL dossier a été
+  // montré (son nom) et si c'est bien le « Relations » créé par Cap (même identifiant), le dossier d'une
+  // personne, ou un autre dossier. Lecture seule : la fiche du dossier montré (nom, étiquette).
+  async function verdictDossierMontre(choix, appCap) {
+    let nom = choix.nom || '';
+    let proprietes = {};
+    try {
+      const fiche = await lireJson(`${drive}/${encodeURIComponent(choix.id)}?fields=id%2Cname%2CappProperties`);
+      nom = fiche.name || nom;
+      proprietes = fiche.appProperties || {};
+    } catch (erreur) { /* fiche illisible : on garde le nom donné par la fenêtre de Google */ }
+    let racine = '';
+    try { racine = appCap ? await trouver(ETIQUETTES.racine, 'racine', appCap, DOSSIER) : ''; } catch (erreur) { racine = ''; }
+    const titre = `Dossier montré : « ${nom || 'nom inconnu'} »`;
+    if (racine && choix.id === racine) return `${titre}\nOUI : c’est bien le « Relations » créé par Cap. Appuie de nouveau sur « Essai de visibilité ».`;
+    if (proprietes[ETIQUETTES.personne]) return `${titre}\nNON : ce n’est pas « Relations », c’est le dossier d’une personne. Recommence et choisis « Relations ».`;
+    if (!racine) return `${titre}\nJe ne sais pas : Cap ne retrouve pas son dossier « Relations » (choisis d’abord « App Cap »).`;
+    return `${titre}\nNON : ce n’est pas le « Relations » créé par Cap (peut-être ton ancien dossier d’essai). Recommence et choisis l’autre.`;
+  }
+
   function brancherVisibilite(doc, { appCap, montrer }) {
     const bouton = doc.getElementById('visibilite-relations');
     const montrerBouton = doc.getElementById('montrer-relations');
     const zone = doc.getElementById('resume-visibilite-relations');
     if (!bouton || !montrerBouton || !zone) return;
-    const ecrire = texte => { zone.hidden = false; zone.textContent = texte; };
+    // Le message reste visible sans faire défiler : la zone est ramenée au milieu de l'écran.
+    const ecrire = texte => {
+      zone.hidden = false;
+      zone.textContent = texte;
+      try { zone.scrollIntoView({ block: 'center' }); } catch (erreur) { /* rien */ }
+    };
     bouton.addEventListener('click', async () => {
       ecrire('Lecture des dossiers « r_ »… (rien n’est modifié)');
       try {
@@ -419,9 +444,12 @@ const relationsCreation = (() => {
     });
     // Temps 2 de l'essai : Max montre « Relations » (celui créé par Cap) au sélecteur Google, dans Chrome.
     montrerBouton.addEventListener('click', async () => {
+      ecrire('Ouverture de la fenêtre de Google… (elle peut mettre quelques secondes)');
       try {
         const choix = await montrer();
-        ecrire(choix ? 'Dossier montré à Google. Appuie de nouveau sur « Essai de visibilité ».' : 'Rien n’a été choisi.');
+        if (!choix) { ecrire('Rien n’a été choisi.'); return; }
+        const dossier = await appCap().catch(() => null);
+        ecrire(await verdictDossierMontre(choix, dossier && dossier.id));
       } catch (erreur) {
         ecrire(`Le sélecteur Google n’a pas pu s’ouvrir (${String(erreur && erreur.message || 'raison inconnue').slice(0, 120)}). Fais-le dans Chrome.`);
       }

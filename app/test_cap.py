@@ -1985,6 +1985,12 @@ TESTS_JS = r"""
         // Comme Google : marque d'encodage au début et fin de ligne Windows.
         return new Response(`﻿${doc.contenu}\r\n`, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
       }
+      const fiche = /^\/drive\/v3\/files\/([^/]+)$/.exec(r.url.pathname);
+      if (fiche) {
+        attendreEgal(r.methode, 'GET', 'fiche lue seulement');
+        const x = f.fichiers.find(y => y.id === decodeURIComponent(fiche[1]) && (!y.aLaMain || f.mainVisible));
+        return x ? reponseGoogle({ id: x.id, name: x.name, appProperties: x.appProperties }) : reponseGoogle({ error: { code: 404 } }, 404);
+      }
       const remplacer = /^\/upload\/drive\/v3\/files\/([^/]+)$/.exec(r.url.pathname);
       if (remplacer) {
         attendreEgal([r.methode, r.url.searchParams.get('uploadType')], ['PATCH', 'media'], 'remplacement du contenu');
@@ -2357,12 +2363,12 @@ TESTS_JS = r"""
     let montres = 0;
     let refuser = false;
     module.brancherVisibilite(ui.doc, { appCap: async () => ({ id: 'appcap-fictif' }),
-      montrer: async () => { if (refuser) throw new Error('fenêtre FICTIVE refusée'); montres++; drive.mainVisible = true; return { id: 'relations-fictif' }; } });
+      montrer: async () => { if (refuser) throw new Error('fenêtre FICTIVE refusée'); montres++; drive.mainVisible = true; return { id: drive.fichiers.find(x => x.name === 'Relations').id, nom: 'Relations' }; } });
     attendre(el('resume-visibilite-relations').hidden, 'zone visible trop tôt');
     el('visibilite-relations').click();
     await attendreQue(() => /Total visible : 0 MP3/.test(el('resume-visibilite-relations').textContent), `premier essai : ${el('resume-visibilite-relations').textContent}`);
     el('montrer-relations').click();
-    await attendreQue(() => /Dossier montré à Google/.test(el('resume-visibilite-relations').textContent), 'après le sélecteur');
+    await attendreQue(() => /OUI : c’est bien le « Relations » créé par Cap/.test(el('resume-visibilite-relations').textContent), `après le sélecteur : ${el('resume-visibilite-relations').textContent}`);
     attendreEgal(montres, 1, 'sélecteur');
     el('visibilite-relations').click();
     await attendreQue(() => /Total visible : 3 MP3, 4 image/.test(el('resume-visibilite-relations').textContent), `second essai : ${el('resume-visibilite-relations').textContent}`);
@@ -2377,6 +2383,41 @@ TESTS_JS = r"""
     ui2.parId('visibilite-relations').click();
     await attendreQue(() => /Choisis d’abord le dossier « App Cap »/.test(ui2.parId('resume-visibilite-relations').textContent), 'App Cap absent');
     attendre(c.requetes.slice(avant).every(q => q.methode === 'GET'), 'modification');
+  });
+
+  await testAsync('Dossier montré à Google (FAUX Drive) : nom en gros, OUI si c’est le « Relations » de Cap, NON sinon (dossier d’une personne, ancien dossier) ; message visible sans défiler', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const { drive, module } = await driveVisibiliteFictif(c);
+    const el = id => ui.parId(id);
+    // Un ancien « Relations » fait à la main (pas de Cap), montré par erreur.
+    const ancien = drive.aLaMain('Relations', 'application/vnd.google-apps.folder', 'appcap-fictif');
+    const relationsCap = drive.fichiers.find(x => x.name === 'Relations' && !x.aLaMain);
+    const personne = drive.fichiers.find(x => x.name === 'r_Jean Fictif');
+    let reponse = null;
+    module.brancherVisibilite(ui.doc, { appCap: async () => ({ id: 'appcap-fictif' }), montrer: async () => { drive.mainVisible = true; return reponse; } });
+    // La fenêtre « Réglages du Drive » ouverte, en haut, sur un écran de téléphone.
+    const fenetre = el('reglages-drive');
+    fenetre.showModal();
+    fenetre.scrollTop = 0;
+    const verifier = async (choix, attendu) => {
+      reponse = choix;
+      fenetre.scrollTop = 0;
+      el('montrer-relations').click();
+      await attendreQue(() => attendu.test(el('resume-visibilite-relations').textContent), `message : ${el('resume-visibilite-relations').textContent}`);
+      const zone = el('resume-visibilite-relations').getBoundingClientRect();
+      const cadre = fenetre.getBoundingClientRect();
+      attendre(zone.height > 0 && zone.top >= Math.max(0, cadre.top) - 1 && zone.bottom <= Math.min(ui.cadre.contentWindow.innerHeight, cadre.bottom) + 1,
+        `message hors de l’écran (haut ${Math.round(zone.top)}, bas ${Math.round(zone.bottom)}, fenêtre ${Math.round(cadre.top)}–${Math.round(cadre.bottom)})`);
+    };
+    await verifier({ id: relationsCap.id, nom: 'Relations' }, /^Dossier montré : « Relations »\nOUI : c’est bien le « Relations » créé par Cap/);
+    await verifier({ id: personne.id, nom: 'r_Jean Fictif' }, /^Dossier montré : « r_Jean Fictif »\nNON : ce n’est pas « Relations », c’est le dossier d’une personne/);
+    await verifier({ id: ancien.id, nom: 'Relations' }, /^Dossier montré : « Relations »\nNON : ce n’est pas le « Relations » créé par Cap/);
+    // Fiche illisible (dossier inconnu) : le nom donné par la fenêtre de Google, et NON.
+    await verifier({ id: 'inconnu-fictif', nom: 'Dossier FICTIF' }, /^Dossier montré : « Dossier FICTIF »\nNON/);
+    await verifier(null, /^Rien n’a été choisi\.$/);
+    attendre(parseFloat(ui.cadre.contentWindow.getComputedStyle(el('resume-visibilite-relations')).fontSize) >= 20, 'message pas en gros');
+    attendre(c.requetes.every(q => ['GET', 'POST'].includes(q.methode)), 'modification');
+    fenetre.close();
   });
 
   test('Sélecteur : le rôle « relations » rattache le choix à Cap (numéro du projet) ; les autres dossiers gardent leur réglage', () => {
@@ -6673,8 +6714,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v64['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v64")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v65['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v65")
 
 
 def verifier_precache_fichiers_existent():
