@@ -43,9 +43,9 @@ const emetteur = (() => {
   const AUTORISEES = Object.freeze({
     'Ancienne liste': [/^first name$/, /^middle name$/, /^last name$/, /^name prefix$/, /^nickname$/, /^organization name$/,
       /^organization title$/, /^organization department$/, /^e mail \d+ value$/, /^phone \d+ value$/,
-      /^address \d+ (street|city|postal code)$/],
+      /^address \d+ (street|city|postal code)$/, /^appellations et surnoms$/],
     'Tri contacts': [/^nom dans les contacts$/, /^organisation etiquette$/, /^telephone$/, /^mail$/, /^categorie$/,
-      /^nom propre pour le dictionnaire$/, /^role lien avec max$/],
+      /^nom propre pour le dictionnaire$/, /^role lien avec max$/, /^appellations et surnoms$/],
     Dictionnaire: [/^prenom$/, /^nom$/, /^type$/, /^role$/, /^lien avec max$/, /^appellations et surnoms$/, /^coordonnees$/,
       /^telephone$/, /^mail$/, /^domaine$/, /^adresse postale$/, /^deuxieme telephone$/, /^deuxieme mail$/, /^fonction titre$/]
   });
@@ -81,6 +81,17 @@ const emetteur = (() => {
     const e = { onglet, numero, noms: [], telephones: [], mails: [], faibles: [], famille: false, affichage: '' };
     const ajouterTel = t => { for (const morceau of String(t).split(/[,;/|\n]+/)) { const n = chiffres9(morceau); if (n) e.telephones.push(n); } };
     const ajouterMails = t => { for (const m of String(t).toLowerCase().match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g) || []) e.mails.push(m); };
+    // Appellations et surnoms (06/11/2026) : chaque forme (séparée par « , » « ; » « | » ou un retour à la
+    // ligne) est cherchée TELLE QUELLE dans le texte, titre compris ; trouvée exactement, elle fait
+    // reconnaître la fiche. Un seul mot trop court ou courant ne compte pas.
+    const ajouterAppellations = t => {
+      for (const a of String(t || '').split(/[,;|\n]+/)) {
+        const n = nomDe(a, false);
+        if (!n) continue;
+        n.appellation = mots(a);
+        e.noms.push(n);
+      }
+    };
     const ajouterFaibles = t => { for (const m of mots(t)) if ((m.length >= 4 || /^\d{5}$/.test(m)) && !GENERIQUES.has(m)) e.faibles.push(m); };
     if (onglet === 'Ancienne liste') {
       const personne = [valeur('first name'), valeur('middle name'), valeur('last name')].filter(Boolean).join(' ');
@@ -89,6 +100,7 @@ const emetteur = (() => {
       else if (personne) e.noms.push(nomDe(personne, false));
       if (valeur('nickname')) e.noms.push(nomDe(valeur('nickname'), false));
       if (organisation) e.noms.push(nomDe(organisation, false));
+      ajouterAppellations(valeur('appellations et surnoms'));
       e.affichage = (valeur('last name') ? personne : '') || organisation || personne;
       commence('phone').forEach(ajouterTel);
       commence('e mail').forEach(ajouterMails);
@@ -99,6 +111,7 @@ const emetteur = (() => {
       if (propre) e.noms.push(nomDe(propre, mots(propre).length >= 2, mots(propre).length >= 2 ? mots(propre).slice(-1).join(' ') : ''));
       if (brut) e.noms.push(nomDe(brut, mots(brut).length >= 2));
       if (valeur('organisation etiquette')) e.noms.push(nomDe(valeur('organisation etiquette'), false));
+      ajouterAppellations(valeur('appellations et surnoms'));
       e.affichage = propre || brut || valeur('organisation etiquette');
       ajouterTel(valeur('telephone'));
       ajouterMails(valeur('mail'));
@@ -108,7 +121,7 @@ const emetteur = (() => {
       const personne = type ? type.startsWith('personne') : Boolean(valeur('prenom'));
       const complet = [valeur('prenom'), valeur('nom')].filter(Boolean).join(' ');
       if (complet) e.noms.push(nomDe(complet, personne && Boolean(valeur('nom')) && Boolean(valeur('prenom')), valeur('nom')));
-      for (const a of String(valeur('appellations et surnoms')).split(/[,;|\n]+/)) if (a.trim()) e.noms.push(nomDe(a, false));
+      ajouterAppellations(valeur('appellations et surnoms'));
       e.affichage = complet;
       const domaine = cle(valeur('domaine'));
       e.famille = domaine.startsWith('famille') || domaine === 'moi';
@@ -163,7 +176,33 @@ const emetteur = (() => {
 
   // Le nom apparaît-il ? → 'exact' | 'souple' | ''. Plusieurs mots : côte à côte, dans l'ordre.
   // Un seul mot : seulement précédé d'un titre (Dr, Docteur…), et jamais un mot générique.
+  // Titre juste avant la position i (ou séparé par une initiale) → 'colle' ; séparé par 1 ou 2 mots
+  // (le prénom, 06/11/2026) → 'ecarte' ; sinon ''.
+  function titreAvant(jetons, i) {
+    if (i >= 1 && TITRES.has(jetons[i - 1])) return 'colle';
+    if (i >= 2 && TITRES.has(jetons[i - 2]) && jetons[i - 1].length === 1) return 'colle';
+    for (const ecart of [2, 3]) {
+      if (i - ecart < 0 || !TITRES.has(jetons[i - ecart])) continue;
+      const milieu = jetons.slice(i - ecart + 1, i);
+      if (milieu.every(m => m.length >= 1 && !TITRES.has(m) && !GENERIQUES.has(m))) return 'ecarte';
+    }
+    return '';
+  }
+
+  // Appellation écrite par Max, cherchée telle quelle (titre compris), mots côte à côte.
+  function appellationDansTexte(nom, jetons) {
+    const a = nom.appellation;
+    if (!a || !a.length) return false;
+    if (a.length === 1 && (a[0].length < 4 || GENERIQUES.has(a[0]) || TITRES.has(a[0]))) return false;
+    if (a.every(m => GENERIQUES.has(m) || TITRES.has(m))) return false;
+    for (let i = 0; i + a.length <= jetons.length; i++) {
+      if (a.every((m, k) => jetons[i + k] === m)) return true;
+    }
+    return false;
+  }
+
   function nomDansTexte(nom, jetons) {
+    if (appellationDansTexte(nom, jetons)) return 'appellation';
     if (!nomUtilisable(nom)) return '';
     const n = nom.mots;
     if (n.length >= 2) {
@@ -183,8 +222,9 @@ const emetteur = (() => {
         const famille = nom.famille;
         if (famille.join('').length >= 3 && !famille.every(m => GENERIQUES.has(m))) {
           for (let i = 1; i + famille.length <= jetons.length; i++) {
-            const titre = TITRES.has(jetons[i - 1]) || (i >= 2 && TITRES.has(jetons[i - 2]) && jetons[i - 1].length === 1);
-            if (!titre) continue;
+            // Fiche avec un prénom connu : le titre doit être juste avant le nom de famille (sinon le mot
+            // du milieu est un autre prénom, ex. « Dr Jean Fictif » n'est pas « Jeanne Fictif »).
+            if (titreAvant(jetons, i) !== 'colle') continue;
             const morceau = jetons.slice(i, i + famille.length);
             if (morceau.every((m, k) => m === famille[k])) return 'exact';
             if (morceau.every((m, k) => presque(m, famille[k]))) meilleur = meilleur || 'souple';
@@ -195,12 +235,16 @@ const emetteur = (() => {
     }
     const seul = n[0];
     if (seul.length < 3 || GENERIQUES.has(seul) || !(nom.titre || nom.personne)) return '';
+    // Fiche « Dr Nom » : le titre juste avant le nom → exact ; un prénom entre les deux (« Docteur
+    // Prénom NOM ») → souple, donc les cases s'affichent (06/11/2026).
+    let meilleur = '';
     for (let i = 1; i < jetons.length; i++) {
-      if (!TITRES.has(jetons[i - 1])) continue;
-      if (jetons[i] === seul) return 'exact';
-      if (presque(jetons[i], seul)) return 'souple';
+      const titre = titreAvant(jetons, i);
+      if (!titre) continue;
+      if (jetons[i] === seul) { if (titre === 'colle') return 'exact'; meilleur = 'souple'; }
+      else if (presque(jetons[i], seul)) meilleur = 'souple';
     }
-    return '';
+    return meilleur;
   }
 
   const nomComplet = e => (e.noms.find(n => n.personne) || e.noms[0] || { mots: [] }).mots.join(' ');
@@ -227,22 +271,29 @@ const emetteur = (() => {
       e.telephones.forEach(t => telExclus.add(t));
       e.mails.forEach(m => mailsExclus.add(m));
     }
+    // Diagnostic (06/11/2026) : des NOMBRES seulement, jamais un nom ni un indice.
+    const diagnostic = {
+      lues: Object.fromEntries(ONGLETS.map(o => [o, (entrees || []).filter(e => e.onglet === o).length])),
+      titres: jetons.filter(m => TITRES.has(m)).length, telephones: telephones.size,
+      candidats: { telephone_mail: 0, exact: 0, appellation: 0, souple: 0 }, famille_ecartee: 0
+    };
     const groupes = new Map();
     for (const e of entrees || []) {
-      if (e.famille) continue;
-      if (e.noms.some(n => nomsExclus.has(n.mots.join(' ')))) continue;
+      if (e.famille || e.noms.some(n => nomsExclus.has(n.mots.join(' ')))) { diagnostic.famille_ecartee++; continue; }
       let score = 0;
       let cree = false;
       let exact = false;
       const forts = e.telephones.filter(t => telephones.has(t) && !telExclus.has(t)).length
         + e.mails.filter(m => mailsTexte.has(m) && !mailsExclus.has(m)).length;
-      if (forts) { score += POINTS.fort; cree = true; }
+      if (forts) { score += POINTS.fort; cree = true; diagnostic.candidats.telephone_mail++; }
       let meilleurNom = '';
       for (const n of e.noms) {
         const r = nomDansTexte(n, jetons);
-        if (r === 'exact') { meilleurNom = 'exact'; break; }
+        if (r === 'appellation') { meilleurNom = 'exact'; diagnostic.candidats.appellation++; break; }
+        if (r === 'exact') { meilleurNom = 'exact'; diagnostic.candidats.exact++; break; }
         if (r === 'souple') meilleurNom = 'souple';
       }
+      if (meilleurNom === 'souple') diagnostic.candidats.souple++;
       if (meilleurNom) { score += meilleurNom === 'exact' ? POINTS.moyen : POINTS.souple; cree = true; exact = meilleurNom === 'exact'; }
       if (!cree) continue;
       const faibles = new Set(e.faibles.filter(m => contenu.includes(` ${m} `)));
@@ -257,11 +308,11 @@ const emetteur = (() => {
       else { avant.score = Math.max(score, avant.score); avant.exact = avant.exact || exact; }
     }
     const tries = [...groupes.values()].sort((a, b) => b.score - a.score || b.rang - a.rang);
-    if (!tries.length) return { etat: 'aucun', candidats: [] };
+    if (!tries.length) return { etat: 'aucun', candidats: [], diagnostic };
     const candidats = formesCourtes(tries.slice(0, CHOIX_MAX)).map(({ rang, forts, ...c }) => c);
     // Proposé directement seulement si : une seule entrée possible, trouvée par son nom écrit exactement.
-    if (tries.length === 1 && tries[0].exact) return { etat: 'certain', candidats };
-    return { etat: 'choix', candidats };
+    if (tries.length === 1 && tries[0].exact) return { etat: 'certain', candidats, diagnostic };
+    return { etat: 'choix', candidats, diagnostic };
   }
 
   // Forme courte pour les cases (« J. Fictif », sigle d'un organisme long) ; deux formes courtes

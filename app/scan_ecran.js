@@ -584,16 +584,17 @@ const scanEcran = (() => {
       }
       if (!entrees) return null;
       const r = emetteur.reconnaitre(lecture.texte, entrees, { noms: (mots.personnes || []).map(p => p.affichage || p.nom) });
-      if (r.etat === 'aucun') { lecture.emetteur = { etat: 'aucun' }; return null; }
+      const diagnostic = r.diagnostic || null;
+      if (r.etat === 'aucun') { lecture.emetteur = { etat: 'aucun', diagnostic }; return null; }
       if (r.etat === 'certain') {
         const c = r.candidats[0];
-        lecture.emetteur = { etat: 'reconnu', onglet: c.onglet, numero: c.numero, complet: c.complet };
+        lecture.emetteur = { etat: 'reconnu', onglet: c.onglet, numero: c.numero, complet: c.complet, diagnostic };
         return c;
       }
       const choix = await demanderDansFenetre('Qui a envoyé ce document ? Touche la bonne réponse :', r.candidats, 'Aucun de ceux-là');
       lecture.emetteur = choix
-        ? { etat: 'choisi', onglet: choix.onglet, numero: choix.numero, complet: choix.complet, cases: r.candidats.length }
-        : { etat: 'aucun_de_ceux_la', cases: r.candidats.length };
+        ? { etat: 'choisi', onglet: choix.onglet, numero: choix.numero, complet: choix.complet, cases: r.candidats.length, diagnostic }
+        : { etat: 'aucun_de_ceux_la', cases: r.candidats.length, diagnostic };
       return choix;
     }
 
@@ -663,6 +664,15 @@ const scanEcran = (() => {
         }
         boutons[0]?.focus({ preventScroll: true });
       });
+    }
+
+    // Diagnostic de l'émetteur au Journal Numérisation : des nombres seulement (aucun nom, aucun indice).
+    function texteDiagnostic(d) {
+      const lues = emetteur.ONGLETS.map(o => d.lues[o] || 0).join(' / ');
+      const c = d.candidats;
+      return `diagnostic émetteur : lues ${lues} (ancienne liste / tri contacts / dictionnaire) ; titres ${d.titres} ; `
+        + `téléphones ${d.telephones} ; candidats tél./mail ${c.telephone_mail}, exact ${c.exact}, appellation ${c.appellation}, `
+        + `souple ${c.souple} ; famille écartée ${d.famille_ecartee}`;
     }
 
     function texteEmetteurJournal(e) {
@@ -793,6 +803,7 @@ const scanEcran = (() => {
             ...(l.diagnostics.length ? [`diagnostic : ${l.diagnostics.join(' | ')}`] : []),
             ...(l.recherche ? [`recherche : ${l.recherche}`] : []),
             ...(l.emetteur ? [`émetteur : ${texteEmetteurJournal(l.emetteur)}`] : []),
+            ...(l.emetteur && l.emetteur.diagnostic ? [texteDiagnostic(l.emetteur.diagnostic)] : []),
             ...(l.personne ? [l.personne.etat === 'choisie' ? `personne : choisie par Max (n° ${l.personne.rang} parmi ${l.personne.cases})`
               : `personne : aucune de celles proposées (choix de Max parmi ${l.personne.cases})`] : []),
             ...(l.personne_incertaine ? ['personne incertaine (prénom non lu)'] : []),

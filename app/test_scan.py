@@ -1441,6 +1441,44 @@ TESTS_JS = r"""
     egal(r.candidats.map(c => c.court).sort(), ['Jean-Baptiste Fictif-Exemplaire', 'Jean-Bernard Fictif-Exemplaire'], 'formes courtes allongées');
   });
 
+  await test('émetteur : appellations lues dans les trois onglets ; appellation exacte → reconnue ; famille jamais', async () => {
+    egal(emetteur.colonnesALire('Ancienne liste', ['First Name', 'Notes', 'Appellations et surnoms']), [0, 2], 'ancienne liste : appellations lues, notes jamais');
+    egal(emetteur.colonnesALire('Tri contacts', ['Nom dans les contacts', 'Remarques', 'Appellations et surnoms']), [0, 2], 'tri contacts : appellations lues');
+    const onglets = {
+      'Ancienne liste': [['First Name', 'Last Name', 'Notes', 'Appellations et surnoms'],
+        ['P.', 'Fictivo-Exemple', 'note FICTIVE', 'Docteur Paul FICTIVO'],
+        ['Doc', '', '', 'Doc']],
+      'Tri contacts': [['Nom dans les contacts', 'Appellations et surnoms'], ['Cabinet FICTIF', 'Maison FICTIVE des Lilas']],
+      Dictionnaire: [['Prénom', 'Nom', 'Type', 'Domaine', 'Appellations et surnoms'], ['Lina', 'Exemplaire', 'Personne', 'Famille', 'Tata Linou']]
+    };
+    const entrees = emetteur.analyser(onglets);
+    // Les colonnes de nom ne correspondent pas au scan, mais l'appellation écrite par Max, oui.
+    let r = emetteur.reconnaitre('ORDONNANCE FICTIVE\nDocteur Paul FICTIVO\nPour Théo Exemplaire', entrees, personnesExclues);
+    egal([r.etat, r.candidats[0].onglet, r.candidats[0].numero], ['certain', 'Ancienne liste', 2], 'appellation exacte');
+    egal(r.diagnostic.candidats.appellation, 1, 'diagnostic : appellation');
+    r = emetteur.reconnaitre('Courrier FICTIF de la Maison FICTIVE des Lilas', entrees, personnesExclues);
+    egal([r.etat, r.candidats[0].onglet], ['certain', 'Tri contacts'], 'appellation dans tri contacts');
+    // Une appellation d'un seul mot trop court ne compte pas ; une appellation de la famille jamais.
+    egal(emetteur.reconnaitre('Doc FICTIF', entrees, personnesExclues).etat, 'aucun', 'appellation trop courte');
+    egal(emetteur.reconnaitre('Mot FICTIF de Tata Linou', entrees, personnesExclues).etat, 'aucun', 'appellation de la famille');
+  });
+
+  await test('émetteur : fiche « Dr Nom » et prénom entre le titre et le nom → cases ; nom coupé par d’autres mots → rien, et le diagnostic le montre', async () => {
+    const entrees = emetteur.analyser({ 'Ancienne liste': [['First Name', 'Last Name'], ['Dr Fictivoz', '']] });
+    let r = emetteur.reconnaitre('Ordonnance FICTIVE du Dr Fictivoz', entrees, {});
+    egal(r.etat, 'certain', 'titre juste avant le nom');
+    r = emetteur.reconnaitre('Ordonnance FICTIVE du Docteur Luc FICTIVOZ', entrees, {});
+    egal([r.etat, r.candidats.length, r.diagnostic.candidats.souple], ['choix', 1, 1], 'prénom entre les deux : jamais certain');
+    r = emetteur.reconnaitre('Ordonnance FICTIVE du Docteur Luc Jean Marc FICTIVOZ', entrees, {});
+    egal(r.etat, 'aucun', 'trop de mots entre le titre et le nom');
+    // Cas du test c16 (FICTIF) : la lecture du texte a glissé une adresse entre le prénom et le nom.
+    const fiche = emetteur.analyser({ 'Ancienne liste': [['First Name', 'Last Name', 'Phone 1 - Value'], ['Paul', 'Fictivo', '04 00 00 00 07']] });
+    r = emetteur.reconnaitre('Docteur Paul\n12 rue FICTIVE 99000 Villefictive\nFICTIVO\nOrdonnance', fiche, {});
+    egal(r.etat, 'aucun', 'nom coupé par la lecture');
+    egal(r.diagnostic, { lues: { 'Ancienne liste': 1, 'Tri contacts': 0, Dictionnaire: 0 }, titres: 1, telephones: 0,
+      candidats: { telephone_mail: 0, exact: 0, appellation: 0, souple: 0 }, famille_ecartee: 0 }, 'diagnostic en nombres');
+  });
+
   function monterEmetteur() {
     const g = monterScore();
     g.options.classement.lireDictionnaire = async () => emetteur.analyser(dicoFictif);
@@ -1463,6 +1501,8 @@ TESTS_JS = r"""
     attendre(fiche.details.includes('Émetteur : Jean Fictif'), `description : ${JSON.stringify(fiche.details)}`);
     const l = g.lignes[0];
     attendre(l.details.includes('émetteur : Dictionnaire n° 2 (reconnu)'), `journal : ${l.details}`);
+    attendre(/diagnostic émetteur : lues 7 \/ 1 \/ 2 \(ancienne liste \/ tri contacts \/ dictionnaire\) ; titres 1 ; téléphones 1 ; candidats tél\.\/mail 3, exact 3, appellation 0, souple 0 ; famille écartée 2/.test(l.details),
+      `diagnostic : ${l.details}`);
     attendre(!l.details.includes('04 00 00 00 01') && !fiche.details.join(' ').includes('04 00'), 'indice (téléphone) écrit au journal ou dans la description');
     egal(Object.keys(localStorage).sort(), avant, 'quelque chose du Dictionnaire écrit dans le stockage du téléphone');
   });
