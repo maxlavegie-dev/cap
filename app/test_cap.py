@@ -1912,24 +1912,24 @@ TESTS_JS = r"""
     const h = horlogeEau();
     const memoire = new Map();
     const stockage = { getItem: k => memoire.get(k) ?? null, setItem: (k, v) => memoire.set(k, v) };
-    let ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    let ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
     attendre(ecran.etat().visible && ecran.etat().animation, 'eau absente au démarrage');
     attendreEgal(memoire.get(ecranEau.CLE_VUE), 'oui', 'marque de la session');
     ecran.entrerDansCap();
     // Rechargement de la page pendant la même ouverture : pas d'eau.
     ui.parId('ecran-eau').hidden = true;
-    ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
     attendre(!ecran.etat().visible, 'eau remontrée après un rechargement');
     // Stockage refusé (navigation privée) : l'eau s'affiche quand même, sans erreur.
     const refuse = { getItem: () => { throw new Error('refusé'); }, setItem: () => { throw new Error('refusé'); } };
-    ecran = ecranEau.auDemarrage(ui.doc, { stockage: refuse, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    ecran = ecranEau.auDemarrage(ui.doc, { stockage: refuse, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
     attendre(ecran.etat().visible, 'eau absente quand le stockage refuse');
   });
 
   await testAsync('Écran d’eau : REPLI, vidéo introuvable → l’eau seule et « Entrer dans Cap » tout de suite ; fonds « image » et « rien »', async c => {
     let ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     let h = horlogeEau();
-    let ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { video: 'eau/fichier-absent-FICTIF.mp4' } });
+    let ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'video', dureeSortieMs: 0, video: 'eau/fichier-absent-FICTIF.mp4' } });
     ecran.afficher();
     await attendreQue(() => ecran.etat().panne, 'panne de la vidéo non détectée');
     attendre(ecran.etat().boutons && ui.parId('video-galet').hidden, 'pas de repli après la panne');
@@ -1941,19 +1941,19 @@ TESTS_JS = r"""
     ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     h = horlogeEau();
     const video = videoQuiMarche(ui);
-    ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { video: 'eau/FICTIF.mp4' } });
+    ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'video', dureeSortieMs: 0, video: 'eau/FICTIF.mp4' } });
     video.play = () => Promise.reject(new Error('lecture refusée FICTIVE'));
     ecran.afficher();
-    attendre(!ecran.etat().boutons && !ui.parId('consigne-eau').hidden, 'boutons avant la vidéo, ou consigne absente');
+    attendre(!ecran.etat().boutons && !ui.parId('consigne-eau'), 'boutons avant la vidéo, ou texte de consigne encore là');
     ecran.demarrerVideo();
     await attendreQue(() => ecran.etat().panne && ecran.etat().boutons, 'pas de repli quand la lecture est refusée');
     // Fond « rien » : boutons tout de suite, pas de vidéo. Fond « image » : l'image est utilisée.
     ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
-    ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
     ecran.afficher();
     attendre(ecran.etat().boutons && ui.parId('video-galet').hidden && ui.parId('image-galet').hidden, 'fond « rien »');
     ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
-    ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'image', image: 'eau/image-FICTIVE.png' } });
+    ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'image', dureeSortieMs: 0, image: 'eau/image-FICTIVE.png' } });
     ecran.afficher();
     attendre(!ui.parId('image-galet').hidden || ui.parId('image-galet').getAttribute('src') === 'eau/image-FICTIVE.png', 'fond « image » non utilisé');
     attendre(ecran.etat().boutons && ui.parId('video-galet').hidden, 'fond « image » : boutons absents');
@@ -1963,7 +1963,7 @@ TESTS_JS = r"""
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     const h = horlogeEau();
     const video = videoQuiMarche(ui);
-    const ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { video: 'eau/FICTIF.mp4' } });
+    const ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'video', dureeSortieMs: 0, video: 'eau/FICTIF.mp4' } });
     ecran.afficher();
     // Pendant l'eau, c'est elle qui est touchée (Cap est dessous).
     const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
@@ -1995,12 +1995,107 @@ TESTS_JS = r"""
     attendre(!ui.parId('ecran-complet').hidden, 'glissement des tuiles cassé');
   });
 
+  await testAsync('Écran d’eau (lot c20) : sans vidéo, le glissement fait monter Cap « de sous le sable » en environ 1 s, puis les boutons répondent ; fond pâle unique', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const h = horlogeEau();
+    attendreEgal(ecranEau.REGLAGES.fond, 'aucun', 'fond par défaut (lot c20)');
+    const ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, animationsReduites: false, reglages: { dureeSortieMs: 150 } });
+    ecran.afficher();
+    attendre(ecran.etat().boutons && ui.parId('bouton-revenir-vagues').hidden && !ui.parId('bouton-entrer-cap').hidden, 'boutons sans vidéo');
+    attendre(!ui.parId('consigne-eau'), 'texte de consigne encore là');
+    glisserSurEau(ui);
+    // Pendant l'entrée : l'eau bouge encore, ne retient aucun toucher, et Cap monte.
+    attendre(ecran.etat().entree && ecran.etat().animation && ecran.etat().visible, 'entrée non commencée, ou eau arrêtée trop tôt');
+    attendre(ui.doc.documentElement.classList.contains('cap-monte'), 'Cap ne monte pas');
+    attendreEgal(ui.cadre.contentWindow.getComputedStyle(ui.parId('ecran-eau')).pointerEvents, 'none', 'l’eau retient les touchers pendant l’entrée');
+    attendre(ui.parId('ecran-complet').hidden, 'le glissement a ouvert les tuiles');
+    await attendreQue(() => !ecran.etat().visible, 'eau toujours là après l’entrée');
+    attendre(!ecran.etat().animation && !ui.doc.documentElement.classList.contains('cap-monte'), 'animation pas finie');
+    const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+    attendreEgal(ui.doc.elementFromPoint(...centre(ui.parId('ouvrir-scanner'))), ui.parId('ouvrir-scanner'), 'Scanner recouvert après l’entrée');
+    // « Entrer dans Cap » (secours) fait la même entrée.
+    ecran.afficher();
+    ui.parId('bouton-entrer-cap').click();
+    attendre(ecran.etat().entree, 'le bouton de secours n’entre pas');
+    await attendreQue(() => !ecran.etat().visible, 'entrée par le bouton non finie');
+    // Animations réduites (réglage du téléphone) : entrée immédiate.
+    const ecranReduit = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, animationsReduites: true });
+    ecranReduit.afficher();
+    ecranReduit.entrerDansCap();
+    attendre(!ecranReduit.etat().visible, 'entrée pas immédiate avec les animations réduites');
+    // Fond pâle unique pour l'accueil et l'eau.
+    const fond = ui.cadre.contentWindow.getComputedStyle(ui.doc.documentElement).getPropertyValue('--fond').trim().toLowerCase();
+    attendreEgal(fond, '#eaf1f4', 'teinte de fond');
+    attendreEgal(ui.cadre.contentWindow.getComputedStyle(ui.doc.body).backgroundColor, 'rgb(234, 241, 244)', 'fond de l’accueil');
+  });
+
+  await testAsync('Eau sur l’accueil (lot c20) : CHAQUE bouton visible de l’accueil répond (Scanner compris) et l’eau bouge au toucher ; arrêtée pendant l’ouverture et en arrière-plan', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const h = horlogeEau();
+    const memoire = new Map([[ecranEau.CLE_VUE, 'oui']]);
+    const stockage = { getItem: k => memoire.get(k) ?? null, setItem: (k, v) => memoire.set(k, v) };
+    const ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
+    attendre(!ecran.etat().visible && ecran.fond.etat().active, 'eau de l’accueil absente');
+    const fenetre = ui.cadre.contentWindow;
+    attendreEgal(fenetre.getComputedStyle(ui.parId('eau-accueil')).pointerEvents, 'none', 'l’eau de l’accueil capte les touchers');
+    attendre(Number(fenetre.getComputedStyle(ui.parId('eau-accueil')).opacity) <= 0.4, 'intensité trop forte pour la lecture');
+    // Chaque bouton visible de l'accueil (les deux vues : accueil et tuiles) reçoit le toucher.
+    const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+    const visibles = () => [...ui.doc.querySelectorAll('.ecran button')].filter(b => {
+      if (b.closest('[hidden], dialog, [inert]') || b.classList.contains('visuellement-cache')) return false;
+      const r = b.getBoundingClientRect();
+      const [x, y] = centre(b);
+      if (!(r.width > 0 && r.height > 0 && x >= 0 && y >= 0 && x < fenetre.innerWidth && y < fenetre.innerHeight)) return false;
+      // Un bouton coupé par une zone qui défile (il faut faire défiler pour l'atteindre) n'est pas touchable au doigt.
+      for (let parent = b.parentElement; parent; parent = parent.parentElement) {
+        const st = fenetre.getComputedStyle(parent);
+        if (!/(auto|scroll|hidden)/.test(`${st.overflowX} ${st.overflowY}`)) continue;
+        const z = parent.getBoundingClientRect();
+        if (x < z.left || x > z.right || y < z.top || y > z.bottom) return false;
+      }
+      return true;
+    });
+    for (const vue of ['accueil', 'tuiles']) {
+      if (vue === 'tuiles') ui.parId('basculer-vue').click();
+      const boutons = visibles();
+      attendre(boutons.length >= (vue === 'accueil' ? 2 : 1), `pas assez de boutons visibles (${vue}) : ${boutons.length}`);
+      if (vue === 'accueil') attendre(boutons.includes(ui.parId('ouvrir-scanner')), 'Scanner absent des boutons testés');
+      for (const b of boutons) {
+        const touche = ui.doc.elementFromPoint(...centre(b));
+        attendre(touche === b || b.contains(touche), `bouton recouvert (${vue}) : ${b.id || b.className || b.textContent.trim().slice(0, 30)} par ${touche ? (touche.id || touche.className || touche.tagName) : 'rien'}`);
+        attendre(touche !== ui.parId('eau-accueil'), 'l’eau a reçu un toucher');
+      }
+    }
+    ui.parId('basculer-vue').click();
+    // Toucher une tuile ou un bouton : le bouton fonctionne ET l'eau bouge.
+    const avant = ecran.fond.etat().touchers;
+    let ouvert = false;
+    ui.parId('ouvrir-scanner').addEventListener('click', () => { ouvert = true; }, { once: true });
+    const [x, y] = centre(ui.parId('ouvrir-scanner'));
+    const cible = ui.doc.elementFromPoint(x, y);
+    cible.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 3, clientX: x, clientY: y, isPrimary: true }));
+    cible.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 3, clientX: x, clientY: y, isPrimary: true }));
+    cible.click();
+    attendre(ouvert, 'Scanner ne répond pas avec l’eau derrière');
+    attendre(ecran.fond.etat().touchers > avant, 'l’eau ne bouge pas au toucher');
+    // Pendant l'écran d'ouverture : l'eau de l'accueil s'arrête ; elle repart après l'entrée.
+    ui.parId('aller-eau').click();
+    attendre(ecran.etat().visible && !ecran.fond.etat().active, 'eau de l’accueil pas arrêtée pendant l’ouverture');
+    ui.parId('bouton-entrer-cap').click();
+    attendre(!ecran.etat().visible && ecran.fond.etat().active, 'eau de l’accueil pas relancée après l’entrée');
+    // Cap en arrière-plan : arrêtée (batterie) ; au retour : relancée.
+    ui.visibilite(true);
+    attendre(!ecran.fond.etat().active, 'eau pas arrêtée en arrière-plan');
+    ui.visibilite(false);
+    attendre(ecran.fond.etat().active, 'eau pas relancée au retour');
+  });
+
   await testAsync('Écran d’eau : le petit bouton « Eau » y ramène ; couche d’eau sans toucher ; gestes bloqués seulement sur l’eau ; aucune adresse extérieure', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     const h = horlogeEau();
     const memoire = new Map([[ecranEau.CLE_VUE, 'oui']]);
     const stockage = { getItem: k => memoire.get(k) ?? null, setItem: (k, v) => memoire.set(k, v) };
-    const ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    const ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
     attendre(!ecran.etat().visible, 'eau montrée alors qu’elle a déjà été vue');
     ui.parId('aller-eau').click();
     attendre(ecran.etat().visible && ecran.etat().animation, 'le bouton « Eau » ne ramène pas à l’eau');
@@ -5752,8 +5847,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v53['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v53")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v54['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v54")
 
 
 def verifier_precache_fichiers_existent():
@@ -5903,8 +5998,10 @@ for (const espace of [localStorage, sessionStorage]) {{
     if (cle.startsWith('cap_google_')) espace.removeItem(cle);
   }}
 }}
-// Écran d'eau : la page de test fait comme s'il avait déjà été vu (des tests isolés le vérifient).
+// Écran d'eau : la page de test fait comme s'il avait déjà été vu, et ne démarre aucune eau elle-même
+// (des tests isolés le vérifient).
 sessionStorage.setItem('cap_eau_vue_v1', 'oui');
+window.CAP_TESTS = true;
 </script>
 {corps_body}
 {scripts}

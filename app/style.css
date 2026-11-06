@@ -1,9 +1,13 @@
 :root {
+  /* Fond de Cap (06/11/2026, lot c20) : UN SEUL RÉGLAGE, très pâle, entre bleu et gris avec une pointe
+     de vert. Teinte A (choisie pour l'essai) : #EAF1F4. À comparer : B #E6EEF0, C #F0F5F6.
+     L'eau et l'application Android en tirent leurs couleurs. */
+  --fond: #EAF1F4;
   color-scheme: light;
   font-family: system-ui, sans-serif;
   font-size: 17.6px;
   color: #203e49;
-  background: #4F87B5;
+  background: var(--fond);
   font-synthesis: none;
   --encre: #203e49;
   --secondaire: #43575c;
@@ -26,7 +30,8 @@ body {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-  background: linear-gradient(165deg, #FCD3A1 0%, #FDE6C3 25%, #B3EDE3 60%, #4F87B5 100%);
+  /* Avant le 06/11/2026 : dégradé de l'icône (#FCD3A1, #FDE6C3, #B3EDE3, #4F87B5). */
+  background: var(--fond);
 }
 
 .ecran {
@@ -2703,7 +2708,7 @@ dialog .micro-tri[aria-pressed="true"] {
   inset: 0;
   z-index: 900;
   overflow: hidden;
-  background: rgb(201 227 221);
+  background: var(--fond);
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
@@ -2721,8 +2726,7 @@ dialog .micro-tri[aria-pressed="true"] {
   background: transparent;
 }
 #video-galet[hidden],
-#image-galet[hidden],
-#consigne-eau[hidden] {
+#image-galet[hidden] {
   display: none;
 }
 .couche-eau {
@@ -2738,18 +2742,6 @@ dialog .micro-tri[aria-pressed="true"] {
 #surface-eau {
   position: absolute;
   inset: 0;
-}
-#consigne-eau {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 6%;
-  margin: 0;
-  text-align: center;
-  font-size: 1.15rem;
-  color: #203e49;
-  opacity: 0.75;
-  pointer-events: none;
 }
 #boutons-eau {
   position: absolute;
@@ -2796,4 +2788,41 @@ html.eau-ouverte body {
   background: rgb(201 227 221 / 60%);
   color: #203e49;
   font-size: 0.95rem;
+}
+
+/* Entrée dans Cap « de sous le sable » (06/11/2026, lot c20) : l'eau d'ouverture s'efface pendant que
+   l'accueil monte, flou et couleur de sable au départ. Durée réglée par ecran_eau.js. */
+#ecran-eau.eau-sort {
+  pointer-events: none;
+  animation: eau-se-retire var(--duree-sortie, 1000ms) ease-in both;
+}
+html.cap-monte .ecran {
+  animation: cap-monte-du-sable var(--duree-sortie, 1000ms) cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes eau-se-retire {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes cap-monte-du-sable {
+  from { transform: translateY(14vh) scale(0.98); opacity: 0; filter: blur(6px) sepia(0.4); }
+  to { transform: none; opacity: 1; filter: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #ecran-eau.eau-sort,
+  html.cap-monte .ecran {
+    animation: none;
+  }
+}
+
+/* Eau derrière l'accueil (06/11/2026, lot c20) : intensité FAIBLE (opacité ci-dessous) pour que les
+   tuiles et leur texte restent bien lisibles ; jamais de toucher capté. */
+.couche-eau-accueil {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.35;
+}
+.ecran {
+  position: relative;
+  z-index: 1;
 }

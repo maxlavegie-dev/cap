@@ -15,7 +15,13 @@ import android.widget.Toast;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
+import android.graphics.Color;
+import android.view.View;
 import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
@@ -127,6 +133,9 @@ public class MainActivity extends Activity {
 
     private FrameLayout racine;
     private WebView vue;
+    // Fond de Cap (06/11/2026, lot c20) : pâle, couleur de l'eau. La vraie valeur vient de la page
+    // (fond de <body>, réglage unique dans style.css) dès qu'elle est chargée ; celle-ci sert avant.
+    private static final int FOND_PAR_DEFAUT = Color.parseColor("#EAF1F4");
     private SpeechRecognizer reconnaisseur;
     private boolean ecouteEnCours = false;
 
@@ -153,6 +162,15 @@ public class MainActivity extends Activity {
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
                 view.evaluateJavascript(SCRIPT_PONT_MICRO, null);
+            }
+
+            // Lot c20 : la bande sous l'heure et sous la barre de navigation prend la couleur de fond
+            // de la page (un seul réglage, dans style.css).
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                view.evaluateJavascript("(function(){try{return getComputedStyle(document.body).backgroundColor;}catch(e){return '';}})()",
+                    valeur -> appliquerFondDepuisPage(valeur));
             }
 
             // Version « essai » seulement : voir reponseLocale. Dans la coque normale, renvoie null.
@@ -210,6 +228,7 @@ public class MainActivity extends Activity {
         racine.addView(vue, new FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         setContentView(racine);
+        configurerBarresDuTelephone();
 
         effacerAncienDiagnostic();
         viderPhotosTemporaires();
@@ -251,6 +270,59 @@ public class MainActivity extends Activity {
     // Les diagnostics temporaires (étapes C.1 à C.3) ont été retirés le 05/11/2026. Ils avaient pu
     // écrire le retour de Google, jeton compris, dans ce fichier du téléphone : on l'efface s'il
     // existe encore. Un échec n'empêche jamais la coque de démarrer.
+    // ----- Lot c20 (06/11/2026) : plus de barre de titre « Cap ESSAI » ; barres du téléphone transparentes -----
+    // L'heure, le réseau et la batterie s'affichent en sombre (lisibles sur un fond très clair) par-dessus
+    // une bande de la couleur de fond de Cap. Les pages de Cap restent ENTRE la barre d'état et la barre
+    // de navigation (et au-dessus du clavier) : aucun bouton ne peut passer dessous.
+    @SuppressWarnings("deprecation")
+    private void configurerBarresDuTelephone() {
+        Window fenetre = getWindow();
+        fenetre.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        fenetre.setStatusBarColor(Color.TRANSPARENT);
+        fenetre.setNavigationBarColor(Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= 29) fenetre.setNavigationBarContrastEnforced(false);
+        int drapeaux = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+        if (Build.VERSION.SDK_INT >= 23) drapeaux |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
+        if (Build.VERSION.SDK_INT >= 26) drapeaux |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        fenetre.getDecorView().setSystemUiVisibility(drapeaux);
+        if (Build.VERSION.SDK_INT >= 30) {
+            fenetre.setDecorFitsSystemWindows(false);
+            WindowInsetsController controle = fenetre.getInsetsController();
+            if (controle != null) {
+                int clair = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                controle.setSystemBarsAppearance(clair, clair);
+            }
+        }
+        racine.setBackgroundColor(FOND_PAR_DEFAUT);
+        vue.setBackgroundColor(FOND_PAR_DEFAUT);
+        racine.setOnApplyWindowInsetsListener((v, encarts) -> {
+            int gauche, haut, droite, bas;
+            if (Build.VERSION.SDK_INT >= 30) {
+                android.graphics.Insets marges = encarts.getInsets(WindowInsets.Type.systemBars()
+                    | WindowInsets.Type.ime() | WindowInsets.Type.displayCutout());
+                gauche = marges.left; haut = marges.top; droite = marges.right; bas = marges.bottom;
+            } else {
+                gauche = encarts.getSystemWindowInsetLeft(); haut = encarts.getSystemWindowInsetTop();
+                droite = encarts.getSystemWindowInsetRight(); bas = encarts.getSystemWindowInsetBottom();
+            }
+            v.setPadding(gauche, haut, droite, bas);
+            return Build.VERSION.SDK_INT >= 30 ? WindowInsets.CONSUMED : encarts.consumeSystemWindowInsets();
+        });
+        racine.requestApplyInsets();
+    }
+
+    // valeur : « "rgb(234, 241, 244)" » (couleur de fond de <body>) ; rien de lisible : on garde l'actuelle.
+    private void appliquerFondDepuisPage(String valeur) {
+        if (valeur == null) return;
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)(?:,\\s*([0-9.]+))?\\)").matcher(valeur);
+        if (!m.find()) return;
+        if (m.group(4) != null && Double.parseDouble(m.group(4)) < 0.99) return;
+        int couleur = Color.rgb(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)));
+        racine.setBackgroundColor(couleur);
+        vue.setBackgroundColor(couleur);
+    }
+
     private void effacerAncienDiagnostic() {
         try {
             File dossier = getExternalFilesDir(null);

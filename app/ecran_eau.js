@@ -7,7 +7,9 @@
 // Règles :
 // - l'écran d'eau s'affiche au DÉMARRAGE de Cap seulement (une marque dans sessionStorage, rien de
 //   personnel, évite de le remontrer quand la page se recharge pendant la même ouverture) ;
-// - un glissement net de bas en haut lance la vidéo du galet (sans son), puis « Entrer dans Cap » ;
+// - un glissement net de bas en haut fait MONTER Cap « de sous le sable » (lot c20, environ 1 s, animé
+//   par le code, l'eau bouge encore) ; en mode 'video' il lance d'abord la vidéo du galet (sans son) ;
+//   « Entrer dans Cap » reste en secours ;
 // - REPLI : vidéo absente, illisible ou bloquée → l'eau seule reste et « Entrer dans Cap » apparaît
 //   tout de suite ; Cap ne plante jamais ;
 // - un seul réglage pour le fond : 'video', 'image' ou 'aucun' (REGLAGES ci-dessous) ;
@@ -16,14 +18,29 @@
 // - l'animation s'arrête dès qu'on entre dans Cap (batterie).
 const ecranEau = (() => {
   const REGLAGES = Object.freeze({
-    fond: 'video', // 'video' | 'image' | 'aucun'
+    fond: 'aucun', // 'video' | 'image' | 'aucun' (lot c20 : 'aucun' ; la vidéo du galet reste disponible)
+    dureeSortieMs: 1000, // montée de Cap « de sous le sable »
     video: 'eau/galet_sortie.mp4',
     image: '', // chemin d'une image fixe, si fond = 'image'
     dureeSecoursMs: 7000 // si la vidéo ne finit pas d'elle-même, les boutons apparaissent quand même
   });
   const CLE_VUE = 'cap_eau_vue_v1';
-  const COULEUR_PEU_PROFOND = [201, 227, 221];
-  const COULEUR_PROFOND = [156, 182, 184];
+  // Couleurs de l'eau : tirées du fond de Cap (variable CSS --fond, réglage unique dans style.css) ;
+  // à défaut, l'ancienne eau de l'essai de Zencoder.
+  const COULEUR_PEU_PROFOND_SECOURS = [201, 227, 221];
+  const COULEUR_PROFOND_SECOURS = [156, 182, 184];
+  function couleursDuFond(doc) {
+    try {
+      const valeur = doc.defaultView.getComputedStyle(doc.documentElement).getPropertyValue('--fond').trim();
+      const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(valeur);
+      if (!m) return [COULEUR_PEU_PROFOND_SECOURS, COULEUR_PROFOND_SECOURS];
+      const clair = [1, 2, 3].map(i => parseInt(m[i], 16));
+      const fonce = clair.map((c, i) => Math.round(c * 0.8 + [120, 150, 165][i] * 0.2));
+      return [clair, fonce];
+    } catch (e) {
+      return [COULEUR_PEU_PROFOND_SECOURS, COULEUR_PROFOND_SECOURS];
+    }
+  }
   const AMORTISSEMENT = 0.985;
   const CELLULES_CIBLE = 46000;
 
@@ -35,19 +52,22 @@ const ecranEau = (() => {
     const reduit = Boolean(options.animationsReduites
       ?? (fenetre && fenetre.matchMedia && fenetre.matchMedia('(prefers-reduced-motion: reduce)').matches));
     const ctx = toile.getContext('2d', { alpha: false });
+    const [COULEUR_PEU_PROFOND, COULEUR_PROFOND] = options.couleurs || couleursDuFond(toile.ownerDocument);
     const basse = toile.ownerDocument.createElement('canvas');
     const ctxBasse = basse.getContext('2d');
     let largeur = 0, hauteur = 0, colonnes = 0, lignes = 0;
     let buf1 = null, buf2 = null, image = null;
     let identifiant = null;
     let prochaineOnde = 0;
+    let touchers = 0;
+    const cellulesCible = options.cellules || CELLULES_CIBLE;
 
     function dimensionner() {
       largeur = toile.clientWidth || 360;
       hauteur = toile.clientHeight || 640;
       toile.width = largeur;
       toile.height = hauteur;
-      const echelle = Math.sqrt((largeur * hauteur) / CELLULES_CIBLE);
+      const echelle = Math.sqrt((largeur * hauteur) / cellulesCible);
       colonnes = Math.max(20, Math.round(largeur / echelle));
       lignes = Math.max(20, Math.round(hauteur / echelle));
       buf1 = new Float32Array(colonnes * lignes);
@@ -60,6 +80,7 @@ const ecranEau = (() => {
 
     function perturber(fracX, fracY, force, rayon) {
       if (!buf1) return;
+      touchers++;
       const bx = Math.round(fracX * colonnes);
       const by = Math.round(fracY * lignes);
       for (let dy = -rayon; dy <= rayon; dy++) {
@@ -134,7 +155,43 @@ const ecranEau = (() => {
       identifiant = null;
     }
     if (fenetre && fenetre.addEventListener) fenetre.addEventListener('resize', () => { if (identifiant !== null) dimensionner(); });
-    return { demarrer, arreter, perturber, dimensionner, active: () => identifiant !== null };
+    return { demarrer, arreter, perturber, dimensionner, active: () => identifiant !== null, touchers: () => touchers };
+  }
+
+  // ----- Eau derrière l'accueil (lot c20, accueil seulement pour l'instant) -----
+  // Faible intensité (réglée dans style.css), ne capte JAMAIS un toucher : elle écoute les gestes sans
+  // les retenir (écouteurs passifs), donc une tuile touchée fonctionne ET l'eau bouge. Arrêtée quand Cap
+  // passe en arrière-plan (batterie), et pendant l'écran d'ouverture (qui a sa propre eau).
+  function eauAccueil(doc, options = {}) {
+    const toile = doc.getElementById('eau-accueil');
+    if (!toile) return { demarrer() {}, arreter() {}, etat: () => ({ active: false, touchers: 0 }) };
+    const couche = creerCouche(toile, { ...options, cellules: 20000 });
+    let voulue = false;
+    const fenetre = doc.defaultView;
+    function ignorer(e) {
+      const cible = e.target && e.target.closest ? e.target : null;
+      return !cible || cible.closest('#ecran-eau') || cible.closest('dialog[open]');
+    }
+    function position(e) {
+      return [e.clientX / (fenetre.innerWidth || 1), e.clientY / (fenetre.innerHeight || 1)];
+    }
+    doc.addEventListener('pointerdown', e => {
+      if (!couche.active() || ignorer(e)) return;
+      couche.perturber(...position(e), 5, 3);
+    }, { passive: true, capture: true });
+    doc.addEventListener('pointermove', e => {
+      if (!couche.active() || !e.buttons || ignorer(e)) return;
+      couche.perturber(...position(e), 4, 2);
+    }, { passive: true, capture: true });
+    doc.addEventListener('visibilitychange', () => {
+      if (doc.hidden) couche.arreter();
+      else if (voulue) couche.demarrer();
+    });
+    return {
+      demarrer() { voulue = true; if (!doc.hidden) couche.demarrer(); },
+      arreter() { voulue = false; couche.arreter(); },
+      etat: () => ({ active: couche.active(), touchers: couche.touchers() })
+    };
   }
 
   // ----- L'écran d'ouverture -----
@@ -147,7 +204,10 @@ const ecranEau = (() => {
     const image = parSelecteur('#image-galet');
     const surface = parSelecteur('#surface-eau');
     const boutons = parSelecteur('#boutons-eau');
-    const consigne = parSelecteur('#consigne-eau');
+    const boutonVagues = parSelecteur('#bouton-revenir-vagues');
+    const reduit = Boolean(options.animationsReduites
+      ?? (doc.defaultView && doc.defaultView.matchMedia && doc.defaultView.matchMedia('(prefers-reduced-motion: reduce)').matches));
+    let sortie = null;
     const couche = creerCouche(parSelecteur('#toile-eau'), options);
     const minuterie = options.setTimeout || ((f, d) => setTimeout(f, d));
     const annulerMinuterie = options.clearTimeout || (id => clearTimeout(id));
@@ -161,7 +221,8 @@ const ecranEau = (() => {
     }
     function boutonsVisibles(visibles) {
       boutons.classList.toggle('visible', visibles);
-      consigne.hidden = visibles || !videoUtilisable();
+      // « Revenir aux vagues » n'a de sens qu'avec la vidéo.
+      boutonVagues.hidden = reglages.fond !== 'video';
     }
     function annulerSecours() {
       if (secours !== null) annulerMinuterie(secours);
@@ -204,7 +265,6 @@ const ecranEau = (() => {
       if (etatVideo !== 'avant') return;
       if (!videoUtilisable()) { boutonsVisibles(true); return; }
       etatVideo = 'lecture';
-      consigne.hidden = true;
       try { video.currentTime = 0; } catch (e) { /* rien */ }
       let lecture = null;
       try { lecture = video.play(); } catch (e) { panneVideo(); return; }
@@ -220,20 +280,40 @@ const ecranEau = (() => {
     }
 
     function afficher() {
+      if (typeof options.avantAffichage === 'function') options.avantAffichage();
+      if (sortie !== null) { annulerMinuterie(sortie); sortie = null; }
+      racine.classList.remove('eau-sort');
+      doc.documentElement.classList.remove('cap-monte');
       racine.hidden = false;
       doc.documentElement.classList.add('eau-ouverte');
       revenirAuxVagues();
       couche.demarrer();
     }
 
-    function entrerDansCap() {
-      annulerSecours();
-      try { video.pause(); } catch (e) { /* rien */ }
+    // Fin de l'entrée : l'eau d'ouverture disparaît, son animation s'arrête.
+    function finEntree() {
+      sortie = null;
       couche.arreter();
       racine.hidden = true;
-      doc.documentElement.classList.remove('eau-ouverte');
+      racine.classList.remove('eau-sort');
+      doc.documentElement.classList.remove('eau-ouverte', 'cap-monte');
       const allerEau = doc.getElementById('aller-eau');
       if (allerEau) allerEau.blur();
+      if (typeof options.apresEntree === 'function') options.apresEntree();
+    }
+    // Entrée dans Cap : l'accueil monte « de sous le sable » pendant que l'eau, qui bouge encore,
+    // s'efface (environ 1 s) ; aucun toucher n'est retenu par l'eau pendant ce temps.
+    function entrerDansCap() {
+      if (sortie !== null || racine.hidden) return;
+      annulerSecours();
+      try { video.pause(); } catch (e) { /* rien */ }
+      const duree = reduit ? 0 : Math.max(0, Number(reglages.dureeSortieMs) || 0);
+      if (!duree) { finEntree(); return; }
+      racine.style.setProperty('--duree-sortie', `${duree}ms`);
+      doc.documentElement.style.setProperty('--duree-sortie', `${duree}ms`);
+      racine.classList.add('eau-sort');
+      doc.documentElement.classList.add('cap-monte');
+      sortie = minuterie(finEntree, duree);
     }
 
     // Gestes : sur la SURFACE seulement (les boutons sont à côté, jamais dedans).
@@ -263,7 +343,8 @@ const ecranEau = (() => {
       // Glissement net de bas en haut (mêmes seuils que l'essai de Zencoder).
       if (debut.depart.y > 0.72 && p.y < 0.22 && versLeHaut > 0.45
         && Math.abs(p.x - debut.depart.x) * debut.depart.largeur < 0.4 * debut.depart.hauteur && maintenant() - debut.t < 2500) {
-        demarrerVideo();
+        // Avec la vidéo : le galet d'abord. Sans vidéo (ou en panne) : Cap monte de sous le sable.
+        if (videoUtilisable() && etatVideo === 'avant') demarrerVideo(); else entrerDansCap();
       }
     }
     surface.addEventListener('pointerup', fin);
@@ -273,7 +354,8 @@ const ecranEau = (() => {
 
     return {
       afficher, entrerDansCap, revenirAuxVagues, demarrerVideo,
-      etat: () => ({ visible: !racine.hidden, video: etatVideo, panne: videoEnPanne, boutons: boutons.classList.contains('visible'), animation: couche.active() })
+      etat: () => ({ visible: !racine.hidden, video: etatVideo, panne: videoEnPanne, boutons: boutons.classList.contains('visible'),
+        animation: couche.active(), entree: sortie !== null })
     };
   }
 
@@ -281,7 +363,9 @@ const ecranEau = (() => {
   function auDemarrage(doc, options = {}) {
     const racine = doc.getElementById('ecran-eau');
     if (!racine) return null;
-    const ecran = monter(racine, options);
+    const fond = eauAccueil(doc, options);
+    const ecran = monter(racine, { ...options, avantAffichage: () => fond.arreter(), apresEntree: () => fond.demarrer() });
+    ecran.fond = fond;
     const allerEau = doc.getElementById('aller-eau');
     if (allerEau) allerEau.addEventListener('click', () => ecran.afficher());
     const stockage = options.stockage !== undefined ? options.stockage : (typeof sessionStorage !== 'undefined' ? sessionStorage : null);
@@ -290,14 +374,17 @@ const ecranEau = (() => {
     if (!dejaVue) {
       ecran.afficher();
       try { if (stockage) stockage.setItem(CLE_VUE, 'oui'); } catch (e) { /* rien : l'eau reste juste affichée */ }
+    } else {
+      fond.demarrer();
     }
     return ecran;
   }
 
-  return { REGLAGES, CLE_VUE, creerCouche, monter, auDemarrage };
+  return { REGLAGES, CLE_VUE, creerCouche, eauAccueil, monter, auDemarrage };
 })();
 
-// Démarrage réel dans Cap (les tests créent leurs propres écrans isolés).
-if (typeof document !== 'undefined' && document.getElementById('ecran-eau')) {
+// Démarrage réel dans Cap. La page des tests automatiques (window.CAP_TESTS) crée ses propres écrans
+// isolés, pour ne pas faire tourner d'eau pendant tous les autres tests.
+if (typeof document !== 'undefined' && document.getElementById('ecran-eau') && !(typeof window !== 'undefined' && window.CAP_TESTS)) {
   ecranEau.instance = ecranEau.auDemarrage(document);
 }
