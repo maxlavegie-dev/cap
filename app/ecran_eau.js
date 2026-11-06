@@ -43,8 +43,18 @@ const ecranEau = (() => {
       return [COULEUR_PEU_PROFOND_SECOURS, COULEUR_PROFOND_SECOURS];
     }
   }
-  const AMORTISSEMENT = 0.985;
-  const CELLULES_CIBLE = 46000;
+  // Lot c22 : UNE SEULE eau, la même partout (ouverture et accueil) : même finesse, même vivacité, même
+  // force du doigt ; l'opacité est la même aussi (classe .couche-eau de style.css).
+  const EAU = Object.freeze({
+    cellules: 46000, // finesse (nombre de points calculés)
+    amortissement: 0.985, // vivacité : plus proche de 1, les vagues durent plus longtemps
+    forcePose: 6, // doigt posé
+    forceGlisse: 7, // doigt qui glisse
+    rayon: 3, // taille de l'onde du doigt
+    delaiOndes: 1800 // ondes qui naissent seules (ms, en moyenne + hasard)
+  });
+  const AMORTISSEMENT = EAU.amortissement;
+  const CELLULES_CIBLE = EAU.cellules;
 
   // ----- Couleurs des bandes du téléphone (lot c21) -----
   // En haut, l'eau est à son plus clair (= le fond) ; en bas, elle est un peu plus « profonde ». La bande
@@ -87,7 +97,7 @@ const ecranEau = (() => {
     let identifiant = null;
     let prochaineOnde = 0;
     let touchers = 0;
-    const cellulesCible = options.cellules || CELLULES_CIBLE;
+    const cellulesCible = CELLULES_CIBLE; // lot c22 : plus de finesse réduite pour l'accueil
 
     function dimensionner() {
       largeur = toile.clientWidth || 360;
@@ -123,7 +133,7 @@ const ecranEau = (() => {
 
     function ondesAmbiantes(temps) {
       if (temps < prochaineOnde) return;
-      prochaineOnde = temps + (reduit ? 3200 : 1800) + Math.random() * 1600;
+      prochaineOnde = temps + (reduit ? 3200 : EAU.delaiOndes) + Math.random() * 1600;
       perturber(Math.random(), Math.random(), (reduit ? 0.5 : 1) + Math.random(), 1 + Math.round(Math.random() * 2));
     }
 
@@ -182,17 +192,20 @@ const ecranEau = (() => {
       identifiant = null;
     }
     if (fenetre && fenetre.addEventListener) fenetre.addEventListener('resize', () => { if (identifiant !== null) dimensionner(); });
-    return { demarrer, arreter, perturber, dimensionner, active: () => identifiant !== null, touchers: () => touchers };
+    return { demarrer, arreter, perturber, dimensionner, active: () => identifiant !== null, touchers: () => touchers,
+      reglages: () => ({ cellules: cellulesCible, amortissement: AMORTISSEMENT, delaiOndes: EAU.delaiOndes,
+        opacite: (() => { try { return toile.ownerDocument.defaultView.getComputedStyle(toile).opacity; } catch (e) { return ''; } })() }) };
   }
 
-  // ----- Eau derrière l'accueil (lot c20, accueil seulement pour l'instant) -----
-  // Faible intensité (réglée dans style.css), ne capte JAMAIS un toucher : elle écoute les gestes sans
-  // les retenir (écouteurs passifs), donc une tuile touchée fonctionne ET l'eau bouge. Arrêtée quand Cap
-  // passe en arrière-plan (batterie), et pendant l'écran d'ouverture (qui a sa propre eau).
+  // ----- Eau derrière l'accueil (lot c20 ; lot c22 : EXACTEMENT la même eau que l'ouverture) -----
+  // Ne capte JAMAIS un toucher : elle écoute les gestes sans les retenir (écouteurs passifs), donc une
+  // tuile touchée fonctionne ET l'eau bouge ; elle suit aussi le doigt pendant un défilement (touchmove,
+  // passif : le défilement garde son geste). Arrêtée quand Cap passe en arrière-plan (batterie), et
+  // pendant l'écran d'ouverture (qui a sa propre eau).
   function eauAccueil(doc, options = {}) {
     const toile = doc.getElementById('eau-accueil');
     if (!toile) return { demarrer() {}, arreter() {}, etat: () => ({ active: false, touchers: 0 }) };
-    const couche = creerCouche(toile, { ...options, cellules: 20000 });
+    const couche = creerCouche(toile, options);
     let voulue = false;
     const fenetre = doc.defaultView;
     function ignorer(e) {
@@ -204,11 +217,19 @@ const ecranEau = (() => {
     }
     doc.addEventListener('pointerdown', e => {
       if (!couche.active() || ignorer(e)) return;
-      couche.perturber(...position(e), 5, 3);
+      couche.perturber(...position(e), EAU.forcePose, EAU.rayon);
     }, { passive: true, capture: true });
     doc.addEventListener('pointermove', e => {
       if (!couche.active() || !e.buttons || ignorer(e)) return;
-      couche.perturber(...position(e), 4, 2);
+      couche.perturber(...position(e), EAU.forceGlisse, EAU.rayon);
+    }, { passive: true, capture: true });
+    // Pendant un défilement, le téléphone garde le geste (plus d'événements « pointer ») : on suit le
+    // doigt avec les événements « touch », en écoute passive seulement (jamais de preventDefault).
+    doc.addEventListener('touchmove', e => {
+      if (!couche.active() || ignorer(e)) return;
+      for (const t of e.changedTouches || []) {
+        couche.perturber(t.clientX / (fenetre.innerWidth || 1), t.clientY / (fenetre.innerHeight || 1), EAU.forceGlisse, EAU.rayon);
+      }
     }, { passive: true, capture: true });
     doc.addEventListener('visibilitychange', () => {
       if (doc.hidden) couche.arreter();
@@ -217,7 +238,7 @@ const ecranEau = (() => {
     return {
       demarrer() { voulue = true; if (!doc.hidden) couche.demarrer(); },
       arreter() { voulue = false; couche.arreter(); },
-      etat: () => ({ active: couche.active(), touchers: couche.touchers() })
+      etat: () => ({ active: couche.active(), touchers: couche.touchers(), reglagesEau: couche.reglages() })
     };
   }
 
@@ -353,13 +374,13 @@ const ecranEau = (() => {
       if (pointeur) return;
       const p = position(e);
       pointeur = { id: e.pointerId, depart: p, t: maintenant() };
-      couche.perturber(p.x, p.y, 6, 3);
+      couche.perturber(p.x, p.y, EAU.forcePose, EAU.rayon);
       try { surface.setPointerCapture(e.pointerId); } catch (erreur) { /* rien */ }
     });
     surface.addEventListener('pointermove', e => {
       if (!pointeur || e.pointerId !== pointeur.id) return;
       const p = position(e);
-      couche.perturber(p.x, p.y, 7, 3);
+      couche.perturber(p.x, p.y, EAU.forceGlisse, EAU.rayon);
     });
     function fin(e) {
       if (!pointeur || e.pointerId !== pointeur.id) return;
@@ -381,7 +402,7 @@ const ecranEau = (() => {
     return {
       afficher, entrerDansCap, revenirAuxVagues, demarrerVideo,
       etat: () => ({ visible: !racine.hidden, video: etatVideo, panne: videoEnPanne, boutons: boutons.classList.contains('visible'),
-        animation: couche.active(), entree: sortie !== null })
+        animation: couche.active(), entree: sortie !== null, reglagesEau: couche.reglages() })
     };
   }
 
@@ -430,7 +451,7 @@ const ecranEau = (() => {
     return ecran;
   }
 
-  return { REGLAGES, CLE_VUE, CLE_ACTIVE, creerCouche, eauAccueil, monter, auDemarrage, couleursBandes };
+  return { REGLAGES, EAU, CLE_VUE, CLE_ACTIVE, creerCouche, eauAccueil, monter, auDemarrage, couleursBandes };
 })();
 
 // Démarrage réel dans Cap. La page des tests automatiques (window.CAP_TESTS) crée ses propres écrans

@@ -2816,14 +2816,12 @@ html.cap-monte .ecran {
   }
 }
 
-/* Eau derrière l'accueil (06/11/2026, lot c20 ; lot c21 : MÊME intensité qu'à l'écran d'ouverture,
-   0,55 au lieu de 0,35, choix de Max) ; les tuiles gardent un fond presque opaque pour rester lisibles ;
-   jamais de toucher capté. */
+/* Eau derrière l'accueil (06/11/2026, lot c20 ; lot c22 : EXACTEMENT la même eau que l'ouverture,
+   l'opacité vient de .couche-eau, sans réglage à part) ; jamais de toucher capté. */
 .couche-eau-accueil {
   position: fixed;
   inset: 0;
   z-index: 0;
-  opacity: 0.55;
 }
 .ecran {
   position: relative;
@@ -2846,4 +2844,55 @@ html.sans-eau .bouton-eau {
 }
 #interrupteur-eau[aria-checked="false"] #etat-interrupteur-eau {
   opacity: 0.7;
+}
+
+/* Option A (06/11/2026, lot c22, choix de Max) : sur l'accueil et les tuiles, les cartes et les tuiles
+   laissent voir l'eau (fond à 60 %), avec un contour net et un léger halo clair autour du texte.
+   Contraste du texte vérifié par les tests (au moins 8:1 dans le pire cas, eau la plus foncée dessous).
+   Interrupteur « Eau » sur arrêt : rien ne change de lisibilité (le fond pâle est plus clair que l'eau). */
+.tuile {
+  background: rgb(255 254 247 / 60%);
+}
+.tuile-fixe {
+  background: rgb(238 247 251 / 60%);
+}
+.tuile-outil {
+  background: rgb(255 254 247 / 60%);
+  border-color: rgb(32 62 73 / 45%);
+}
+#alerte-google {
+  background: rgb(255 244 220 / 60%);
+}
+.bouton-scanner {
+  background: rgb(246 247 236 / 60%);
+}
+.barre-recherche {
+  background: rgb(255 254 247 / 60%);
+}
+#microphone,
+#ajouter,
+#ouvrir-clavier {
+  background: rgb(246 247 236 / 60%);
+  border: 1px solid rgb(32 62 73 / 40%);
+}
+.tuile,
+#alerte-google,
+.bouton-scanner,
+.barre-recherche,
+#microphone,
+#ajouter,
+#ouvrir-clavier,
+.horloge {
+  text-shadow: 0 0 2px rgb(255 255 255 / 90%), 0 0 6px rgb(255 255 255 / 70%);
+}
+/* Lot c22 : le choix de la source (« Tâches ») passe à l'encre principale ; sur l'eau, la couleur
+   secondaire descendait à 6,6:1 dans le pire cas (déjà 7,5:1 avant, sur fond opaque). */
+.choix-source,
+.choix-source > span {
+  color: var(--encre);
+}
+/* Lot c22 : le compteur des tuiles passe à l'encre principale (6,3:1 dans le pire cas sur l'eau). */
+.compteur-tuile {
+  color: var(--encre);
+  opacity: 1;
 }

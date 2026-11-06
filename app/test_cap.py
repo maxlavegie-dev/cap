@@ -2038,15 +2038,49 @@ TESTS_JS = r"""
     attendre(!ecran.etat().visible && ecran.fond.etat().active, 'eau de l’accueil absente');
     const fenetre = ui.cadre.contentWindow;
     attendreEgal(fenetre.getComputedStyle(ui.parId('eau-accueil')).pointerEvents, 'none', 'l’eau de l’accueil capte les touchers');
-    // Même intensité qu'à l'écran d'ouverture (lot c21) ; les tuiles gardent un fond presque opaque.
-    attendreEgal(fenetre.getComputedStyle(ui.parId('eau-accueil')).opacity, fenetre.getComputedStyle(ui.parId('toile-eau')).opacity, 'intensité différente de l’ouverture');
-    ui.parId('basculer-vue').click();
-    for (const tuile of ui.doc.querySelectorAll('.tuile')) {
-      const fondTuile = fenetre.getComputedStyle(tuile).backgroundColor;
-      const alpha = /rgba\([^)]*,\s*([0-9.]+)\)/.exec(fondTuile);
-      attendre(!alpha || Number(alpha[1]) >= 0.9, `fond de tuile trop transparent : ${fondTuile}`);
+    // Lot c22 : EXACTEMENT la même eau qu'à l'ouverture (tous les réglages, pas seulement l'opacité).
+    const ouverture = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
+    attendreEgal(ecran.fond.etat().reglagesEau, ouverture.etat().reglagesEau, 'eau de l’accueil différente de l’ouverture');
+    attendreEgal(ecran.fond.etat().reglagesEau.cellules, ecranEau.EAU.cellules, 'finesse réduite sur l’accueil');
+    // Lisibilité (option A) : contraste calculé dans le PIRE cas, l'eau la plus foncée sous la carte.
+    const rgb = t => (t.match(/[0-9.]+/g) || []).map(Number);
+    const lum = c => { const v = c.slice(0, 3).map(x => x / 255).map(x => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+    const contraste = (a, b) => { const [l1, l2] = [lum(a), lum(b)].sort((x, y) => y - x); return (l1 + 0.05) / (l2 + 0.05); };
+    const melange = (dessus, alpha, dessous) => dessous.map((c, i) => c * (1 - alpha) + dessus[i] * alpha);
+    const fondHex = fenetre.getComputedStyle(ui.doc.documentElement).getPropertyValue('--fond').trim();
+    const clair = [1, 3, 5].map(i => parseInt(fondHex.slice(i, i + 2), 16));
+    const pireEau = clair.map((c, i) => Math.round(c * 0.8 + [120, 150, 165][i] * 0.2) - 22);
+    const opaciteEau = Number(fenetre.getComputedStyle(ui.parId('eau-accueil')).opacity);
+    const eauVue = melange(pireEau, opaciteEau, clair);
+    let pire = 99;
+    const verifierTextes = racine => {
+      for (const el of [racine, ...racine.querySelectorAll('*')]) {
+        if (!el.childNodes || ![...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) continue;
+        if (el.closest('[hidden], dialog')) continue;
+        // Les entrées d'une liste déroulante s'affichent dans une fenêtre du téléphone, jamais sur l'eau.
+        if (el.closest('select, option, datalist')) continue;
+        // Fond réellement vu derrière ce texte : les fonds transparents empilés jusqu'à l'eau.
+        const couches = [];
+        for (let x = el; x && x !== ui.doc.body; x = x.parentElement) couches.push(rgb(fenetre.getComputedStyle(x).backgroundColor));
+        let fondVu = eauVue;
+        for (const c of couches.reverse()) if (c.length >= 3) fondVu = melange(c, c.length === 4 ? c[3] : 1, fondVu);
+        const ratio = contraste(rgb(fenetre.getComputedStyle(el).color), fondVu);
+        pire = Math.min(pire, ratio);
+        attendre(ratio >= 8, `texte pas assez lisible (${ratio.toFixed(1)}:1) : ${el.id || el.className || el.tagName} « ${el.textContent.trim().slice(0, 25)} »`);
+      }
+    };
+    for (const sel of ['#alerte-google', '.bouton-scanner', '.barre-recherche', '#date']) {
+      const el = ui.doc.querySelector(sel);
+      if (el) verifierTextes(el);
     }
     ui.parId('basculer-vue').click();
+    attendre(ui.doc.querySelectorAll('.tuile').length > 0, 'aucune tuile à vérifier');
+    for (const tuile of ui.doc.querySelectorAll('.tuile')) {
+      verifierTextes(tuile);
+      attendre(/rgba?\([^)]*0\.6\)/.test(fenetre.getComputedStyle(tuile).backgroundColor), `tuile pas semi-transparente : ${fenetre.getComputedStyle(tuile).backgroundColor}`);
+    }
+    ui.parId('basculer-vue').click();
+    attendre(pire >= 8 && pire < 99, `contraste minimal : ${pire}`);
     // Chaque bouton visible de l'accueil (les deux vues : accueil et tuiles) reçoit le toucher.
     const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
     const visibles = () => [...ui.doc.querySelectorAll('.ecran button')].filter(b => {
@@ -2096,6 +2130,21 @@ TESTS_JS = r"""
     attendre(!ecran.fond.etat().active, 'eau pas arrêtée en arrière-plan');
     ui.visibilite(false);
     attendre(ecran.fond.etat().active, 'eau pas relancée au retour');
+  });
+
+  await testAsync('Eau sur l’accueil (lot c22) : elle suit le doigt pendant un défilement, sans jamais retenir le geste', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const h = horlogeEau();
+    const ecran = ecranEau.auDemarrage(ui.doc, { stockage: { getItem: () => 'oui', setItem: () => {} }, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
+    attendre(ecran.fond.etat().active, 'eau de l’accueil absente');
+    ui.parId('basculer-vue').click();
+    const zone = ui.parId('ecran-complet');
+    const avant = ecran.fond.etat().touchers;
+    const mouvement = new Event('touchmove', { bubbles: true, cancelable: true });
+    Object.defineProperty(mouvement, 'changedTouches', { value: [{ clientX: 200, clientY: 500 }, { clientX: 210, clientY: 480 }] });
+    zone.dispatchEvent(mouvement);
+    attendre(ecran.fond.etat().touchers >= avant + 2, 'l’eau ne suit pas le doigt pendant le défilement');
+    attendre(!mouvement.defaultPrevented, 'le défilement a été bloqué par l’eau');
   });
 
   await testAsync('Interrupteur « Eau » (lot c21) : arrêt = aucune eau nulle part, aucune animation, aucun toucher perdu, Cap démarre normalement ; réglage gardé', async c => {
@@ -5924,8 +5973,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v55['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v55")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v56['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v56")
 
 
 def verifier_precache_fichiers_existent():
