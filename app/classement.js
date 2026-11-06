@@ -266,6 +266,24 @@ const classement = (() => {
     return memoireDictionnaire.entrees;
   }
 
+  // 06/11/2026, dossiers « Relations », étape 2 (calcul seulement) : onglet « Dictionnaire » seul,
+  // colonnes Prénom, Nom et Type seulement (relations.colonnesALire). Lecture (GET) à chaque calcul,
+  // rien gardé ni écrit nulle part. Retour : lignes [en-têtes, …] de ces colonnes, ou null si le
+  // Dictionnaire n'est pas encore choisi.
+  async function lireDictionnairePersonnes() {
+    const fichier = await fichierChoisi('dictionnaire');
+    if (!fichier) return null;
+    const base = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(fichier.id)}/values:batchGet`;
+    const plage = morceau => `ranges=${encodeURIComponent(`'${relations.ONGLET}'!${morceau}`)}`;
+    const entetes = await lireJson(`${base}?${plage('1:1')}`);
+    const colonnes = relations.colonnesALire(entetes.valueRanges?.[0]?.values?.[0] || []);
+    if (!colonnes.length) return [[]];
+    const valeurs = await lireJson(`${base}?${colonnes.map(c => plage(`${lettreColonne(c)}:${lettreColonne(c)}`)).join('&')}&majorDimension=COLUMNS`);
+    const parColonne = colonnes.map((_, i) => valeurs.valueRanges?.[i]?.values?.[0] || []);
+    const hauteur = Math.max(0, ...parColonne.map(c => c.length));
+    return Array.from({ length: hauteur }, (_, r) => parColonne.map(c => c[r] ?? ''));
+  }
+
   function refus(erreur) {
     if (erreur && erreur.statut) {
       return `refusé (erreur ${erreur.statut}${erreur.raison ? `, raison : ${erreur.raison}` : ''}).`;
@@ -273,5 +291,5 @@ const classement = (() => {
     return `pas lu (${erreur && erreur.message ? erreur.message : 'erreur inconnue'}).`;
   }
 
-  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire, lireTableurChoisi, lireMotsCourts, lireDictionnaire };
+  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire, lireTableurChoisi, lireMotsCourts, lireDictionnaire, lireDictionnairePersonnes };
 })();

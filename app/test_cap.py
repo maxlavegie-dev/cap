@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1876,6 +1876,91 @@ TESTS_JS = r"""
     attendre((await classementIsole.lireDictionnaire()) === entrees, 'deuxième scan : pas gardé en mémoire');
     attendreEgal(c.requetes.length, nombre, 'Dictionnaire relu alors qu’il est en mémoire');
     attendre(!ecrit, 'quelque chose a été écrit sur le téléphone');
+  });
+
+  // ---------- 06/11/2026 : dossiers « Relations », étape 2 (calcul seulement, données FICTIVES) ----------
+  function dictionnaireRelationsFictif() {
+    return [
+      ['Prénom', 'Nom', 'Type'],
+      ['Jean', 'Fictif', 'Personne'],
+      ['Jeanne', 'Exemple-FICTIF', 'personne'],
+      ['Paul', 'Modèle-FICTIF', 'Personne'],
+      ['paul', 'modele-fictif', 'Personne'],
+      ['Lucie', '', 'Personne'],
+      ['', 'Dupont-FICTIF', 'Personne'],
+      ['Cabinet FICTIF', '', 'Organisme'],
+      ['Marc', 'Essai-FICTIF', ''],
+      ['', '', ''],
+      [' Zoé ', ' Test   FICTIF ', 'Personne (pro)']
+    ];
+  }
+
+  test('Relations (étape 2) : calcul de la liste sur un faux Dictionnaire, homonymes, fiches incomplètes, rien d’autre', () => {
+    const r = relations.calculer(dictionnaireRelationsFictif());
+    attendreEgal(r.lues, 9, 'fiches lues (ligne vide ignorée)');
+    attendreEgal(r.aCreer.map(d => [d.numero, d.nomDossier]), [[2, 'r_Jean Fictif'], [3, 'r_Jeanne Exemple-FICTIF'], [11, 'r_Zoé Test FICTIF']], 'dossiers à prévoir');
+    attendreEgal(r.homonymes, [[4, 5]], 'homonymes (majuscules et accents ignorés), aucun dossier prévu pour eux');
+    attendreEgal(r.incompletes, [6, 7], 'fiches incomplètes');
+    attendreEgal(r.typeAbsent, [9], 'fiche sans type : à vérifier, rien de prévu');
+    attendreEgal(r.autres, 1, 'organisme écarté');
+    // Colonnes dans un autre ordre, avec d'autres colonnes autour : même résultat.
+    const melange = dictionnaireRelationsFictif().map(l => ['x', l[2], 'y', l[1], l[0]]);
+    melange[0] = ['Note pour IA', 'Type', 'Téléphone', 'NOM', 'prénom'];
+    attendreEgal(relations.calculer(melange).aCreer.length, 3, 'colonnes reconnues par leur titre');
+    attendreEgal(relations.colonnesALire(['Note pour IA', 'Type', 'Téléphone', 'NOM', 'prénom', 'Date de naissance']), [1, 3, 4], 'seules Prénom, Nom, Type sont à lire');
+    attendreEgal(relations.calculer([]).lues, 0, 'Dictionnaire vide');
+    // Le résumé ne montre que des nombres, jamais un nom.
+    const texte = relations.resumer(r);
+    for (const mot of ['Jean', 'Fictif', 'Paul', 'Zoé', 'Lucie', 'Marc', 'Cabinet', 'FICTIF']) attendre(!texte.includes(mot), `un nom apparaît à l’écran : ${mot}`);
+    attendre(texte.includes('Dossiers « r_ » à prévoir : 3.') && texte.includes('Homonymes à départager : 1 nom(s), 2 fiche(s)')
+      && texte.includes('Fiches incomplètes (prénom ou nom manquant) : 2.') && texte.includes('rien n’est créé'), `résumé : ${texte}`);
+    // Le module ne parle jamais au Drive, n'écrit rien sur le téléphone, ne crée rien.
+    for (const interdit of ['googleConnexion', 'fetch(', 'POST', 'PATCH', 'DELETE', 'localStorage', 'sessionStorage', 'indexedDB', 'innerHTML', 'cerveau', 'files?']) {
+      attendre(!SOURCE_RELATIONS.includes(interdit), `relations.js contient « ${interdit} »`);
+    }
+  });
+
+  await testAsync('Relations (étape 2) : le bouton lit le faux Dictionnaire et n’affiche que des nombres ; Dictionnaire pas choisi ou illisible : rien créé', async c => {
+    const ui = preparerInterface(c);
+    const bouton = ui.parId('calculer-relations');
+    const zone = ui.parId('resume-relations');
+    attendre(bouton && zone && zone.hidden, 'bouton ou zone absents');
+    let appels = 0;
+    const reponses = [async () => dictionnaireRelationsFictif(), async () => null, async () => { throw new Error('refus FICTIF'); }];
+    relations.brancher(ui.doc, { lireDictionnairePersonnes: () => reponses[appels++]() });
+    bouton.click();
+    await attendreQue(() => /prévoir : 3/.test(zone.textContent), `résumé absent : ${zone.textContent}`);
+    attendre(!zone.hidden && !/Jean|Fictif|Paul|Zoé/i.test(zone.textContent), 'un nom est affiché');
+    bouton.click();
+    await attendreQue(() => /Choisis d’abord le Dictionnaire/.test(zone.textContent), 'message sans Dictionnaire');
+    bouton.click();
+    await attendreQue(() => /n’a pas pu être lu.*Rien n’a été créé/.test(zone.textContent), 'message d’erreur');
+    attendreEgal(c.requetes.length, 0, 'une requête Google est partie');
+  });
+
+  await testAsync('Relations (étape 2) : lecture du Dictionnaire = onglet « Dictionnaire », colonnes Prénom, Nom, Type seulement, GET seulement, rien gardé', async c => {
+    const piqueur = { dossierChoisi: role => (role === 'dictionnaire' ? { id: 'dico-fictif' } : null), retrouverDepuisDrive: async () => null };
+    const entetes = ['Prénom', 'Note pour IA', 'Nom', 'Téléphone', 'Type', 'Date de naissance / anniversaire'];
+    const colonnes = { A: ['Prénom', 'Jean', 'Lucie'], C: ['Nom', 'Fictif'], E: ['Type', 'Personne', 'Personne'] };
+    const demandees = [];
+    c.repondre = async r => {
+      if (r.url.hostname !== 'sheets.googleapis.com' || r.url.pathname !== '/v4/spreadsheets/dico-fictif/values:batchGet') throw new Error(`Requête inattendue : ${r.url}`);
+      const plages = r.url.searchParams.getAll('ranges');
+      demandees.push(...plages);
+      if (plages.length === 1 && plages[0] === "'Dictionnaire'!1:1") return reponseGoogle({ valueRanges: [{ values: [entetes] }] });
+      return reponseGoogle({ valueRanges: plages.map(pl => ({ values: [colonnes[/!([A-Z]+):/.exec(pl)[1]]] })) });
+    };
+    let ecrit = false;
+    const espion = { getItem: () => null, setItem: () => { ecrit = true; }, removeItem: () => { ecrit = true; } };
+    const classementIsole = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: piqueur, emetteur, relations, localStorage: espion, sessionStorage: espion, indexedDB: undefined });
+    const lignes = await classementIsole.lireDictionnairePersonnes();
+    attendreEgal(demandees, ["'Dictionnaire'!1:1", "'Dictionnaire'!A:A", "'Dictionnaire'!C:C", "'Dictionnaire'!E:E"], 'colonnes demandées');
+    attendreEgal(lignes, [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif', 'Personne'], ['Lucie', '', 'Personne']], 'lignes reconstituées');
+    attendreEgal(relations.calculer(lignes).incompletes, [3], 'calcul sur la lecture');
+    attendre(c.requetes.every(r => r.methode === 'GET'), 'écriture dans le Drive');
+    attendre(!ecrit, 'quelque chose a été écrit sur le téléphone');
+    const sansChoix = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: { dossierChoisi: () => null, retrouverDepuisDrive: async () => null }, emetteur, relations });
+    attendreEgal(await sansChoix.lireDictionnairePersonnes(), null, 'Dictionnaire pas choisi');
   });
 
   // ---------- 06/11/2026 : écran d'ouverture « eau » (étape 1 de l'intégration du travail de Zencoder) ----------
@@ -5973,8 +6058,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v56['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v56")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v57['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v57")
 
 
 def verifier_precache_fichiers_existent():
@@ -6093,6 +6178,7 @@ def construire_page():
         "SOURCE_TUILES": "tuiles.js",
         "SOURCE_MODE_TRIER": "mode_trier.js",
         "SOURCE_ECRAN_EAU": "ecran_eau.js",
+        "SOURCE_RELATIONS": "relations.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }
