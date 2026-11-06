@@ -215,7 +215,10 @@ const motsCourts = (() => {
     // Pour le Journal Numérisation : les 3 meilleurs candidats et leur score (jamais le texte lu).
     vide.meilleurs = tries.slice(0, 3).map(c => ({ nom: nomSelonRegle(c.regle, date, emetteurNom), mot_cle: c.mot_cle, score: arrondi(c.score) }));
     const proches = tries.filter(c => c.score >= tries[0].score * PROCHE);
-    const choix = proches.map(c => ({ nom: nomSelonRegle(c.regle, date, emetteurNom), mot_cle: c.mot_cle, score: arrondi(c.score) }));
+    const choix = proches.map(c => ({ nom: nomSelonRegle(c.regle, date, emetteurNom), mot_cle: c.mot_cle, score: arrondi(c.score),
+      personne: c.regle.personne ? c.regle.personne.affichage : '' }));
+    // proches : tous les titres proches (pour choisir d'abord la personne, s'ils en nomment plusieurs).
+    vide.proches = choix;
     const incertaine = proches.some(c => c.incertaine);
     if (proches.length === 1) {
       return { ...vide, nom: choix[0].nom, mot_cle: choix[0].mot_cle, raison: 'trouve', date, score: choix[0].score, personne_incertaine: incertaine };

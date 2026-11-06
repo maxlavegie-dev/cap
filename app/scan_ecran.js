@@ -63,6 +63,7 @@ const scanEcran = (() => {
     const boutonDateScan = parId('scanner-proposition-date-scan');
     const fenetreEmetteur = parId('scanner-choix-emetteur');
     const casesEmetteur = parId('scanner-choix-emetteur-cases');
+    const titreFenetreChoix = parId('scanner-choix-emetteur-titre');
     const boutonsAvecNom = ['scanner-proposition-oui', 'scanner-proposition-modifier', 'scanner-proposition-non'].map(parId);
     const boutonsSansNom = ['scanner-proposition-daccord', 'scanner-proposition-ecrire'].map(parId);
     // Texte lu sur le téléphone (jamais envoyé), nombres de caractères et de pages, proposition, réponse.
@@ -431,7 +432,7 @@ const scanEcran = (() => {
         diagnostics: [...avant.diagnostics, ...diagnostics],
         mot_cle: '', nom_propose: '', raison: '', erreur_tableur: '', reponse: '', repondu: false,
         score: 0, choix: [], choix_retenu: 0, recherche: '', personne_incertaine: false, meilleurs: [],
-        date_source: '', date_scan: '', emetteur: null
+        date_source: '', date_scan: '', emetteur: null, personne: null
       };
       dire(`${prises} page${prises > 1 ? 's' : ''} reçue${prises > 1 ? 's' : ''} du scanner de Google. `
         + `Texte lu sur ${lectureGoogle.pages_lues} page${lectureGoogle.pages_lues > 1 ? 's' : ''} sur ${lectureGoogle.pages_total}.`
@@ -488,6 +489,8 @@ const scanEcran = (() => {
           const retenu = mots ? await chercherEmetteur(lecture, mots) : null;
           p = mots ? motsCourts.proposer(lecture.texte, lignes, mots, { emetteur: retenu ? retenu.complet : '' })
             : nommageScan.proposer(lecture.texte, lignes);
+          // Plusieurs personnes possibles : la grande fenêtre d'abord, puis le nom.
+          if (mots) p = await choisirPersonne(lecture, p);
         } catch (erreur) {
           p = { nom: '', mot_cle: '', raison: 'tableur', date: '' };
           lecture.erreur_tableur = String(erreur.message || 'raison inconnue').slice(0, 160);
@@ -525,6 +528,7 @@ const scanEcran = (() => {
         trouve: `${lus}, mot-clé du tableur repéré : « ${p.mot_cle} »${score}.${personne}${sansDate} Rien n’est renommé tant que tu n’as pas dit Oui.`,
         choix: `${lus}, ${nombreChoix} titres possibles, trop proches pour que je choisisse seul.${personne}${sansDate} Touche le bon titre, puis Oui. Rien n’est renommé avant.`,
         trop_proches: `${lus}, plus de ${nombreChoix} titres possibles et trop proches : je ne choisis pas, ${garde}`,
+        aucune_personne: `${lus}, aucune des personnes proposées : ${garde}`,
         aucun: `${lus}, aucun mot-clé du tableur trouvé : ${garde}`,
         contradictoire: `${lus}, plusieurs mots-clés du tableur qui ne vont pas ensemble : je ne choisis pas, ${garde}`,
         sans_texte: `${lus} : aucun texte lu, ${garde}`,
@@ -586,7 +590,7 @@ const scanEcran = (() => {
         lecture.emetteur = { etat: 'reconnu', onglet: c.onglet, numero: c.numero, complet: c.complet };
         return c;
       }
-      const choix = await demanderEmetteur(r.candidats);
+      const choix = await demanderDansFenetre('Qui a envoyé ce document ? Touche la bonne réponse :', r.candidats, 'Aucun de ceux-là');
       lecture.emetteur = choix
         ? { etat: 'choisi', onglet: choix.onglet, numero: choix.numero, complet: choix.complet, cases: r.candidats.length }
         : { etat: 'aucun_de_ceux_la', cases: r.candidats.length };
@@ -603,7 +607,30 @@ const scanEcran = (() => {
       return !deborde();
     }
 
-    function demanderEmetteur(candidats) {
+    // Personne concernée (06/11/2026) : si les titres proches nomment plusieurs personnes, Max choisit
+    // d'abord la personne (grande fenêtre, une ligne par case) ; ensuite seulement le nom est proposé.
+    async function choisirPersonne(lecture, p) {
+      if (!['choix', 'trop_proches'].includes(p.raison)) return p;
+      const proches = p.proches || p.choix || [];
+      const personnes = [...new Set(proches.map(c => c.personne).filter(Boolean))];
+      if (personnes.length < 2 || personnes.length > 4) return p;
+      const candidats = personnes.map(nom => ({ complet: nom, court: emetteur.formeCourte(nom) }));
+      const choisie = await demanderDansFenetre('Qui est concerné par ce document ? Touche la bonne réponse :', candidats, 'Aucune de ces personnes');
+      if (!choisie) {
+        lecture.personne = { etat: 'aucune', cases: personnes.length };
+        return { ...p, raison: 'aucune_personne', nom: '', choix: [], personne_incertaine: false };
+      }
+      lecture.personne = { etat: 'choisie', rang: personnes.indexOf(choisie.complet) + 1, cases: personnes.length };
+      const gardes = proches.filter(c => !c.personne || c.personne === choisie.complet);
+      if (gardes.length === 1) {
+        return { ...p, raison: 'trouve', nom: gardes[0].nom, mot_cle: gardes[0].mot_cle, score: gardes[0].score, choix: [], personne_incertaine: false };
+      }
+      if (gardes.length <= 3) return { ...p, raison: 'choix', choix: gardes, personne_incertaine: false };
+      return { ...p, raison: 'trop_proches', choix: gardes.slice(0, 3), personne_incertaine: false };
+    }
+
+    function demanderDansFenetre(titre, candidats, libelleAucun) {
+      titreFenetreChoix.textContent = titre;
       return new Promise(resoudre => {
         let fini = false;
         const terminer = choix => {
@@ -624,7 +651,7 @@ const scanEcran = (() => {
         const aucun = document.createElement('button');
         aucun.type = 'button';
         aucun.className = 'choix-grand-affichage';
-        aucun.textContent = 'Aucun de ceux-là';
+        aucun.textContent = libelleAucun;
         aucun.addEventListener('click', () => terminer(null));
         casesEmetteur.replaceChildren(...boutons, aucun);
         fenetreEmetteur.addEventListener('cancel', () => terminer(null), { once: true });
@@ -743,6 +770,7 @@ const scanEcran = (() => {
         case 'trouve': return `mot-clé : ${lecture.mot_cle}${lecture.score ? ` ; score : ${lecture.score}` : ''}`;
         case 'choix': return `choix entre ${lecture.choix.length} titres : ${lecture.choix.map(c => `${c.mot_cle} (score ${c.score})`).join(' / ')}`;
         case 'trop_proches': return 'trop de titres proches : aucune proposition';
+        case 'aucune_personne': return 'aucune des personnes proposées (choix de Max)';
         case 'contradictoire': return `mots-clés contradictoires : ${lecture.mot_cle}`;
         case 'aucun': return 'aucun mot-clé trouvé';
         case 'sans_texte': return 'aucun texte lu';
@@ -765,6 +793,8 @@ const scanEcran = (() => {
             ...(l.diagnostics.length ? [`diagnostic : ${l.diagnostics.join(' | ')}`] : []),
             ...(l.recherche ? [`recherche : ${l.recherche}`] : []),
             ...(l.emetteur ? [`émetteur : ${texteEmetteurJournal(l.emetteur)}`] : []),
+            ...(l.personne ? [l.personne.etat === 'choisie' ? `personne : choisie par Max (n° ${l.personne.rang} parmi ${l.personne.cases})`
+              : `personne : aucune de celles proposées (choix de Max parmi ${l.personne.cases})`] : []),
             ...(l.personne_incertaine ? ['personne incertaine (prénom non lu)'] : []),
             // 06/11/2026 : les 3 meilleurs candidats et leur score, pour comprendre un mauvais choix.
             ...(l.meilleurs.length ? [`meilleurs candidats : ${l.meilleurs.map(c => `${c.nom}.pdf (${c.mot_cle}, score ${c.score})`).join(' / ')}`] : []),

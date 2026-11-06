@@ -1268,13 +1268,24 @@ TESTS_JS = r"""
     attendre(!l.details.includes('gêne') && !l.resultat.includes('gêne'), 'texte lu recopié dans le journal');
   });
 
-  await test('écran Google : 2 ou 3 titres proches, rien sans choix puis « Oui » ; mots-clés courts en panne', async () => {
+  await test('écran Google : personne choisie d’abord (grande fenêtre), puis 2 titres proches, rien sans choix puis « Oui » ; mots-clés courts en panne', async () => {
     let g = monterScore();
     let e = await scanGoogle(g, [{ texte: courrierFictif('M. EXEMPLAIRE') }]);
     await terminerPuisVoir(e);
+    // Nom de famille seul : les titres proches nomment deux personnes → grande fenêtre d'abord, avant tout nom.
+    const fenetre = e.id('scanner-choix-emetteur');
+    attendre(fenetre.open && e.id('scanner-choix-emetteur-titre').textContent.startsWith('Qui est concerné'), 'fenêtre de la personne absente');
+    attendre(e.id('scanner-proposition').hidden, 'nom proposé avant le choix de la personne');
+    const casesPersonne = [...e.id('scanner-choix-emetteur-cases').querySelectorAll('button')];
+    egal(casesPersonne.map(b => b.textContent).sort(), ['Aucune de ces personnes', 'Lina Exemplaire', 'Théo Exemplaire'], 'cases des personnes');
+    attendre(casesPersonne.every(b => b.scrollWidth <= b.clientWidth + 1), 'case trop large pour une ligne');
+    cliquer(casesPersonne.find(b => b.textContent === 'Lina Exemplaire'));
+    await pause(300);
+    attendre(!fenetre.open, 'fenêtre de la personne restée ouverte');
     const boutons = [...e.id('scanner-proposition-choix').querySelectorAll('button')];
-    egal(boutons.length, 3, 'trois titres proposés');
-    attendre(e.id('scanner-proposition-info').textContent.includes('Personne pas sûre'), 'personne incertaine non dite');
+    egal(boutons.length, 2, 'deux titres proposés pour la personne choisie');
+    attendre(boutons.every(b => b.textContent.includes('- Lina Exemplaire')), 'titre d’une autre personne proposé');
+    attendre(!e.id('scanner-proposition-info').textContent.includes('Personne pas sûre'), 'personne dite incertaine après le choix de Max');
     cliquer(e.id('scanner-proposition-oui'));
     await pause(500);
     egal((await e.file.lister()).length, 0, 'enregistré sans titre choisi');
@@ -1286,7 +1297,7 @@ TESTS_JS = r"""
     const attendu = `${boutons[1].textContent}`;
     egal((await e.file.lister())[0].nom_valide, attendu, 'titre choisi retenu');
     const l = g.lignes[0];
-    attendre(l.resultat.startsWith('choix entre 3 titres') && l.details.includes('titre touché : n° 2') && l.details.includes('personne incertaine'),
+    attendre(l.resultat.startsWith('choix entre 2 titres') && l.details.includes('titre touché : n° 2') && /personne : choisie par Max \(n° \d parmi 2\)/.test(l.details),
       `journal : ${l.resultat} | ${l.details}`);
     // Mots-clés courts illisibles : recherche stricte, et le journal le dit.
     g = monterScore({ motsEnPanne: true });
@@ -1490,6 +1501,47 @@ TESTS_JS = r"""
     await pause(1500);
     attendre((await e.file.lister())[0].details.includes('Émetteur : aucun de ceux-là (choix de Max)'), 'description sans la mention');
     attendre(g.lignes[0].details.includes('émetteur : aucun de ceux-là (choix de Max parmi 2)'), `journal : ${g.lignes[0].details}`);
+  });
+
+  await test('écran Google : personne choisie seule → un seul titre ; « Aucune de ces personnes » → aucun nom', async () => {
+    let g = monterScore();
+    let e = await scanGoogle(g, [{ texte: courrierFictif('M. EXEMPLAIRE') }]);
+    await terminerPuisVoir(e);
+    cliquer([...e.id('scanner-choix-emetteur-cases').querySelectorAll('button')].find(b => b.textContent === 'Théo Exemplaire'));
+    await pause(300);
+    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Théo Exemplaire.pdf', 'un seul titre pour la personne choisie');
+    attendre(e.id('scanner-proposition-choix').hidden, 'boutons de titres affichés pour un seul titre');
+    cliquer(e.id('scanner-proposition-non'));
+    await pause(1500);
+    g = monterScore();
+    e = await scanGoogle(g, [{ texte: courrierFictif('M. EXEMPLAIRE') }]);
+    await terminerPuisVoir(e);
+    cliquer([...e.id('scanner-choix-emetteur-cases').querySelectorAll('button')].find(b => b.textContent === 'Aucune de ces personnes'));
+    await pause(300);
+    attendre(!e.id('scanner-proposition-daccord').hidden && e.id('scanner-proposition-oui').hidden, 'nom proposé malgré « Aucune de ces personnes »');
+    cliquer(e.id('scanner-proposition-daccord'));
+    await pause(1500);
+    egal(g.lignes[0].resultat, 'aucune des personnes proposées (choix de Max)', 'journal');
+    attendre(g.lignes[0].details.includes('personne : aucune de celles proposées (choix de Max parmi 2)'), `journal : ${g.lignes[0].details}`);
+  });
+
+  await test('écran Google : dans le même scan, un membre FICTIF de la famille reconnu comme personne, jamais comme émetteur', async () => {
+    const g = monterEmetteur();
+    const texte = ['Courrier FICTIF de Lina Exemplaire, tél. 04 00 00 00 08', 'COMPTE RENDU DE SUIVI', 'Pour Lina Exemplaire, revue par le Dr Jean Fictif.',
+      'Fait le 14/10/2026'].join('\n');
+    const e = await scanGoogle(g, [{ texte }]);
+    await terminerPuisVoir(e);
+    attendre(!e.id('scanner-choix-emetteur').open, 'fenêtre de choix ouverte');
+    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Jean Fictif - Lina Exemplaire.pdf', 'famille = personne, émetteur = Dr FICTIF');
+    // Sans le médecin, la famille seule n'est jamais l'émetteur : nom sans émetteur.
+    const g2 = monterEmetteur();
+    const e2 = await scanGoogle(g2, [{ texte: texte.replace(', revue par le Dr Jean Fictif', '') }]);
+    await terminerPuisVoir(e2);
+    attendre(!e2.id('scanner-choix-emetteur').open, 'la famille proposée comme émetteur');
+    egal(e2.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Lina Exemplaire.pdf', 'personne reconnue, aucun émetteur');
+    cliquer(e2.id('scanner-proposition-oui'));
+    await pause(1500);
+    attendre(g2.lignes[0].details.includes('émetteur : aucun trouvé'), `journal : ${g2.lignes[0].details}`);
   });
 
   await test('écran Google : lecture échouée page par page, aucun texte lu, tableur non lu, annulation', async () => {
