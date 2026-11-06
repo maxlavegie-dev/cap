@@ -28,25 +28,74 @@ const nommageScan = (() => {
 
   // Première date valide écrite dans le texte (12/03/2026, 12.03.2026, 12-03-2026, 2026-03-12,
   // 12 mars 2026, 1er mars 2026). Aucune : chaîne vide (jamais une date inventée).
-  function dateDuTexte(texte) {
-    const brut = String(texte || '');
-    const plat = brut.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  // ----- Lecture de la date (06/11/2026, après l'essai c17) -----
+  // Formes acceptées : 17/03/2025, 17.03.2025, 17-03-2025 (espaces permis autour des séparateurs),
+  // 2025-03-17, « 17 mars 2025 », « 1er mars 2025 », « 17mars 2025 », mois abrégés (janv., févr., avr.,
+  // juil., sept., oct., nov., déc.). Dans une date SEULEMENT, confusions de lecture évidentes corrigées :
+  // O → 0, l ou I → 1, « mal » → « mai ». Année sur 2 chiffres : jamais acceptée (comptée « non acceptée »).
+  // Jamais une date inventée ; la date retenue est toujours montrée à Max dans le nom proposé.
+  const MOIS_ABREGES = Object.freeze({ janvier: 1, janv: 1, fevrier: 2, fevr: 2, fev: 2, mars: 3, avril: 4, avr: 4, mai: 5, mal: 5,
+    juin: 6, juillet: 7, juil: 7, aout: 8, septembre: 9, sept: 9, octobre: 10, oct: 10, novembre: 11, nov: 11, decembre: 12, dec: 12 });
+  const NOMS_MOIS = Object.keys(MOIS_ABREGES).sort((a, b) => b.length - a.length).join('|');
+  const CHIFFRE = '[0-9oil]';
+
+  // Groupe de « chiffres » lu par la reconnaissance : O → 0, l ou i → 1 ; au moins `minimum` vrais chiffres.
+  function chiffres(groupe, minimum) {
+    const vrais = (groupe.match(/\d/g) || []).length;
+    if (vrais < minimum) return null;
+    const propre = groupe.replace(/o/g, '0').replace(/[il]/g, '1');
+    return { valeur: Number(propre), corrige: propre !== groupe };
+  }
+
+  // { date, mois, corrigee, diagnostic } ; diagnostic : des NOMBRES seulement (jamais la date).
+  function analyserDates(texte) {
+    const plat = String(texte || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const diagnostic = { candidates: { chiffres: 0, lettres: 0, iso: 0 }, rejetees: { impossible: 0, naissance: 0 },
+      non_acceptees: 0, corrections: 0, choisie: 'aucune' };
     const trouvees = [];
-    for (const m of brut.matchAll(/(?<!\d)(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})(?!\d)/g)) {
-      trouvees.push({ position: m.index, date: dateValide(Number(m[3]), Number(m[2]), Number(m[1])) });
+    const ajouter = (sorte, position, annee, moisNum, jour, corrige) => {
+      if (!annee || !moisNum || !jour) return;
+      diagnostic.candidates[sorte]++;
+      if (corrige) diagnostic.corrections++;
+      trouvees.push({ sorte, position, date: dateValide(annee.valeur, moisNum, jour.valeur), corrige });
+    };
+    const avant = `(?<![0-9a-z])`;
+    const apres = `(?![0-9a-z])`;
+    const sep = `\\s*[/.\\-]\\s*`;
+    for (const m of plat.matchAll(new RegExp(`${avant}(${CHIFFRE}{1,2})${sep}(${CHIFFRE}{1,2})${sep}(${CHIFFRE}{4})${apres}`, 'g'))) {
+      const j = chiffres(m[1], 1), mo = chiffres(m[2], 1), a = chiffres(m[3], 2);
+      if (j && mo && a) ajouter('chiffres', m.index, a, mo.valeur, j, j.corrige || mo.corrige || a.corrige);
     }
-    for (const m of brut.matchAll(/(?<!\d)(\d{4})-(\d{2})-(\d{2})(?!\d)/g)) {
-      trouvees.push({ position: m.index, date: dateValide(Number(m[1]), Number(m[2]), Number(m[3])) });
+    for (const m of plat.matchAll(new RegExp(`${avant}(\\d{4})\\s*-\\s*(\\d{2})\\s*-\\s*(\\d{2})${apres}`, 'g'))) {
+      ajouter('iso', m.index, { valeur: Number(m[1]) }, Number(m[2]), { valeur: Number(m[3]) }, false);
     }
-    const noms = Object.keys(mois).join('|');
-    for (const m of plat.matchAll(new RegExp(`(?<!\\d)(\\d{1,2})(?:er)?\\s+(${noms})\\s+(\\d{4})(?!\\d)`, 'g'))) {
-      trouvees.push({ position: m.index, date: dateValide(Number(m[3]), mois[m[2]], Number(m[1])) });
+    for (const m of plat.matchAll(new RegExp(`${avant}(${CHIFFRE}{1,2})(?:er)?\\s*(${NOMS_MOIS})(?![a-z])\\.?\\s*(${CHIFFRE}{4})${apres}`, 'g'))) {
+      const j = chiffres(m[1], 1), a = chiffres(m[3], 2);
+      if (j && a) ajouter('lettres', m.index, a, MOIS_ABREGES[m[2]], j, j.corrige || a.corrige || m[2] === 'mal');
     }
-    // 06/11/2026 : une date de naissance (« né le », « née le », « naissance », « DDN ») n'est
-    // jamais la date du document (un courrier médical commence souvent par elle).
+    // Année sur 2 chiffres (« 17/03/25 ») : jamais acceptée, seulement comptée.
+    diagnostic.non_acceptees = [...plat.matchAll(new RegExp(`${avant}\\d{1,2}${sep}\\d{1,2}${sep}\\d{2}${apres}`, 'g'))].length;
+    // Une date de naissance (« né le », « née le », « naissance », « DDN ») n'est jamais la date du document.
     const naissance = position => /(?:\bnee?\s*(?:\(e\))?\s*le|naissance|\bddn)\W*$/.test(plat.slice(Math.max(0, position - 30), position));
-    const bonne = trouvees.filter(t => t.date && !naissance(t.position)).sort((a, b) => a.position - b.position)[0];
-    return bonne ? bonne.date : '';
+    const valides = [];
+    for (const t of trouvees) {
+      if (!t.date) { diagnostic.rejetees.impossible++; continue; }
+      if (naissance(t.position)) { diagnostic.rejetees.naissance++; continue; }
+      valides.push(t);
+    }
+    const bonne = valides.sort((a, b) => a.position - b.position)[0];
+    if (bonne) {
+      diagnostic.choisie = bonne.sorte;
+      return { date: bonne.date, mois: '', corrigee: bonne.corrige, diagnostic };
+    }
+    const moisSeul = moisDuTexte(texte);
+    if (moisSeul) diagnostic.choisie = 'mois seul';
+    return { date: '', mois: moisSeul, corrigee: false, diagnostic };
+  }
+
+  // Première date valide écrite dans le texte ; aucune : chaîne vide (jamais une date inventée).
+  function dateDuTexte(texte) {
+    return analyserDates(texte).date;
   }
 
   // Lignes du tableur dont le mot-clé apparaît, mot pour mot, dans le texte.
@@ -132,6 +181,6 @@ const nommageScan = (() => {
     return nom;
   }
 
-  return { cle, dateDuTexte, motsClesTrouves, proposer, verifierNom, dateAPreciser,
+  return { cle, dateDuTexte, analyserDates, motsClesTrouves, proposer, verifierNom, dateAPreciser,
     dateAPreciserRegle, nettoyerNom, moisDuTexte, composerNom, nomUnique };
 })();

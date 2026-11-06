@@ -1479,6 +1479,47 @@ TESTS_JS = r"""
       candidats: { telephone_mail: 0, exact: 0, appellation: 0, souple: 0 }, famille_ecartee: 0 }, 'diagnostic en nombres');
   });
 
+  await test('dates : formes en plus, confusions de lecture corrigées (dans une date seulement), année sur 2 chiffres jamais acceptée, diagnostic en nombres', async () => {
+    const d = t => nommageScan.analyserDates(t);
+    egal(d('Fait le 17 / 05 / 2025, FICTIF').date, '2025-05-17', 'espaces autour des séparateurs');
+    egal(d('Le 12 sept. 2026 FICTIF').date, '2026-09-12', 'mois abrégé avec point');
+    egal(d('Le 3 févr 2026 FICTIF').date, '2026-02-03', 'mois abrégé avec accent');
+    egal(d('Le 17mai 2025 FICTIF').date, '2025-05-17', 'jour collé au mois');
+    egal(d('Le 1er déc. 2025 FICTIF').date, '2025-12-01', '1er et décembre abrégé');
+    let r = d('Ordonnance FICTIVE du 17/05/2O25');
+    egal([r.date, r.corrigee, r.diagnostic.corrections, r.diagnostic.choisie], ['2025-05-17', true, 1, 'chiffres'], 'lettre O dans l’année');
+    r = d('Ordonnance FICTIVE du 17 mal 2025');
+    egal([r.date, r.corrigee], ['2025-05-17', true], '« mal » lu pour « mai »');
+    egal(d('Ordonnance FICTIVE du l7/05/2025').date, '2025-05-17', 'lettre l pour 1');
+    r = d('Ordonnance FICTIVE du 17/05/25');
+    egal([r.date, r.diagnostic.non_acceptees, r.diagnostic.choisie], ['', 1, 'aucune'], 'année sur 2 chiffres jamais acceptée');
+    r = d('Patient FICTIF né le 01/02/1980. Fait le 03/04/2026');
+    egal([r.date, r.diagnostic.rejetees.naissance, r.diagnostic.candidates.chiffres], ['2026-04-03', 1, 2], 'naissance écartée et comptée');
+    r = d('Le 31/02/2026 FICTIF');
+    egal([r.date, r.diagnostic.rejetees.impossible], ['', 1], 'date impossible comptée');
+    // Jamais une date inventée : des lettres seules ou un numéro de téléphone ne sont pas des dates.
+    egal(d('Code FICTIF ol/il/oooo').date, '', 'lettres seules');
+    egal(d('Tél. 04.78.12.34.56 FICTIF').date, '', 'numéro de téléphone');
+    egal(d('Mot FICTIF : il mal, mal 2026').date, '', '« mal » sans jour');
+    egal(d('Relevé FICTIF de sept. 2026').mois, '', 'mois abrégé sans jour : pas de date complète (le mois seul reste en toutes lettres)');
+  });
+
+  await test('écran Google : date corrigée montrée et signalée, diagnostic de la date au journal sans la date', async () => {
+    const g = monterScore();
+    const e = await scanGoogle(g, [{ texte: courrierFictif('M. Théodore EXEMPLAIRE').replace('Fait le 14/10/2026', 'Fait le 14/1O/2026') }]);
+    await terminerPuisVoir(e);
+    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Théo Exemplaire.pdf', 'date corrigée dans le nom proposé');
+    attendre(e.id('scanner-proposition-info').textContent.includes('correction de lecture'), `correction non signalée : ${e.id('scanner-proposition-info').textContent}`);
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(1500);
+    const fiche = (await e.file.lister())[0];
+    attendre(fiche.details.includes('Date du nom : lue sur le document, avec une correction de lecture'), `description : ${JSON.stringify(fiche.details)}`);
+    const diag = g.lignes[0].details.slice(g.lignes[0].details.indexOf('diagnostic date'), g.lignes[0].details.indexOf('choisie : ') + 'choisie : chiffres'.length);
+    attendre(diag.startsWith('diagnostic date : candidates 2 (chiffres 2, lettres 0, iso 0) ; rejetées 1 (impossible 0, naissance 1) ; formes non acceptées 0 ; corrections de lecture 1 ; choisie : chiffres'),
+      `diagnostic : ${diag}`);
+    attendre(!/\d{3,}|\d\/\d/.test(diag), 'une date apparaît dans le diagnostic');
+  });
+
   function monterEmetteur() {
     const g = monterScore();
     g.options.classement.lireDictionnaire = async () => emetteur.analyser(dicoFictif);

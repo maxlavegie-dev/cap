@@ -432,7 +432,7 @@ const scanEcran = (() => {
         diagnostics: [...avant.diagnostics, ...diagnostics],
         mot_cle: '', nom_propose: '', raison: '', erreur_tableur: '', reponse: '', repondu: false,
         score: 0, choix: [], choix_retenu: 0, recherche: '', personne_incertaine: false, meilleurs: [],
-        date_source: '', date_scan: '', emetteur: null, personne: null
+        date_source: '', date_scan: '', emetteur: null, personne: null, date_diagnostic: null, date_corrigee: false
       };
       dire(`${prises} page${prises > 1 ? 's' : ''} reçue${prises > 1 ? 's' : ''} du scanner de Google. `
         + `Texte lu sur ${lectureGoogle.pages_lues} page${lectureGoogle.pages_lues > 1 ? 's' : ''} sur ${lectureGoogle.pages_total}.`
@@ -505,7 +505,10 @@ const scanEcran = (() => {
       lecture.personne_incertaine = Boolean(p.personne_incertaine);
       lecture.meilleurs = p.meilleurs || [];
       // Règle de nommage (06/11/2026) : sans date lisible, la date du scan seulement si Max la choisit.
-      lecture.date_source = p.date ? (p.date.length === 7 ? 'mois et année lus sur le document' : 'lue sur le document') : 'à préciser';
+      lecture.date_diagnostic = p.date_diagnostic || null;
+      lecture.date_corrigee = Boolean(p.date_corrigee);
+      lecture.date_source = p.date ? (p.date.length === 7 ? 'mois et année lus sur le document'
+        : lecture.date_corrigee ? 'lue sur le document, avec une correction de lecture' : 'lue sur le document') : 'à préciser';
       const aRemplir = String(p.nom || '').startsWith(nommageScan.dateAPreciserRegle)
         || (lecture.choix || []).some(c => c.nom.startsWith(nommageScan.dateAPreciserRegle));
       boutonDateScan.hidden = !aRemplir;
@@ -520,7 +523,7 @@ const scanEcran = (() => {
         + (lecture.echecs.length ? `, lecture échouée : page${lecture.echecs.length > 1 ? 's' : ''} ${lecture.echecs.join(', ')}` : '');
       const garde = 'le scan gardera son nom SCAN-… dans 00_A_CLASSER.';
       const score = p.score ? ` (score ${nombreFrancais.format(p.score)})` : '';
-      const sansDate = p.date ? '' : (boutonDateScan.hidden ? ' Aucune date lisible : « DATE A PRECISER ».'
+      const sansDate = p.date ? (p.date_corrigee ? ' Date lue avec une correction de lecture : vérifie-la dans le nom.' : '') : (boutonDateScan.hidden ? ' Aucune date lisible : « DATE A PRECISER ».'
         : ' Aucune date lisible : « DATE-A-PRECISER ». Si tu veux la date du scan, touche « Prendre la date du scan ».');
       const personne = p.personne_incertaine ? ' Personne pas sûre (prénom non lu).' : '';
       const nombreChoix = (p.choix || []).length;
@@ -675,6 +678,14 @@ const scanEcran = (() => {
         + `souple ${c.souple} ; famille écartée ${d.famille_ecartee}`;
     }
 
+    // Diagnostic de la date : des nombres seulement, jamais la date elle-même.
+    function texteDiagnosticDate(d) {
+      const c = d.candidates, r = d.rejetees;
+      return `diagnostic date : candidates ${c.chiffres + c.lettres + c.iso} (chiffres ${c.chiffres}, lettres ${c.lettres}, iso ${c.iso}) ; `
+        + `rejetées ${r.impossible + r.naissance} (impossible ${r.impossible}, naissance ${r.naissance}) ; formes non acceptées ${d.non_acceptees} ; `
+        + `corrections de lecture ${d.corrections} ; choisie : ${d.choisie}`;
+    }
+
     function texteEmetteurJournal(e) {
       if (!e) return '';
       const ref = e.onglet ? `${e.onglet} n° ${e.numero}` : '';
@@ -804,6 +815,7 @@ const scanEcran = (() => {
             ...(l.recherche ? [`recherche : ${l.recherche}`] : []),
             ...(l.emetteur ? [`émetteur : ${texteEmetteurJournal(l.emetteur)}`] : []),
             ...(l.emetteur && l.emetteur.diagnostic ? [texteDiagnostic(l.emetteur.diagnostic)] : []),
+            ...(l.date_diagnostic ? [texteDiagnosticDate(l.date_diagnostic)] : []),
             ...(l.personne ? [l.personne.etat === 'choisie' ? `personne : choisie par Max (n° ${l.personne.rang} parmi ${l.personne.cases})`
               : `personne : aucune de celles proposées (choix de Max parmi ${l.personne.cases})`] : []),
             ...(l.personne_incertaine ? ['personne incertaine (prénom non lu)'] : []),

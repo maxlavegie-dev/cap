@@ -211,7 +211,10 @@ const motsCourts = (() => {
     const tries = [...meilleurs.values()].sort((a, b) => b.score - a.score);
     if (!tries.length) return vide;
     // Date complète, sinon mois et année seuls ; aucune : « DATE-A-PRECISER » (jamais inventée).
-    const date = nommageScan.dateDuTexte(texte) || nommageScan.moisDuTexte(texte);
+    const lectureDate = nommageScan.analyserDates(texte);
+    const date = lectureDate.date || lectureDate.mois;
+    vide.date_diagnostic = lectureDate.diagnostic;
+    vide.date_corrigee = Boolean(lectureDate.date && lectureDate.corrigee);
     // Pour le Journal Numérisation : les 3 meilleurs candidats et leur score (jamais le texte lu).
     vide.meilleurs = tries.slice(0, 3).map(c => ({ nom: nomSelonRegle(c.regle, date, emetteurNom), mot_cle: c.mot_cle, score: arrondi(c.score) }));
     const proches = tries.filter(c => c.score >= tries[0].score * PROCHE);
