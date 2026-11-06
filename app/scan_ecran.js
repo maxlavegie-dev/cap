@@ -61,6 +61,8 @@ const scanEcran = (() => {
     const propositionDiagnostic = parId('scanner-proposition-diagnostic');
     const propositionChoix = parId('scanner-proposition-choix');
     const boutonDateScan = parId('scanner-proposition-date-scan');
+    const fenetreEmetteur = parId('scanner-choix-emetteur');
+    const casesEmetteur = parId('scanner-choix-emetteur-cases');
     const boutonsAvecNom = ['scanner-proposition-oui', 'scanner-proposition-modifier', 'scanner-proposition-non'].map(parId);
     const boutonsSansNom = ['scanner-proposition-daccord', 'scanner-proposition-ecrire'].map(parId);
     // Texte lu sur le téléphone (jamais envoyé), nombres de caractères et de pages, proposition, réponse.
@@ -429,7 +431,7 @@ const scanEcran = (() => {
         diagnostics: [...avant.diagnostics, ...diagnostics],
         mot_cle: '', nom_propose: '', raison: '', erreur_tableur: '', reponse: '', repondu: false,
         score: 0, choix: [], choix_retenu: 0, recherche: '', personne_incertaine: false, meilleurs: [],
-        date_source: '', date_scan: ''
+        date_source: '', date_scan: '', emetteur: null
       };
       dire(`${prises} page${prises > 1 ? 's' : ''} reçue${prises > 1 ? 's' : ''} du scanner de Google. `
         + `Texte lu sur ${lectureGoogle.pages_lues} page${lectureGoogle.pages_lues > 1 ? 's' : ''} sur ${lectureGoogle.pages_total}.`
@@ -482,7 +484,10 @@ const scanEcran = (() => {
             }
           }
           if (mots) lecture.recherche = 'par score';
-          p = mots ? motsCourts.proposer(lecture.texte, lignes, mots) : nommageScan.proposer(lecture.texte, lignes);
+          // Émetteur d'abord (Dictionnaire général), ensuite le type et le nom.
+          const retenu = mots ? await chercherEmetteur(lecture, mots) : null;
+          p = mots ? motsCourts.proposer(lecture.texte, lignes, mots, { emetteur: retenu ? retenu.complet : '' })
+            : nommageScan.proposer(lecture.texte, lignes);
         } catch (erreur) {
           p = { nom: '', mot_cle: '', raison: 'tableur', date: '' };
           lecture.erreur_tableur = String(erreur.message || 'raison inconnue').slice(0, 160);
@@ -558,6 +563,92 @@ const scanEcran = (() => {
       [...propositionChoix.children].forEach((bouton, i) => bouton.setAttribute('aria-pressed', String(i === index)));
       propositionNom.textContent = `${choix.nom}.pdf`;
       propositionStatut.textContent = 'Titre choisi. Touche Oui pour le garder, Modifier pour le changer, ou Non.';
+    }
+
+    // ----- Émetteur (06/11/2026) -----
+    // Retourne l'émetteur retenu ({ complet, onglet, numero }) ou null. Hésitation : grande fenêtre de
+    // choix (une case par entrée, sur une ligne, + « Aucun de ceux-là ») AVANT tout nom proposé.
+    async function chercherEmetteur(lecture, mots) {
+      lecture.emetteur = { etat: 'pas_choisi' };
+      if (!sourceClassement || !sourceClassement.lireDictionnaire || typeof emetteur === 'undefined') return null;
+      let entrees = null;
+      try {
+        entrees = await sourceClassement.lireDictionnaire();
+      } catch (erreur) {
+        lecture.emetteur = { etat: 'non_lu', raison: String(erreur.message || 'raison inconnue').slice(0, 120) };
+        return null;
+      }
+      if (!entrees) return null;
+      const r = emetteur.reconnaitre(lecture.texte, entrees, { noms: (mots.personnes || []).map(p => p.affichage || p.nom) });
+      if (r.etat === 'aucun') { lecture.emetteur = { etat: 'aucun' }; return null; }
+      if (r.etat === 'certain') {
+        const c = r.candidats[0];
+        lecture.emetteur = { etat: 'reconnu', onglet: c.onglet, numero: c.numero, complet: c.complet };
+        return c;
+      }
+      const choix = await demanderEmetteur(r.candidats);
+      lecture.emetteur = choix
+        ? { etat: 'choisi', onglet: choix.onglet, numero: choix.numero, complet: choix.complet, cases: r.candidats.length }
+        : { etat: 'aucun_de_ceux_la', cases: r.candidats.length };
+      return choix;
+    }
+
+    // Même taille pour toutes les cases : la plus grande qui tienne en largeur sur une ligne.
+    function ajusterUneLigne(boutons, tailleMax = 72, tailleMin = 22) {
+      let taille = tailleMax;
+      const deborde = () => boutons.some(b => b.scrollWidth > b.clientWidth + 1);
+      const appliquerTaille = () => boutons.forEach(b => { b.style.fontSize = `${taille}px`; });
+      appliquerTaille();
+      while (taille > tailleMin && deborde()) { taille -= 2; appliquerTaille(); }
+      return !deborde();
+    }
+
+    function demanderEmetteur(candidats) {
+      return new Promise(resoudre => {
+        let fini = false;
+        const terminer = choix => {
+          if (fini) return;
+          fini = true;
+          if (fenetreEmetteur.open) fenetreEmetteur.close();
+          casesEmetteur.replaceChildren();
+          resoudre(choix);
+        };
+        const boutons = candidats.map(c => {
+          const bouton = document.createElement('button');
+          bouton.type = 'button';
+          bouton.className = 'choix-grand-affichage';
+          bouton.textContent = c.complet;
+          bouton.addEventListener('click', () => terminer(c));
+          return bouton;
+        });
+        const aucun = document.createElement('button');
+        aucun.type = 'button';
+        aucun.className = 'choix-grand-affichage';
+        aucun.textContent = 'Aucun de ceux-là';
+        aucun.addEventListener('click', () => terminer(null));
+        casesEmetteur.replaceChildren(...boutons, aucun);
+        fenetreEmetteur.addEventListener('cancel', () => terminer(null), { once: true });
+        if (!fenetreEmetteur.open) fenetreEmetteur.showModal();
+        // Trop long même en petit : forme courte (déjà distincte), toujours sur une ligne.
+        if (!ajusterUneLigne([...boutons, aucun])) {
+          boutons.forEach((b, i) => { b.textContent = candidats[i].court; });
+          ajusterUneLigne([...boutons, aucun]);
+        }
+        boutons[0]?.focus({ preventScroll: true });
+      });
+    }
+
+    function texteEmetteurJournal(e) {
+      if (!e) return '';
+      const ref = e.onglet ? `${e.onglet} n° ${e.numero}` : '';
+      switch (e.etat) {
+        case 'reconnu': return `${ref} (reconnu)`;
+        case 'choisi': return `${ref} (choisi par Max parmi ${e.cases})`;
+        case 'aucun_de_ceux_la': return `aucun de ceux-là (choix de Max parmi ${e.cases})`;
+        case 'aucun': return 'aucun trouvé';
+        case 'non_lu': return `Dictionnaire non lu (${e.raison})`;
+        default: return 'Dictionnaire pas choisi';
+      }
     }
 
     function dateDuJour() {
@@ -673,6 +764,7 @@ const scanEcran = (() => {
             ...(l.echecs.length ? [`lecture échouée : page${l.echecs.length > 1 ? 's' : ''} ${l.echecs.join(', ')}`] : []),
             ...(l.diagnostics.length ? [`diagnostic : ${l.diagnostics.join(' | ')}`] : []),
             ...(l.recherche ? [`recherche : ${l.recherche}`] : []),
+            ...(l.emetteur ? [`émetteur : ${texteEmetteurJournal(l.emetteur)}`] : []),
             ...(l.personne_incertaine ? ['personne incertaine (prénom non lu)'] : []),
             // 06/11/2026 : les 3 meilleurs candidats et leur score, pour comprendre un mauvais choix.
             ...(l.meilleurs.length ? [`meilleurs candidats : ${l.meilleurs.map(c => `${c.nom}.pdf (${c.mot_cle}, score ${c.score})`).join(' / ')}`] : []),
@@ -690,7 +782,8 @@ const scanEcran = (() => {
     // Description du fichier dans le Drive (règle de nommage, 06/11/2026) : jamais le texte lu.
     function detailsDescription(l) {
       return [`Date du scan : ${dateDuJour()}`, `Date du nom : ${l.date_source || 'à préciser'}`,
-        'Émetteur : non reconnu',
+        `Émetteur : ${l.emetteur && l.emetteur.complet ? l.emetteur.complet
+          : l.emetteur && l.emetteur.etat === 'aucun_de_ceux_la' ? 'aucun de ceux-là (choix de Max)' : 'non reconnu'}`,
         ...(l.mot_cle ? [`Mot-clé : ${l.mot_cle}${l.score ? ` (score ${l.score})` : ''}`] : [])];
     }
 

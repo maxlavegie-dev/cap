@@ -424,6 +424,12 @@
   <dialog id="grand-affichage" aria-label="Ce que Cap a compris">
     <p id="grand-affichage-texte"></p>
   </dialog>
+  <dialog id="scanner-choix-emetteur" aria-label="Qui a envoyé ce document ?">
+    <div id="scanner-choix-emetteur-corps">
+      <p class="choix-grand-affichage-titre">Qui a envoyé ce document ? Touche la bonne réponse :</p>
+      <div id="scanner-choix-emetteur-cases"></div>
+    </div>
+  </dialog>
   <dialog id="commande-annuaire" aria-label="Commande vocale : annuaire">
     <div id="commande-annuaire-corps"></div>
   </dialog>
@@ -446,6 +452,7 @@
     <button id="choisir-architecture" type="button">Choisir le Doc d’architecture</button>
     <button id="choisir-tableur-classement" type="button">Choisir le tableur de classement</button>
     <button id="choisir-mots-courts" type="button">Choisir le tableur des mots-clés courts</button>
+    <button id="choisir-dictionnaire" type="button">Choisir le Dictionnaire général</button>
     <button id="verifier-classement" type="button" disabled>Vérifier la lecture</button>
     <p id="resume-classement" role="status" hidden></p>
     <p id="diagnostic-picker" role="status" hidden></p>
@@ -702,6 +709,7 @@
   <script src="scan_nommage.js"></script>
   <script src="nommage_scan.js"></script>
   <script src="mots_courts.js"></script>
+  <script src="emetteur.js"></script>
   <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>

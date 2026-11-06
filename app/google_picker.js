@@ -15,6 +15,8 @@ const googlePicker = (() => {
     tableur_classement: 'cap_fichier_tableur_classement_v1',
     // Recherche par score (06/11/2026) : tableur des mots-clés courts, choisi par Max.
     mots_cles_courts: 'cap_fichier_mots_cles_courts_v1',
+    // Émetteur des scans (06/11/2026) : Dictionnaire général, choisi par Max.
+    dictionnaire: 'cap_fichier_dictionnaire_v1',
     // Journaux de chantier (05/11/2026) : créés par Cap (pas choisis), retenus de la même façon.
     dossier_journaux: 'cap_dossier_journaux_v1',
     journal_numerisation: 'cap_journal_numerisation_v1',
@@ -134,7 +136,8 @@ const googlePicker = (() => {
   const fichiersAttendus = Object.freeze({
     architecture: { type: typeDoc, titre: 'Choisis le Doc d’architecture des archives', libelle: 'un Google Doc' },
     tableur_classement: { type: typeTableur, titre: 'Choisis le tableur de classement', libelle: 'un tableur Google Sheets' },
-    mots_cles_courts: { type: typeTableur, titre: 'Choisis le tableur « Cap – Mots-clés courts – à valider »', libelle: 'un tableur Google Sheets' }
+    mots_cles_courts: { type: typeTableur, titre: 'Choisis le tableur « Cap – Mots-clés courts – à valider »', libelle: 'un tableur Google Sheets' },
+    dictionnaire: { type: typeTableur, titre: 'Choisis le tableur « Dictionnaire général »', libelle: 'un tableur Google Sheets' }
   });
 
   // Numéro du projet Cap (05/11/2026) : avec le droit drive.file, Google ne rattache un fichier
@@ -205,6 +208,7 @@ const googlePicker = (() => {
     architecture: 'cap_fichier_architecture',
     tableur_classement: 'cap_fichier_tableur_classement',
     mots_cles_courts: 'cap_fichier_mots_cles_courts',
+    dictionnaire: 'cap_fichier_dictionnaire',
     dossier_journaux: 'cap_dossier_journaux',
     journal_numerisation: 'cap_journal_numerisation',
     journal_general: 'cap_journal_general'
@@ -214,6 +218,7 @@ const googlePicker = (() => {
     architecture: 'Doc d’architecture',
     tableur_classement: 'Tableur de classement',
     mots_cles_courts: 'Tableur des mots-clés courts',
+    dictionnaire: 'Dictionnaire général',
     dossier_journaux: 'Journaux',
     journal_numerisation: 'Journal Numérisation',
     journal_general: 'Journal Général'

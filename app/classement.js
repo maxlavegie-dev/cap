@@ -226,6 +226,46 @@ const classement = (() => {
     return motsCourts.analyser(onglets);
   }
 
+  // 06/11/2026 : Dictionnaire général (choisi une fois par Max), pour reconnaître l'émetteur.
+  // Seules les colonnes autorisées par emetteur.js sont DEMANDÉES au Drive (jamais les notes ni les
+  // dates de naissance). Gardé EN MÉMOIRE seulement, tant que l'application est ouverte : rien n'est
+  // écrit sur le téléphone (ni cache, ni stockage local, ni journal).
+  let memoireDictionnaire = null;
+  function lettreColonne(index) {
+    let n = index + 1;
+    let lettres = '';
+    while (n) { const r = (n - 1) % 26; lettres = String.fromCharCode(65 + r) + lettres; n = Math.floor((n - 1) / 26); }
+    return lettres;
+  }
+  async function lireDictionnaire() {
+    const fichier = await fichierChoisi('dictionnaire');
+    if (!fichier) return null;
+    if (memoireDictionnaire && memoireDictionnaire.id === fichier.id) return memoireDictionnaire.entrees;
+    const base = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(fichier.id)}/values:batchGet`;
+    const plage = (onglet, morceau) => `ranges=${encodeURIComponent(`'${onglet.replace(/'/g, "''")}'!${morceau}`)}`;
+    const entetes = await lireJson(`${base}?${emetteur.ONGLETS.map(o => plage(o, '1:1')).join('&')}`);
+    const onglets = {};
+    const demandes = [];
+    emetteur.ONGLETS.forEach((onglet, i) => {
+      const ligne = entetes.valueRanges?.[i]?.values?.[0] || [];
+      const colonnes = emetteur.colonnesALire(onglet, ligne);
+      onglets[onglet] = { ligne, colonnes };
+      for (const c of colonnes) demandes.push({ onglet, c, morceau: `${lettreColonne(c)}:${lettreColonne(c)}` });
+    });
+    const valeurs = demandes.length
+      ? await lireJson(`${base}?${demandes.map(d => plage(d.onglet, d.morceau)).join('&')}&majorDimension=COLUMNS`) : { valueRanges: [] };
+    const parOnglet = {};
+    demandes.forEach((d, i) => { (parOnglet[d.onglet] ||= []).push(valeurs.valueRanges?.[i]?.values?.[0] || []); });
+    const lignes = {};
+    for (const onglet of emetteur.ONGLETS) {
+      const colonnes = parOnglet[onglet] || [];
+      const hauteur = Math.max(0, ...colonnes.map(c => c.length));
+      lignes[onglet] = Array.from({ length: hauteur }, (_, r) => colonnes.map(c => c[r] ?? ''));
+    }
+    memoireDictionnaire = { id: fichier.id, entrees: emetteur.analyser(lignes) };
+    return memoireDictionnaire.entrees;
+  }
+
   function refus(erreur) {
     if (erreur && erreur.statut) {
       return `refusé (erreur ${erreur.statut}${erreur.raison ? `, raison : ${erreur.raison}` : ''}).`;
@@ -233,5 +273,5 @@ const classement = (() => {
     return `pas lu (${erreur && erreur.message ? erreur.message : 'erreur inconnue'}).`;
   }
 
-  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire, lireTableurChoisi, lireMotsCourts };
+  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire, lireTableurChoisi, lireMotsCourts, lireDictionnaire };
 })();

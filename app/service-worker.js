@@ -70,6 +70,7 @@ const FICHIERS_PRECACHE = [
   "scan_nommage.js",
   "nommage_scan.js",
   "mots_courts.js",
+  "emetteur.js",
   "scan_ecran.js",
   "tuiles.js",
   "mode_trier.js",

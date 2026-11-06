@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["reglages_google.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "scan_ecran.js"]
+SOURCES = ["reglages_google.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "scan_ecran.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1354,6 +1354,144 @@ TESTS_JS = r"""
     await pause(1500);
     egal((await e.file.lister())[0].nom_valide, '2026-10-14 Suivi - Théo-Exemplaire.pdf', 'nom corrigé retenu');
   });
+  // ---------- 06/11/2026 : émetteur (Dictionnaire général FICTIF, trois onglets) ----------
+  const dicoFictif = {
+    'Ancienne liste': [
+      ['First Name', 'Middle Name', 'Last Name', 'Name Prefix', 'Nickname', 'Organization Name', 'Organization Title', 'Notes', 'Birthday',
+        'E-mail 1 - Value', 'Phone 1 - Value', 'Address 1 - City', 'Address 1 - Postal Code'],
+      ['Jean', '', 'Fictif', 'Dr', '', '', 'Médecin FICTIF', 'note FICTIVE 06 11 11 11 11', '1970-01-01', 'jean.fictif@exemple.test', '04 00 00 00 01', 'Villefictive', '99000'],
+      ['Jeanne', '', 'Fictif', '', '', '', '', '', '', '', '04 00 00 00 02', '', ''],
+      ['Banque', '', '', '', '', '', '', '', '', '', '04 00 00 00 03', '', ''],
+      ['Théo', '', 'Exemplaire', '', '', '', '', '', '', '', '04 00 00 00 09', '', ''],
+      ['', '', '', '', '', 'Cabinet Fictif des Lilas', '', '', '', '', '04 00 00 00 05', '', ''],
+      ['Marc', '', 'Dupontel', '', '', '', '', '', '', '', '04 00 00 00 06', '', ''],
+      ['Luc', '', 'Dupontel', '', '', '', '', '', '', '', '04 00 00 00 06', '', '']
+    ],
+    'Tri contacts': [
+      ['Nom dans les contacts', 'Organisation / étiquette', 'Téléphone', 'Mail', 'Note d’origine', 'Catégorie', 'Décision', 'Nom propre pour le dictionnaire', 'Rôle / lien avec Max', 'Remarques'],
+      ['Dr Fictif Jean', '', '04 00 00 00 01', '', 'note FICTIVE', 'Santé FICTIVE', '', 'Jean Fictif', 'Médecin', '']
+    ],
+    Dictionnaire: [
+      ['Prénom', 'Nom', 'Type', 'Rôle', 'Lien avec Max', 'Appellations et surnoms', 'Coordonnées', 'Téléphone', 'Mail', 'Domaine', 'Note pour IA',
+        'Date de naissance / anniversaire', 'Adresse postale', 'Deuxième téléphone', 'Deuxième mail', 'Fonction / titre', 'Site web', 'Note'],
+      ['Jean', 'Fictif', 'Personne', 'Médecin FICTIF', 'Médecin de Théo', '', '', '04 00 00 00 01', '', 'Santé', 'NE PAS LIRE 04 77 77 77 77',
+        '01/01/1970', '1 rue FICTIVE 99000 Villefictive', '', '', 'Docteur', '', 'note FICTIVE 04 88 88 88 88'],
+      ['Lina', 'Exemplaire', 'Personne', 'Sœur FICTIVE', '', '', '', '04 00 00 00 08', '', 'Famille', '', '', '', '', '', '', '', '']
+    ]
+  };
+  const personnesExclues = { noms: ['Théo Exemplaire', 'Lina Exemplaire'] };
+
+  await test('émetteur : colonnes de notes et dates de naissance jamais lues', async () => {
+    egal(emetteur.colonnesALire('Ancienne liste', dicoFictif['Ancienne liste'][0]), [0, 1, 2, 3, 4, 5, 6, 9, 10, 11, 12], 'ancienne liste');
+    egal(emetteur.colonnesALire('Tri contacts', dicoFictif['Tri contacts'][0]), [0, 1, 2, 3, 5, 7, 8], 'tri contacts');
+    egal(emetteur.colonnesALire('Dictionnaire', dicoFictif.Dictionnaire[0]), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15], 'dictionnaire');
+    const entrees = emetteur.analyser(dicoFictif);
+    // Un numéro écrit seulement dans une colonne de notes ne fait reconnaître personne.
+    for (const texte of ['Rappeler le 06 11 11 11 11 FICTIF', 'Tél. 04 77 77 77 77 FICTIF', 'Tél. 04 88 88 88 88 FICTIF']) {
+      egal(emetteur.reconnaitre(texte, entrees, personnesExclues).etat, 'aucun', `numéro de note : ${texte}`);
+    }
+  });
+
+  await test('émetteur : nom exact et seul → certain (Dictionnaire prioritaire) ; souple, homonymes, téléphone partagé ou seul → cases', async () => {
+    const entrees = emetteur.analyser(dicoFictif);
+    let r = emetteur.reconnaitre('Courrier FICTIF du Dr Jean Fictif concernant Théo Exemplaire', entrees, personnesExclues);
+    egal([r.etat, r.candidats.length, r.candidats[0].onglet, r.candidats[0].numero, r.candidats[0].complet], ['certain', 1, 'Dictionnaire', 2, 'Jean Fictif'], 'nom exact');
+    attendre(Object.keys(r.candidats[0]).every(k => ['onglet', 'numero', 'complet', 'court', 'score', 'exact'].includes(k)), 'indice rendu avec le candidat');
+    r = emetteur.reconnaitre('Courrier FICTIF du Dr Jean Fictiff', entrees, personnesExclues);
+    egal([r.etat, r.candidats[0].complet], ['choix', 'Jean Fictif'], 'graphie souple : jamais de choix automatique');
+    r = emetteur.reconnaitre('Avis FICTIF du Docteur Fictif', entrees, personnesExclues);
+    egal([r.etat, r.candidats.map(c => c.complet).sort()], ['choix', ['Jean Fictif', 'Jeanne Fictif']], 'titre + nom de famille partagé');
+    r = emetteur.reconnaitre('Appeler le 04 00 00 00 06 FICTIF', entrees, personnesExclues);
+    egal([r.etat, r.candidats.map(c => c.complet).sort()], ['choix', ['Luc Dupontel', 'Marc Dupontel']], 'téléphone partagé');
+    r = emetteur.reconnaitre('Contact FICTIF : 04.00.00.00.05', entrees, personnesExclues);
+    egal([r.etat, r.candidats.map(c => c.complet)], ['choix', ['Cabinet Fictif des Lilas']], 'un téléphone seul ne décide jamais');
+    r = emetteur.reconnaitre('Écrire à jean.fictif@exemple.test FICTIF', entrees, personnesExclues);
+    egal([r.etat, r.candidats[0].complet], ['choix', 'Jean Fictif'], 'un mail seul ne décide jamais');
+  });
+
+  await test('émetteur : famille et Max jamais reconnus (nom complet, coordonnées), mots génériques et indices faibles seuls → rien', async () => {
+    const entrees = emetteur.analyser(dicoFictif);
+    for (const texte of ['Courrier FICTIF de Lina Exemplaire', 'Tél. 04 00 00 00 08 FICTIF', 'Théo Exemplaire, tél. 04 00 00 00 09 FICTIF',
+      'Votre Banque FICTIVE', 'Villefictive 99000, rue FICTIVE', 'Docteur Banque FICTIF']) {
+      egal(emetteur.reconnaitre(texte, entrees, personnesExclues).etat, 'aucun', texte);
+    }
+    // Les indices faibles départagent : même nom de famille, la ville de l'entrée la fait passer devant.
+    const r = emetteur.reconnaitre('Avis FICTIF du Docteur Fictif, Villefictive', entrees, personnesExclues);
+    egal(r.candidats[0].complet, 'Jean Fictif', 'indice faible pour départager');
+  });
+
+  await test('émetteur : forme courte pour les cases, allongée si deux formes se ressemblent', async () => {
+    egal(emetteur.formeCourte('Jean-Baptiste Fictif-Exemplaire'), 'J. Fictif-Exemplaire', 'personne au nom long');
+    egal(emetteur.formeCourte('Centre FICTIF de Santé des Lilas Fleuris'), 'CFSLF', 'organisme long');
+    egal(emetteur.formeCourte('Jean Fictif'), 'Jean Fictif', 'nom court gardé');
+    const entrees = emetteur.analyser({ Dictionnaire: [['Prénom', 'Nom', 'Type'],
+      ['Jean-Baptiste', 'Fictif-Exemplaire', 'Personne'], ['Jean-Bernard', 'Fictif-Exemplaire', 'Personne']] });
+    const r = emetteur.reconnaitre('Avis FICTIF du Dr Fictif-Exemplaire', entrees, {});
+    egal(r.candidats.map(c => c.court).sort(), ['Jean-Baptiste Fictif-Exemplaire', 'Jean-Bernard Fictif-Exemplaire'], 'formes courtes allongées');
+  });
+
+  function monterEmetteur() {
+    const g = monterScore();
+    g.options.classement.lireDictionnaire = async () => emetteur.analyser(dicoFictif);
+    return g;
+  }
+  function courrierAvecEmetteur(signature) {
+    return courrierFictif('M. Théodore EXEMPLAIRE').replace('Dr FICTIF', signature);
+  }
+
+  await test('écran Google : émetteur certain dans le nom, journal (onglet et numéro seulement) et description', async () => {
+    const g = monterEmetteur();
+    const avant = Object.keys(localStorage).sort();
+    const e = await scanGoogle(g, [{ texte: courrierAvecEmetteur('Dr Jean Fictif, tél. 04 00 00 00 01') }]);
+    await terminerPuisVoir(e);
+    attendre(!e.id('scanner-choix-emetteur').open, 'fenêtre de choix ouverte alors que l’émetteur est certain');
+    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Jean Fictif - Théo Exemplaire.pdf', 'émetteur dans le nom');
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(1500);
+    const fiche = (await e.file.lister())[0];
+    attendre(fiche.details.includes('Émetteur : Jean Fictif'), `description : ${JSON.stringify(fiche.details)}`);
+    const l = g.lignes[0];
+    attendre(l.details.includes('émetteur : Dictionnaire n° 2 (reconnu)'), `journal : ${l.details}`);
+    attendre(!l.details.includes('04 00 00 00 01') && !fiche.details.join(' ').includes('04 00'), 'indice (téléphone) écrit au journal ou dans la description');
+    egal(Object.keys(localStorage).sort(), avant, 'quelque chose du Dictionnaire écrit dans le stockage du téléphone');
+  });
+
+  await test('écran Google : hésitation → grande fenêtre de choix AVANT le nom (une ligne par case), puis « Aucun de ceux-là »', async () => {
+    let g = monterEmetteur();
+    let e = await scanGoogle(g, [{ texte: courrierAvecEmetteur('Docteur Fictif') }]);
+    cliquer(e.id('scanner-terminer'));
+    await pause(300);
+    const fenetre = e.id('scanner-choix-emetteur');
+    attendre(fenetre.open, 'fenêtre de choix absente');
+    attendre(e.id('scanner-proposition').hidden, 'nom proposé avant le choix de l’émetteur');
+    const cases = [...e.id('scanner-choix-emetteur-cases').querySelectorAll('button')];
+    egal(cases.map(b => b.textContent).sort(), ['Aucun de ceux-là', 'Jean Fictif', 'Jeanne Fictif'], 'cases');
+    for (const b of cases) {
+      attendre(b.scrollWidth <= b.clientWidth + 1, `texte coupé ou trop large : ${b.textContent}`);
+      attendre(b.getBoundingClientRect().height < parseFloat(b.style.fontSize) * 2.2 + 40, `texte sur deux lignes : ${b.textContent}`);
+    }
+    attendre(!cases.some(b => /\d{2} \d{2}|@|Villefictive/.test(b.textContent)), 'indice affiché dans une case');
+    cliquer(cases.find(b => b.textContent === 'Jeanne Fictif'));
+    await pause(300);
+    attendre(!fenetre.open, 'fenêtre restée ouverte');
+    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Jeanne Fictif - Théo Exemplaire.pdf', 'nom après le choix');
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(1500);
+    attendre(g.lignes[0].details.includes('émetteur : Ancienne liste n° 3 (choisi par Max parmi 2)'), `journal : ${g.lignes[0].details}`);
+    // « Aucun de ceux-là » : nom sans émetteur, la description le note.
+    g = monterEmetteur();
+    e = await scanGoogle(g, [{ texte: courrierAvecEmetteur('Docteur Fictif') }]);
+    cliquer(e.id('scanner-terminer'));
+    await pause(300);
+    cliquer([...e.id('scanner-choix-emetteur-cases').querySelectorAll('button')].find(b => b.textContent === 'Aucun de ceux-là'));
+    await pause(300);
+    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Théo Exemplaire.pdf', 'nom sans émetteur');
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(1500);
+    attendre((await e.file.lister())[0].details.includes('Émetteur : aucun de ceux-là (choix de Max)'), 'description sans la mention');
+    attendre(g.lignes[0].details.includes('émetteur : aucun de ceux-là (choix de Max parmi 2)'), `journal : ${g.lignes[0].details}`);
+  });
+
   await test('écran Google : lecture échouée page par page, aucun texte lu, tableur non lu, annulation', async () => {
     let g = monterGoogle();
     let e = await scanGoogle(g, [{ texte: 'MUTUELLE FICTIVE' }, { lu: false, texte: '' }]);

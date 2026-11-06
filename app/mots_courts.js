@@ -170,7 +170,9 @@ const motsCourts = (() => {
 
   // { nom, mot_cle, raison : 'trouve' | 'choix' | 'trop_proches' | 'aucun' | 'sans_texte', date, score,
   //   choix : [{ nom, mot_cle, score }], personne_incertaine, meilleurs : 3 meilleurs [{ nom, mot_cle, score }] }
-  function proposer(texte, lignes, mots) {
+  // options.emetteur : forme complète de l'émetteur (déjà certain, ou choisi par Max), ou ''.
+  function proposer(texte, lignes, mots, options = {}) {
+    const emetteurNom = String(options.emetteur || '').trim();
     const vide = { nom: '', mot_cle: '', raison: 'aucun', date: '', score: 0, choix: [], personne_incertaine: false, meilleurs: [] };
     const trouve = chercheur(texte);
     if (trouve.vide) return { ...vide, raison: 'sans_texte' };
@@ -211,9 +213,9 @@ const motsCourts = (() => {
     // Date complète, sinon mois et année seuls ; aucune : « DATE-A-PRECISER » (jamais inventée).
     const date = nommageScan.dateDuTexte(texte) || nommageScan.moisDuTexte(texte);
     // Pour le Journal Numérisation : les 3 meilleurs candidats et leur score (jamais le texte lu).
-    vide.meilleurs = tries.slice(0, 3).map(c => ({ nom: nomSelonRegle(c.regle, date), mot_cle: c.mot_cle, score: arrondi(c.score) }));
+    vide.meilleurs = tries.slice(0, 3).map(c => ({ nom: nomSelonRegle(c.regle, date, emetteurNom), mot_cle: c.mot_cle, score: arrondi(c.score) }));
     const proches = tries.filter(c => c.score >= tries[0].score * PROCHE);
-    const choix = proches.map(c => ({ nom: nomSelonRegle(c.regle, date), mot_cle: c.mot_cle, score: arrondi(c.score) }));
+    const choix = proches.map(c => ({ nom: nomSelonRegle(c.regle, date, emetteurNom), mot_cle: c.mot_cle, score: arrondi(c.score) }));
     const incertaine = proches.some(c => c.incertaine);
     if (proches.length === 1) {
       return { ...vide, nom: choix[0].nom, mot_cle: choix[0].mot_cle, raison: 'trouve', date, score: choix[0].score, personne_incertaine: incertaine };

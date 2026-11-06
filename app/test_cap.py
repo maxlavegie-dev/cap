@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1837,6 +1837,45 @@ TESTS_JS = r"""
     attendreEgal(deconnexions, 1, 'déconnexion attendue pour un 403 sans raison');
     // L'ancien service Google Docs n'est plus une adresse permise.
     await attendreRejet(() => c.connexion().appeler('https://docs.googleapis.com/v1/documents/doc-fictif'), 'Adresse Google non autorisée');
+  });
+
+  await testAsync('Émetteur : Dictionnaire lu dans ses trois onglets, colonnes autorisées seulement (jamais notes ni naissance), gardé en mémoire seulement', async c => {
+    const piqueur = { dossierChoisi: role => (role === 'dictionnaire' ? { id: 'dico-fictif' } : null), retrouverDepuisDrive: async () => null };
+    const entetes = {
+      'Ancienne liste': ['First Name', 'Last Name', 'Notes', 'Birthday', 'Phone 1 - Value'],
+      'Tri contacts': ['Nom dans les contacts', 'Note d’origine', 'Téléphone', 'Remarques', 'Décision'],
+      Dictionnaire: ['Prénom', 'Nom', 'Type', 'Note pour IA', 'Téléphone', 'Date de naissance / anniversaire', 'Domaine', 'Note']
+    };
+    const colonnes = {
+      'Ancienne liste': { A: ['First Name', 'Jean'], B: ['Last Name', 'Fictif'], E: ['Phone 1 - Value', '04 00 00 00 01'] },
+      'Tri contacts': { A: ['Nom dans les contacts', 'Cabinet FICTIF des Lilas'], C: ['Téléphone', '04 00 00 00 05'] },
+      Dictionnaire: { A: ['Prénom', 'Jean'], B: ['Nom', 'Fictif'], C: ['Type', 'Personne'], E: ['Téléphone', '04 00 00 00 01'], G: ['Domaine', 'Santé FICTIVE'] }
+    };
+    const demandees = [];
+    c.repondre = async r => {
+      if (r.url.hostname !== 'sheets.googleapis.com' || r.url.pathname !== '/v4/spreadsheets/dico-fictif/values:batchGet') throw new Error(`Requête inattendue : ${r.url}`);
+      const plages = r.url.searchParams.getAll('ranges');
+      demandees.push(...plages);
+      if (plages.every(pl => pl.endsWith('!1:1'))) return reponseGoogle({ valueRanges: plages.map(pl => ({ values: [entetes[pl.split("'")[1]]] })) });
+      attendreEgal(r.url.searchParams.get('majorDimension'), 'COLUMNS', 'colonnes demandées une par une');
+      return reponseGoogle({ valueRanges: plages.map(pl => {
+        const [, onglet, morceau] = /^'(.+)'!([A-Z]+):[A-Z]+$/.exec(pl);
+        return { values: [colonnes[onglet][morceau]] };
+      }) });
+    };
+    let ecrit = false;
+    const espion = { getItem: () => null, setItem: () => { ecrit = true; }, removeItem: () => { ecrit = true; } };
+    const classementIsole = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: piqueur, emetteur, localStorage: espion, sessionStorage: espion, indexedDB: undefined });
+    const entrees = await classementIsole.lireDictionnaire();
+    const colonnesLues = demandees.filter(pl => !pl.endsWith('!1:1'));
+    attendreEgal(colonnesLues, ["'Ancienne liste'!A:A", "'Ancienne liste'!B:B", "'Ancienne liste'!E:E", "'Tri contacts'!A:A", "'Tri contacts'!C:C",
+      "'Dictionnaire'!A:A", "'Dictionnaire'!B:B", "'Dictionnaire'!C:C", "'Dictionnaire'!E:E", "'Dictionnaire'!G:G"], 'seules les colonnes autorisées sont demandées');
+    attendreEgal(entrees.map(e => [e.onglet, e.numero]), [['Ancienne liste', 2], ['Tri contacts', 2], ['Dictionnaire', 2]], 'une entrée par ligne, onglet et numéro');
+    attendre(c.requetes.every(r => r.methode === 'GET'), 'écriture dans le Dictionnaire');
+    const nombre = c.requetes.length;
+    attendre((await classementIsole.lireDictionnaire()) === entrees, 'deuxième scan : pas gardé en mémoire');
+    attendreEgal(c.requetes.length, nombre, 'Dictionnaire relu alors qu’il est en mémoire');
+    attendre(!ecrit, 'quelque chose a été écrit sur le téléphone');
   });
 
   await testAsync('Classement étape 1 : Doc et tableur choisis chacun à part, bon type vérifié, rien gardé sinon', async c => {
