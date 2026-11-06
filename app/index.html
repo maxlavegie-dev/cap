@@ -22,7 +22,6 @@
     <div id="surface-eau"></div>
     <div id="boutons-eau">
       <button id="bouton-revenir-vagues" type="button">Revenir aux vagues</button>
-      <button id="bouton-entrer-cap" type="button">Entrer dans Cap</button>
     </div>
   </div>
   <div class="ecran">
@@ -81,6 +80,13 @@
         <p id="texte-cerveau"></p>
         <button id="ouvrir-reglages-ia" type="button" aria-haspopup="dialog" aria-controls="reglages-ia">Réglages du cerveau</button>
         <button id="ouvrir-reglages-phrases" type="button" aria-haspopup="dialog" aria-controls="reglages-phrases">Mes phrases</button>
+      </section>
+      <!-- Lot c21 : interrupteur de l'eau, gardé sur ce téléphone. Arrêt = plus d'eau nulle part. -->
+      <section id="zone-ambiance" aria-label="Ambiance" data-vues="tuiles tout">
+        <button id="interrupteur-eau" type="button" role="switch" aria-checked="true">
+          <span>Eau</span>
+          <span id="etat-interrupteur-eau">en marche</span>
+        </button>
       </section>
       <section id="rendez-vous" aria-labelledby="titre-rendez-vous" data-vues="tout rendez-vous" hidden>
         <h2 id="titre-rendez-vous">Prochains rendez-vous</h2>

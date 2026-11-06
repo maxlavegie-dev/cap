@@ -8,10 +8,10 @@
 // - l'écran d'eau s'affiche au DÉMARRAGE de Cap seulement (une marque dans sessionStorage, rien de
 //   personnel, évite de le remontrer quand la page se recharge pendant la même ouverture) ;
 // - un glissement net de bas en haut fait MONTER Cap « de sous le sable » (lot c20, environ 1 s, animé
-//   par le code, l'eau bouge encore) ; en mode 'video' il lance d'abord la vidéo du galet (sans son) ;
-//   « Entrer dans Cap » reste en secours ;
-// - REPLI : vidéo absente, illisible ou bloquée → l'eau seule reste et « Entrer dans Cap » apparaît
-//   tout de suite ; Cap ne plante jamais ;
+//   par le code, l'eau bouge encore) ; en mode 'video' il lance d'abord la vidéo du galet (sans son),
+//   puis un second glissement fait entrer ; plus de bouton « Entrer dans Cap » (lot c21, choix de Max) ;
+// - REPLI : vidéo absente, illisible ou bloquée → l'eau seule reste et le glissement fait entrer ;
+//   Cap ne plante jamais ;
 // - un seul réglage pour le fond : 'video', 'image' ou 'aucun' (REGLAGES ci-dessous) ;
 // - la couche d'eau (creerCouche) ne capte JAMAIS un toucher (pointer-events: none) et peut être
 //   posée ou retirée sur un autre écran sans toucher au reste (ambiance d'eau à venir, page par page) ;
@@ -25,6 +25,8 @@ const ecranEau = (() => {
     dureeSecoursMs: 7000 // si la vidéo ne finit pas d'elle-même, les boutons apparaissent quand même
   });
   const CLE_VUE = 'cap_eau_vue_v1';
+  // Lot c21 : interrupteur « Eau » (préférence gardée sur ce téléphone : 'non' = arrêt).
+  const CLE_ACTIVE = 'cap_eau_active_v1';
   // Couleurs de l'eau : tirées du fond de Cap (variable CSS --fond, réglage unique dans style.css) ;
   // à défaut, l'ancienne eau de l'essai de Zencoder.
   const COULEUR_PEU_PROFOND_SECOURS = [201, 227, 221];
@@ -233,7 +235,7 @@ const ecranEau = (() => {
       etatVideo = 'fin';
       boutonsVisibles(true);
     }
-    // Repli : la vidéo ne peut pas servir → l'eau seule, et « Entrer dans Cap » tout de suite.
+    // Repli : la vidéo ne peut pas servir → l'eau seule ; le glissement fait entrer.
     function panneVideo() {
       videoEnPanne = true;
       video.hidden = true;
@@ -349,7 +351,6 @@ const ecranEau = (() => {
     }
     surface.addEventListener('pointerup', fin);
     surface.addEventListener('pointercancel', e => { if (pointeur && e.pointerId === pointeur.id) pointeur = null; });
-    parSelecteur('#bouton-entrer-cap').addEventListener('click', entrerDansCap);
     parSelecteur('#bouton-revenir-vagues').addEventListener('click', revenirAuxVagues);
 
     return {
@@ -360,14 +361,37 @@ const ecranEau = (() => {
   }
 
   // Au démarrage de Cap : montré une seule fois par ouverture ; le petit bouton « Eau » y ramène.
+  // Interrupteur « Eau » sur arrêt : aucune eau nulle part (ni ouverture, ni accueil), aucune
+  // animation ; Cap démarre directement sur l'accueil, au fond pâle.
   function auDemarrage(doc, options = {}) {
     const racine = doc.getElementById('ecran-eau');
     if (!racine) return null;
+    const preferences = options.preferences || null;
+    let active = true;
+    try { active = !preferences || preferences.getItem(CLE_ACTIVE) !== 'non'; } catch (e) { active = true; }
     const fond = eauAccueil(doc, options);
-    const ecran = monter(racine, { ...options, avantAffichage: () => fond.arreter(), apresEntree: () => fond.demarrer() });
+    const ecran = monter(racine, { ...options, avantAffichage: () => fond.arreter(), apresEntree: () => { if (active) fond.demarrer(); } });
     ecran.fond = fond;
+    const interrupteur = doc.getElementById('interrupteur-eau');
+    const texteInterrupteur = doc.getElementById('etat-interrupteur-eau');
+    function appliquerActive() {
+      doc.documentElement.classList.toggle('sans-eau', !active);
+      if (interrupteur) interrupteur.setAttribute('aria-checked', String(active));
+      if (texteInterrupteur) texteInterrupteur.textContent = active ? 'en marche' : 'arrêtée';
+    }
+    ecran.eauActive = () => active;
+    ecran.changerEau = valeur => {
+      active = Boolean(valeur);
+      try { if (preferences) preferences.setItem(CLE_ACTIVE, active ? 'oui' : 'non'); } catch (e) { /* rien : vaut pour cette ouverture */ }
+      appliquerActive();
+      if (active) fond.demarrer();
+      else { fond.arreter(); if (ecran.etat().visible) ecran.entrerDansCap(); }
+    };
+    if (interrupteur) interrupteur.addEventListener('click', () => ecran.changerEau(!active));
+    appliquerActive();
     const allerEau = doc.getElementById('aller-eau');
-    if (allerEau) allerEau.addEventListener('click', () => ecran.afficher());
+    if (allerEau) allerEau.addEventListener('click', () => { if (active) ecran.afficher(); });
+    if (!active) return ecran;
     const stockage = options.stockage !== undefined ? options.stockage : (typeof sessionStorage !== 'undefined' ? sessionStorage : null);
     let dejaVue = false;
     try { dejaVue = Boolean(stockage && stockage.getItem(CLE_VUE)); } catch (e) { dejaVue = false; }
@@ -380,11 +404,13 @@ const ecranEau = (() => {
     return ecran;
   }
 
-  return { REGLAGES, CLE_VUE, creerCouche, eauAccueil, monter, auDemarrage };
+  return { REGLAGES, CLE_VUE, CLE_ACTIVE, creerCouche, eauAccueil, monter, auDemarrage };
 })();
 
 // Démarrage réel dans Cap. La page des tests automatiques (window.CAP_TESTS) crée ses propres écrans
 // isolés, pour ne pas faire tourner d'eau pendant tous les autres tests.
 if (typeof document !== 'undefined' && document.getElementById('ecran-eau') && !(typeof window !== 'undefined' && window.CAP_TESTS)) {
-  ecranEau.instance = ecranEau.auDemarrage(document);
+  let preferences = null;
+  try { preferences = window.localStorage; } catch (e) { preferences = null; }
+  ecranEau.instance = ecranEau.auDemarrage(document, { preferences });
 }

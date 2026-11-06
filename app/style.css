@@ -1990,7 +1990,7 @@ dialog button:hover {
 .tuile-outil {
   border-style: dashed;
   border-top-width: 2px;
-  background: rgba(255, 254, 247, 0.75);
+  background: rgba(255, 254, 247, 0.92); /* lot c21 : 0,75 → 0,92, lisible sur l'eau */
 }
 
 .ouvrir-tuile {
@@ -2814,15 +2814,34 @@ html.cap-monte .ecran {
   }
 }
 
-/* Eau derrière l'accueil (06/11/2026, lot c20) : intensité FAIBLE (opacité ci-dessous) pour que les
-   tuiles et leur texte restent bien lisibles ; jamais de toucher capté. */
+/* Eau derrière l'accueil (06/11/2026, lot c20 ; lot c21 : MÊME intensité qu'à l'écran d'ouverture,
+   0,55 au lieu de 0,35, choix de Max) ; les tuiles gardent un fond presque opaque pour rester lisibles ;
+   jamais de toucher capté. */
 .couche-eau-accueil {
   position: fixed;
   inset: 0;
   z-index: 0;
-  opacity: 0.35;
+  opacity: 0.55;
 }
 .ecran {
   position: relative;
   z-index: 1;
+}
+
+/* Interrupteur « Eau » (06/11/2026, lot c21). Arrêt (html.sans-eau) : plus aucune eau visible, et le
+   petit bouton « Eau » de l'accueil disparaît ; le fond reste la couleur pâle. */
+html.sans-eau .couche-eau,
+html.sans-eau .bouton-eau {
+  display: none;
+}
+#interrupteur-eau {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  width: 100%;
+  min-height: 3em;
+}
+#interrupteur-eau[aria-checked="false"] #etat-interrupteur-eau {
+  opacity: 0.7;
 }

@@ -1935,7 +1935,7 @@ TESTS_JS = r"""
     attendre(ecran.etat().boutons && ui.parId('video-galet').hidden, 'pas de repli après la panne');
     glisserSurEau(ui);
     attendre(ecran.etat().boutons, 'boutons perdus après un glissement');
-    ui.parId('bouton-entrer-cap').click();
+    glisserSurEau(ui);
     attendre(!ecran.etat().visible && !ecran.etat().animation, 'entrée dans Cap impossible après la panne');
     // Lecture refusée par le téléphone (play rejeté) : repli aussi.
     ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
@@ -1976,9 +1976,9 @@ TESTS_JS = r"""
     attendre(ui.parId('ecran-complet').hidden, 'les tuiles se sont ouvertes sous l’eau');
     video.dispatchEvent(new Event('ended'));
     attendre(ecran.etat().boutons, 'boutons absents à la fin de la vidéo');
-    // Les boutons de l'eau sont bien touchables (rien ne les recouvre).
-    attendreEgal(ui.doc.elementFromPoint(...centre(ui.parId('bouton-entrer-cap'))), ui.parId('bouton-entrer-cap'), 'bouton « Entrer dans Cap » recouvert');
-    ui.parId('bouton-entrer-cap').click();
+    // « Revenir aux vagues » est touchable (rien ne le recouvre) ; un second glissement fait entrer.
+    attendreEgal(ui.doc.elementFromPoint(...centre(ui.parId('bouton-revenir-vagues'))), ui.parId('bouton-revenir-vagues'), 'bouton « Revenir aux vagues » recouvert');
+    glisserSurEau(ui);
     attendre(!ecran.etat().visible && !ecran.etat().animation, 'eau encore là, ou animation pas arrêtée');
     attendre(!ui.doc.documentElement.classList.contains('eau-ouverte'), 'défilement de Cap encore bloqué');
     // CONTRE LA PANNE DE TOUCHER : après l'entrée, les boutons de Cap reçoivent bien le toucher.
@@ -2001,7 +2001,7 @@ TESTS_JS = r"""
     attendreEgal(ecranEau.REGLAGES.fond, 'aucun', 'fond par défaut (lot c20)');
     const ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, animationsReduites: false, reglages: { dureeSortieMs: 150 } });
     ecran.afficher();
-    attendre(ecran.etat().boutons && ui.parId('bouton-revenir-vagues').hidden && !ui.parId('bouton-entrer-cap').hidden, 'boutons sans vidéo');
+    attendre(ui.parId('bouton-revenir-vagues').hidden && !ui.parId('bouton-entrer-cap'), 'bouton « Entrer dans Cap » encore là, ou « Revenir aux vagues » sans vidéo');
     attendre(!ui.parId('consigne-eau'), 'texte de consigne encore là');
     glisserSurEau(ui);
     // Pendant l'entrée : l'eau bouge encore, ne retient aucun toucher, et Cap monte.
@@ -2013,11 +2013,11 @@ TESTS_JS = r"""
     attendre(!ecran.etat().animation && !ui.doc.documentElement.classList.contains('cap-monte'), 'animation pas finie');
     const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
     attendreEgal(ui.doc.elementFromPoint(...centre(ui.parId('ouvrir-scanner'))), ui.parId('ouvrir-scanner'), 'Scanner recouvert après l’entrée');
-    // « Entrer dans Cap » (secours) fait la même entrée.
+    // Un second passage par l'eau : le glissement refait la même entrée.
     ecran.afficher();
-    ui.parId('bouton-entrer-cap').click();
-    attendre(ecran.etat().entree, 'le bouton de secours n’entre pas');
-    await attendreQue(() => !ecran.etat().visible, 'entrée par le bouton non finie');
+    glisserSurEau(ui);
+    attendre(ecran.etat().entree, 'second glissement sans entrée');
+    await attendreQue(() => !ecran.etat().visible, 'seconde entrée non finie');
     // Animations réduites (réglage du téléphone) : entrée immédiate.
     const ecranReduit = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, animationsReduites: true });
     ecranReduit.afficher();
@@ -2038,7 +2038,15 @@ TESTS_JS = r"""
     attendre(!ecran.etat().visible && ecran.fond.etat().active, 'eau de l’accueil absente');
     const fenetre = ui.cadre.contentWindow;
     attendreEgal(fenetre.getComputedStyle(ui.parId('eau-accueil')).pointerEvents, 'none', 'l’eau de l’accueil capte les touchers');
-    attendre(Number(fenetre.getComputedStyle(ui.parId('eau-accueil')).opacity) <= 0.4, 'intensité trop forte pour la lecture');
+    // Même intensité qu'à l'écran d'ouverture (lot c21) ; les tuiles gardent un fond presque opaque.
+    attendreEgal(fenetre.getComputedStyle(ui.parId('eau-accueil')).opacity, fenetre.getComputedStyle(ui.parId('toile-eau')).opacity, 'intensité différente de l’ouverture');
+    ui.parId('basculer-vue').click();
+    for (const tuile of ui.doc.querySelectorAll('.tuile')) {
+      const fondTuile = fenetre.getComputedStyle(tuile).backgroundColor;
+      const alpha = /rgba\([^)]*,\s*([0-9.]+)\)/.exec(fondTuile);
+      attendre(!alpha || Number(alpha[1]) >= 0.9, `fond de tuile trop transparent : ${fondTuile}`);
+    }
+    ui.parId('basculer-vue').click();
     // Chaque bouton visible de l'accueil (les deux vues : accueil et tuiles) reçoit le toucher.
     const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
     const visibles = () => [...ui.doc.querySelectorAll('.ecran button')].filter(b => {
@@ -2081,13 +2089,57 @@ TESTS_JS = r"""
     // Pendant l'écran d'ouverture : l'eau de l'accueil s'arrête ; elle repart après l'entrée.
     ui.parId('aller-eau').click();
     attendre(ecran.etat().visible && !ecran.fond.etat().active, 'eau de l’accueil pas arrêtée pendant l’ouverture');
-    ui.parId('bouton-entrer-cap').click();
+    glisserSurEau(ui);
     attendre(!ecran.etat().visible && ecran.fond.etat().active, 'eau de l’accueil pas relancée après l’entrée');
     // Cap en arrière-plan : arrêtée (batterie) ; au retour : relancée.
     ui.visibilite(true);
     attendre(!ecran.fond.etat().active, 'eau pas arrêtée en arrière-plan');
     ui.visibilite(false);
     attendre(ecran.fond.etat().active, 'eau pas relancée au retour');
+  });
+
+  await testAsync('Interrupteur « Eau » (lot c21) : arrêt = aucune eau nulle part, aucune animation, aucun toucher perdu, Cap démarre normalement ; réglage gardé', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const h = horlogeEau();
+    const prefs = new Map();
+    const preferences = { getItem: k => prefs.get(k) ?? null, setItem: (k, v) => prefs.set(k, String(v)) };
+    const session = new Map();
+    const stockage = { getItem: k => session.get(k) ?? null, setItem: (k, v) => session.set(k, v) };
+    const fenetre = ui.cadre.contentWindow;
+    // En marche par défaut : l'eau d'ouverture s'affiche.
+    let ecran = ecranEau.auDemarrage(ui.doc, { stockage, preferences, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
+    attendre(ecran.eauActive() && ecran.etat().visible, 'eau absente en marche');
+    attendreEgal(ui.parId('interrupteur-eau').getAttribute('aria-checked'), 'true', 'interrupteur en marche');
+    glisserSurEau(ui);
+    // Arrêt depuis l'accueil (bouton dans « Afficher tout »).
+    ui.parId('interrupteur-eau').click();
+    attendre(!ecran.eauActive() && !ecran.fond.etat().active, 'eau de l’accueil pas arrêtée');
+    attendreEgal(prefs.get(ecranEau.CLE_ACTIVE), 'non', 'réglage non gardé');
+    attendreEgal(ui.parId('etat-interrupteur-eau').textContent, 'arrêtée', 'texte de l’interrupteur');
+    attendreEgal(fenetre.getComputedStyle(ui.parId('eau-accueil')).display, 'none', 'eau de l’accueil encore visible');
+    attendreEgal(fenetre.getComputedStyle(ui.parId('aller-eau')).display, 'none', 'bouton « Eau » encore là à l’arrêt');
+    // Nouveau démarrage de Cap avec l'interrupteur sur arrêt : aucune eau, aucune animation, l'accueil tout de suite.
+    const ui2 = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const h2 = horlogeEau();
+    const ecran2 = ecranEau.auDemarrage(ui2.doc, { stockage: { getItem: () => null, setItem: () => {} }, preferences, raf: h2.raf, caf: h2.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
+    const fenetre2 = ui2.cadre.contentWindow;
+    attendre(!ecran2.eauActive() && !ecran2.etat().visible && !ecran2.fond.etat().active, 'eau au démarrage malgré l’arrêt');
+    attendreEgal(h2.appels.length, 0, 'animation lancée malgré l’arrêt');
+    attendreEgal(fenetre2.getComputedStyle(ui2.parId('toile-eau')).display, 'none', 'eau d’ouverture visible malgré l’arrêt');
+    attendreEgal(fenetre2.getComputedStyle(ui2.doc.body).backgroundColor, 'rgb(234, 241, 244)', 'fond pâle absent sans eau');
+    const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+    attendreEgal(ui2.doc.elementFromPoint(...centre(ui2.parId('ouvrir-scanner'))), ui2.parId('ouvrir-scanner'), 'Scanner recouvert sans eau');
+    // Remise en marche : l'eau revient tout de suite sur l'accueil, réglage gardé.
+    ui2.parId('interrupteur-eau').click();
+    attendre(ecran2.eauActive() && ecran2.fond.etat().active, 'eau pas revenue');
+    attendreEgal(prefs.get(ecranEau.CLE_ACTIVE), 'oui', 'remise en marche non gardée');
+    // Préférences illisibles : l'eau reste en marche, sans erreur.
+    const ui3 = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const casse = { getItem: () => { throw new Error('refusé'); }, setItem: () => { throw new Error('refusé'); } };
+    const ecran3 = ecranEau.auDemarrage(ui3.doc, { stockage: casse, preferences: casse, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
+    attendre(ecran3.eauActive(), 'eau coupée par des préférences illisibles');
+    ecran3.changerEau(false);
+    attendre(!ecran3.eauActive(), 'arrêt impossible quand les préférences refusent');
   });
 
   await testAsync('Écran d’eau : le petit bouton « Eau » y ramène ; couche d’eau sans toucher ; gestes bloqués seulement sur l’eau ; aucune adresse extérieure', async c => {
@@ -2106,7 +2158,8 @@ TESTS_JS = r"""
     ecran.entrerDansCap();
     attendre(!ecran.etat().visible, 'eau restée');
     const source = SOURCE_ECRAN_EAU;
-    attendre(!/https?:\/\//.test(source) && !/localStorage|indexedDB|fetch\(/.test(source), 'adresse extérieure, stockage durable ou envoi dans l’écran d’eau');
+    attendre(!/https?:\/\//.test(source) && !/indexedDB|fetch\(/.test(source), 'adresse extérieure ou envoi dans l’écran d’eau');
+    attendreEgal((source.match(/localStorage/g) || []).length, 1, 'stockage durable autre que la préférence de l’interrupteur');
   });
 
   await testAsync('Classement étape 1 : Doc et tableur choisis chacun à part, bon type vérifié, rien gardé sinon', async c => {
