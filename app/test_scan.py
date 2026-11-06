@@ -1128,10 +1128,10 @@ TESTS_JS = r"""
   const tableurSante = [
     { numero: 2, mot_cle: 'compte rendu de suivi Théo Exemplaire', organisme: 'Hôpital fictif', modele: '[date] Compte rendu suivi Théo Exemplaire', chemin: ['02_SANTE'] },
     { numero: 3, mot_cle: 'compte rendu Théo Exemplaire', organisme: '', modele: '[date] Compte rendu Théo Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 4, mot_cle: 'bilan ophtalmologique Théo Exemplaire', organisme: 'Hôpital fictif', modele: '[date] Bilan ophtalmologique Théo Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 4, mot_cle: 'bilan sylvothérapique Théo Exemplaire', organisme: 'Hôpital fictif', modele: '[date] Bilan sylvothérapique Théo Exemplaire', chemin: ['02_SANTE'] },
     { numero: 5, mot_cle: 'compte rendu de suivi Lina Exemplaire', organisme: '', modele: '[date] Compte rendu suivi Lina Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 6, mot_cle: 'compte rendu ophtalmologie Lina Exemplaire', organisme: '', modele: '[date] Compte rendu ophtalmologie Lina Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 7, mot_cle: 'bilan ophtalmologique Lina Exemplaire', organisme: '', modele: '[date] Bilan ophtalmologique Lina Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 6, mot_cle: 'compte rendu sylvothérapie Lina Exemplaire', organisme: '', modele: '[date] Compte rendu sylvothérapie Lina Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 7, mot_cle: 'bilan sylvothérapique Lina Exemplaire', organisme: '', modele: '[date] Bilan sylvothérapique Lina Exemplaire', chemin: ['02_SANTE'] },
     { numero: 8, mot_cle: 'radio Théo Exemplaire', organisme: '', modele: '[date] Radio Théo Exemplaire', chemin: ['02_SANTE'] },
     { numero: 10, mot_cle: 'radiographie Théo Exemplaire', organisme: '', modele: '[date] Radiographie Théo Exemplaire', chemin: ['02_SANTE'] },
     { numero: 11, mot_cle: 'ordonnance orthophonie Théo Exemplaire', organisme: '', modele: '[date] Ordonnance orthophonie Théo Exemplaire', chemin: ['02_SANTE'] },
@@ -1143,8 +1143,8 @@ TESTS_JS = r"""
       ['Expression du tableur (sans la personne)', 'Lignes du tableur d\'origine', 'Nombre de lignes', 'Mots courts proposés (type)', 'Mots trop courants dans cette ligne', 'Suffit seul ?', 'Statut', 'Proposé le', 'Correction de Max'],
       ['compte rendu de suivi', '2, 5', '2', 'compte rendu suivi', 'compte rendu', 'Oui', 'À valider', '2026-11-06', ''],
       ['compte rendu', '3', '1', 'compte rendu', 'compte rendu', 'Non (jamais seul)', 'À valider', '2026-11-06', ''],
-      ['bilan ophtalmologique', '4, 7', '2', 'bilan ophtalmologique', 'bilan', 'Oui', 'À valider', '2026-11-06', ''],
-      ['compte rendu ophtalmologie', '6', '1', 'compte rendu ophtalmologie', 'compte rendu', 'Oui', 'À valider', '2026-11-06', ''],
+      ['bilan sylvothérapique', '4, 7', '2', 'bilan sylvothérapique', 'bilan', 'Oui', 'À valider', '2026-11-06', ''],
+      ['compte rendu sylvothérapie', '6', '1', 'compte rendu sylvothérapie', 'compte rendu', 'Oui', 'À valider', '2026-11-06', ''],
       ['radio', '8', '1', 'radio', 'radio', 'Non (jamais seul)', 'À valider', '2026-11-06', ''],
       ['radiographie', '10', '1', 'radiographie', '', 'Oui', 'À valider', '2026-11-06', ''],
       ['ordonnance orthophonie', '11', '1', 'ordonnance orthophonie', '', 'Oui', 'À valider', '2026-11-06', ''],
@@ -1170,11 +1170,11 @@ TESTS_JS = r"""
   };
   // Faux courrier d'un médecin à un confrère (rien de vrai). La date de naissance vient en premier.
   function courrierFictif(patient, { bilan = false } = {}) {
-    return ['CENTRE HOSPITALIER FICTIF – Service de OPHTALMOLOGIE', `Patient : ${patient}, né le 03/02/1970`,
-      'COMPTE RENDU DE SUIVI EN OPHTALMOLOGIE', 'Cher confrère,',
+    return ['CENTRE HOSPITALIER FICTIF – Service de SYLVOTHÉRAPIE', `Patient : ${patient}, né le 03/02/1970`,
+      'COMPTE RENDU DE SUIVI EN SYLVOTHÉRAPIE', 'Cher confrère,',
       `J'ai revu ${patient} pour une gêne visuelle. Champ visuel normal.`,
       'Radiographie du poignet sans anomalie.',
-      bilan ? 'Un bilan ophtalmologique complet est prévu dans trois mois.' : 'Pas d’examen supplémentaire.',
+      bilan ? 'Un bilan sylvothérapique complet est prévu dans trois mois.' : 'Pas d’examen supplémentaire.',
       'Bien confraternellement, Dr FICTIF', 'Fait le 14/10/2026'].join('\n');
   }
 
@@ -1191,7 +1191,7 @@ TESTS_JS = r"""
     attendre(mots.courants.has('compte') && !mots.courants.has('bancaire'), 'mots trop courants (refus compris)');
   });
 
-  await test('mots courts : courrier FICTIF d’ophtalmologie, prénom long, prénom court, nom de famille seul', async () => {
+  await test('mots courts : courrier FICTIF de sylvothérapie, prénom long, prénom court, nom de famille seul', async () => {
     const mots = motsCourts.analyser(ongletsFictifs);
     // 1. Prénom long (correction de Max) : une seule proposition, la date de naissance écartée ;
     //    la « radiographie » citée en passant ne l'emporte pas sur le titre (mots côte à côte, en haut).
@@ -1205,12 +1205,12 @@ TESTS_JS = r"""
     // 3. Nom de famille seul : personne incertaine, 3 titres proches proposés.
     p = motsCourts.proposer(courrierFictif('M. EXEMPLAIRE'), tableurSante, mots);
     egal([p.raison, p.personne_incertaine, p.choix.length], ['choix', true, 3], 'nom de famille seul');
-    egal(p.choix.map(c => c.nom).sort(), ['2026-10-14 Compte rendu ophtalmologie - Lina Exemplaire', '2026-10-14 Compte rendu suivi - Lina Exemplaire',
-      '2026-10-14 Compte rendu suivi - Théo Exemplaire'], 'titres proposés');
-    // 4. Le courrier parle aussi d'un « bilan ophtalmologique » : deux titres proches, Cap ne choisit pas seul.
+    egal(p.choix.map(c => c.nom).sort(), ['2026-10-14 Compte rendu suivi - Lina Exemplaire', '2026-10-14 Compte rendu suivi - Théo Exemplaire',
+      '2026-10-14 Compte rendu sylvothérapie - Lina Exemplaire'], 'titres proposés');
+    // 4. Le courrier parle aussi d'un « bilan sylvothérapique » : deux titres proches, Cap ne choisit pas seul.
     p = motsCourts.proposer(courrierFictif('M. Théodore EXEMPLAIRE', { bilan: true }), tableurSante, mots);
     egal([p.raison, p.choix.map(c => c.nom)], ['choix', ['2026-10-14 Compte rendu suivi - Théo Exemplaire',
-      '2026-10-14 Bilan ophtalmologique - Théo Exemplaire']], 'deux titres proches');
+      '2026-10-14 Bilan sylvothérapique - Théo Exemplaire']], 'deux titres proches');
   });
 
   await test('mots courts : mots trop courants jamais seuls, autre personne écartée, aucun texte, pluriel', async () => {
