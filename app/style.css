@@ -2912,6 +2912,7 @@ html.sans-eau .bouton-eau {
 
 /* Réparation des accents (06/11/2026) : comptes rendus sur plusieurs lignes. */
 #resume-reparer-relations,
+#resume-visibilite-relations,
 #resume-relations {
   white-space: pre-line;
 }

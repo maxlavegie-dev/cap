@@ -2027,11 +2027,13 @@ TESTS_JS = r"""
       const parent = /'([^']+)' in parents/.exec(q)?.[1];
       const type = /mimeType='([^']+)'/.exec(q)?.[1];
       attendre(/trashed=false/.test(q), 'recherche sans « trashed=false »');
-      const trouves = f.fichiers.filter(x => !x.trashed && (!parent || x.parents.includes(parent)) && (!type || x.mimeType === type)
+      const trouves = f.fichiers.filter(x => !x.trashed && (!x.aLaMain || f.mainVisible) && (!parent || x.parents.includes(parent)) && (!type || x.mimeType === type)
         && (!etiquette || x.appProperties[etiquette[1]] === etiquette[2].replace(/\\(.)/g, '$1')));
-      return reponseGoogle({ files: trouves.map(x => ({ id: x.id, name: x.name, appProperties: x.appProperties })) });
+      return reponseGoogle({ files: trouves.map(x => ({ id: x.id, name: x.name, mimeType: x.mimeType, appProperties: x.appProperties })) });
     };
-    f.noms = () => f.fichiers.map(x => x.name).sort();
+    f.noms = () => f.fichiers.filter(x => !x.aLaMain).map(x => x.name).sort();
+    f.aLaMain = (name, mimeType, parent) => { const x = { id: `main-${++numero}`, name, mimeType, parents: [parent], appProperties: {}, trashed: false, contenu: '', aLaMain: true }; f.fichiers.push(x); return x; };
+    f.mainVisible = false;
     return f;
   }
   function dictionnaireCreationFictif() {
@@ -2305,6 +2307,84 @@ TESTS_JS = r"""
     attendre(parseFloat(ui.cadre.contentWindow.getComputedStyle(el('reparer-un-relations')).fontSize) >= 20, 'bouton pas en gros');
   });
 
+  // ---------- 06/11/2026 : essai de visibilité (FAUX Drive, fichiers « déposés à la main » FICTIFS) ----------
+  async function driveVisibiliteFictif(c) {
+    const drive = fauxDriveRelations(c);
+    const { module } = creationIsolee(c, '2026-11-06T22:20:00Z');
+    const valeurs = [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif', 'Personne'], ['Jeanne', 'Exemple-FICTIF', 'Personne'], ['Paul', 'Image-FICTIF', 'Personne'], ['Zoé', 'Rien-FICTIF', 'Personne']];
+    await module.lancer(await module.preparer(valeurs, 'appcap-fictif'), { appCap: 'appcap-fictif' });
+    const id = nom => drive.fichiers.find(x => x.name === nom).id;
+    const album = drive.aLaMain('Album FICTIF', 'application/vnd.google-apps.folder', id('r_Jean Fictif'));
+    drive.aLaMain('01 morceau FICTIF secret.mp3', 'audio/mpeg', album.id);
+    drive.aLaMain('02 morceau FICTIF secret.mp3', 'audio/mpeg', album.id);
+    drive.aLaMain('chanson FICTIVE secrète.mp3', 'application/octet-stream', id('r_Jeanne Exemple-FICTIF'));
+    for (let n = 1; n <= 4; n++) drive.aLaMain(`photo FICTIVE secrète ${n}.jpg`, 'image/jpeg', id('r_Paul Image-FICTIF'));
+    // Déposé à la main DANS « Reçus » (créé par Cap) : compté aussi.
+    const recusPaul = drive.fichiers.find(x => x.name === 'Reçus' && x.parents[0] === id('r_Paul Image-FICTIF'));
+    drive.aLaMain('note FICTIVE secrète.pdf', 'application/pdf', recusPaul.id);
+    return { drive, module };
+  }
+
+  await testAsync('Essai de visibilité (FAUX Drive) : nombres seulement par dossier (MP3, images, sous-dossiers), rien de Cap compté, aucun nom de fichier, rien modifié', async c => {
+    const { drive, module } = await driveVisibiliteFictif(c);
+    const avant = c.requetes.length;
+    const creations = drive.creations;
+    // Fichiers déposés à la main invisibles (comme Cap pourrait les voir avec drive.file) : tout à zéro.
+    let r = await module.essaiVisibilite('appcap-fictif');
+    attendreEgal(r.dossiers, 4, 'dossiers lus');
+    attendre(r.lignes.every(l => l.mp3 + l.images + l.sousDossiers + l.autres === 0), 'éléments de Cap comptés');
+    attendre(/4 autre\(s\) dossier\(s\) : rien de visible/.test(module.resumerVisibilite(r)) && /Total visible : 0 MP3, 0 image\(s\), 0 sous-dossier\(s\), 0 autre\(s\)\./.test(module.resumerVisibilite(r)), 'résumé à zéro');
+    // Visibles : nombres justes, y compris dans un sous-dossier et dans « Reçus ».
+    drive.mainVisible = true;
+    r = await module.essaiVisibilite('appcap-fictif');
+    attendreEgal(r.lignes.map(l => [l.nomDossier, l.mp3, l.images, l.sousDossiers, l.autres]),
+      [['r_Jean Fictif', 2, 0, 1, 0], ['r_Jeanne Exemple-FICTIF', 1, 0, 0, 0], ['r_Paul Image-FICTIF', 0, 4, 0, 1], ['r_Zoé Rien-FICTIF', 0, 0, 0, 0]], 'nombres par dossier');
+    const texte = module.resumerVisibilite(r);
+    attendreEgal(texte, ['Essai de visibilité (lecture seule, rien n’est modifié) : 4 dossier(s) « r_ » lus.',
+      'r_Jean Fictif : 2 MP3 · 0 image(s) · 1 sous-dossier(s)', 'r_Jeanne Exemple-FICTIF : 1 MP3 · 0 image(s) · 0 sous-dossier(s)',
+      'r_Paul Image-FICTIF : 0 MP3 · 4 image(s) · 0 sous-dossier(s) · 1 autre(s)', '1 autre(s) dossier(s) : rien de visible à part ce que Cap a créé.',
+      'Total visible : 3 MP3, 4 image(s), 1 sous-dossier(s), 1 autre(s).'].join('\n'), 'résumé');
+    attendre(!/secr|morceau|photo|chanson|note|Album|\.mp3|\.jpg|\.pdf/i.test(texte), 'un nom de fichier est affiché');
+    // Lecture seule.
+    attendre(c.requetes.slice(avant).every(q => q.methode === 'GET' && q.url.hostname === 'www.googleapis.com' && q.url.pathname === '/drive/v3/files'), 'autre chose qu’une lecture');
+    attendreEgal(drive.creations, creations, 'création pendant l’essai');
+  });
+
+  await testAsync('Essai de visibilité (FAUX Drive) : écran (essai, « Montrer « Relations » à Google », nouvel essai) ; App Cap absent ; sélecteur refusé', async c => {
+    const ui = preparerInterface(c);
+    const { drive, module } = await driveVisibiliteFictif(c);
+    const el = id => ui.parId(id);
+    let montres = 0;
+    let refuser = false;
+    module.brancherVisibilite(ui.doc, { appCap: async () => ({ id: 'appcap-fictif' }),
+      montrer: async () => { if (refuser) throw new Error('fenêtre FICTIVE refusée'); montres++; drive.mainVisible = true; return { id: 'relations-fictif' }; } });
+    attendre(el('resume-visibilite-relations').hidden, 'zone visible trop tôt');
+    el('visibilite-relations').click();
+    await attendreQue(() => /Total visible : 0 MP3/.test(el('resume-visibilite-relations').textContent), `premier essai : ${el('resume-visibilite-relations').textContent}`);
+    el('montrer-relations').click();
+    await attendreQue(() => /Dossier montré à Google/.test(el('resume-visibilite-relations').textContent), 'après le sélecteur');
+    attendreEgal(montres, 1, 'sélecteur');
+    el('visibilite-relations').click();
+    await attendreQue(() => /Total visible : 3 MP3, 4 image/.test(el('resume-visibilite-relations').textContent), `second essai : ${el('resume-visibilite-relations').textContent}`);
+    attendre(!/secr|morceau|photo|chanson|\.mp3|\.jpg/i.test(el('resume-visibilite-relations').textContent), 'nom de fichier affiché');
+    refuser = true;
+    el('montrer-relations').click();
+    await attendreQue(() => /n’a pas pu s’ouvrir/.test(el('resume-visibilite-relations').textContent), 'sélecteur refusé');
+    const ui2 = preparerInterface(c);
+    await driveVisibiliteFictif(c);
+    module.brancherVisibilite(ui2.doc, { appCap: async () => null, montrer: async () => null });
+    const avant = c.requetes.length;
+    ui2.parId('visibilite-relations').click();
+    await attendreQue(() => /Choisis d’abord le dossier « App Cap »/.test(ui2.parId('resume-visibilite-relations').textContent), 'App Cap absent');
+    attendre(c.requetes.slice(avant).every(q => q.methode === 'GET'), 'modification');
+  });
+
+  test('Sélecteur : le rôle « relations » rattache le choix à Cap (numéro du projet) ; les autres dossiers gardent leur réglage', () => {
+    attendre(/if \(role === 'relations'\) constructeur = constructeur\.setAppId\(numeroProjet\(\)\);/.test(SOURCE_GOOGLE_PICKER), 'numéro du projet pour « relations »');
+    attendreEgal((SOURCE_GOOGLE_PICKER.match(/setAppId\(/g) || []).length, 2, 'setAppId ailleurs');
+    attendre(/relations: 'cap_dossier_relations_v1'/.test(SOURCE_GOOGLE_PICKER), 'rôle « relations »');
+  });
+
   await testAsync('Relations (FAUX Drive) : si Google ne fait pas un Google Doc du « Journal de bord », Cap s’arrête (rien d’autre créé, rien supprimé)', async c => {
     const drive = fauxDriveRelations(c);
     const repondre = c.repondre;
@@ -2488,7 +2568,7 @@ TESTS_JS = r"""
       attendre(!/relationsCreation/.test({ SOURCE_APP, SOURCE_RELATIONS }[nom]), `${nom} appelle déjà la création`);
     }
     const apres = SOURCE_RELATIONS_CREATION.split('\n})();')[1] || '';
-    attendreEgal((apres.match(/relationsCreation\.\w+/g) || []), ['relationsCreation.brancherEssai', 'relationsCreation.brancherTous', 'relationsCreation.brancherReparation'], 'point de départ autre que les trois boutons');
+    attendreEgal((apres.match(/relationsCreation\.\w+/g) || []), ['relationsCreation.brancherEssai', 'relationsCreation.brancherTous', 'relationsCreation.brancherReparation', 'relationsCreation.brancherVisibilite'], 'point de départ autre que les quatre boutons');
     attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(apres), 'le bouton d’essai serait branché dans les tests');
     attendre(!/lancer\(/.test(apres), 'création lancée au démarrage');
     attendreEgal((SOURCE_RELATIONS_CREATION.match(/'PATCH'/g) || []).length, 1, 'un seul remplacement de contenu (la réparation)');
@@ -6593,8 +6673,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v63['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v63")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v64['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v64")
 
 
 def verifier_precache_fichiers_existent():

@@ -20,11 +20,14 @@ const googlePicker = (() => {
     // Journaux de chantier (05/11/2026) : créés par Cap (pas choisis), retenus de la même façon.
     dossier_journaux: 'cap_dossier_journaux_v1',
     journal_numerisation: 'cap_journal_numerisation_v1',
-    journal_general: 'cap_journal_general_v1'
+    journal_general: 'cap_journal_general_v1',
+    // Essai de visibilité (06/11/2026) : dossier « Relations » créé par Cap, montré par Max.
+    relations: 'cap_dossier_relations_v1'
   });
   const titres = Object.freeze({
     app_cap: 'Choisis le dossier « App Cap »',
-    documents_personnels: 'Choisis le dossier « Documents Personnels »'
+    documents_personnels: 'Choisis le dossier « Documents Personnels »',
+    relations: 'Choisis le dossier « Relations » créé par Cap (pas ton ancien dossier d’essai)'
   });
   function cleDe(role) {
     if (!Object.hasOwn(cles, role)) throw new Error('Dossier inconnu.');
@@ -97,8 +100,11 @@ const googlePicker = (() => {
         .setSelectFolderEnabled(true)
         .setIncludeFolders(true)
         .setMimeTypes('application/vnd.google-apps.folder');
-      const selecteur = new google.picker.PickerBuilder()
-        .addView(vue)
+      let constructeur = new google.picker.PickerBuilder().addView(vue);
+      // Essai de visibilité : comme pour les fichiers, le numéro du projet rattache le choix à Cap.
+      // Les autres dossiers gardent exactement leur réglage d'avant.
+      if (role === 'relations') constructeur = constructeur.setAppId(numeroProjet());
+      const selecteur = constructeur
         .setOAuthToken(googleConnexion.jeton())
         .setDeveloperKey(clePicker.lire())
         .setTitle(titres[role])

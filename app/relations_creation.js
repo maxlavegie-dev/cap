@@ -40,7 +40,7 @@ const relationsCreation = (() => {
     const fichiers = [];
     let page = '';
     for (let tour = 0; tour < 50; tour++) {
-      const parametres = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name,appProperties)', pageSize: '200' });
+      const parametres = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name,mimeType,appProperties)', pageSize: '200' });
       if (page) parametres.set('pageToken', page);
       const reponse = await lireJson(`${drive}?${parametres}`);
       fichiers.push(...(reponse.files || []));
@@ -356,6 +356,78 @@ const relationsCreation = (() => {
     }));
   }
 
+  // ----- Essai de visibilité (06/11/2026, accord de Max) : LECTURE SEULE, des NOMBRES seulement -----
+  // Cap voit-il les fichiers que Max dépose à la main dans les dossiers « r_ » ? Pour chaque dossier
+  // « r_ » créé par Cap : nombre de MP3, d'images, de sous-dossiers (et d'autres fichiers) VISIBLES par
+  // Cap, en descendant dans les sous-dossiers (3 niveaux). Les éléments créés par Cap ne sont pas
+  // comptés (on regarde quand même dans « Reçus » et « Envoyés »). Aucun nom de fichier n'est affiché
+  // ni gardé ; rien n'est modifié ni créé.
+  const PROFONDEUR_VISIBILITE = 3;
+  function sorteDe(f) {
+    if (f.mimeType === DOSSIER) return 'sousDossiers';
+    if (/^audio\/(mpeg|mp3)$/.test(f.mimeType || '') || /\.mp3$/i.test(f.name || '')) return 'mp3';
+    if (/^image\//.test(f.mimeType || '')) return 'images';
+    return 'autres';
+  }
+  async function compterDans(dossier, compte, profondeur) {
+    for (const f of await lister(`'${echapper(dossier)}' in parents and trashed=false`)) {
+      const deCap = Boolean(f.appProperties?.[ETIQUETTES.partie] || f.appProperties?.[ETIQUETTES.personne]);
+      if (!deCap) compte[sorteDe(f)]++;
+      if (f.mimeType === DOSSIER && profondeur < PROFONDEUR_VISIBILITE) await compterDans(f.id, compte, profondeur + 1);
+    }
+  }
+  async function essaiVisibilite(appCap) {
+    if (!appCap) throw new Error('Choisis d’abord le dossier « App Cap » dans « Réglages du Drive ».');
+    const racine = await trouver(ETIQUETTES.racine, 'racine', appCap, DOSSIER);
+    if (!racine) return { dossiers: 0, lignes: [] };
+    const personnes = (await lister(`'${echapper(racine)}' in parents and mimeType='${DOSSIER}' and trashed=false`))
+      .filter(f => f.appProperties?.[ETIQUETTES.personne]);
+    const lignes = [];
+    for (const personne of personnes) {
+      const compte = { mp3: 0, images: 0, sousDossiers: 0, autres: 0 };
+      await compterDans(personne.id, compte, 1);
+      lignes.push({ nomDossier: personne.name, ...compte });
+    }
+    lignes.sort((a, b) => a.nomDossier.localeCompare(b.nomDossier, 'fr'));
+    return { dossiers: personnes.length, lignes };
+  }
+  function resumerVisibilite(r) {
+    const avec = r.lignes.filter(l => l.mp3 + l.images + l.sousDossiers + l.autres > 0);
+    const total = cle => r.lignes.reduce((n, l) => n + l[cle], 0);
+    return [
+      `Essai de visibilité (lecture seule, rien n’est modifié) : ${r.dossiers} dossier(s) « r_ » lus.`,
+      ...avec.map(l => `${l.nomDossier} : ${l.mp3} MP3 · ${l.images} image(s) · ${l.sousDossiers} sous-dossier(s)` + (l.autres ? ` · ${l.autres} autre(s)` : '')),
+      `${r.dossiers - avec.length} autre(s) dossier(s) : rien de visible à part ce que Cap a créé.`,
+      `Total visible : ${total('mp3')} MP3, ${total('images')} image(s), ${total('sousDossiers')} sous-dossier(s), ${total('autres')} autre(s).`
+    ].join('\n');
+  }
+  function brancherVisibilite(doc, { appCap, montrer }) {
+    const bouton = doc.getElementById('visibilite-relations');
+    const montrerBouton = doc.getElementById('montrer-relations');
+    const zone = doc.getElementById('resume-visibilite-relations');
+    if (!bouton || !montrerBouton || !zone) return;
+    const ecrire = texte => { zone.hidden = false; zone.textContent = texte; };
+    bouton.addEventListener('click', async () => {
+      ecrire('Lecture des dossiers « r_ »… (rien n’est modifié)');
+      try {
+        const dossier = await appCap();
+        if (!dossier) { ecrire('Choisis d’abord le dossier « App Cap » dans « Réglages du Drive », avec Cap ouvert dans Chrome.'); return; }
+        ecrire(resumerVisibilite(await essaiVisibilite(dossier.id)));
+      } catch (erreur) {
+        ecrire(`Lecture impossible (${String(erreur && erreur.message || 'raison inconnue').slice(0, 120)}). Rien n’a été modifié.`);
+      }
+    });
+    // Temps 2 de l'essai : Max montre « Relations » (celui créé par Cap) au sélecteur Google, dans Chrome.
+    montrerBouton.addEventListener('click', async () => {
+      try {
+        const choix = await montrer();
+        ecrire(choix ? 'Dossier montré à Google. Appuie de nouveau sur « Essai de visibilité ».' : 'Rien n’a été choisi.');
+      } catch (erreur) {
+        ecrire(`Le sélecteur Google n’a pas pu s’ouvrir (${String(erreur && erreur.message || 'raison inconnue').slice(0, 120)}). Fais-le dans Chrome.`);
+      }
+    });
+  }
+
   // Un seul travail à la fois : un second appui pendant le travail ne crée rien.
   function lancer(plan, options) {
     if (enCours) return Promise.resolve({ refuse: true, crees: 0, personnes: 0 });
@@ -518,7 +590,7 @@ const relationsCreation = (() => {
   }
 
   return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, premiereEntree, texteEnHtml, texteRepare, examiner, preparer, planEssai, lancer, ecran, brancherEssai, brancherTous,
-    preparerReparation, lancerReparation, brancherReparation };
+    preparerReparation, lancerReparation, brancherReparation, essaiVisibilite, resumerVisibilite, brancherVisibilite };
 })();
 
 // Seuls points de départ dans Cap : le bouton d'essai (étape 4) et celui de toutes les personnes
@@ -529,4 +601,5 @@ if (typeof document !== 'undefined' && document.getElementById('essai-relations'
   relationsCreation.brancherEssai(document, sources);
   relationsCreation.brancherTous(document, sources);
   relationsCreation.brancherReparation(document, sources);
+  relationsCreation.brancherVisibilite(document, { appCap: sources.appCap, montrer: () => googlePicker.choisir('relations') });
 }
