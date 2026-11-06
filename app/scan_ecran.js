@@ -60,6 +60,7 @@ const scanEcran = (() => {
     const propositionStatut = parId('scanner-proposition-statut');
     const propositionDiagnostic = parId('scanner-proposition-diagnostic');
     const propositionChoix = parId('scanner-proposition-choix');
+    const boutonDateScan = parId('scanner-proposition-date-scan');
     const boutonsAvecNom = ['scanner-proposition-oui', 'scanner-proposition-modifier', 'scanner-proposition-non'].map(parId);
     const boutonsSansNom = ['scanner-proposition-daccord', 'scanner-proposition-ecrire'].map(parId);
     // Texte lu sur le téléphone (jamais envoyé), nombres de caractères et de pages, proposition, réponse.
@@ -427,7 +428,8 @@ const scanEcran = (() => {
         echecs: [...avant.echecs, ...echecs],
         diagnostics: [...avant.diagnostics, ...diagnostics],
         mot_cle: '', nom_propose: '', raison: '', erreur_tableur: '', reponse: '', repondu: false,
-        score: 0, choix: [], choix_retenu: 0, recherche: '', personne_incertaine: false, meilleurs: []
+        score: 0, choix: [], choix_retenu: 0, recherche: '', personne_incertaine: false, meilleurs: [],
+        date_source: '', date_scan: ''
       };
       dire(`${prises} page${prises > 1 ? 's' : ''} reçue${prises > 1 ? 's' : ''} du scanner de Google. `
         + `Texte lu sur ${lectureGoogle.pages_lues} page${lectureGoogle.pages_lues > 1 ? 's' : ''} sur ${lectureGoogle.pages_total}.`
@@ -494,6 +496,12 @@ const scanEcran = (() => {
       lecture.choix_retenu = 0;
       lecture.personne_incertaine = Boolean(p.personne_incertaine);
       lecture.meilleurs = p.meilleurs || [];
+      // Règle de nommage (06/11/2026) : sans date lisible, la date du scan seulement si Max la choisit.
+      lecture.date_source = p.date ? (p.date.length === 7 ? 'mois et année lus sur le document' : 'lue sur le document') : 'à préciser';
+      const aRemplir = String(p.nom || '').startsWith(nommageScan.dateAPreciserRegle)
+        || (lecture.choix || []).some(c => c.nom.startsWith(nommageScan.dateAPreciserRegle));
+      boutonDateScan.hidden = !aRemplir;
+      boutonDateScan.textContent = `Prendre la date du scan (${dateDuJour().split('-').reverse().join('/')})`;
       afficherChoix(lecture);
       const avecNom = Boolean(p.nom) || lecture.choix.length > 0;
       boutonsAvecNom.forEach(bouton => { bouton.hidden = !avecNom; });
@@ -504,7 +512,8 @@ const scanEcran = (() => {
         + (lecture.echecs.length ? `, lecture échouée : page${lecture.echecs.length > 1 ? 's' : ''} ${lecture.echecs.join(', ')}` : '');
       const garde = 'le scan gardera son nom SCAN-… dans 00_A_CLASSER.';
       const score = p.score ? ` (score ${nombreFrancais.format(p.score)})` : '';
-      const sansDate = p.date ? '' : ' Aucune date lisible : « DATE A PRECISER ».';
+      const sansDate = p.date ? '' : (boutonDateScan.hidden ? ' Aucune date lisible : « DATE A PRECISER ».'
+        : ' Aucune date lisible : « DATE-A-PRECISER ». Si tu veux la date du scan, touche « Prendre la date du scan ».');
       const personne = p.personne_incertaine ? ' Personne pas sûre (prénom non lu).' : '';
       const nombreChoix = (p.choix || []).length;
       propositionInfo.textContent = ({
@@ -551,6 +560,28 @@ const scanEcran = (() => {
       propositionStatut.textContent = 'Titre choisi. Touche Oui pour le garder, Modifier pour le changer, ou Non.';
     }
 
+    function dateDuJour() {
+      const d = maintenant();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    // « Prendre la date du scan » : remplace « DATE-A-PRECISER » au début du nom (et des choix) ; la
+    // description du fichier le notera.
+    function prendreDateDuScan() {
+      const lecture = lectureGoogle;
+      if (!lecture || lecture.repondu) return;
+      const jour = dateDuJour();
+      const remplacer = nom => (nom.startsWith(nommageScan.dateAPreciserRegle) ? jour + nom.slice(nommageScan.dateAPreciserRegle.length) : nom);
+      lecture.nom_propose = remplacer(lecture.nom_propose || '');
+      lecture.choix.forEach(c => { c.nom = remplacer(c.nom); });
+      [...propositionChoix.children].forEach((bouton, i) => { bouton.textContent = `${lecture.choix[i].nom}.pdf`; });
+      if (lecture.nom_propose) propositionNom.textContent = `${lecture.nom_propose}.pdf`;
+      if (!propositionModification.hidden) propositionChamp.value = remplacer(propositionChamp.value);
+      lecture.date_source = 'date du scan, choisie par Max';
+      lecture.date_scan = jour;
+      boutonDateScan.hidden = true;
+      propositionStatut.textContent = `Date du scan prise : ${jour}. Rien n’est renommé avant ton Oui.`;
+    }
+
     function nomPourOui() {
       if (!propositionModification.hidden) return { texte: propositionChamp.value, reponse: lectureGoogle.nom_propose || lectureGoogle.choix.length ? 'Modifié' : 'Écrit par Max' };
       return lectureGoogle.nom_propose ? { texte: lectureGoogle.nom_propose, reponse: 'Oui' } : null;
@@ -571,6 +602,11 @@ const scanEcran = (() => {
         return;
       }
       propositionErreur.hidden = true;
+      // Caractères interdits remplacés : Cap montre le nom obtenu, Max redit Oui.
+      if (verdict.change) {
+        ouvrirSaisie(verdict.base, 'J’ai remplacé des caractères interdits. Vérifie le nom, puis touche « Oui ».');
+        return;
+      }
       nomGoogle = verdict.base;
       lectureGoogle.reponse = choix.reponse;
       await finaliserApresReponse(`Nom retenu : ${verdict.base}.pdf.`);
@@ -649,6 +685,13 @@ const scanEcran = (() => {
       } catch (erreur) {
         annoncer(`La ligne du Journal Numérisation n’a pas pu être gardée : ${erreur.message}`, false);
       }
+    }
+
+    // Description du fichier dans le Drive (règle de nommage, 06/11/2026) : jamais le texte lu.
+    function detailsDescription(l) {
+      return [`Date du scan : ${dateDuJour()}`, `Date du nom : ${l.date_source || 'à préciser'}`,
+        'Émetteur : non reconnu',
+        ...(l.mot_cle ? [`Mot-clé : ${l.mot_cle}${l.score ? ` (score ${l.score})` : ''}`] : [])];
     }
 
     function nomsDejaPris(fiches) {
@@ -759,7 +802,7 @@ const scanEcran = (() => {
         const existants = nomsDejaPris(await file.lister());
         const base = nomValide ? scanNommage.verifier(nomValide) : null;
         // Nom tiré du tableur : seulement après le « Oui » de Max ; sinon, comme avant.
-        const nomRetenu = nomGoogle ? scanNommage.uniqueAvecExtension(nomGoogle, existants)
+        const nomRetenu = nomGoogle ? nommageScan.nomUnique(nomGoogle, existants)
           : base && base.ok ? scanNommage.uniqueAvecExtension(base.base, existants) : '';
         fiche = {
           nom: scanDocuments.nomFichier(maintenant(), existants),
@@ -767,7 +810,8 @@ const scanEcran = (() => {
           pages: nombre,
           texte: texteDocument || (lectureGoogle ? lectureGoogle.texte : ''),
           nom_propose: nomPropose || (lectureGoogle && lectureGoogle.nom_propose ? `${lectureGoogle.nom_propose}.pdf` : ''),
-          nom_valide: nomRetenu
+          nom_valide: nomRetenu,
+          details: nomGoogle && lectureGoogle ? detailsDescription(lectureGoogle) : []
         };
         await file.ajouter(fiche);
         noterLectureGoogle(fiche);
@@ -850,6 +894,7 @@ const scanEcran = (() => {
     parId('scanner-proposition-non').addEventListener('click', () => { void repondreSansNom('Non'); });
     parId('scanner-proposition-daccord').addEventListener('click', () => { void repondreSansNom('D’accord'); });
     parId('scanner-proposition-ecrire').addEventListener('click', repondreEcrire);
+    boutonDateScan.addEventListener('click', prendreDateDuScan);
     boutonCapturer.addEventListener('click', () => { void capturerDepuisCamera().catch(e => dire(e.message)); });
     parId('scanner-fichier').addEventListener('change', event => {
       const fichier = event.target.files && event.target.files[0];

@@ -38,11 +38,13 @@ const scanFile = (() => {
     const base = () => (ouverte ||= ouvrir(nomBase));
 
     // nom = nom d'origine (provisoire, jamais modifié). nom_propose : proposition de Cap. nom_valide : nom accepté par Max ('' sinon).
-    async function ajouter({ nom, pdf, pages, texte, nom_propose, nom_valide }) {
+    // details (06/11/2026) : lignes pour la description du fichier dans le Drive (jamais le texte lu).
+    async function ajouter({ nom, pdf, pages, texte, nom_propose, nom_valide, details }) {
       if (!nom || !(pdf instanceof Blob) || !pdf.size) throw new Error('Scan vide : rien à enregistrer.');
       const fiche = {
         nom, pdf, pages: pages || 0, cree: new Date().toISOString(), etat: 'attente', drive_id: '', depose_le: '', erreur: '',
-        texte: String(texte || ''), nom_propose: String(nom_propose || ''), nom_valide: String(nom_valide || '')
+        texte: String(texte || ''), nom_propose: String(nom_propose || ''), nom_valide: String(nom_valide || ''),
+        details: Array.isArray(details) ? details.map(String) : []
       };
       return transaction(await base(), 'readwrite', s => s.add(fiche));
     }

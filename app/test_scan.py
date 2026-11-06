@@ -388,6 +388,27 @@ TESTS_JS = r"""
     return f;
   }
 
+  await test('dépôt (règle de nommage) : nom déjà pris dans le dossier → « (2) », « (3) » ; description sans le texte lu', async () => {
+    const etat = { aclasser: true, envoyes: [] };
+    const pris = ['2026-01-12 Attestation - Jean Fictif.pdf', '2026-01-12 Attestation - Jean Fictif (2).pdf'];
+    const base = reponsesDrive(etat);
+    const m = monterDepot({ reponses: async r => {
+      if (r.methode === 'GET' && r.chemin === '/drive/v3/files' && !r.q.includes('folder')) {
+        if (r.q.includes('cap_origine')) return { files: [] };
+        return { files: pris.some(nom => r.q.includes(`name='${nom}'`)) ? [{ id: 'autre' }] : [] };
+      }
+      return base(r);
+    } });
+    const f = scanFile.creer('test_depot_regle_' + Math.random().toString(36).slice(2));
+    await f.ajouter({ nom: 'SCAN-regle.pdf', pdf: new Blob([new Uint8Array([37, 80, 68, 70, 9])], { type: 'application/pdf' }), pages: 1,
+      nom_valide: '2026-01-12 Attestation - Jean Fictif.pdf', details: ['Date du scan : 2026-01-15', 'Émetteur : non reconnu'] });
+    const res = await m.depot.deposerEnAttente(f);
+    egal(res.deposes, 1, 'dépôt');
+    const corps = await etat.envoyes[0].corps.text();
+    attendre(corps.includes('"name":"2026-01-12 Attestation - Jean Fictif (3).pdf"'), `nom libre non pris : ${corps.slice(0, 300)}`);
+    attendre(corps.includes('Nom d’origine : SCAN-regle.pdf\\nDate du scan : 2026-01-15\\nÉmetteur : non reconnu'), 'description incomplète');
+  });
+
   await test('dépôt : crée 00_A_CLASSER dans Documents Personnels, envoie les scans, jamais de suppression', async () => {
     egal(REGLAGES_GOOGLE.dossier_a_classer, '00_A_CLASSER', 'nom du dossier');
     egal(REGLAGES_GOOGLE.dossier_documents_personnels, 'Documents Personnels', 'dossier parent');
@@ -1001,8 +1022,9 @@ TESTS_JS = r"""
     egal(nommageScan.proposer('Prospectus FICTIF sans mot-clé', tableurFictif).raison, 'aucun', 'aucun mot-clé');
     egal(nommageScan.proposer('Lettre bancaire fictive', tableurFictif).raison, 'aucun', 'mot-clé pris dans un autre mot');
     egal(nommageScan.proposer('   ', tableurFictif).raison, 'sans_texte', 'texte vide');
-    egal(nommageScan.verifierNom('2026-03-12 Relevé Mutuelle.pdf'), { ok: true, base: '2026-03-12 Relevé Mutuelle', raison: '' }, 'nom gardé tel quel');
-    attendre(!nommageScan.verifierNom('a/b').ok && !nommageScan.verifierNom('  ').ok, 'nom interdit accepté');
+    egal(nommageScan.verifierNom('2026-03-12 Relevé Mutuelle.pdf'), { ok: true, base: '2026-03-12 Relevé Mutuelle', raison: '', change: false }, 'nom gardé tel quel');
+    egal(nommageScan.verifierNom('a/b'), { ok: true, base: 'a-b', raison: '', change: true }, 'caractère interdit remplacé');
+    attendre(!nommageScan.verifierNom('  ').ok, 'nom vide accepté');
   });
 
   function pageJpegFictive() {
@@ -1174,31 +1196,31 @@ TESTS_JS = r"""
     // 1. Prénom long (correction de Max) : une seule proposition, la date de naissance écartée ;
     //    la « radiographie » citée en passant ne l'emporte pas sur le titre (mots côte à côte, en haut).
     let p = motsCourts.proposer(courrierFictif('M. Théodore EXEMPLAIRE'), tableurSante, mots);
-    egal([p.raison, p.nom, p.mot_cle, p.personne_incertaine], ['trouve', '2026-10-14 Compte rendu suivi Théo Exemplaire',
+    egal([p.raison, p.nom, p.mot_cle, p.personne_incertaine], ['trouve', '2026-10-14 Compte rendu suivi - Théo Exemplaire',
       'compte rendu suivi + prénom', false], 'prénom long');
     attendre(p.score > 5, `score : ${p.score}`);
     // 2. Prénom court : même résultat.
     p = motsCourts.proposer(courrierFictif('M. Théo EXEMPLAIRE'), tableurSante, mots);
-    egal([p.raison, p.nom], ['trouve', '2026-10-14 Compte rendu suivi Théo Exemplaire'], 'prénom court');
+    egal([p.raison, p.nom], ['trouve', '2026-10-14 Compte rendu suivi - Théo Exemplaire'], 'prénom court');
     // 3. Nom de famille seul : personne incertaine, 3 titres proches proposés.
     p = motsCourts.proposer(courrierFictif('M. EXEMPLAIRE'), tableurSante, mots);
     egal([p.raison, p.personne_incertaine, p.choix.length], ['choix', true, 3], 'nom de famille seul');
-    egal(p.choix.map(c => c.nom).sort(), ['2026-10-14 Compte rendu ophtalmologie Lina Exemplaire', '2026-10-14 Compte rendu suivi Lina Exemplaire',
-      '2026-10-14 Compte rendu suivi Théo Exemplaire'], 'titres proposés');
+    egal(p.choix.map(c => c.nom).sort(), ['2026-10-14 Compte rendu ophtalmologie - Lina Exemplaire', '2026-10-14 Compte rendu suivi - Lina Exemplaire',
+      '2026-10-14 Compte rendu suivi - Théo Exemplaire'], 'titres proposés');
     // 4. Le courrier parle aussi d'un « bilan ophtalmologique » : deux titres proches, Cap ne choisit pas seul.
     p = motsCourts.proposer(courrierFictif('M. Théodore EXEMPLAIRE', { bilan: true }), tableurSante, mots);
-    egal([p.raison, p.choix.map(c => c.nom)], ['choix', ['2026-10-14 Compte rendu suivi Théo Exemplaire',
-      '2026-10-14 Bilan ophtalmologique Théo Exemplaire']], 'deux titres proches');
+    egal([p.raison, p.choix.map(c => c.nom)], ['choix', ['2026-10-14 Compte rendu suivi - Théo Exemplaire',
+      '2026-10-14 Bilan ophtalmologique - Théo Exemplaire']], 'deux titres proches');
   });
 
   await test('mots courts : mots trop courants jamais seuls, autre personne écartée, aucun texte, pluriel', async () => {
     const mots = motsCourts.analyser(ongletsFictifs);
     egal(motsCourts.proposer('Compte rendu de Théodore Exemplaire. Radio du poignet.', tableurSante, mots).raison, 'aucun', 'mots courants seuls');
     egal(motsCourts.proposer('Compte rendu de suivi pour Lina Exemplaire', tableurSante, mots).nom,
-      'DATE A PRECISER Compte rendu suivi Lina Exemplaire', 'la bonne personne, l’autre écartée');
+      'DATE-A-PRECISER Compte rendu suivi - Lina Exemplaire', 'la bonne personne, l’autre écartée');
     egal(motsCourts.proposer('   ', tableurSante, mots).raison, 'sans_texte', 'texte vide');
     egal(motsCourts.proposer('Extraits bancaires de Théo, le 02/01/2026', tableurSante, mots).nom,
-      '2026-01-02 Releve bancaire Théo Exemplaire', 'forme corrigée et pluriel');
+      '2026-01-02 Releve bancaire - Théo Exemplaire', 'forme corrigée et pluriel');
     egal(nommageScan.dateDuTexte('Née le 12/05/1980. Courrier du 03/09/2026'), '2026-09-03', 'date de naissance écartée');
   });
 
@@ -1206,11 +1228,11 @@ TESTS_JS = r"""
     const mots = motsCourts.analyser(ongletsFictifs);
     // Le faux document écrit le nom du métier, pas celui de la spécialité : même début, la ligne est trouvée.
     let p = motsCourts.proposer(['ORDONNANCE FICTIVE', 'Séances avec un orthophoniste diplômé pour Théo Exemplaire.', 'Fait le 02/03/2026'].join(' '), tableurSante, mots);
-    egal([p.raison, p.nom], ['trouve', '2026-03-02 Ordonnance orthophonie Théo Exemplaire'], 'même début trouvé');
+    egal([p.raison, p.nom], ['trouve', '2026-03-02 Ordonnance orthophonie - Théo Exemplaire'], 'même début trouvé');
     // La règle se trompe : « certification » a le même début que « certificat ». Cap propose ce
     // titre (FAUX ici) ; il n'est retenu que si Max dit « Oui ».
     p = motsCourts.proposer('Certification qualité FICTIVE de l’atelier de Théo Exemplaire, le 05/05/2026', tableurSante, mots);
-    egal([p.raison, p.nom], ['trouve', '2026-05-05 Certificat Théo Exemplaire'], 'erreur connue de la règle');
+    egal([p.raison, p.nom], ['trouve', '2026-05-05 Certificat - Théo Exemplaire'], 'erreur connue de la règle');
     // Jamais pour les prénoms : une forme plus longue d'un prénom ne compte pas.
     p = motsCourts.proposer('Compte rendu de suivi pour Théodorine Exemplaire', tableurSante, mots);
     egal([p.raison, p.personne_incertaine], ['choix', true], 'prénom : pas de même début');
@@ -1232,16 +1254,16 @@ TESTS_JS = r"""
     const g = monterScore();
     const e = await scanGoogle(g, [{ texte: courrierFictif('M. Théodore EXEMPLAIRE') }]);
     await terminerPuisVoir(e);
-    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi Théo Exemplaire.pdf', 'nom proposé');
+    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Théo Exemplaire.pdf', 'nom proposé');
     attendre(e.id('scanner-proposition-info').textContent.includes('score'), `score absent : ${e.id('scanner-proposition-info').textContent}`);
     attendre(e.id('scanner-proposition-choix').hidden, 'choix affichés pour une seule proposition');
     cliquer(e.id('scanner-proposition-oui'));
     await pause(1500);
-    egal((await e.file.lister())[0].nom_valide, '2026-10-14 Compte rendu suivi Théo Exemplaire.pdf', 'nom retenu après Oui');
+    egal((await e.file.lister())[0].nom_valide, '2026-10-14 Compte rendu suivi - Théo Exemplaire.pdf', 'nom retenu après Oui');
     const l = g.lignes[0];
     attendre(/^mot-clé : compte rendu suivi \+ prénom ; score : \d/.test(l.resultat), `résultat : ${l.resultat}`);
     attendre(l.details.includes('recherche : par score') && l.details.includes('réponse : Oui'), `détails : ${l.details}`);
-    attendre(l.details.includes('meilleurs candidats : 2026-10-14 Compte rendu suivi Théo Exemplaire.pdf (compte rendu suivi + prénom, score '),
+    attendre(l.details.includes('meilleurs candidats : 2026-10-14 Compte rendu suivi - Théo Exemplaire.pdf (compte rendu suivi + prénom, score '),
       `meilleurs candidats absents : ${l.details}`);
     attendre(!l.details.includes('gêne') && !l.resultat.includes('gêne'), 'texte lu recopié dans le journal');
   });
@@ -1275,6 +1297,63 @@ TESTS_JS = r"""
     attendre(g.lignes[0].details.includes('recherche : stricte (mots-clés courts non lus : mots injoignables FICTIF)'), `journal : ${g.lignes[0].details}`);
   });
 
+
+  await test('règle de nommage : ordre, émetteur absent, caractères remplacés, mois seul, numéro (2)', async () => {
+    egal(nommageScan.composerNom({ date: '2026-02-03', type: 'Avis d’imposition', emetteur: 'Finances FICTIVES', personne: 'Jean et Jeanne Fictif' }),
+      '2026-02-03 Avis d’imposition - Finances FICTIVES - Jean et Jeanne Fictif', 'ordre des éléments');
+    egal(nommageScan.composerNom({ date: '2026-05-05', type: 'Facture', personne: 'Jeanne Exemple' }), '2026-05-05 Facture - Jeanne Exemple', 'émetteur absent');
+    egal(nommageScan.composerNom({ type: 'Attestation', personne: 'Jean Fictif' }), 'DATE-A-PRECISER Attestation - Jean Fictif', 'sans date');
+    egal(nommageScan.nettoyerNom('Relevé 03/2026: « Banque » ? *Fictive*. '), 'Relevé 03-2026 - Banque Fictive', 'caractères remplacés');
+    egal(nommageScan.moisDuTexte('Relevé du mois de mars 2026, FICTIF'), '2026-03', 'mois en toutes lettres');
+    egal(nommageScan.moisDuTexte('Période 04/2025 FICTIVE'), '2025-04', 'mois en chiffres');
+    egal(nommageScan.moisDuTexte('Aucune date FICTIVE'), '', 'pas de mois inventé');
+    egal(nommageScan.nomUnique('2026-01-12 Attestation - Jean Fictif', ['2026-01-12 attestation - jean fictif.pdf', '2026-01-12 Attestation - Jean Fictif (2).pdf']),
+      '2026-01-12 Attestation - Jean Fictif (3).pdf', 'numéro (3)');
+    // Sans date complète dans le texte, le mois seul sert ; le type vient de la colonne « Type de document ».
+    const mots = motsCourts.analyser(ongletsFictifs);
+    const lignes = [{ numero: 20, mot_cle: 'relevé bancaire Théo Exemplaire', organisme: '', type: 'Relevé de compte', modele: '[date] Releve Théo Exemplaire', chemin: ['04_BANQUE'] }];
+    egal(motsCourts.proposer('Relevé bancaire FICTIF de Théo pour mars 2026', lignes, mots).nom, '2026-03 Relevé de compte - Théo Exemplaire', 'mois seul et colonne Type');
+    // Ligne sans personne dans le mot-clé : la personne vient du modèle de titre.
+    const sansPersonne = [{ numero: 21, mot_cle: 'fiche de paie FICTIVE', organisme: '', type: 'Fiche de paie', modele: '[date] Fiche de paie Lina Exemplaire', chemin: ['03_TRAVAIL'] }];
+    const typesPaie = { ...ongletsFictifs, types: [...ongletsFictifs.types, ['fiche de paie fictive', '21', '1', 'fiche paie', '', 'Oui', 'À valider', '2026-11-06', '']] };
+    const p = motsCourts.proposer('Fiche de paie FICTIVE de Lina, le 31/01/2026', sansPersonne, motsCourts.analyser(typesPaie));
+    egal([p.nom, p.personne_incertaine], ['2026-01-31 Fiche de paie - Lina Exemplaire', false], 'personne du modèle');
+    egal(motsCourts.proposer('Fiche de paie FICTIVE de Théo, le 31/01/2026', sansPersonne, motsCourts.analyser(typesPaie)).raison, 'aucun', 'autre personne écartée');
+  });
+
+  await test('écran Google : sans date, « Prendre la date du scan » seulement si Max le touche ; caractères remplacés montrés avant Oui ; description', async () => {
+    let g = monterScore();
+    let e = await scanGoogle(g, [{ texte: 'Compte rendu de suivi FICTIF pour Théo Exemplaire, sans aucune date' }]);
+    await terminerPuisVoir(e);
+    egal(e.id('scanner-proposition-nom').textContent, 'DATE-A-PRECISER Compte rendu suivi - Théo Exemplaire.pdf', 'nom sans date');
+    attendre(!e.id('scanner-proposition-date-scan').hidden, 'bouton de la date du scan absent');
+    const jour = /\((\d{2})\/(\d{2})\/(\d{4})\)/.exec(e.id('scanner-proposition-date-scan').textContent).slice(1).reverse().join('-');
+    cliquer(e.id('scanner-proposition-date-scan'));
+    egal(e.id('scanner-proposition-nom').textContent, `${jour} Compte rendu suivi - Théo Exemplaire.pdf`, 'date du scan prise');
+    egal((await e.file.lister()).length, 0, 'enregistré avant le Oui');
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(1500);
+    const fiche = (await e.file.lister())[0];
+    egal(fiche.nom_valide, `${jour} Compte rendu suivi - Théo Exemplaire.pdf`, 'nom retenu');
+    attendre(fiche.details.includes('Date du nom : date du scan, choisie par Max') && fiche.details.includes('Émetteur : non reconnu')
+      && fiche.details.some(d => d.startsWith('Mot-clé : compte rendu suivi + prénom (score ')), `description : ${JSON.stringify(fiche.details)}`);
+    attendre(!fiche.details.join(' ').includes('sans aucune date'), 'texte lu dans la description');
+    // Date lisible : pas de bouton.
+    g = monterScore();
+    e = await scanGoogle(g, [{ texte: courrierFictif('M. Théodore EXEMPLAIRE') }]);
+    await terminerPuisVoir(e);
+    attendre(e.id('scanner-proposition-date-scan').hidden, 'bouton de la date du scan affiché alors qu’une date est lue');
+    // Nom modifié par Max avec des caractères interdits : remplacés, montrés, puis Oui.
+    cliquer(e.id('scanner-proposition-modifier'));
+    e.id('scanner-proposition-champ').value = '2026-10-14 Suivi: Théo/Exemplaire ?';
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(300);
+    egal((await e.file.lister()).length, 0, 'enregistré sans montrer le nom corrigé');
+    egal(e.id('scanner-proposition-champ').value, '2026-10-14 Suivi - Théo-Exemplaire', 'nom corrigé montré');
+    cliquer(e.id('scanner-proposition-oui'));
+    await pause(1500);
+    egal((await e.file.lister())[0].nom_valide, '2026-10-14 Suivi - Théo-Exemplaire.pdf', 'nom corrigé retenu');
+  });
   await test('écran Google : lecture échouée page par page, aucun texte lu, tableur non lu, annulation', async () => {
     let g = monterGoogle();
     let e = await scanGoogle(g, [{ texte: 'MUTUELLE FICTIVE' }, { lu: false, texte: '' }]);

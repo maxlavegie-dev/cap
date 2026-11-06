@@ -76,13 +76,62 @@ const nommageScan = (() => {
 
   // Vérifie un nom proposé ou modifié par Max : jamais vide, jamais de caractère interdit dans un
   // nom de fichier. Le nom est gardé tel quel (accents et majuscules compris), sans « .pdf ».
+  // 06/11/2026 (règle de nommage) : les caractères interdits sont REMPLACÉS, plus refusés ; « change »
+  // dit si le nom a été modifié, pour que Cap montre le résultat à Max avant son « Oui ».
   function verifierNom(saisie) {
-    const base = String(saisie || '').replace(/\.pdf$/i, '').replace(/\s+/g, ' ').trim();
-    if (!base) return { ok: false, base: '', raison: 'Le nom est vide.' };
-    if (/[\\/:*?"<>|\u0000-\u001f]/.test(base)) return { ok: false, base: '', raison: 'Le nom contient un caractère interdit (/ \\ : * ? " < > |).' };
-    if (base.length > longueurMax) return { ok: false, base: '', raison: `Le nom est trop long (plus de ${longueurMax} caractères).` };
-    return { ok: true, base, raison: '' };
+    const brut = String(saisie || '').replace(/\.pdf$/i, '').replace(/\s+/g, ' ').trim();
+    const base = nettoyerNom(brut);
+    if (!base) return { ok: false, base: '', raison: 'Le nom est vide.', change: false };
+    if (base.length > longueurMax) return { ok: false, base: '', raison: `Le nom est trop long (plus de ${longueurMax} caractères).`, change: false };
+    return { ok: true, base, raison: '', change: base !== brut };
   }
 
-  return { cle, dateDuTexte, motsClesTrouves, proposer, verifierNom, dateAPreciser };
+  // ----- Règle de nommage validée par Max le 06/11/2026 -----
+  // « AAAA-MM-JJ Type - Émetteur - Personne.pdf » ; émetteur seulement s'il est certain ; sans date
+  // lisible : « DATE-A-PRECISER » (jamais la date du scan sans l'accord de Max) ; mois et année
+  // seuls : « AAAA-MM » ; caractères interdits remplacés ; même nom : « (2) », « (3) »…
+  const dateAPreciserRegle = 'DATE-A-PRECISER';
+
+  // Caractères interdits ou gênants remplacés (jamais refusés) : / et \ → « - » ; « : » → « - » ;
+  // ? * < > | et les guillemets supprimés ; espaces doublés réduits ; point ou espace aux bouts retirés.
+  function nettoyerNom(saisie) {
+    return String(saisie || '').replace(/\.pdf$/i, '')
+      .replace(/[\/\\]/g, '-')
+      .replace(/\s*:\s*/g, ' - ')
+      .replace(/[?*<>|"«»“”\u0000-\u001f]/g, '')
+      .replace(/\s+/g, ' ').trim()
+      .replace(/^[.\s]+|[.\s]+$/g, '');
+  }
+
+  // Mois et année seuls (« mars 2026 », « 03/2026 »), si aucune date complète : « AAAA-MM », sinon ''.
+  function moisDuTexte(texte) {
+    const plat = String(texte || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+    const noms = Object.keys(mois).join('|');
+    const trouvees = [];
+    for (const m of plat.matchAll(new RegExp(`(?<![\\d])(${noms})\\s+(\\d{4})(?!\\d)`, 'g'))) {
+      trouvees.push({ position: m.index, annee: Number(m[2]), mois: mois[m[1]] });
+    }
+    for (const m of plat.matchAll(/(?<![\d/.-])(\d{1,2})[/.-](\d{4})(?!\d)/g)) {
+      trouvees.push({ position: m.index, annee: Number(m[2]), mois: Number(m[1]) });
+    }
+    const bonne = trouvees.filter(t => t.annee >= 1900 && t.annee <= 2100 && t.mois >= 1 && t.mois <= 12)
+      .sort((a, b) => a.position - b.position)[0];
+    return bonne ? `${bonne.annee}-${String(bonne.mois).padStart(2, '0')}` : '';
+  }
+
+  function composerNom({ date = '', type = '', emetteur = '', personne = '' } = {}) {
+    const suite = [emetteur, personne].map(p => String(p || '').trim()).filter(Boolean).map(p => ` - ${p}`).join('');
+    return nettoyerNom(`${date || dateAPreciserRegle} ${String(type || '').trim()}${suite}`).slice(0, longueurMax).trim();
+  }
+
+  // Même nom déjà pris (sans tenir compte des majuscules) : « Nom (2).pdf », « Nom (3).pdf »…
+  function nomUnique(base, existants = []) {
+    const pris = new Set(existants.map(nom => String(nom).toLowerCase()));
+    let nom = `${base}.pdf`;
+    for (let n = 2; pris.has(nom.toLowerCase()); n++) nom = `${base} (${n}).pdf`;
+    return nom;
+  }
+
+  return { cle, dateDuTexte, motsClesTrouves, proposer, verifierNom, dateAPreciser,
+    dateAPreciserRegle, nettoyerNom, moisDuTexte, composerNom, nomUnique };
 })();

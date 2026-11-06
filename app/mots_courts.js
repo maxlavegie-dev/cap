@@ -68,7 +68,8 @@ const motsCourts = (() => {
     for (const l of lignesOnglet(onglets.personnes, { nom: 'Nom', prenom: 'Prenom', statut: 'Statut', correction: 'Correction' })) {
       const nom = cle(l.nom);
       const prenoms = formes(valeurRetenue(l.prenom, l.statut, l.correction));
-      if (nom && prenoms.length) personnes.push({ nom, prenoms });
+      // affichage : le nom tel qu'il est écrit dans le tableur (pour le nom du fichier).
+      if (nom && prenoms.length) personnes.push({ nom, prenoms, affichage: String(l.nom).replace(/\s+/g, ' ').trim() });
     }
     // Les noms les plus longs d'abord (un nom ne doit pas en cacher un autre qui le contient).
     personnes.sort((a, b) => b.nom.length - a.nom.length);
@@ -127,8 +128,11 @@ const motsCourts = (() => {
   function regles(lignes, mots) {
     return (lignes || []).map(ligne => {
       const motCle = cle(ligne.mot_cle);
-      const personne = mots.personnes.find(p => motCle === p.nom || motCle.endsWith(` ${p.nom}`)) || null;
-      const expression = personne ? motCle.slice(0, motCle.length - personne.nom.length).trim() : motCle;
+      const personneMotCle = mots.personnes.find(p => motCle === p.nom || motCle.endsWith(` ${p.nom}`)) || null;
+      const expression = personneMotCle ? motCle.slice(0, motCle.length - personneMotCle.nom.length).trim() : motCle;
+      // 06/11/2026 : sans personne dans le mot-clé, celle du « Modèle de titre » (s'il en nomme une).
+      const modele = ` ${cle(ligne.modele)} `;
+      const personne = personneMotCle || mots.personnes.find(p => modele.includes(` ${p.nom} `)) || null;
       const type = mots.types.get(expression);
       // Ligne absente du tableur à valider (ajoutée depuis) : ses propres mots, sans les petits mots.
       const alternatives = type ? type.alternatives
@@ -150,9 +154,18 @@ const motsCourts = (() => {
 
   const arrondi = n => Math.round(n * 10) / 10;
 
-  function nomDepuisModele(modele, date) {
-    const nom = modele.includes('[date]') ? modele.replace('[date]', date || nommageScan.dateAPreciser) : modele;
-    return nom.replace(/\s+/g, ' ').trim();
+  // Règle de nommage validée par Max (06/11/2026) : « AAAA-MM-JJ Type - Émetteur - Personne ».
+  // Type : la colonne « Type de document » du tableur de classement ; vide : le « Modèle de titre »
+  // sans « [date] » ni la personne. Émetteur : vide tant qu'il n'est pas reconnu avec certitude.
+  function typeDe(r) {
+    const type = String(r.ligne.type || '').trim();
+    if (type) return type;
+    let modele = String(r.ligne.modele || '').replace('[date]', ' ');
+    if (r.personne && r.personne.affichage) modele = modele.split(r.personne.affichage).join(' ');
+    return modele.replace(/\s+/g, ' ').trim();
+  }
+  function nomSelonRegle(r, date, emetteur = '') {
+    return nommageScan.composerNom({ date, type: typeDe(r), emetteur, personne: r.personne ? r.personne.affichage : '' });
   }
 
   // { nom, mot_cle, raison : 'trouve' | 'choix' | 'trop_proches' | 'aucun' | 'sans_texte', date, score,
@@ -188,18 +201,19 @@ const motsCourts = (() => {
       const score = alternative.score + (personneTrouvee ? BONUS_PERSONNE : 0) + (organisme ? BONUS_ORGANISME : 0);
       const motCle = [alternative.mots.join(' '), personneTrouvee ? 'prénom' : '', organisme ? `organisme « ${organisme} »` : '']
         .filter(Boolean).join(' + ');
-      candidats.push({ modele: r.ligne.modele, cle: cle(r.ligne.modele), mot_cle: motCle, score, incertaine });
+      candidats.push({ regle: r, cle: cle(r.ligne.modele), mot_cle: motCle, score, incertaine });
     }
     // Une seule fois chaque modèle de titre (son meilleur score).
     const meilleurs = new Map();
     for (const c of candidats) if (!meilleurs.has(c.cle) || meilleurs.get(c.cle).score < c.score) meilleurs.set(c.cle, c);
     const tries = [...meilleurs.values()].sort((a, b) => b.score - a.score);
     if (!tries.length) return vide;
-    const date = nommageScan.dateDuTexte(texte);
+    // Date complète, sinon mois et année seuls ; aucune : « DATE-A-PRECISER » (jamais inventée).
+    const date = nommageScan.dateDuTexte(texte) || nommageScan.moisDuTexte(texte);
     // Pour le Journal Numérisation : les 3 meilleurs candidats et leur score (jamais le texte lu).
-    vide.meilleurs = tries.slice(0, 3).map(c => ({ nom: nomDepuisModele(c.modele, date), mot_cle: c.mot_cle, score: arrondi(c.score) }));
+    vide.meilleurs = tries.slice(0, 3).map(c => ({ nom: nomSelonRegle(c.regle, date), mot_cle: c.mot_cle, score: arrondi(c.score) }));
     const proches = tries.filter(c => c.score >= tries[0].score * PROCHE);
-    const choix = proches.map(c => ({ nom: nomDepuisModele(c.modele, date), mot_cle: c.mot_cle, score: arrondi(c.score) }));
+    const choix = proches.map(c => ({ nom: nomSelonRegle(c.regle, date), mot_cle: c.mot_cle, score: arrondi(c.score) }));
     const incertaine = proches.some(c => c.incertaine);
     if (proches.length === 1) {
       return { ...vide, nom: choix[0].nom, mot_cle: choix[0].mot_cle, raison: 'trouve', date, score: choix[0].score, personne_incertaine: incertaine };

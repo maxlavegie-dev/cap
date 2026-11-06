@@ -93,11 +93,13 @@ const scanDepot = (() => {
     return (await demander(`${drive}?${parametres}`)).files?.[0]?.id || '';
   }
 
-  async function televerser(nom, pdf, dossier, origine = '') {
+  async function televerser(nom, pdf, dossier, origine = '', details = []) {
     const limite = `cap${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
     const infos = { name: nom, parents: [dossier], mimeType: 'application/pdf' };
     if (origine) {
-      infos.description = `Nom d’origine : ${origine}`;
+      // 06/11/2026 : la description garde aussi la date du scan, d'où vient la date du nom, l'émetteur
+      // et le mot-clé avec son score (jamais le texte lu).
+      infos.description = [`Nom d’origine : ${origine}`, ...details].join('\n');
       infos.appProperties = { cap_origine: origine };
     }
     const meta = JSON.stringify(infos);
@@ -112,12 +114,28 @@ const scanDepot = (() => {
     return resultat.id;
   }
 
+  async function nomPris(nom, dossier) {
+    const parametres = new URLSearchParams({
+      q: `name='${echapper(nom)}' and '${echapper(dossier)}' in parents and trashed=false`, fields: 'files(id)', pageSize: '1'
+    });
+    return Boolean((await demander(`${drive}?${parametres}`)).files?.[0]?.id);
+  }
+  async function nomLibre(nom, dossier) {
+    const base = String(nom).replace(/\.pdf$/i, '');
+    for (let n = 1; n <= 50; n++) {
+      const essai = n === 1 ? `${base}.pdf` : `${base} (${n}).pdf`;
+      if (!await nomPris(essai, dossier)) return essai;
+    }
+    throw new Error('Trop de fichiers portent déjà ce nom : rien n’a été déposé.');
+  }
+
   async function deposerUn(fiche, file) {
     const dossier = await dossierAClasser();
     const nomDepose = fiche.nom_valide || fiche.nom;
     const origine = fiche.nom_valide ? fiche.nom : '';
     let id = await dejaPresent(nomDepose, dossier, origine);
-    if (!id) id = await televerser(nomDepose, fiche.pdf, dossier, origine);
+    // 06/11/2026 : un AUTRE fichier porte déjà ce nom dans le dossier : « Nom (2).pdf », « (3) »…
+    if (!id) id = await televerser(origine ? await nomLibre(nomDepose, dossier) : nomDepose, fiche.pdf, dossier, origine, fiche.details || []);
     await file.marquerDepose(fiche.id, id);
     return id;
   }
