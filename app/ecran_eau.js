@@ -46,6 +46,31 @@ const ecranEau = (() => {
   const AMORTISSEMENT = 0.985;
   const CELLULES_CIBLE = 46000;
 
+  // ----- Couleurs des bandes du téléphone (lot c21) -----
+  // En haut, l'eau est à son plus clair (= le fond) ; en bas, elle est un peu plus « profonde ». La bande
+  // de la barre de navigation prend donc la couleur de l'eau en bas (fond + eau à son opacité), sinon
+  // elle paraît blanche à côté. Sans eau : le fond partout.
+  function hex(rgb) { return `#${rgb.map(c => Math.max(0, Math.min(255, Math.round(c))).toString(16).padStart(2, '0')).join('')}`; }
+  function couleursBandes(doc, eauVisible) {
+    const [clair, fonce] = couleursDuFond(doc);
+    if (!eauVisible) return { haut: hex(clair), bas: hex(clair) };
+    let opacite = 0.55;
+    try {
+      const toile = doc.getElementById('eau-accueil') || doc.getElementById('toile-eau');
+      const lue = Number(doc.defaultView.getComputedStyle(toile).opacity);
+      if (lue >= 0 && lue <= 1) opacite = lue;
+    } catch (e) { /* valeur par défaut */ }
+    return { haut: hex(clair), bas: hex(clair.map((c, i) => c * (1 - opacite) + fonce[i] * opacite)) };
+  }
+  function informerTelephone(doc, eauVisible) {
+    try {
+      const pont = doc.defaultView && doc.defaultView.CouleursAndroid;
+      if (!pont || typeof pont.changer !== 'function') return;
+      const c = couleursBandes(doc, eauVisible);
+      pont.changer(c.haut, c.bas);
+    } catch (e) { /* hors de l'application Android : rien */ }
+  }
+
   // ----- Couche d'eau réutilisable (simulation de Zencoder) -----
   function creerCouche(toile, options = {}) {
     const fenetre = options.fenetre || (typeof window !== 'undefined' ? window : null);
@@ -376,6 +401,7 @@ const ecranEau = (() => {
     const texteInterrupteur = doc.getElementById('etat-interrupteur-eau');
     function appliquerActive() {
       doc.documentElement.classList.toggle('sans-eau', !active);
+      informerTelephone(doc, active);
       if (interrupteur) interrupteur.setAttribute('aria-checked', String(active));
       if (texteInterrupteur) texteInterrupteur.textContent = active ? 'en marche' : 'arrêtée';
     }
@@ -404,7 +430,7 @@ const ecranEau = (() => {
     return ecran;
   }
 
-  return { REGLAGES, CLE_VUE, CLE_ACTIVE, creerCouche, eauAccueil, monter, auDemarrage };
+  return { REGLAGES, CLE_VUE, CLE_ACTIVE, creerCouche, eauAccueil, monter, auDemarrage, couleursBandes };
 })();
 
 // Démarrage réel dans Cap. La page des tests automatiques (window.CAP_TESTS) crée ses propres écrans

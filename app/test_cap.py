@@ -2142,6 +2142,30 @@ TESTS_JS = r"""
     attendre(!ecran3.eauActive(), 'arrêt impossible quand les préférences refusent');
   });
 
+  await testAsync('Barre du bas (lot c21) : Cap envoie à l’application Android la couleur de l’eau en bas, et le fond seul sans eau', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const h = horlogeEau();
+    const recues = [];
+    ui.cadre.contentWindow.CouleursAndroid = { changer: (haut, bas) => recues.push([haut, bas]) };
+    const prefs = new Map();
+    const preferences = { getItem: k => prefs.get(k) ?? null, setItem: (k, v) => prefs.set(k, String(v)) };
+    const ecran = ecranEau.auDemarrage(ui.doc, { stockage: { getItem: () => 'oui', setItem: () => {} }, preferences, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun', dureeSortieMs: 0 } });
+    attendre(recues.length >= 1, 'aucune couleur envoyée au téléphone');
+    const [haut, bas] = recues[recues.length - 1];
+    attendreEgal(haut, '#eaf1f4', 'bande du haut');
+    attendre(/^#[0-9a-f]{6}$/.test(bas) && bas !== haut, `bande du bas sans la couleur de l’eau : ${bas}`);
+    // Couleur attendue : le fond et l'eau « profonde » mélangés à l'opacité de l'eau (0,55).
+    const attendu = ecranEau.couleursBandes(ui.doc, true).bas;
+    attendreEgal(bas, attendu, 'couleur du bas');
+    ui.parId('interrupteur-eau').click();
+    const dernier = recues[recues.length - 1];
+    attendreEgal(dernier, ['#eaf1f4', '#eaf1f4'], 'sans eau : le fond partout');
+    // Hors de l'application Android (pas de pont) : aucune erreur.
+    delete ui.cadre.contentWindow.CouleursAndroid;
+    ecran.changerEau(true);
+    attendre(ecran.eauActive(), 'erreur sans application Android');
+  });
+
   await testAsync('Écran d’eau : le petit bouton « Eau » y ramène ; couche d’eau sans toucher ; gestes bloqués seulement sur l’eau ; aucune adresse extérieure', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     const h = horlogeEau();
@@ -5900,8 +5924,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v54['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v54")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v55['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v55")
 
 
 def verifier_precache_fichiers_existent():

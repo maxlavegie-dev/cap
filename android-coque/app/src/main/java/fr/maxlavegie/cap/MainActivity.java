@@ -157,6 +157,7 @@ public class MainActivity extends Activity {
         reglages.setMediaPlaybackRequiresUserGesture(false);
         vue.addJavascriptInterface(new PontMicroAndroid(), "PontMicroAndroid");
         vue.addJavascriptInterface(new ScannerAndroid(), "ScannerAndroid");
+        vue.addJavascriptInterface(new CouleursAndroid(), "CouleursAndroid");
         vue.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
@@ -279,7 +280,9 @@ public class MainActivity extends Activity {
         Window fenetre = getWindow();
         fenetre.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         fenetre.setStatusBarColor(Color.TRANSPARENT);
-        fenetre.setNavigationBarColor(Color.TRANSPARENT);
+        // Lot c21 : la barre du bas n'est plus transparente mais de la couleur envoyée par Cap (celle de
+        // l'eau en bas de l'écran) ; transparente, elle laissait voir le fond plat, qui paraissait blanc.
+        fenetre.setNavigationBarColor(FOND_PAR_DEFAUT);
         if (Build.VERSION.SDK_INT >= 29) fenetre.setNavigationBarContrastEnforced(false);
         int drapeaux = View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
@@ -321,6 +324,27 @@ public class MainActivity extends Activity {
         int couleur = Color.rgb(Integer.parseInt(m.group(1)), Integer.parseInt(m.group(2)), Integer.parseInt(m.group(3)));
         racine.setBackgroundColor(couleur);
         vue.setBackgroundColor(couleur);
+    }
+
+    // Lot c21 : Cap envoie la couleur des deux bandes (« #rrggbb »). Seulement des couleurs, vérifiées.
+    private class CouleursAndroid {
+        @JavascriptInterface
+        public void changer(String haut, String bas) {
+            final Integer couleurHaut = couleurHex(haut);
+            final Integer couleurBas = couleurHex(bas);
+            runOnUiThread(() -> {
+                if (couleurHaut != null) {
+                    racine.setBackgroundColor(couleurHaut);
+                    vue.setBackgroundColor(couleurHaut);
+                }
+                if (couleurBas != null) getWindow().setNavigationBarColor(couleurBas);
+            });
+        }
+    }
+
+    private static Integer couleurHex(String valeur) {
+        if (valeur == null || !valeur.matches("#[0-9a-fA-F]{6}")) return null;
+        return Color.parseColor(valeur);
     }
 
     private void effacerAncienDiagnostic() {

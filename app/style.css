@@ -443,7 +443,9 @@ body.vue-complete #zone-recherche {
   gap: 14px;
   padding: 24px 16px calc(22px + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
-  background: linear-gradient(transparent, rgb(79 135 181 / 90%) 65%, #4F87B5);
+  /* Lot c21 (06/11/2026) : plus de dégradé bleu en bas de l'accueil (avant : linear-gradient(transparent,
+     rgb(79 135 181 / 90%) 65%, #4F87B5)) ; le fond pâle et l'eau continuent jusqu'à la barre du téléphone. */
+  background: transparent;
 }
 
 #microphone {
