@@ -86,10 +86,23 @@ const motsCourts = (() => {
     const contenu = ` ${cle(texte)} `;
     const jetons = contenu.trim() ? contenu.trim().split(' ') : [];
     const egal = (jeton, m) => jeton === m || jeton === `${m}s` || jeton === `${m}x`;
+    // Même début (06/11/2026, après l'essai c14) : pour les mots du TYPE seulement, deux mots de
+    // 8 lettres ou plus qui ont le même début comptent comme le même mot (le début commun fait au
+    // moins 8 lettres, et tout le mot du tableur sauf ses 3 dernières lettres). Ex. : un nom de
+    // spécialité et le nom du métier qui va avec. Peut se tromper (ex. « certificat » et
+    // « certification ») : le « Oui » de Max protège. Jamais pour les prénoms ni les organismes.
+    function memeDebut(jeton, m) {
+      if (m.length < 8 || jeton.length < 8) return false;
+      let commun = 0;
+      while (commun < m.length && commun < jeton.length && m[commun] === jeton[commun]) commun++;
+      return commun >= Math.max(8, m.length - 3);
+    }
+    const egalType = (jeton, m) => egal(jeton, m) || memeDebut(jeton, m);
     // Mot entier, n'importe où ; le pluriel simple (s, x) compte aussi.
     const mot = m => contenu.includes(` ${m} `) || contenu.includes(` ${m}s `) || contenu.includes(` ${m}x `);
+    const motType = m => (m.includes(' ') ? mot(m) : jetons.some(jeton => egalType(jeton, m)));
     const expression = e => contenu.includes(` ${e} `);
-    const positions = m => jetons.reduce((liste, jeton, i) => (egal(jeton, m) ? [...liste, i] : liste), []);
+    const positions = m => jetons.reduce((liste, jeton, i) => (egalType(jeton, m) ? [...liste, i] : liste), []);
     // Le titre d'un courrier est en haut : le premier quart du texte (au moins 120 mots).
     const finDebut = Math.max(120, Math.ceil(jetons.length / 4));
     // Mots côte à côte, dans l'ordre (au plus 3 mots entre deux, ex. « avis de taxe foncière »).
@@ -107,7 +120,7 @@ const motsCourts = (() => {
       });
     }
     const enHaut = mots => mots.every(m => positions(m).some(p => p < finDebut));
-    return { mot, expression, enPhrase, enHaut, vide: !jetons.length };
+    return { mot, motType, expression, enPhrase, enHaut, vide: !jetons.length };
   }
 
   // Une règle par ligne du tableur de classement : sa personne, son expression, ses mots courts.
@@ -143,9 +156,9 @@ const motsCourts = (() => {
   }
 
   // { nom, mot_cle, raison : 'trouve' | 'choix' | 'trop_proches' | 'aucun' | 'sans_texte', date, score,
-  //   choix : [{ nom, mot_cle, score }], personne_incertaine }
+  //   choix : [{ nom, mot_cle, score }], personne_incertaine, meilleurs : 3 meilleurs [{ nom, mot_cle, score }] }
   function proposer(texte, lignes, mots) {
-    const vide = { nom: '', mot_cle: '', raison: 'aucun', date: '', score: 0, choix: [], personne_incertaine: false };
+    const vide = { nom: '', mot_cle: '', raison: 'aucun', date: '', score: 0, choix: [], personne_incertaine: false, meilleurs: [] };
     const trouve = chercheur(texte);
     if (trouve.vide) return { ...vide, raison: 'sans_texte' };
     const liste = regles(lignes, mots);
@@ -155,7 +168,7 @@ const motsCourts = (() => {
       // Bonus du titre (06/11/2026, après un essai sur un faux courrier) : un mot cité en passant
       // (« radiographie » dans le corps du texte) ne doit pas l'emporter sur le titre écrit en haut.
       const alternative = r.alternatives
-        .filter(a => a.every(trouve.mot))
+        .filter(a => a.every(trouve.motType))
         .map(a => ({ mots: a, score: a.reduce((s, m) => s + poidsDe(m), 0)
           * (trouve.enPhrase(a) ? BONUS_PHRASE : 1) * (trouve.enHaut(a) ? BONUS_HAUT : 1) }))
         .sort((a, b) => b.score - a.score)[0];
@@ -183,6 +196,8 @@ const motsCourts = (() => {
     const tries = [...meilleurs.values()].sort((a, b) => b.score - a.score);
     if (!tries.length) return vide;
     const date = nommageScan.dateDuTexte(texte);
+    // Pour le Journal Numérisation : les 3 meilleurs candidats et leur score (jamais le texte lu).
+    vide.meilleurs = tries.slice(0, 3).map(c => ({ nom: nomDepuisModele(c.modele, date), mot_cle: c.mot_cle, score: arrondi(c.score) }));
     const proches = tries.filter(c => c.score >= tries[0].score * PROCHE);
     const choix = proches.map(c => ({ nom: nomDepuisModele(c.modele, date), mot_cle: c.mot_cle, score: arrondi(c.score) }));
     const incertaine = proches.some(c => c.incertaine);

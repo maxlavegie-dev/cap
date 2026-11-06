@@ -427,7 +427,7 @@ const scanEcran = (() => {
         echecs: [...avant.echecs, ...echecs],
         diagnostics: [...avant.diagnostics, ...diagnostics],
         mot_cle: '', nom_propose: '', raison: '', erreur_tableur: '', reponse: '', repondu: false,
-        score: 0, choix: [], choix_retenu: 0, recherche: '', personne_incertaine: false
+        score: 0, choix: [], choix_retenu: 0, recherche: '', personne_incertaine: false, meilleurs: []
       };
       dire(`${prises} page${prises > 1 ? 's' : ''} reçue${prises > 1 ? 's' : ''} du scanner de Google. `
         + `Texte lu sur ${lectureGoogle.pages_lues} page${lectureGoogle.pages_lues > 1 ? 's' : ''} sur ${lectureGoogle.pages_total}.`
@@ -493,6 +493,7 @@ const scanEcran = (() => {
       lecture.choix = p.raison === 'choix' ? p.choix : [];
       lecture.choix_retenu = 0;
       lecture.personne_incertaine = Boolean(p.personne_incertaine);
+      lecture.meilleurs = p.meilleurs || [];
       afficherChoix(lecture);
       const avecNom = Boolean(p.nom) || lecture.choix.length > 0;
       boutonsAvecNom.forEach(bouton => { bouton.hidden = !avecNom; });
@@ -637,6 +638,8 @@ const scanEcran = (() => {
             ...(l.diagnostics.length ? [`diagnostic : ${l.diagnostics.join(' | ')}`] : []),
             ...(l.recherche ? [`recherche : ${l.recherche}`] : []),
             ...(l.personne_incertaine ? ['personne incertaine (prénom non lu)'] : []),
+            // 06/11/2026 : les 3 meilleurs candidats et leur score, pour comprendre un mauvais choix.
+            ...(l.meilleurs.length ? [`meilleurs candidats : ${l.meilleurs.map(c => `${c.nom}.pdf (${c.mot_cle}, score ${c.score})`).join(' / ')}`] : []),
             ...(l.choix.length ? [`titres proposés : ${l.choix.map(c => `${c.nom}.pdf`).join(' / ')}`,
               `titre touché : ${l.choix_retenu ? `n° ${l.choix_retenu} (${l.mot_cle}, score ${l.score})` : 'aucun'}`] : []),
             `nom proposé : ${l.nom_propose ? `${l.nom_propose}.pdf` : 'aucun'}`,

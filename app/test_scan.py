@@ -1112,6 +1112,8 @@ TESTS_JS = r"""
     { numero: 7, mot_cle: 'bilan ophtalmologique Lina Exemplaire', organisme: '', modele: '[date] Bilan ophtalmologique Lina Exemplaire', chemin: ['02_SANTE'] },
     { numero: 8, mot_cle: 'radio Théo Exemplaire', organisme: '', modele: '[date] Radio Théo Exemplaire', chemin: ['02_SANTE'] },
     { numero: 10, mot_cle: 'radiographie Théo Exemplaire', organisme: '', modele: '[date] Radiographie Théo Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 11, mot_cle: 'ordonnance orthophonie Théo Exemplaire', organisme: '', modele: '[date] Ordonnance orthophonie Théo Exemplaire', chemin: ['02_SANTE'] },
+    { numero: 12, mot_cle: 'certificat Théo Exemplaire', organisme: '', modele: '[date] Certificat Théo Exemplaire', chemin: ['01_IDENTITE'] },
     { numero: 9, mot_cle: 'relevé bancaire Théo Exemplaire', organisme: 'Banque fictive', modele: '[date] Releve bancaire Théo Exemplaire', chemin: ['04_BANQUE'] }
   ];
   const ongletsFictifs = {
@@ -1123,6 +1125,8 @@ TESTS_JS = r"""
       ['compte rendu ophtalmologie', '6', '1', 'compte rendu ophtalmologie', 'compte rendu', 'Oui', 'À valider', '2026-11-06', ''],
       ['radio', '8', '1', 'radio', 'radio', 'Non (jamais seul)', 'À valider', '2026-11-06', ''],
       ['radiographie', '10', '1', 'radiographie', '', 'Oui', 'À valider', '2026-11-06', ''],
+      ['ordonnance orthophonie', '11', '1', 'ordonnance orthophonie', '', 'Oui', 'À valider', '2026-11-06', ''],
+      ['certificat', '12', '1', 'certificat', '', 'Oui', 'À valider', '2026-11-06', ''],
       ['relevé bancaire', '9', '1', 'relevé', 'relevé', 'Oui', 'Corrigé', '2026-11-06', 'relevé bancaire | extrait bancaire (note FICTIVE)']
     ],
     organismes: [
@@ -1198,6 +1202,25 @@ TESTS_JS = r"""
     egal(nommageScan.dateDuTexte('Née le 12/05/1980. Courrier du 03/09/2026'), '2026-09-03', 'date de naissance écartée');
   });
 
+  await test('mots courts : même début (8 lettres ou plus) pour le type, y compris un cas où la règle se trompe', async () => {
+    const mots = motsCourts.analyser(ongletsFictifs);
+    // Le faux document écrit le nom du métier, pas celui de la spécialité : même début, la ligne est trouvée.
+    let p = motsCourts.proposer(['ORDONNANCE FICTIVE', 'Séances avec un orthophoniste diplômé pour Théo Exemplaire.', 'Fait le 02/03/2026'].join(' '), tableurSante, mots);
+    egal([p.raison, p.nom], ['trouve', '2026-03-02 Ordonnance orthophonie Théo Exemplaire'], 'même début trouvé');
+    // La règle se trompe : « certification » a le même début que « certificat ». Cap propose ce
+    // titre (FAUX ici) ; il n'est retenu que si Max dit « Oui ».
+    p = motsCourts.proposer('Certification qualité FICTIVE de l’atelier de Théo Exemplaire, le 05/05/2026', tableurSante, mots);
+    egal([p.raison, p.nom], ['trouve', '2026-05-05 Certificat Théo Exemplaire'], 'erreur connue de la règle');
+    // Jamais pour les prénoms : une forme plus longue d'un prénom ne compte pas.
+    p = motsCourts.proposer('Compte rendu de suivi pour Théodorine Exemplaire', tableurSante, mots);
+    egal([p.raison, p.personne_incertaine], ['choix', true], 'prénom : pas de même début');
+    // Mots trop courts (moins de 8 lettres) : pas de même début.
+    egal(motsCourts.proposer('Radiologue FICTIF pour Théo', tableurSante, mots).raison, 'aucun', 'mot trop court ou trop différent');
+    // Les 3 meilleurs candidats sont rendus, avec leur score.
+    p = motsCourts.proposer(courrierFictif('M. EXEMPLAIRE'), tableurSante, mots);
+    attendre(p.meilleurs.length === 3 && p.meilleurs.every(c => c.nom && c.mot_cle && c.score > 0), `meilleurs : ${JSON.stringify(p.meilleurs)}`);
+  });
+
   function monterScore(options = {}) {
     const g = monterGoogle();
     g.options.classement = { lireTableurChoisi: async () => tableurSante,
@@ -1218,6 +1241,8 @@ TESTS_JS = r"""
     const l = g.lignes[0];
     attendre(/^mot-clé : compte rendu suivi \+ prénom ; score : \d/.test(l.resultat), `résultat : ${l.resultat}`);
     attendre(l.details.includes('recherche : par score') && l.details.includes('réponse : Oui'), `détails : ${l.details}`);
+    attendre(l.details.includes('meilleurs candidats : 2026-10-14 Compte rendu suivi Théo Exemplaire.pdf (compte rendu suivi + prénom, score '),
+      `meilleurs candidats absents : ${l.details}`);
     attendre(!l.details.includes('gêne') && !l.resultat.includes('gêne'), 'texte lu recopié dans le journal');
   });
 
