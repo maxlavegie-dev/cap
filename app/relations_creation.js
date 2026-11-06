@@ -201,6 +201,161 @@ const relationsCreation = (() => {
     return { arrete: false, crees, personnes };
   }
 
+  // ----- Réparation des accents des « Journal de bord » (06/11/2026, accord de Max) -----
+  // Les journaux créés avant la correction ont une première entrée abîmée (« crÃ©ation »). Cap ne
+  // répare QUE un journal qui contient exactement cette seule ligne abîmée, et seulement si la ligne
+  // réparée est bien « JJ/MM/AAAA, HH:MM : création du dossier Relations de <nom du dossier> » (date et
+  // heure d'origine gardées). Tout autre contenu (vide, écrit à la main, déjà juste) : on n'y touche pas.
+  // Même document, même adresse ; Google garde l'ancienne version dans son historique : rien n'est perdu.
+  // Jamais de suppression ; une ligne dans le Journal Général par réparation.
+  const MODELE_ENTREE = /^(\d\d\/\d\d\/\d{4}, \d\d:\d\d) : création du dossier Relations de (.+)$/;
+  let carteOctets = null;
+  function octetsDe(texte) {
+    if (!carteOctets) {
+      carteOctets = new Map();
+      const lecteur = new TextDecoder('windows-1252');
+      for (let b = 0; b < 256; b++) carteOctets.set(lecteur.decode(new Uint8Array([b])), b);
+      for (let b = 0x80; b < 0xA0; b++) if (!carteOctets.has(String.fromCharCode(b))) carteOctets.set(String.fromCharCode(b), b);
+    }
+    const octets = [];
+    for (const c of texte) {
+      if (!carteOctets.has(c)) return null;
+      octets.push(carteOctets.get(c));
+    }
+    return new Uint8Array(octets);
+  }
+  // « crÃ©ation » → « création » (texte UTF-8 qui avait été lu comme un autre encodage). '' si impossible.
+  function texteRepare(abime) {
+    const octets = octetsDe(abime);
+    if (!octets) return '';
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(octets); } catch (erreur) { return ''; }
+  }
+  function nettoyer(texte) { return String(texte || '').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').trim(); }
+  function examiner(texteLu, nomDossier) {
+    const texte = nettoyer(texteLu);
+    const nom = nomDossier.slice(relations.PREFIXE.length);
+    const conforme = t => { const m = MODELE_ENTREE.exec(t); return Boolean(m && m[2] === nom); };
+    if (conforme(texte)) return { etat: 'juste' };
+    if (!texte || texte.includes('\n')) return { etat: 'intouchable' };
+    const repare = texteRepare(texte);
+    if (repare && repare !== texte && conforme(repare)) return { etat: 'abime', apres: repare };
+    return { etat: 'intouchable' };
+  }
+  async function lireTexte(id) {
+    return (await googleConnexion.appeler(`${drive}/${encodeURIComponent(id)}/export?mimeType=text%2Fplain`)).text();
+  }
+
+  // Liste, en LECTURE seule : journaux à réparer, déjà justes, à ne pas toucher.
+  async function preparerReparation(appCap) {
+    if (!appCap) throw new Error('Choisis d’abord le dossier « App Cap » dans « Réglages du Drive ».');
+    const plan = { aReparer: [], justes: [], intouchables: [] };
+    const racine = await trouver(ETIQUETTES.racine, 'racine', appCap, DOSSIER);
+    if (!racine) return plan;
+    const personnes = (await lister(`'${echapper(racine)}' in parents and mimeType='${DOSSIER}' and trashed=false`))
+      .filter(f => f.appProperties?.[ETIQUETTES.personne]);
+    for (const personne of personnes) {
+      const journal = await trouver(ETIQUETTES.partie, 'journal', personne.id, DOC);
+      if (!journal) continue;
+      const verdict = examiner(await lireTexte(journal), personne.name);
+      const entree = { id: journal, nomDossier: personne.name, apres: verdict.apres || '' };
+      ({ abime: plan.aReparer, juste: plan.justes, intouchable: plan.intouchables })[verdict.etat].push(entree);
+    }
+    for (const liste of Object.values(plan)) liste.sort((a, b) => a.nomDossier.localeCompare(b.nomDossier, 'fr'));
+    return plan;
+  }
+
+  async function reparerUn(entree) {
+    // Relu JUSTE AVANT : s'il a changé depuis la liste (écrit à la main…), on n'y touche pas.
+    const avant = examiner(await lireTexte(entree.id), entree.nomDossier);
+    if (avant.etat !== 'abime' || avant.apres !== entree.apres) return false;
+    await googleConnexion.appeler(`${envoi}/${encodeURIComponent(entree.id)}?uploadType=media&fields=id`, {
+      method: 'PATCH', headers: { 'Content-Type': 'text/html; charset=UTF-8' }, body: texteEnHtml(entree.apres)
+    });
+    // Vérifié après : sinon, arrêt (les journaux suivants ne sont pas touchés).
+    if (examiner(await lireTexte(entree.id), entree.nomDossier).etat !== 'juste') {
+      throw new Error(`Le « Journal de bord » de ${entree.nomDossier} n’a pas le bon texte après réparation : arrêt, les autres ne sont pas touchés.`);
+    }
+    journaux.ajouter('general', { action: 'Réparation des accents (Relations)', resultat: 'réparé',
+      details: `${NOM_RACINE} › ${entree.nomDossier} › Journal de bord`, chantier: 'Relations' });
+    return true;
+  }
+
+  // Un journal après l'autre ; un second appui pendant le travail ne fait rien.
+  let reparationEnCours = null;
+  function lancerReparation(entrees) {
+    if (reparationEnCours) return Promise.resolve({ refuse: true, repares: 0, sautes: 0 });
+    reparationEnCours = (async () => {
+      let repares = 0;
+      let sautes = 0;
+      for (const entree of entrees) { if (await reparerUn(entree)) repares++; else sautes++; }
+      return { repares, sautes };
+    })().finally(() => { reparationEnCours = null; });
+    return reparationEnCours;
+  }
+
+  // Bouton « Réparer les accents des Journaux de bord » : liste et nombres, puis UN journal pour
+  // vérifier, puis « Oui, répare les N autres » ; chaque étape attend un appui de Max.
+  function brancherReparation(doc, { appCap }) {
+    const el = id => doc.getElementById(id);
+    const bouton = el('reparer-relations');
+    const zone = el('resume-reparer-relations');
+    const un = el('reparer-un-relations');
+    const tous = el('reparer-tous-relations');
+    if (!bouton || !zone || !un || !tous) return;
+    let plan = null;
+    const ecrire = lignes => { zone.hidden = false; zone.textContent = lignes.join('\n'); };
+    bouton.addEventListener('click', async () => {
+      un.hidden = true;
+      tous.hidden = true;
+      ecrire(['Lecture des « Journal de bord »… (rien n’est modifié)']);
+      try {
+        const dossier = await appCap();
+        if (!dossier) { ecrire(['Choisis d’abord le dossier « App Cap » dans « Réglages du Drive », avec Cap ouvert dans Chrome. Rien n’a été modifié.']); return; }
+        plan = await preparerReparation(dossier.id);
+        ecrire([`À réparer : ${plan.aReparer.length} « Journal de bord ».`,
+          `Déjà justes : ${plan.justes.length}.`,
+          `Pas touchés (vides, ou avec autre chose que la première entrée) : ${plan.intouchables.length}`
+            + (plan.intouchables.length ? ` : ${plan.intouchables.map(e => e.nomDossier).join(', ')}.` : '.'),
+          'Rien n’est encore modifié.']);
+        if (plan.aReparer.length) {
+          un.textContent = `Réparer UN journal pour vérifier : ${plan.aReparer[0].nomDossier}`;
+          un.disabled = false;
+          un.hidden = false;
+        }
+      } catch (erreur) {
+        ecrire([`Lecture impossible (${String(erreur && erreur.message || 'raison inconnue').slice(0, 120)}). Rien n’a été modifié.`]);
+      }
+    });
+    const reparer = async (entrees, bouton2, apres) => {
+      if (bouton2.disabled) return;
+      bouton2.disabled = true;
+      ecrire(['Réparation en cours… (un journal après l’autre)']);
+      try {
+        const r = await lancerReparation(entrees);
+        if (r.refuse) return;
+        apres(r);
+      } catch (erreur) {
+        ecrire([`Arrêt : ${String(erreur && erreur.message || 'raison inconnue').slice(0, 200)} Rien n’a été supprimé.`]);
+      }
+    };
+    un.addEventListener('click', () => reparer([plan.aReparer[0]], un, r => {
+      un.hidden = true;
+      const premier = plan.aReparer[0];
+      ecrire([r.repares ? `Réparé : ${premier.nomDossier}. Première entrée : « ${premier.apres} ».` : `${premier.nomDossier} a changé depuis la liste : pas touché.`,
+        'Ouvre ce « Journal de bord » pour vérifier. Si c’est juste, répare les autres.']);
+      const reste = plan.aReparer.length - 1;
+      if (reste > 0) {
+        tous.textContent = `Oui, répare les ${reste} autres journaux`;
+        tous.disabled = false;
+        tous.hidden = false;
+      }
+    }));
+    tous.addEventListener('click', () => reparer(plan.aReparer.slice(1), tous, r => {
+      tous.hidden = true;
+      ecrire([`Terminé : ${r.repares} journal(aux) réparé(s)` + (r.sautes ? ` ; ${r.sautes} pas touché(s) car modifié(s) depuis la liste.` : '.'), 'Rien n’a été supprimé.']);
+    }));
+  }
+
   // Un seul travail à la fois : un second appui pendant le travail ne crée rien.
   function lancer(plan, options) {
     if (enCours) return Promise.resolve({ refuse: true, crees: 0, personnes: 0 });
@@ -362,7 +517,8 @@ const relationsCreation = (() => {
     });
   }
 
-  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, premiereEntree, texteEnHtml, preparer, planEssai, lancer, ecran, brancherEssai, brancherTous };
+  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, premiereEntree, texteEnHtml, texteRepare, examiner, preparer, planEssai, lancer, ecran, brancherEssai, brancherTous,
+    preparerReparation, lancerReparation, brancherReparation };
 })();
 
 // Seuls points de départ dans Cap : le bouton d'essai (étape 4) et celui de toutes les personnes
@@ -372,4 +528,5 @@ if (typeof document !== 'undefined' && document.getElementById('essai-relations'
   const sources = { lire: () => classement.lireDictionnairePersonnes(), appCap: async () => googlePicker.dossierAppCap() };
   relationsCreation.brancherEssai(document, sources);
   relationsCreation.brancherTous(document, sources);
+  relationsCreation.brancherReparation(document, sources);
 }

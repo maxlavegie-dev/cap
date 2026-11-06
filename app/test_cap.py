@@ -1218,7 +1218,10 @@ TESTS_JS = r"""
           && requete.url.pathname.startsWith('/drive/v3/files/')
           && JSON.stringify(Object.keys(requete.corps || {})) === '["appProperties"]'
           && clesRangees.includes(JSON.stringify(Object.keys(requete.corps.appProperties || {})));
-        attendre(['GET', 'POST'].includes(requete.methode) || patchAgendaFictif || patchIdentifiantAgenda,
+        const patchReparationRelations = contexte.reparationRelations === true && requete.methode === 'PATCH'
+          && requete.url.origin === 'https://www.googleapis.com' && /^\/upload\/drive\/v3\/files\/[^/]+$/.test(requete.url.pathname)
+          && requete.url.searchParams.get('uploadType') === 'media';
+        attendre(['GET', 'POST'].includes(requete.methode) || patchAgendaFictif || patchIdentifiantAgenda || patchReparationRelations,
           'opération destructive interdite');
         attendre(!/:clear(?:\?|$)|:batchClear(?:\?|$)/.test(requete.url.href), 'effacement interdit');
         attendre(!requete.corps?.requests?.some(action => Object.keys(action).some(cle => /delete|cutPaste/i.test(cle))),
@@ -1972,9 +1975,27 @@ TESTS_JS = r"""
   // Faux Drive : comprend les recherches de Cap (étiquette invisible, parent, type), crée en mémoire,
   // peut « couper » après N créations. Tout est FICTIF.
   function fauxDriveRelations(c, { coupureApres = Infinity } = {}) {
-    const f = { fichiers: [], creations: 0, coupureApres };
+    const f = { fichiers: [], creations: 0, coupureApres, remplacements: 0, deformerApresRemplacement: false };
     let numero = 0;
     c.repondre = async r => {
+      const exporter = /^\/drive\/v3\/files\/([^/]+)\/export$/.exec(r.url.pathname);
+      if (exporter) {
+        attendreEgal([r.methode, r.url.searchParams.get('mimeType')], ['GET', 'text/plain'], 'lecture du texte');
+        const doc = f.fichiers.find(x => x.id === decodeURIComponent(exporter[1]));
+        // Comme Google : marque d'encodage au début et fin de ligne Windows.
+        return new Response(`﻿${doc.contenu}\r\n`, { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+      }
+      const remplacer = /^\/upload\/drive\/v3\/files\/([^/]+)$/.exec(r.url.pathname);
+      if (remplacer) {
+        attendreEgal([r.methode, r.url.searchParams.get('uploadType')], ['PATCH', 'media'], 'remplacement du contenu');
+        attendre(/^text\/html; charset=UTF-8$/.test(r.options.headers['Content-Type']), 'type du contenu');
+        attendre(/^[\x20-\x7e]*$/.test(r.options.body), 'caractère non simple dans la page envoyée');
+        const doc = f.fichiers.find(x => x.id === decodeURIComponent(remplacer[1]));
+        attendre(doc && doc.mimeType === 'application/vnd.google-apps.document', 'remplacement d’autre chose qu’un Google Doc');
+        f.remplacements++;
+        doc.contenu = f.deformerApresRemplacement ? 'contenu FICTIF déformé' : new DOMParser().parseFromString(r.options.body, 'text/html').body.textContent;
+        return reponseGoogle({ id: doc.id });
+      }
       const envoiTexte = r.url.pathname === '/upload/drive/v3/files';
       attendre(['https://www.googleapis.com/drive/v3/files', 'https://www.googleapis.com/upload/drive/v3/files'].includes(r.url.origin + r.url.pathname), `adresse inattendue : ${r.url}`);
       if (r.methode === 'POST') {
@@ -2188,6 +2209,102 @@ TESTS_JS = r"""
     attendreEgal(new DOMParser().parseFromString(module.texteEnHtml('Œuvre ’ ô 🎵 é'), 'text/html').body.textContent, 'Œuvre ’ ô 🎵 é', 'relecture exacte');
   });
 
+  // ---------- 06/11/2026 : réparation des accents des « Journal de bord » déjà créés (FAUX Drive) ----------
+  // Abîme un texte comme Google l'a fait : les octets UTF-8 lus comme un autre encodage (« é » → « Ã© »).
+  function abimer(texte) { return new TextDecoder('windows-1252').decode(new TextEncoder().encode(texte)); }
+  async function driveAbimeFictif(c) {
+    const drive = fauxDriveRelations(c);
+    const { module, lignes } = creationIsolee(c, '2026-11-06T22:20:00Z');
+    const valeurs = [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif', 'Personne'], ['Jérôme-FICTIF (Gégè)', 'Garçon-à-Côté-FICTIF', 'Personne'],
+      ['Jeanne', 'Exemple-FICTIF', 'Personne'], ['Zoé-FICTIF (Zézé)', 'Lefèvre-FICTIF', 'Personne'], ['Paul', 'Vide-FICTIF', 'Personne']];
+    await module.lancer(await module.preparer(valeurs, 'appcap-fictif'), { appCap: 'appcap-fictif' });
+    const journalDe = nom => drive.fichiers.find(x => x.name === 'Journal de bord' && x.parents[0] === drive.fichiers.find(y => y.name === nom).id);
+    // Avant la correction : premières entrées abîmées ; l'une complétée à la main ; une vide ; une juste.
+    for (const nom of ['r_Jean Fictif', 'r_Gégè Garçon-à-Côté-FICTIF']) journalDe(nom).contenu = abimer(journalDe(nom).contenu);
+    journalDe('r_Jeanne Exemple-FICTIF').contenu = `${abimer(journalDe('r_Jeanne Exemple-FICTIF').contenu)}\nnote ajoutée à la main FICTIVE`;
+    journalDe('r_Paul Vide-FICTIF').contenu = '';
+    c.reparationRelations = true;
+    return { drive, module, lignes, journalDe, creations: drive.creations, lignesAvant: lignes.length };
+  }
+
+  test('Réparation des accents : texte abîmé retrouvé exactement (é, è, à, ç, ô, œ, ’), sinon rien', () => {
+    const m = objetIsole(SOURCE_RELATIONS_CREATION, 'relationsCreation', { googleConnexion: {}, relations, journaux: {} });
+    const juste = '06/11/2026, 23:20 : création du dossier Relations de Gégè Garçon-à-Côté-FICTIF';
+    attendreEgal(abimer(juste).includes('crÃ©ation'), true, 'abîmé comme chez Max');
+    attendreEgal(m.texteRepare(abimer(juste)), juste, 'réparé exactement');
+    attendreEgal(m.texteRepare(abimer('é è à ç ô œ ’ Œ')), 'é è à ç ô œ ’ Œ', 'autres accents');
+    attendreEgal(m.examiner(abimer(juste), 'r_Gégè Garçon-à-Côté-FICTIF'), { etat: 'abime', apres: juste }, 'abîmé');
+    attendreEgal(m.examiner(`﻿${juste}\r\n`, 'r_Gégè Garçon-à-Côté-FICTIF'), { etat: 'juste' }, 'déjà juste');
+    attendreEgal(m.examiner(abimer(juste), 'r_Autre Personne-FICTIF'), { etat: 'intouchable' }, 'nom d’un autre dossier');
+    attendreEgal(m.examiner(`${abimer(juste)}\nsuite FICTIVE`, 'r_Gégè Garçon-à-Côté-FICTIF'), { etat: 'intouchable' }, 'autre chose écrit');
+    attendreEgal(m.examiner('', 'r_Gégè Garçon-à-Côté-FICTIF'), { etat: 'intouchable' }, 'vide');
+    attendreEgal(m.examiner('texte libre FICTIF 🎵', 'r_Gégè Garçon-à-Côté-FICTIF'), { etat: 'intouchable' }, 'texte libre');
+  });
+
+  await testAsync('Réparation des accents (FAUX Drive) : liste en lecture seule, UN journal pour vérifier, puis les autres ; écrit à la main, vide ou juste : pas touché ; rien supprimé', async c => {
+    const { drive, module, lignes, journalDe, creations, lignesAvant } = await driveAbimeFictif(c);
+    const plan = await module.preparerReparation('appcap-fictif');
+    attendreEgal(plan.aReparer.map(e => e.nomDossier), ['r_Gégè Garçon-à-Côté-FICTIF', 'r_Jean Fictif'], 'à réparer');
+    attendreEgal(plan.justes.map(e => e.nomDossier), ['r_Zézé Lefèvre-FICTIF'], 'déjà justes');
+    attendreEgal(plan.intouchables.map(e => e.nomDossier), ['r_Jeanne Exemple-FICTIF', 'r_Paul Vide-FICTIF'], 'pas touchés');
+    attendreEgal(drive.remplacements, 0, 'modification pendant la liste');
+    // UN journal pour vérifier.
+    attendreEgal(await module.lancerReparation([plan.aReparer[0]]), { repares: 1, sautes: 0 }, 'premier');
+    attendreEgal(journalDe('r_Gégè Garçon-à-Côté-FICTIF').contenu, '06/11/2026, 23:20 : création du dossier Relations de Gégè Garçon-à-Côté-FICTIF', 'réparé (date et heure d’origine)');
+    attendre(journalDe('r_Jean Fictif').contenu.includes('Ã©'), 'second réparé trop tôt');
+    // Puis les autres.
+    attendreEgal(await module.lancerReparation(plan.aReparer.slice(1)), { repares: 1, sautes: 0 }, 'les autres');
+    attendreEgal(journalDe('r_Jean Fictif').contenu, '06/11/2026, 23:20 : création du dossier Relations de Jean Fictif', 'second réparé');
+    attendre(journalDe('r_Jeanne Exemple-FICTIF').contenu.endsWith('\nnote ajoutée à la main FICTIVE'), 'journal écrit à la main touché');
+    attendreEgal(journalDe('r_Paul Vide-FICTIF').contenu, '', 'journal vide touché');
+    attendreEgal([drive.remplacements, drive.creations, lignes.length - lignesAvant], [2, creations, 2], 'remplacements, créations, lignes de journal');
+    attendre(lignes.slice(lignesAvant).every(([j, l]) => j === 'general' && l.resultat === 'réparé' && l.chantier === 'Relations'), 'lignes du Journal Général');
+    // Nouvelle liste : plus rien à réparer.
+    attendreEgal((await module.preparerReparation('appcap-fictif')).aReparer.length, 0, 'encore à réparer');
+    attendre(c.requetes.every(r => ['GET', 'POST', 'PATCH'].includes(r.methode) && r.url.hostname === 'www.googleapis.com'), 'adresse ou méthode non permise');
+    attendre(c.requetes.filter(r => r.methode === 'PATCH').every(r => r.url.pathname.startsWith('/upload/drive/v3/files/')), 'modification ailleurs');
+  });
+
+  await testAsync('Réparation des accents (FAUX Drive) : journal modifié depuis la liste = pas touché ; texte faux après réparation = arrêt, les autres pas touchés', async c => {
+    const { drive, module, journalDe } = await driveAbimeFictif(c);
+    let plan = await module.preparerReparation('appcap-fictif');
+    journalDe('r_Gégè Garçon-à-Côté-FICTIF').contenu += '\nécrit par Max entre-temps FICTIF';
+    attendreEgal(await module.lancerReparation(plan.aReparer), { repares: 1, sautes: 1 }, 'modifié entre-temps');
+    attendre(journalDe('r_Gégè Garçon-à-Côté-FICTIF').contenu.endsWith('entre-temps FICTIF'), 'journal modifié touché');
+    // Google rendrait un texte faux : arrêt au premier, le suivant n'est pas touché.
+    const autre = await driveAbimeFictif(c);
+    plan = await autre.module.preparerReparation('appcap-fictif');
+    autre.drive.deformerApresRemplacement = true;
+    await attendreRejet(() => autre.module.lancerReparation(plan.aReparer), 'pas le bon texte');
+    attendreEgal(autre.drive.remplacements, 1, 'le suivant a été touché');
+    attendre(autre.journalDe('r_Jean Fictif').contenu.includes('Ã©'), 'le suivant a été touché');
+  });
+
+  await testAsync('Réparation des accents (FAUX Drive) : écran : nombres, « Réparer UN journal pour vérifier », puis « Oui, répare les N autres » ; double appui sans effet', async c => {
+    const ui = preparerInterface(c);
+    const { drive, module } = await driveAbimeFictif(c);
+    const el = id => ui.parId(id);
+    module.brancherReparation(ui.doc, { appCap: async () => ({ id: 'appcap-fictif' }) });
+    attendre(el('reparer-un-relations').hidden && el('reparer-tous-relations').hidden, 'boutons visibles trop tôt');
+    el('reparer-relations').click();
+    await attendreQue(() => !el('reparer-un-relations').hidden, `liste absente : ${el('resume-reparer-relations').textContent}`);
+    const texte = el('resume-reparer-relations').textContent;
+    attendre(texte.includes('À réparer : 2') && texte.includes('Déjà justes : 1') && texte.includes('Pas touchés (vides, ou avec autre chose que la première entrée) : 2') && texte.includes('Rien n’est encore modifié'), `liste : ${texte}`);
+    attendreEgal(el('reparer-un-relations').textContent, 'Réparer UN journal pour vérifier : r_Gégè Garçon-à-Côté-FICTIF', 'bouton du premier');
+    attendreEgal(drive.remplacements, 0, 'modification avant l’appui');
+    el('reparer-un-relations').click();
+    el('reparer-un-relations').click();
+    await attendreQue(() => !el('reparer-tous-relations').hidden, `après le premier : ${el('resume-reparer-relations').textContent}`);
+    attendreEgal(drive.remplacements, 1, 'un seul journal réparé');
+    attendre(/Réparé : r_Gégè Garçon-à-Côté-FICTIF/.test(el('resume-reparer-relations').textContent), 'compte rendu du premier');
+    attendreEgal(el('reparer-tous-relations').textContent, 'Oui, répare les 1 autres journaux', 'bouton des autres');
+    el('reparer-tous-relations').click();
+    el('reparer-tous-relations').click();
+    await attendreQue(() => /Terminé : 1 journal/.test(el('resume-reparer-relations').textContent), `fin : ${el('resume-reparer-relations').textContent}`);
+    attendreEgal(drive.remplacements, 2, 'réparations en trop');
+    attendre(parseFloat(ui.cadre.contentWindow.getComputedStyle(el('reparer-un-relations')).fontSize) >= 20, 'bouton pas en gros');
+  });
+
   await testAsync('Relations (FAUX Drive) : si Google ne fait pas un Google Doc du « Journal de bord », Cap s’arrête (rien d’autre créé, rien supprimé)', async c => {
     const drive = fauxDriveRelations(c);
     const repondre = c.repondre;
@@ -2371,10 +2488,12 @@ TESTS_JS = r"""
       attendre(!/relationsCreation/.test({ SOURCE_APP, SOURCE_RELATIONS }[nom]), `${nom} appelle déjà la création`);
     }
     const apres = SOURCE_RELATIONS_CREATION.split('\n})();')[1] || '';
-    attendreEgal((apres.match(/relationsCreation\.\w+/g) || []), ['relationsCreation.brancherEssai', 'relationsCreation.brancherTous'], 'point de départ autre que les deux boutons');
+    attendreEgal((apres.match(/relationsCreation\.\w+/g) || []), ['relationsCreation.brancherEssai', 'relationsCreation.brancherTous', 'relationsCreation.brancherReparation'], 'point de départ autre que les trois boutons');
     attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(apres), 'le bouton d’essai serait branché dans les tests');
     attendre(!/lancer\(/.test(apres), 'création lancée au démarrage');
-    for (const interdit of ["'DELETE'", "'PATCH'", "'PUT'", 'trashed: true', 'removeParents', 'addParents', 'innerHTML', 'localStorage', 'cerveau', 'docs.googleapis']) {
+    attendreEgal((SOURCE_RELATIONS_CREATION.match(/'PATCH'/g) || []).length, 1, 'un seul remplacement de contenu (la réparation)');
+    attendre(/\$\{envoi\}\/\$\{encodeURIComponent\(entree\.id\)\}\?uploadType=media/.test(SOURCE_RELATIONS_CREATION), 'remplacement par une autre adresse');
+    for (const interdit of ["'DELETE'", "'PUT'", 'trashed: true', 'removeParents', 'addParents', 'innerHTML', 'localStorage', 'cerveau', 'docs.googleapis']) {
       attendre(!SOURCE_RELATIONS_CREATION.includes(interdit), `relations_creation.js contient « ${interdit} »`);
     }
   });
@@ -6474,8 +6593,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v62['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v62")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v63['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v63")
 
 
 def verifier_precache_fichiers_existent():

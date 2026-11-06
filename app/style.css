@@ -2909,3 +2909,9 @@ html.sans-eau .bouton-eau {
   margin: 12px 0;
   font-size: 1.4rem;
 }
+
+/* Réparation des accents (06/11/2026) : comptes rendus sur plusieurs lignes. */
+#resume-reparer-relations,
+#resume-relations {
+  white-space: pre-line;
+}
