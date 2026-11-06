@@ -69,10 +69,27 @@ const relationsCreation = (() => {
   // 06/11/2026, demande de Max : le « Journal de bord » naît avec sa première entrée. Le document est
   // créé par l'envoi de fichiers du Drive (même adresse que les scans, droit drive.file) : un petit
   // texte que Google convertit lui-même en Google Doc. Pas de service Google Docs.
+  // Correction du 06/11/2026 (anomalie vue par Max : « crÃ©ation » au lieu de « création ») : Google
+  // a lu le texte brut comme s'il n'était pas en UTF-8, malgré « charset=UTF-8 ». Le texte part donc
+  // en petite page HTML dont TOUS les caractères sont simples (A-Z, chiffres…) : chaque lettre
+  // accentuée est écrite par son numéro (é → &#233;). Aucun encodage ne peut plus la déformer.
+  function texteEnHtml(texte) {
+    const sur = [...String(texte)].map(c => {
+      if (c === '&') return '&amp;';
+      if (c === '<') return '&lt;';
+      if (c === '>') return '&gt;';
+      if (c === '"') return '&quot;';
+      const code = c.codePointAt(0);
+      return code > 126 || code < 32 ? `&#${code};` : c;
+    }).join('');
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><p>${sur}</p></body></html>`;
+  }
+
   async function creerAvecTexte(infos, texte) {
     const limite = `cap${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+    // La fiche du fichier (JSON) reste en UTF-8 : les noms de dossiers accentués y sont déjà justes.
     const corps = `--${limite}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(infos)}\r\n`
-      + `--${limite}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${texte}\r\n--${limite}--`;
+      + `--${limite}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n${texteEnHtml(texte)}\r\n--${limite}--`;
     const cree = await lireJson(`${envoi}?uploadType=multipart&fields=id,mimeType`, {
       method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${limite}` }, body: corps
     });
@@ -345,7 +362,7 @@ const relationsCreation = (() => {
     });
   }
 
-  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, premiereEntree, preparer, planEssai, lancer, ecran, brancherEssai, brancherTous };
+  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, premiereEntree, texteEnHtml, preparer, planEssai, lancer, ecran, brancherEssai, brancherTous };
 })();
 
 // Seuls points de départ dans Cap : le bouton d'essai (étape 4) et celui de toutes les personnes

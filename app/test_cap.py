@@ -1987,9 +1987,13 @@ TESTS_JS = r"""
           const morceaux = r.options.body.split(`--${limite}`).slice(1, -1).map(m => m.replace(/^\r\n/, '').replace(/\r\n$/, ''));
           const [enteteInfos, json] = morceaux[0].split('\r\n\r\n');
           const [enteteTexte, texte] = morceaux[1].split('\r\n\r\n');
-          attendre(/application\/json; charset=UTF-8/.test(enteteInfos) && /text\/plain; charset=UTF-8/.test(enteteTexte), 'en-têtes de l’envoi');
+          attendre(/application\/json; charset=UTF-8/.test(enteteInfos) && /text\/html; charset=UTF-8/.test(enteteTexte), 'en-têtes de l’envoi');
           infos = JSON.parse(json);
-          contenu = texte;
+          // Correction des accents : la page envoyée ne contient QUE des caractères simples ; on la lit
+          // comme Google le ferait (une page HTML), pour retrouver le texte de la première entrée.
+          attendre(/^[\x20-\x7e]*$/.test(texte), `caractère non simple dans la page envoyée : ${texte}`);
+          attendre(/<meta charset="utf-8">/.test(texte), 'page sans « charset »');
+          contenu = new DOMParser().parseFromString(texte, 'text/html').body.textContent;
         }
         f.creations++;
         const nouveau = { id: `fictif-${++numero}`, name: infos.name, mimeType: infos.mimeType, parents: infos.parents, appProperties: infos.appProperties || {}, trashed: false, contenu };
@@ -2162,6 +2166,26 @@ TESTS_JS = r"""
     // Été (heure d'été de Paris) : 08:05 en temps universel = 10:05 ; minuit passé : la date de Paris.
     attendreEgal(creationIsolee(c, '2026-07-01T08:05:00Z').module.premiereEntree({ nomDossier: 'r_Jean Fictif' }), '01/07/2026, 10:05 : création du dossier Relations de Jean Fictif', 'heure d’été');
     attendreEgal(creationIsolee(c, '2026-12-31T23:30:00Z').module.premiereEntree({ nomDossier: 'r_Jean Fictif' }), '01/01/2027, 00:30 : création du dossier Relations de Jean Fictif', 'changement de jour à Paris');
+  });
+
+  await testAsync('Relations (FAUX Drive) : accents de la première entrée (é, è, à, ç, ô) envoyés sans aucun caractère déformable, relus exacts', async c => {
+    const drive = fauxDriveRelations(c);
+    const { module } = creationIsolee(c, '2026-11-06T21:50:00Z');
+    const valeurs = [['Prénom', 'Nom', 'Type'], ['Jérôme-FICTIF (Gégè)', 'Garçon-à-Côté-FICTIF', 'Personne']];
+    await module.lancer(await module.preparer(valeurs, 'appcap-fictif'), { appCap: 'appcap-fictif' });
+    const journal = drive.fichiers.find(x => x.name === 'Journal de bord');
+    attendreEgal(journal.contenu, '06/11/2026, 22:50 : création du dossier Relations de Gégè Garçon-à-Côté-FICTIF', 'accents de la première entrée');
+    // La page envoyée : seulement des caractères simples, chaque accent écrit par son numéro.
+    const envoi = c.requetes.find(r => r.url.pathname.startsWith('/upload/')).options.body;
+    const page = envoi.split('Content-Type: text/html; charset=UTF-8\r\n\r\n')[1].split('\r\n--')[0];
+    for (const [lettre, code] of [['é', 233], ['è', 232], ['à', 224], ['ç', 231], ['ô', 244]]) {
+      attendre(!page.includes(lettre) && page.includes(`&#${code};`), `« ${lettre} » mal envoyé`);
+    }
+    // Le nom du dossier (fiche JSON du fichier) reste juste, accents compris.
+    attendre(drive.fichiers.some(x => x.name === 'r_Gégè Garçon-à-Côté-FICTIF'), 'nom de dossier accentué');
+    // Caractères spéciaux : jamais pris pour du code.
+    attendreEgal(module.texteEnHtml('a < b & c > d "e"'), '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><p>a &lt; b &amp; c &gt; d &quot;e&quot;</p></body></html>', 'caractères spéciaux');
+    attendreEgal(new DOMParser().parseFromString(module.texteEnHtml('Œuvre ’ ô 🎵 é'), 'text/html').body.textContent, 'Œuvre ’ ô 🎵 é', 'relecture exacte');
   });
 
   await testAsync('Relations (FAUX Drive) : si Google ne fait pas un Google Doc du « Journal de bord », Cap s’arrête (rien d’autre créé, rien supprimé)', async c => {
@@ -6450,8 +6474,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v61['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v61")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v62['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v62")
 
 
 def verifier_precache_fichiers_existent():
