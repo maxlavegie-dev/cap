@@ -11,8 +11,22 @@
   <link rel="apple-touch-icon" sizes="192x192" href="icones/icone-192.png">
 </head>
 <body>
+  <!-- Écran d'ouverture « eau » (06/11/2026) : AU-DESSUS de Cap et hors de .ecran, caché tant que
+       ecran_eau.js ne le montre pas (au démarrage seulement). -->
+  <div id="ecran-eau" aria-label="Écran d'ouverture" hidden>
+    <video id="video-galet" muted playsinline preload="auto" hidden></video>
+    <img id="image-galet" alt="" hidden>
+    <canvas id="toile-eau" class="couche-eau" aria-hidden="true"></canvas>
+    <div id="surface-eau"></div>
+    <p id="consigne-eau" hidden>Glisse le doigt de bas en haut</p>
+    <div id="boutons-eau">
+      <button id="bouton-revenir-vagues" type="button">Revenir aux vagues</button>
+      <button id="bouton-entrer-cap" type="button">Entrer dans Cap</button>
+    </div>
+  </div>
   <div class="ecran">
     <header class="horloge" aria-label="Date du jour">
+      <button id="aller-eau" class="bouton-eau" type="button" aria-controls="ecran-eau">Eau</button>
       <time id="date"></time>
     </header>
     <div id="alerte-google" role="alert" hidden>
@@ -714,6 +728,7 @@
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>
   <script src="app.js"></script>
+  <script src="ecran_eau.js"></script>
   <script src="installation.js"></script>
 </body>
 </html>

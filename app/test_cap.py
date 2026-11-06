@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1876,6 +1876,142 @@ TESTS_JS = r"""
     attendre((await classementIsole.lireDictionnaire()) === entrees, 'deuxième scan : pas gardé en mémoire');
     attendreEgal(c.requetes.length, nombre, 'Dictionnaire relu alors qu’il est en mémoire');
     attendre(!ecrit, 'quelque chose a été écrit sur le téléphone');
+  });
+
+  // ---------- 06/11/2026 : écran d'ouverture « eau » (étape 1 de l'intégration du travail de Zencoder) ----------
+  function horlogeEau() {
+    const appels = [];
+    let numero = 1;
+    return { appels, raf: f => { appels.push(f); return numero++; }, caf: () => {} };
+  }
+  function pointeur(cible, type, x, y) {
+    cible.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: 7, clientX: x, clientY: y, isPrimary: true }));
+  }
+  function glisserSurEau(ui) {
+    const r = ui.parId('ecran-eau').getBoundingClientRect();
+    const surface = ui.parId('surface-eau');
+    pointeur(surface, 'pointerdown', r.left + r.width / 2, r.top + r.height * 0.9);
+    pointeur(surface, 'pointermove', r.left + r.width / 2, r.top + r.height * 0.5);
+    pointeur(surface, 'pointerup', r.left + r.width / 2, r.top + r.height * 0.1);
+  }
+  // Une vidéo qui « marche » sans vrai fichier : l'erreur de chargement est arrêtée avant d'arriver à la vidéo.
+  function videoQuiMarche(ui) {
+    const video = ui.parId('video-galet');
+    ui.parId('ecran-eau').addEventListener('error', e => e.stopPropagation(), true);
+    video.play = () => Promise.resolve();
+    video.pause = () => {};
+    return video;
+  }
+  async function attendreQue(condition, message, essais = 60) {
+    for (let i = 0; i < essais && !condition(); i++) await new Promise(r => setTimeout(r, 50));
+    attendre(condition(), message);
+  }
+
+  await testAsync('Écran d’eau : montré au démarrage, une seule fois par ouverture (pas après un rechargement), sans planter si le stockage refuse', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const h = horlogeEau();
+    const memoire = new Map();
+    const stockage = { getItem: k => memoire.get(k) ?? null, setItem: (k, v) => memoire.set(k, v) };
+    let ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    attendre(ecran.etat().visible && ecran.etat().animation, 'eau absente au démarrage');
+    attendreEgal(memoire.get(ecranEau.CLE_VUE), 'oui', 'marque de la session');
+    ecran.entrerDansCap();
+    // Rechargement de la page pendant la même ouverture : pas d'eau.
+    ui.parId('ecran-eau').hidden = true;
+    ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    attendre(!ecran.etat().visible, 'eau remontrée après un rechargement');
+    // Stockage refusé (navigation privée) : l'eau s'affiche quand même, sans erreur.
+    const refuse = { getItem: () => { throw new Error('refusé'); }, setItem: () => { throw new Error('refusé'); } };
+    ecran = ecranEau.auDemarrage(ui.doc, { stockage: refuse, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    attendre(ecran.etat().visible, 'eau absente quand le stockage refuse');
+  });
+
+  await testAsync('Écran d’eau : REPLI, vidéo introuvable → l’eau seule et « Entrer dans Cap » tout de suite ; fonds « image » et « rien »', async c => {
+    let ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    let h = horlogeEau();
+    let ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { video: 'eau/fichier-absent-FICTIF.mp4' } });
+    ecran.afficher();
+    await attendreQue(() => ecran.etat().panne, 'panne de la vidéo non détectée');
+    attendre(ecran.etat().boutons && ui.parId('video-galet').hidden, 'pas de repli après la panne');
+    glisserSurEau(ui);
+    attendre(ecran.etat().boutons, 'boutons perdus après un glissement');
+    ui.parId('bouton-entrer-cap').click();
+    attendre(!ecran.etat().visible && !ecran.etat().animation, 'entrée dans Cap impossible après la panne');
+    // Lecture refusée par le téléphone (play rejeté) : repli aussi.
+    ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    h = horlogeEau();
+    const video = videoQuiMarche(ui);
+    ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { video: 'eau/FICTIF.mp4' } });
+    video.play = () => Promise.reject(new Error('lecture refusée FICTIVE'));
+    ecran.afficher();
+    attendre(!ecran.etat().boutons && !ui.parId('consigne-eau').hidden, 'boutons avant la vidéo, ou consigne absente');
+    ecran.demarrerVideo();
+    await attendreQue(() => ecran.etat().panne && ecran.etat().boutons, 'pas de repli quand la lecture est refusée');
+    // Fond « rien » : boutons tout de suite, pas de vidéo. Fond « image » : l'image est utilisée.
+    ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    ecran.afficher();
+    attendre(ecran.etat().boutons && ui.parId('video-galet').hidden && ui.parId('image-galet').hidden, 'fond « rien »');
+    ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { fond: 'image', image: 'eau/image-FICTIVE.png' } });
+    ecran.afficher();
+    attendre(!ui.parId('image-galet').hidden || ui.parId('image-galet').getAttribute('src') === 'eau/image-FICTIVE.png', 'fond « image » non utilisé');
+    attendre(ecran.etat().boutons && ui.parId('video-galet').hidden, 'fond « image » : boutons absents');
+  });
+
+  await testAsync('Écran d’eau : glissement vers le haut = vidéo du galet, JAMAIS les tuiles ; puis « Entrer dans Cap » et les boutons de Cap répondent', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const h = horlogeEau();
+    const video = videoQuiMarche(ui);
+    const ecran = ecranEau.monter(ui.parId('ecran-eau'), { raf: h.raf, caf: h.caf, reglages: { video: 'eau/FICTIF.mp4' } });
+    ecran.afficher();
+    // Pendant l'eau, c'est elle qui est touchée (Cap est dessous).
+    const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+    attendre(ui.parId('ecran-eau').contains(ui.doc.elementFromPoint(...centre(ui.parId('ouvrir-scanner')))), 'Cap touchable sous l’eau');
+    attendre(!ui.doc.querySelector('.ecran').contains(ui.parId('ecran-eau')), 'eau placée dans l’écran des tuiles');
+    // Le glissement vers le haut sur l'eau lance la vidéo ; les tuiles restent fermées (doigt et souris).
+    glisser(ui, ui.parId('surface-eau'), 200, 820, 200, 80);
+    glisserSurEau(ui);
+    attendreEgal(ecran.etat().video, 'lecture', 'vidéo non lancée');
+    attendre(ui.parId('ecran-complet').hidden, 'les tuiles se sont ouvertes sous l’eau');
+    video.dispatchEvent(new Event('ended'));
+    attendre(ecran.etat().boutons, 'boutons absents à la fin de la vidéo');
+    // Les boutons de l'eau sont bien touchables (rien ne les recouvre).
+    attendreEgal(ui.doc.elementFromPoint(...centre(ui.parId('bouton-entrer-cap'))), ui.parId('bouton-entrer-cap'), 'bouton « Entrer dans Cap » recouvert');
+    ui.parId('bouton-entrer-cap').click();
+    attendre(!ecran.etat().visible && !ecran.etat().animation, 'eau encore là, ou animation pas arrêtée');
+    attendre(!ui.doc.documentElement.classList.contains('eau-ouverte'), 'défilement de Cap encore bloqué');
+    // CONTRE LA PANNE DE TOUCHER : après l'entrée, les boutons de Cap reçoivent bien le toucher.
+    for (const id of ['ouvrir-scanner', 'aller-eau']) {
+      attendreEgal(ui.doc.elementFromPoint(...centre(ui.parId(id))), ui.parId(id), `bouton de Cap recouvert après l’entrée : ${id}`);
+    }
+    let ouvert = false;
+    ui.parId('ouvrir-scanner').addEventListener('click', () => { ouvert = true; }, { once: true });
+    const [x, y] = centre(ui.parId('ouvrir-scanner'));
+    ui.doc.elementFromPoint(x, y).click();
+    attendre(ouvert, 'le bouton de Cap ne répond pas après « Entrer dans Cap »');
+    // Le glissement vers le haut de Cap ouvre toujours les tuiles (inchangé).
+    glisser(ui, ui.doc.querySelector('.ecran'), 200, 700, 200, 300);
+    attendre(!ui.parId('ecran-complet').hidden, 'glissement des tuiles cassé');
+  });
+
+  await testAsync('Écran d’eau : le petit bouton « Eau » y ramène ; couche d’eau sans toucher ; gestes bloqués seulement sur l’eau ; aucune adresse extérieure', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const h = horlogeEau();
+    const memoire = new Map([[ecranEau.CLE_VUE, 'oui']]);
+    const stockage = { getItem: k => memoire.get(k) ?? null, setItem: (k, v) => memoire.set(k, v) };
+    const ecran = ecranEau.auDemarrage(ui.doc, { stockage, raf: h.raf, caf: h.caf, reglages: { fond: 'aucun' } });
+    attendre(!ecran.etat().visible, 'eau montrée alors qu’elle a déjà été vue');
+    ui.parId('aller-eau').click();
+    attendre(ecran.etat().visible && ecran.etat().animation, 'le bouton « Eau » ne ramène pas à l’eau');
+    const style = el => ui.cadre.contentWindow.getComputedStyle(el);
+    attendreEgal(style(ui.parId('toile-eau')).pointerEvents, 'none', 'la couche d’eau capte les touchers');
+    attendreEgal(style(ui.parId('ecran-eau')).touchAction, 'none', 'gestes non bloqués sur l’eau');
+    attendre(style(ui.doc.body).touchAction !== 'none' && style(ui.doc.querySelector('.ecran')).touchAction !== 'none', 'gestes bloqués dans tout Cap');
+    ecran.entrerDansCap();
+    attendre(!ecran.etat().visible, 'eau restée');
+    const source = SOURCE_ECRAN_EAU;
+    attendre(!/https?:\/\//.test(source) && !/localStorage|indexedDB|fetch\(/.test(source), 'adresse extérieure, stockage durable ou envoi dans l’écran d’eau');
   });
 
   await testAsync('Classement étape 1 : Doc et tableur choisis chacun à part, bon type vérifié, rien gardé sinon', async c => {
@@ -5616,8 +5752,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v52['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v52")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v53['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v53")
 
 
 def verifier_precache_fichiers_existent():
@@ -5659,7 +5795,9 @@ def verifier_rien_de_prive_publie():
     fautifs = []
     for nom in filter(None, sortie.split("\0")):
         chemin = racine / nom
-        if not chemin.is_file() or chemin.suffix.lower() in {".png", ".ico"}:
+        # Images et vidéos : binaires (des octets au hasard peuvent ressembler à un mot court) ; la vidéo du
+        # galet n'a aucun bloc de métadonnées (titre, auteur, commentaire), vérifié le 06/11/2026.
+        if not chemin.is_file() or chemin.suffix.lower() in {".png", ".ico", ".mp4"}:
             continue
         texte = chemin.read_text(encoding="utf-8", errors="ignore").casefold()
         if any(re.search(rf"(?<!\w){re.escape(mot.casefold())}(?!\w)", texte) for mot in mots):
@@ -5733,6 +5871,7 @@ def construire_page():
         "SOURCE_FICHIERS_VOCAUX_CONTROLEUR": "fichiers_vocaux_controleur.js",
         "SOURCE_TUILES": "tuiles.js",
         "SOURCE_MODE_TRIER": "mode_trier.js",
+        "SOURCE_ECRAN_EAU": "ecran_eau.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }
@@ -5764,6 +5903,8 @@ for (const espace of [localStorage, sessionStorage]) {{
     if (cle.startsWith('cap_google_')) espace.removeItem(cle);
   }}
 }}
+// Écran d'eau : la page de test fait comme s'il avait déjà été vu (des tests isolés le vérifient).
+sessionStorage.setItem('cap_eau_vue_v1', 'oui');
 </script>
 {corps_body}
 {scripts}

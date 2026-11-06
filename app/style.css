@@ -2695,3 +2695,105 @@ dialog .micro-tri[aria-pressed="true"] {
   overflow: hidden;
   line-height: 1.2;
 }
+
+/* Écran d'ouverture « eau » (06/11/2026). Au-dessus de Cap ; le blocage des gestes de défilement
+   ne vaut QUE pour cet écran. La couche d'eau ne capte jamais un toucher. */
+#ecran-eau {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  overflow: hidden;
+  background: rgb(201 227 221);
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+#ecran-eau[hidden] {
+  display: none;
+}
+#video-galet,
+#image-galet {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: transparent;
+}
+#video-galet[hidden],
+#image-galet[hidden],
+#consigne-eau[hidden] {
+  display: none;
+}
+.couche-eau {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: blur(1.4px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+#surface-eau {
+  position: absolute;
+  inset: 0;
+}
+#consigne-eau {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6%;
+  margin: 0;
+  text-align: center;
+  font-size: 1.15rem;
+  color: #203e49;
+  opacity: 0.75;
+  pointer-events: none;
+}
+#boutons-eau {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4%;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1em;
+  padding: 0 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1s ease;
+}
+#boutons-eau.visible {
+  opacity: 0.95;
+  pointer-events: auto;
+}
+#boutons-eau button {
+  min-height: 3em;
+  padding: 0.7em 1.3em;
+  border: none;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 75%);
+  color: #203e49;
+  font-size: 1.25rem;
+}
+html.eau-ouverte body {
+  overflow: hidden;
+}
+.horloge {
+  position: relative;
+}
+.bouton-eau {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  min-height: 2.6em;
+  padding: 0.4em 0.9em;
+  border: 1px solid rgb(32 62 73 / 25%);
+  border-radius: 999px;
+  background: rgb(201 227 221 / 60%);
+  color: #203e49;
+  font-size: 0.95rem;
+}
