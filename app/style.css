@@ -2896,3 +2896,16 @@ html.sans-eau .bouton-eau {
   color: var(--encre);
   opacity: 1;
 }
+
+/* Dossiers « Relations », étape 3 (06/11/2026) : écran de vérification, choix en très gros. */
+.relations-gros {
+  font-size: 1.5rem;
+  line-height: 1.4;
+}
+.relations-gros-bouton {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  margin: 12px 0;
+  font-size: 1.4rem;
+}

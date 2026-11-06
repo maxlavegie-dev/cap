@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "relations_creation.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -1961,6 +1961,166 @@ TESTS_JS = r"""
     attendre(!ecrit, 'quelque chose a été écrit sur le téléphone');
     const sansChoix = objetIsole(SOURCE_CLASSEMENT, 'classement', { googleConnexion: c.googleConnexion, googlePicker: { dossierChoisi: () => null, retrouverDepuisDrive: async () => null }, emetteur, relations });
     attendreEgal(await sansChoix.lireDictionnairePersonnes(), null, 'Dictionnaire pas choisi');
+  });
+
+  // ---------- 06/11/2026 : dossiers « Relations », étape 3 (création sur un FAUX Drive seulement) ----------
+  // Faux Drive : comprend les recherches de Cap (étiquette invisible, parent, type), crée en mémoire,
+  // peut « couper » après N créations. Tout est FICTIF.
+  function fauxDriveRelations(c, { coupureApres = Infinity } = {}) {
+    const f = { fichiers: [], creations: 0, coupureApres };
+    let numero = 0;
+    c.repondre = async r => {
+      attendreEgal(r.url.origin + r.url.pathname, 'https://www.googleapis.com/drive/v3/files', `adresse inattendue : ${r.url}`);
+      if (r.methode === 'POST') {
+        if (f.creations >= f.coupureApres) throw new Error('coupure FICTIVE du réseau');
+        f.creations++;
+        const nouveau = { id: `fictif-${++numero}`, name: r.corps.name, mimeType: r.corps.mimeType, parents: r.corps.parents, appProperties: r.corps.appProperties || {}, trashed: false };
+        f.fichiers.push(nouveau);
+        return reponseGoogle({ id: nouveau.id });
+      }
+      attendreEgal(r.methode, 'GET', 'méthode inattendue');
+      const q = r.url.searchParams.get('q') || '';
+      const etiquette = /appProperties has \{ key='([^']+)' and value='((?:[^'\\]|\\.)*)' \}/.exec(q);
+      const parent = /'([^']+)' in parents/.exec(q)?.[1];
+      const type = /mimeType='([^']+)'/.exec(q)?.[1];
+      attendre(/trashed=false/.test(q), 'recherche sans « trashed=false »');
+      const trouves = f.fichiers.filter(x => !x.trashed && (!parent || x.parents.includes(parent)) && (!type || x.mimeType === type)
+        && (!etiquette || x.appProperties[etiquette[1]] === etiquette[2].replace(/\\(.)/g, '$1')));
+      return reponseGoogle({ files: trouves.map(x => ({ id: x.id, name: x.name, appProperties: x.appProperties })) });
+    };
+    f.noms = () => f.fichiers.map(x => x.name).sort();
+    return f;
+  }
+  function dictionnaireCreationFictif() {
+    return [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif', 'Personne'], ['Jeanne', 'Exemple-FICTIF', 'Personne']];
+  }
+  function creationIsolee(c) {
+    const lignes = [];
+    const journal = { ajouter: (j, l) => lignes.push([j, l]) };
+    const module = objetIsole(SOURCE_RELATIONS_CREATION, 'relationsCreation', { googleConnexion: { appeler: c.fetch }, relations, journaux: journal });
+    return { module, lignes };
+  }
+  const ATTENDUS_DEUX = ['Envoyés', 'Envoyés', 'Journal de bord', 'Journal de bord', 'Relations', 'Reçus', 'Reçus', 'r_Jean Fictif', 'r_Jeanne Exemple-FICTIF'];
+
+  await testAsync('Relations (étape 3, FAUX Drive) : création complète, une ligne de journal par création, puis deux appuis de suite = aucun doublon', async c => {
+    const drive = fauxDriveRelations(c);
+    const { module, lignes } = creationIsolee(c);
+    const plan = await module.preparer(dictionnaireCreationFictif(), 'appcap-fictif');
+    attendreEgal([plan.aFaire.length, plan.deja.length, plan.bloque], [2, 0, false], 'plan');
+    attendreEgal(drive.creations, 0, 'le plan a créé quelque chose');
+    // Deux appuis de suite : le second ne crée rien.
+    const [premier, second] = await Promise.all([module.lancer(plan, { appCap: 'appcap-fictif' }), module.lancer(plan, { appCap: 'appcap-fictif' })]);
+    attendre(second.refuse && second.crees === 0, 'le second appui a été pris en compte');
+    attendreEgal(premier.crees, 9, 'éléments créés');
+    attendreEgal(drive.noms(), ATTENDUS_DEUX, 'arborescence créée');
+    const relationsId = drive.fichiers.find(x => x.name === 'Relations');
+    attendreEgal(relationsId.parents, ['appcap-fictif'], '« Relations » à la racine de App Cap');
+    const jean = drive.fichiers.find(x => x.name === 'r_Jean Fictif');
+    attendreEgal(jean.parents, [relationsId.id], 'dossier de la personne dans Relations');
+    attendreEgal(drive.fichiers.filter(x => x.parents[0] === jean.id).map(x => [x.name, x.mimeType]).sort(),
+      [['Envoyés', 'application/vnd.google-apps.folder'], ['Journal de bord', 'application/vnd.google-apps.document'], ['Reçus', 'application/vnd.google-apps.folder']], 'contenu du dossier');
+    attendreEgal(lignes.length, 9, 'une ligne de Journal Général par création');
+    attendre(lignes.every(([j, l]) => j === 'general' && l.chantier === 'Relations' && l.resultat === 'créé'), 'lignes de journal');
+    // Nouvel appui plus tard (nouveau plan) : tout est déjà là, rien n'est recréé.
+    const plan2 = await module.preparer(dictionnaireCreationFictif(), 'appcap-fictif');
+    attendreEgal([plan2.aFaire.length, plan2.deja.length], [0, 2], 'déjà présents reconnus par leur étiquette');
+    const encore = await module.lancer(plan2, { appCap: 'appcap-fictif' });
+    attendreEgal([encore.crees, drive.fichiers.length, lignes.length], [0, 9, 9], 'doublon créé');
+    // Même avec l'ANCIEN plan (fait avant la création) : la vérification juste avant évite tout doublon.
+    attendreEgal((await module.lancer(plan, { appCap: 'appcap-fictif' })).crees, 0, 'ancien plan : doublon');
+    attendre(c.requetes.every(r => ['GET', 'POST'].includes(r.methode) && r.url.hostname === 'www.googleapis.com'), 'adresse ou méthode non permise');
+    attendre(c.requetes.every(r => !/trashed\s*=\s*true|removeParents|addParents/i.test(decodeURIComponent(r.url.search)) && !/trash|delete|copy/i.test(r.url.pathname) && !(r.corps && 'trashed' in r.corps)), 'suppression ou déplacement');
+  });
+
+  await testAsync('Relations (étape 3, FAUX Drive) : coupure au milieu, puis reprise sans doublon ; dossier déjà présent complété seulement', async c => {
+    const drive = fauxDriveRelations(c, { coupureApres: 3 });
+    const { module, lignes } = creationIsolee(c);
+    const plan = await module.preparer(dictionnaireCreationFictif(), 'appcap-fictif');
+    await attendreRejet(() => module.lancer(plan, { appCap: 'appcap-fictif' }), 'coupure FICTIVE');
+    attendreEgal(drive.fichiers.length, 3, 'éléments créés avant la coupure');
+    attendreEgal(lignes.length, 3, 'une ligne par création, même avant la coupure');
+    drive.coupureApres = Infinity;
+    const reprise = await module.lancer(await module.preparer(dictionnaireCreationFictif(), 'appcap-fictif'), { appCap: 'appcap-fictif' });
+    attendreEgal(reprise.crees, 6, 'reprise : seulement ce qui manquait');
+    attendreEgal(drive.noms(), ATTENDUS_DEUX, 'arborescence après reprise (sans doublon)');
+    attendreEgal(lignes.length, 9, 'lignes de journal après reprise');
+  });
+
+  await testAsync('Relations (étape 3, FAUX Drive) : homonyme, fiche incomplète, sans type, changement de nom = arrêt, rien créé ; « continuer pour les autres » seulement après choix', async c => {
+    const drive = fauxDriveRelations(c);
+    const { module } = creationIsolee(c);
+    const valeurs = [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif', 'Personne'], ['Paul', 'Modèle-FICTIF', 'Personne'], ['paul', 'modele-fictif', 'Personne'],
+      ['Lucie', '', 'Personne'], ['Marc', 'Essai-FICTIF', '']];
+    const plan = await module.preparer(valeurs, 'appcap-fictif');
+    attendre(plan.bloque, 'pas d’arrêt malgré les fiches à choisir');
+    const r = await module.lancer(plan, { appCap: 'appcap-fictif' });
+    attendre(r.arrete && r.crees === 0 && drive.creations === 0, 'création malgré l’arrêt');
+    // Choix de Max : seulement les autres fiches → seulement Jean.
+    await module.lancer(plan, { appCap: 'appcap-fictif', sansLesFichesAChoisir: true });
+    attendreEgal(drive.fichiers.filter(x => x.name.startsWith('r_')).map(x => x.name), ['r_Jean Fictif'], 'homonymes, incomplète ou sans type créés');
+    // Changement de nom dans le Dictionnaire (même ligne 2) : « Renommer ? » proposé, rien créé, rien renommé.
+    const renomme = [['Prénom', 'Nom', 'Type'], ['Jean', 'Fictif-Nouveau', 'Personne']];
+    const plan2 = await module.preparer(renomme, 'appcap-fictif');
+    attendreEgal(plan2.renommages, [{ numero: 2, ancien: 'r_Jean Fictif', nouveau: 'r_Jean Fictif-Nouveau' }], 'renommage proposé');
+    attendre(plan2.bloque && plan2.aFaire.length === 0, 'nouveau dossier prévu malgré le changement de nom');
+    const avant = drive.fichiers.length;
+    await module.lancer(plan2, { appCap: 'appcap-fictif' });
+    attendreEgal(drive.fichiers.length, avant, 'création malgré le changement de nom');
+    attendre(drive.fichiers.some(x => x.name === 'r_Jean Fictif'), 'ancien dossier touché');
+    // Fiche retirée du Dictionnaire : son dossier est gardé tel quel.
+    const plan3 = await module.preparer([['Prénom', 'Nom', 'Type'], ['Jeanne', 'Exemple-FICTIF', 'Personne']], 'appcap-fictif');
+    attendreEgal(plan3.orphelins, [], 'ligne 2 réutilisée : pas un orphelin mais…');
+    attendreEgal(plan3.renommages.length, 1, '… un renommage possible (même ligne)');
+    attendre(c.requetes.every(q => ['GET', 'POST'].includes(q.methode)), 'méthode non permise');
+  });
+
+  await testAsync('Relations (étape 3, FAUX Drive) : écran de vérification, question « dossier r_ fait à la main » : Oui = rien créé ; Non puis Oui = création ; choix en très gros', async c => {
+    const ui = preparerInterface(c);
+    const drive = fauxDriveRelations(c);
+    const { module } = creationIsolee(c);
+    const el = id => ui.parId(id);
+    let plan = await module.preparer(dictionnaireCreationFictif(), 'appcap-fictif');
+    module.ecran(ui.doc, plan, { appCap: 'appcap-fictif' });
+    attendre(el('verification-relations').open, 'écran de vérification fermé');
+    attendre(/^2 dossier/.test(el('relations-nombre').textContent), `nombre : ${el('relations-nombre').textContent}`);
+    attendreEgal([...el('relations-liste').children].map(li => li.textContent), ['r_Jean Fictif', 'r_Jeanne Exemple-FICTIF'], 'liste');
+    attendreEgal(el('relations-question-texte').textContent, 'As-tu déjà créé toi-même un dossier r_ pour l’une de ces personnes ?', 'question');
+    attendre(el('relations-confirmer').hidden, 'bouton de création visible avant la réponse');
+    el('relations-oui-deja').click();
+    el('relations-creer').click();
+    await new Promise(r => setTimeout(r, 50));
+    attendreEgal(drive.creations, 0, 'création malgré « Oui, j’ai déjà créé »');
+    attendre(/rien n’est créé/.test(el('relations-etat').textContent), 'message après Oui');
+    // Nouveau passage : Non, puis confirmation explicite.
+    plan = await module.preparer(dictionnaireCreationFictif(), 'appcap-fictif');
+    const travail = module.ecran(ui.doc, plan, { appCap: 'appcap-fictif' });
+    el('relations-non-jamais').click();
+    attendre(!el('relations-confirmer').hidden && /2 dossier/.test(el('relations-creer').textContent), 'confirmation absente');
+    el('relations-creer').click();
+    el('relations-creer').click();
+    await travail.promesse;
+    attendreEgal(drive.fichiers.length, 9, 'création après Non puis Oui (un seul passage)');
+    attendre(/Terminé : 9 élément/.test(el('relations-etat').textContent), `état : ${el('relations-etat').textContent}`);
+    // Arrêt : choix montrés en très gros.
+    const bloque = await module.preparer([['Prénom', 'Nom', 'Type'], ['Lucie', '', 'Personne']], 'appcap-fictif');
+    module.ecran(ui.doc, bloque, { appCap: 'appcap-fictif' });
+    attendre(!el('relations-arret').hidden && el('relations-question').hidden, 'arrêt non montré');
+    attendre(/ligne 2/.test(el('relations-problemes').textContent), 'fiche à choisir non montrée');
+    const taille = parseFloat(ui.cadre.contentWindow.getComputedStyle(el('relations-corriger')).fontSize);
+    attendre(taille >= 20, `choix pas en très gros : ${taille}px`);
+    el('relations-corriger').click();
+    attendre(/rien n’est créé/.test(el('relations-etat').textContent), 'message après « je corrige »');
+    el('relations-fermer').click();
+  });
+
+  test('Relations (étape 3) : aucun bouton de Cap ne lance la création avec le vrai Drive ; le module ne supprime, ne renomme, ne déplace rien', () => {
+    for (const nom of ['SOURCE_APP', 'SOURCE_RELATIONS']) {
+      attendre(!/relationsCreation/.test({ SOURCE_APP, SOURCE_RELATIONS }[nom]), `${nom} appelle déjà la création`);
+    }
+    attendre(SOURCE_RELATIONS_CREATION.trim().endsWith('})();'), 'du code se lance tout seul après le module');
+    for (const interdit of ["'DELETE'", "'PATCH'", "'PUT'", 'trashed: true', 'removeParents', 'addParents', 'innerHTML', 'localStorage', 'cerveau', 'docs.googleapis']) {
+      attendre(!SOURCE_RELATIONS_CREATION.includes(interdit), `relations_creation.js contient « ${interdit} »`);
+    }
   });
 
   // ---------- 06/11/2026 : écran d'ouverture « eau » (étape 1 de l'intégration du travail de Zencoder) ----------
@@ -6058,8 +6218,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v57['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v57")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v58['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v58")
 
 
 def verifier_precache_fichiers_existent():
@@ -6179,6 +6339,7 @@ def construire_page():
         "SOURCE_MODE_TRIER": "mode_trier.js",
         "SOURCE_ECRAN_EAU": "ecran_eau.js",
         "SOURCE_RELATIONS": "relations.js",
+        "SOURCE_RELATIONS_CREATION": "relations_creation.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }

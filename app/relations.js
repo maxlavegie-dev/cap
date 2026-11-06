@@ -49,10 +49,16 @@ const relations = (() => {
       if (!parCle.has(c)) parCle.set(c, []);
       parCle.get(c).push({ numero, nomDossier: `${PREFIXE}${prenom} ${nom}`, cle: c });
     });
+    // Étape 3 : aussi le nom des homonymes (pour l'écran de vérification) et toutes les clés vues
+    // (pour reconnaître un dossier dont la fiche a changé de nom).
+    resultat.homonymesNoms = [];
     for (const groupe of parCle.values()) {
-      if (groupe.length > 1) resultat.homonymes.push(groupe.map(g => g.numero));
-      else resultat.aCreer.push(groupe[0]);
+      if (groupe.length > 1) {
+        resultat.homonymes.push(groupe.map(g => g.numero));
+        resultat.homonymesNoms.push({ nomDossier: groupe[0].nomDossier, numeros: groupe.map(g => g.numero) });
+      } else resultat.aCreer.push(groupe[0]);
     }
+    resultat.cles = [...parCle.keys()];
     return resultat;
   }
 

@@ -481,6 +481,29 @@
     <p id="diagnostic-picker" role="status" hidden></p>
     <p class="erreur" role="alert" hidden></p>
   </dialog>
+  <!-- Dossiers « Relations », étape 3 (06/11/2026) : écran de vérification avant toute création.
+       Aucun bouton de Cap ne l'ouvre encore avec le vrai Drive (étapes 4 et 5, après le Oui de Max). -->
+  <dialog id="verification-relations" aria-labelledby="titre-verification-relations">
+    <h2 id="titre-verification-relations">Dossiers « Relations » : vérification</h2>
+    <p id="relations-nombre" class="relations-gros"></p>
+    <ul id="relations-liste"></ul>
+    <section id="relations-arret" hidden>
+      <p class="relations-gros">Cap s’est arrêté : ces fiches demandent ton choix. Rien n’a été créé.</p>
+      <ul id="relations-problemes" class="relations-gros"></ul>
+      <button id="relations-corriger" class="relations-gros-bouton" type="button">Je corrige d’abord le Dictionnaire (rien n’est créé)</button>
+      <button id="relations-sans-probleme" class="relations-gros-bouton" type="button">Continuer seulement pour les autres fiches</button>
+    </section>
+    <section id="relations-question" hidden>
+      <p id="relations-question-texte" class="relations-gros"></p>
+      <button id="relations-oui-deja" class="relations-gros-bouton" type="button">Oui</button>
+      <button id="relations-non-jamais" class="relations-gros-bouton" type="button">Non</button>
+    </section>
+    <section id="relations-confirmer" hidden>
+      <button id="relations-creer" class="relations-gros-bouton" type="button">Oui, crée ces dossiers</button>
+    </section>
+    <p id="relations-etat" class="relations-gros" role="status"></p>
+    <button id="relations-fermer" type="button">Fermer</button>
+  </dialog>
   <dialog id="reglages-ia" aria-labelledby="titre-reglages-ia">
     <h2 id="titre-reglages-ia" tabindex="-1">Cerveau de Cap</h2>
     <p id="etat-ia"></p>
@@ -734,6 +757,7 @@
   <script src="mots_courts.js"></script>
   <script src="emetteur.js"></script>
   <script src="relations.js"></script>
+  <script src="relations_creation.js"></script>
   <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>
