@@ -481,17 +481,20 @@
     <button id="essai-relations" type="button">Créer UN dossier d’essai « Relations »</button>
     <p id="resume-essai-relations" role="status" hidden></p>
     <div id="choix-essai-relations"></div>
+    <button id="tous-relations" type="button">Créer les dossiers « Relations » de toutes les personnes</button>
+    <p id="resume-tous-relations" role="status" hidden></p>
     <p id="diagnostic-picker" role="status" hidden></p>
     <p class="erreur" role="alert" hidden></p>
   </dialog>
   <!-- Dossiers « Relations », étape 3 (06/11/2026) : écran de vérification avant toute création.
-       Étape 4 : seul le bouton « Créer UN dossier d'essai » l'ouvre, pour une seule personne. -->
+       Étape 4 : le bouton « Créer UN dossier d'essai » (une seule personne) ; étape 5 : le bouton de toutes les personnes. -->
   <dialog id="verification-relations" aria-labelledby="titre-verification-relations">
     <h2 id="titre-verification-relations">Dossiers « Relations » : vérification</h2>
     <p id="relations-nombre" class="relations-gros"></p>
     <ul id="relations-liste"></ul>
     <section id="relations-arret" hidden>
       <p class="relations-gros">Cap s’est arrêté : ces fiches demandent ton choix. Rien n’a été créé.</p>
+      <p id="relations-mis-de-cote" class="relations-gros"></p>
       <ul id="relations-problemes" class="relations-gros"></ul>
       <button id="relations-corriger" class="relations-gros-bouton" type="button">Je corrige d’abord le Dictionnaire (rien n’est créé)</button>
       <button id="relations-sans-probleme" class="relations-gros-bouton" type="button">Continuer seulement pour les autres fiches</button>

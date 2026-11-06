@@ -2258,12 +2258,96 @@ TESTS_JS = r"""
     attendreEgal(c.requetes.length, avant, 'requête sans App Cap');
   });
 
+  // Étape 5 : toutes les personnes, en une fois, à la demande (FAUX Drive, faux Dictionnaire).
+  function dictionnaireTousFictif() {
+    return [['Prénom', 'Nom', 'Type', 'Note pour IA'],
+      ['Jean-Baptiste-FICTIF (Jibé)', 'Essai-FICTIF', 'Personne', ''],
+      ['Jean', 'Fictif', 'Personne', 'note FICTIVE jamais lue'],
+      ['Jeanne', 'Exemple-FICTIF', 'Personne', ''],
+      ['Paul', 'Modèle-FICTIF', 'Personne', ''], ['paul', 'modele-fictif', 'Personne', ''],
+      ['Séverine-FICTIF', '', 'Personne', ''],
+      ['Marc', 'Essai-FICTIF', '', ''],
+      ['Cabinet FICTIF', '', 'Organisme', ''],
+      ['Zoé-FICTIF (Zézé)', 'Lefèvre-FICTIF', 'Personne', '']];
+  }
+
+  await testAsync('Relations (étape 5, FAUX Drive) : toutes les personnes en une fois : liste, nombre, dossier d’essai écarté, mis de côté comptés, question, « Oui, crée ces N dossiers », premières entrées datées', async c => {
+    const ui = preparerInterface(c);
+    const drive = fauxDriveRelations(c);
+    const { module, lignes } = creationIsolee(c, '2026-11-06T22:10:00Z');
+    const el = id => ui.parId(id);
+    // D'abord l'essai (étape 4) sur la première fiche, comme dans la réalité.
+    const essai = await module.preparer(dictionnaireTousFictif(), 'appcap-fictif');
+    await module.lancer(module.planEssai(essai, 2), { appCap: 'appcap-fictif' });
+    attendreEgal(drive.creations, 5, 'essai');
+    const journalEssai = drive.fichiers.find(x => x.name === 'Journal de bord');
+    const texteEssai = journalEssai.contenu;
+    module.brancherTous(ui.doc, { lire: async () => dictionnaireTousFictif(), appCap: async () => ({ id: 'appcap-fictif' }) });
+    el('tous-relations').click();
+    await attendreQue(() => el('verification-relations').open, `écran fermé : ${el('resume-tous-relations').textContent}`);
+    attendreEgal(drive.creations, 5, 'création avant toute réponse');
+    attendre(/^3 dossier\(s\) « r_ » à créer/.test(el('relations-nombre').textContent) && /1 déjà fait\(s\), écarté\(s\)/.test(el('relations-nombre').textContent), `nombre : ${el('relations-nombre').textContent}`);
+    attendreEgal([...el('relations-liste').children].map(li => li.textContent), ['r_Jean Fictif', 'r_Jeanne Exemple-FICTIF', 'r_Zézé Lefèvre-FICTIF'], 'liste complète');
+    // Mis de côté, avec leur nombre, en très gros ; deux choix.
+    attendre(!el('relations-arret').hidden && el('relations-question').hidden, 'arrêt non montré');
+    attendreEgal(el('relations-mis-de-cote').textContent, 'Mis de côté : 1 homonyme(s) (2 fiche(s)), 1 fiche(s) incomplète(s), 1 fiche(s) sans type, 0 changement(s) de nom possible(s).', 'mis de côté');
+    attendre(parseFloat(ui.cadre.contentWindow.getComputedStyle(el('relations-mis-de-cote')).fontSize) >= 20, 'pas en très gros');
+    el('relations-sans-probleme').click();
+    attendreEgal(el('relations-question-texte').textContent, 'As-tu déjà créé toi-même un dossier r_ pour l’une de ces personnes ?', 'question');
+    el('relations-non-jamais').click();
+    attendreEgal(el('relations-creer').textContent, 'Oui, crée ces 3 dossiers', 'dernier bouton');
+    attendreEgal(drive.creations, 5, 'création avant le dernier bouton');
+    el('relations-creer').click();
+    el('relations-creer').click();
+    await attendreQue(() => /Terminé/.test(el('relations-etat').textContent), `état : ${el('relations-etat').textContent}`, 120);
+    attendreEgal(drive.creations, 5 + 12, '4 éléments par personne, une seule fois');
+    attendreEgal(drive.fichiers.filter(x => x.name.startsWith('r_')).map(x => x.name).sort(),
+      ['r_Jean Fictif', 'r_Jeanne Exemple-FICTIF', 'r_Jibé Essai-FICTIF', 'r_Zézé Lefèvre-FICTIF'], 'dossiers de personnes');
+    attendreEgal(drive.fichiers.filter(x => x.name === 'Relations').length, 1, 'un seul « Relations »');
+    attendreEgal(journalEssai.contenu, texteEssai, 'Journal de bord de l’essai réécrit');
+    const journauxNeufs = drive.fichiers.filter(x => x.name === 'Journal de bord' && x !== journalEssai);
+    attendreEgal(journauxNeufs.map(x => x.contenu).sort(), ['06/11/2026, 23:10 : création du dossier Relations de Jean Fictif',
+      '06/11/2026, 23:10 : création du dossier Relations de Jeanne Exemple-FICTIF', '06/11/2026, 23:10 : création du dossier Relations de Zézé Lefèvre-FICTIF'], 'premières entrées datées');
+    attendreEgal(lignes.length, 17, 'une ligne de Journal Général par création');
+    // Plus tard : nouvel appui, rien de nouveau dans le Dictionnaire → rien à créer.
+    el('relations-fermer').click();
+    el('tous-relations').click();
+    await attendreQue(() => /^0 dossier/.test(el('relations-nombre').textContent), 'second passage');
+    attendreEgal(drive.creations, 17, 'doublon au second passage');
+    attendre(c.requetes.every(r => ['GET', 'POST'].includes(r.methode) && r.url.hostname === 'www.googleapis.com'), 'adresse ou méthode non permise');
+  });
+
+  await testAsync('Relations (étape 5, FAUX Drive) : coupure au milieu de toutes les personnes, puis reprise sans doublon ; « Oui, j’ai déjà créé » = rien', async c => {
+    const drive = fauxDriveRelations(c, { coupureApres: 7 });
+    const { module } = creationIsolee(c, '2026-11-06T22:10:00Z');
+    const propre = dictionnaireTousFictif().filter((l, i) => i === 0 || [3, 4, 10].includes(i + 1));
+    await attendreRejet(async () => module.lancer(await module.preparer(propre, 'appcap-fictif'), { appCap: 'appcap-fictif' }), 'coupure FICTIVE');
+    attendreEgal(drive.creations, 7, 'avant la coupure');
+    drive.coupureApres = Infinity;
+    const reprise = await module.preparer(propre, 'appcap-fictif');
+    attendreEgal([reprise.aFaire.length, reprise.deja.length], [1, 2], 'reprise : une personne à faire, deux déjà commencées');
+    await module.lancer(reprise, { appCap: 'appcap-fictif' });
+    attendreEgal(drive.noms(), ['Envoyés', 'Envoyés', 'Envoyés', 'Journal de bord', 'Journal de bord', 'Journal de bord', 'Relations', 'Reçus', 'Reçus', 'Reçus',
+      'r_Jean Fictif', 'r_Jeanne Exemple-FICTIF', 'r_Zézé Lefèvre-FICTIF'], 'arborescence après reprise (sans doublon)');
+    attendre(drive.fichiers.filter(x => x.name === 'Journal de bord').every(x => /^06\/11\/2026, 23:10 : création du dossier Relations de /.test(x.contenu)), 'première entrée manquante');
+    // « Oui, j'ai déjà créé un dossier r_ » : rien n'est créé.
+    const ui = preparerInterface(c);
+    fauxDriveRelations(c);
+    const depuis = c.requetes.length;
+    module.ecran(ui.doc, await module.preparer(dictionnaireTousFictif(), 'appcap-fictif2'), { appCap: 'appcap-fictif2' });
+    ui.parId('relations-sans-probleme').click();
+    ui.parId('relations-oui-deja').click();
+    ui.parId('relations-creer').click();
+    await new Promise(r => setTimeout(r, 50));
+    attendre(c.requetes.length > depuis && c.requetes.slice(depuis).every(r => r.methode === 'GET'), 'création malgré « Oui, j’ai déjà créé »');
+  });
+
   test('Relations (étapes 3 et 4) : seul le bouton d’essai lance la création (jamais au démarrage ni dans les tests) ; le module ne supprime, ne renomme, ne déplace rien', () => {
     for (const nom of ['SOURCE_APP', 'SOURCE_RELATIONS']) {
       attendre(!/relationsCreation/.test({ SOURCE_APP, SOURCE_RELATIONS }[nom]), `${nom} appelle déjà la création`);
     }
     const apres = SOURCE_RELATIONS_CREATION.split('\n})();')[1] || '';
-    attendreEgal((apres.match(/relationsCreation\.\w+/g) || []), ['relationsCreation.brancherEssai'], 'point de départ autre que le bouton d’essai');
+    attendreEgal((apres.match(/relationsCreation\.\w+/g) || []), ['relationsCreation.brancherEssai', 'relationsCreation.brancherTous'], 'point de départ autre que les deux boutons');
     attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(apres), 'le bouton d’essai serait branché dans les tests');
     attendre(!/lancer\(/.test(apres), 'création lancée au démarrage');
     for (const interdit of ["'DELETE'", "'PATCH'", "'PUT'", 'trashed: true', 'removeParents', 'addParents', 'innerHTML', 'localStorage', 'cerveau', 'docs.googleapis']) {
@@ -6366,8 +6450,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v60['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v60")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v61['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v61")
 
 
 def verifier_precache_fichiers_existent():

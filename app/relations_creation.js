@@ -3,7 +3,7 @@
 // Dossiers « Relations », ÉTAPE 3 (06/11/2026) : création des dossiers, testée UNIQUEMENT sur un faux
 // Drive et un faux Dictionnaire (FICTIF). ÉTAPE 4 (06/11/2026, décision de Max) : un seul bouton,
 // « Créer UN dossier d'essai », pour UNE personne choisie par Max (au plus 5 éléments créés) ; la
-// création de toutes les personnes (étape 5) n'a aucun bouton.
+// création de toutes les personnes : ÉTAPE 5, un bouton à part, à la demande seulement.
 // Ce qui sera créé, dans « App Cap » : « Relations » › « r_Prénom Nom » › « Journal de bord » (Google
 // Doc vide), « Reçus », « Envoyés ».
 // Verrous :
@@ -202,7 +202,7 @@ const relationsCreation = (() => {
     };
     const montrer = (id, oui) => { el(id).hidden = !oui; };
     const etat = texte => { el('relations-etat').textContent = texte; };
-    const nombre = plan.aFaire.length + plan.deja.length;
+    const nombre = plan.aFaire.length;
     let sansLesFichesAChoisir = false;
     let refuse = false;
 
@@ -214,8 +214,9 @@ const relationsCreation = (() => {
         : 'Ce qui sera créé (un seul dossier d’essai) :';
       liste(el('relations-liste'), [`App Cap › ${NOM_RACINE} › ${nom}`, ...PARTIES.map(p => `${nom} › ${p.nom}`)]);
     } else {
+      // Étape 5 : le nombre, puis les dossiers déjà faits (écartés : rien n'y est recréé ni réécrit).
       el('relations-nombre').textContent = `${plan.aFaire.length} dossier(s) « r_ » à créer dans « ${NOM_RACINE} »`
-        + (plan.deja.length ? ` ; ${plan.deja.length} déjà créé(s) par Cap (complétés s’il leur manque une partie).` : '.');
+        + (plan.deja.length ? ` ; ${plan.deja.length} déjà fait(s), écarté(s) : rien n’y est recréé ni réécrit (Cap ajoute seulement une partie qui manquerait).` : '.');
       liste(el('relations-liste'), plan.aFaire.map(f => f.nomDossier));
     }
     const problemes = [
@@ -225,6 +226,11 @@ const relationsCreation = (() => {
       ...plan.renommages.map(r => `Renommer ? « ${r.ancien} » deviendrait « ${r.nouveau} » (ligne ${r.numero}). Rien n’est fait tout seul.`)
     ];
     liste(el('relations-problemes'), problemes);
+    // Mis de côté, avec leur nombre (rien n'est créé pour eux).
+    const fichesHomonymes = plan.calcul.homonymes.reduce((total, g) => total + g.length, 0);
+    el('relations-mis-de-cote').textContent = `Mis de côté : ${plan.calcul.homonymes.length} homonyme(s) (${fichesHomonymes} fiche(s)), `
+      + `${plan.calcul.incompletes.length} fiche(s) incomplète(s), ${plan.calcul.typeAbsent.length} fiche(s) sans type, `
+      + `${plan.renommages.length} changement(s) de nom possible(s).`;
     montrer('relations-arret', plan.bloque);
     montrer('relations-question', !plan.bloque);
     montrer('relations-confirmer', false);
@@ -250,8 +256,9 @@ const relationsCreation = (() => {
     el('relations-non-jamais').onclick = () => {
       if (refuse) return;
       montrer('relations-question', false);
-      if (!nombre) { etat('Rien à créer.'); return; }
-      el('relations-creer').textContent = plan.essai ? 'Oui, crée ce dossier' : `Oui, crée ces ${nombre} dossier(s), une personne après l’autre`;
+      if (!nombre && !plan.deja.length) { etat('Rien à créer.'); return; }
+      el('relations-creer').textContent = plan.essai ? 'Oui, crée ce dossier'
+        : nombre ? `Oui, crée ces ${nombre} dossiers` : `Oui, vérifie les ${plan.deja.length} dossiers déjà faits (rien n’est recréé)`;
       montrer('relations-confirmer', true);
     };
     const travail = { promesse: null };
@@ -314,11 +321,38 @@ const relationsCreation = (() => {
     });
   }
 
-  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, premiereEntree, preparer, planEssai, lancer, ecran, brancherEssai };
+  // Étape 5 (06/11/2026, décision de Max) : bouton « Créer les dossiers de toutes les personnes ». Une
+  // seule fois, à la demande : aucune mise à jour automatique. Lit le Dictionnaire (Prénom, Nom, Type),
+  // puis ouvre l'écran de vérification ; rien n'est créé avant « Oui, crée ces N dossiers ».
+  function brancherTous(doc, { lire, appCap }) {
+    const bouton = doc.getElementById('tous-relations');
+    const zone = doc.getElementById('resume-tous-relations');
+    if (!bouton || !zone) return;
+    bouton.addEventListener('click', async () => {
+      zone.hidden = false;
+      zone.textContent = 'Lecture de l’onglet « Dictionnaire »… (rien n’est créé)';
+      try {
+        const dossier = await appCap();
+        if (!dossier) { zone.textContent = 'Choisis d’abord le dossier « App Cap » dans « Réglages du Drive », avec Cap ouvert dans Chrome. Rien n’a été créé.'; return; }
+        const valeurs = await lire();
+        if (!valeurs) { zone.textContent = 'Choisis d’abord le Dictionnaire général dans « Réglages du Drive ». Rien n’a été créé.'; return; }
+        const plan = await preparer(valeurs, dossier.id);
+        zone.textContent = 'Vérifie la liste dans la fenêtre qui s’ouvre. Rien n’est encore créé.';
+        ecran(doc, plan, { appCap: dossier.id });
+      } catch (erreur) {
+        zone.textContent = `Le Dictionnaire n’a pas pu être lu (${String(erreur && erreur.message || 'raison inconnue').slice(0, 120)}). Rien n’a été créé.`;
+      }
+    });
+  }
+
+  return { NOM_RACINE, PARTIES, ETIQUETTES, QUESTION, premiereEntree, preparer, planEssai, lancer, ecran, brancherEssai, brancherTous };
 })();
 
-// Seul point de départ dans Cap : le bouton d'essai (étape 4). Jamais au démarrage, jamais dans les tests.
+// Seuls points de départ dans Cap : le bouton d'essai (étape 4) et celui de toutes les personnes
+// (étape 5). Jamais au démarrage, jamais de mise à jour automatique, jamais dans les tests.
 if (typeof document !== 'undefined' && document.getElementById('essai-relations')
   && !(typeof window !== 'undefined' && window.CAP_TESTS) && typeof classement !== 'undefined' && typeof googlePicker !== 'undefined') {
-  relationsCreation.brancherEssai(document, { lire: () => classement.lireDictionnairePersonnes(), appCap: async () => googlePicker.dossierAppCap() });
+  const sources = { lire: () => classement.lireDictionnairePersonnes(), appCap: async () => googlePicker.dossierAppCap() };
+  relationsCreation.brancherEssai(document, sources);
+  relationsCreation.brancherTous(document, sources);
 }
