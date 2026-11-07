@@ -3181,7 +3181,7 @@ TESTS_JS = r"""
   // ----- Étape A (07/11/2026) : accueil sur l'eau, Autre, Réglages, geste haut-bas, alerte partout -----
   const pause = () => new Promise(r => setTimeout(r, 0));
   function brancherAccueil(c, ui, options = {}) {
-    const eau = { couleurs: [], changerCouleurs(cs) { this.couleurs.push(cs); } };
+    const eau = { couleurs: [], effets: [], changerCouleurs(cs, ef) { this.couleurs.push(cs); this.effets.push(ef || null); } };
     const petite = { active: false, demarrages: 0, demarrer() { this.active = true; this.demarrages++; }, arreter() { this.active = false; } };
     const module = accueilCap.brancher(ui.doc, { eau, stockage: c.localStorage, creerPetiteEau: () => petite, ...options });
     return { module, eau, petite };
@@ -3239,6 +3239,7 @@ TESTS_JS = r"""
     const html = ui.doc.documentElement;
     attendre(html.classList.contains('theme-cap-sombre') && el('bouton-theme-cap').getAttribute('aria-checked') === 'true', 'sombre pas par défaut');
     attendreEgal(eau.couleurs.at(-1), accueilCap.EAU_SOMBRE.map(x => [...x]), 'eau pas sombre sur l’accueil');
+    attendre(eau.effets.at(-1) === ecranEau.EAU_V2, 'effets de l’eau v2 absents en sombre');
     el('ouvrir-autre').click();
     const curseur = () => el('bouton-theme-cap').querySelector('.curseur-theme').getBoundingClientRect();
     const gauche = curseur().left;
@@ -3255,6 +3256,7 @@ TESTS_JS = r"""
     el('ouvrir-chercher').click();
     await pause();
     attendreEgal(eau.couleurs.at(-1), null, 'eau sombre derrière les tâches');
+    attendreEgal(eau.effets.at(-1), null, 'effets v2 derrière les tâches');
     el('fermer-chercher').click();
     await pause();
     attendreEgal(eau.couleurs.at(-1), accueilCap.EAU_SOMBRE.map(x => [...x]), 'eau pas redevenue sombre');
@@ -3274,6 +3276,31 @@ TESTS_JS = r"""
     brancherAccueil(c, ui3);
     attendreEgal(ui3.parId('curseur-intensite-eau').value, '40', 'valeur non relue');
     attendre(/maquette, non reliée/.test(ui3.doc.querySelector('label[for="curseur-intensite-eau"]').textContent), 'étiquette « maquette » absente');
+  });
+
+  test('Eau v2 de Zencoder (07/11/2026) : réglages repris tels quels ; en sombre, liseré clair sur le haut des vagues et eau qui bouge ; sans effets, l’eau d’avant', () => {
+    attendreEgal(JSON.parse(JSON.stringify(ecranEau.EAU_V2)), { houle: { intensite: 0.15, vitesse: 0.00022, frequence: 1.6 },
+      reflet: { intensite: 0.5, vitesse: 0.00018, taille: 2.2 }, lisereCrete: { intensite: 0.35, couleur: [214, 230, 226] } }, 'réglages de Zencoder');
+    const faire = effets => {
+      const toile = document.createElement('canvas');
+      toile.style.cssText = 'position:fixed;left:0;top:0;width:200px;height:200px;';
+      document.body.append(toile);
+      const couche = ecranEau.creerCouche(toile, { raf: () => 1, caf: () => {}, couleurs: accueilCap.EAU_SOMBRE.map(c => [...c]), effets });
+      couche.demarrer();
+      couche.perturber(0.5, 0.5, 40, 4);
+      for (let i = 1; i <= 4; i++) couche.avancer(i * 16);
+      const pixels = Array.from(couche.pixels());
+      couche.arreter();
+      toile.remove();
+      return pixels;
+    };
+    const sans = faire(null);
+    const avec = faire(ecranEau.EAU_V2);
+    const clarte = px => { let max = 0; for (let i = 0; i < px.length; i += 4) max = Math.max(max, px[i] + px[i + 1] + px[i + 2]); return max; };
+    const moyenne = px => { let s = 0; for (let i = 0; i < px.length; i += 4) s += px[i] + px[i + 1] + px[i + 2]; return s / (px.length / 4); };
+    attendre(clarte(avec) > clarte(sans) + 150, `pas de liseré clair sur les vagues (${clarte(avec)} contre ${clarte(sans)})`);
+    attendre(Math.abs(moyenne(avec) - moyenne(sans)) < 40, 'l’eau v2 change toute la teinte');
+    attendre(sans.length === avec.length && sans.some((v, i) => v !== avec[i]), 'aucune différence avec les effets');
   });
 
   await testAsync('Étape A : geste net de HAUT EN BAS sur l’accueil = retour à l’eau seule ; jamais pour un geste court, lent, de travers, depuis le tout haut, ni quand quelque chose est ouvert', async c => {

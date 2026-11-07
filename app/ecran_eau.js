@@ -53,6 +53,15 @@ const ecranEau = (() => {
     rayon: 3, // taille de l'onde du doigt
     delaiOndes: 1800 // ondes qui naissent seules (ms, en moyenne + hasard)
   });
+  // Eau v2 de Zencoder (Cap_eau_essai_v2_2026_11_07/eau.js, lu sans rien y toucher ; reprise le 07/11/2026,
+  // accord de Max) : mêmes réglages et mêmes formules, adaptées dans la couche d'eau de Cap :
+  // houle de fond lente, tache de lumière qui se déplace, fin trait clair sur le haut des vagues (« liseré
+  // de crête »), pour que l'eau SOMBRE bouge visiblement. Utilisée avec les couleurs sombres seulement.
+  const EAU_V2 = Object.freeze({
+    houle: Object.freeze({ intensite: 0.15, vitesse: 0.00022, frequence: 1.6 }),
+    reflet: Object.freeze({ intensite: 0.5, vitesse: 0.00018, taille: 2.2 }),
+    lisereCrete: Object.freeze({ intensite: 0.35, couleur: Object.freeze([214, 230, 226]) })
+  });
   const AMORTISSEMENT = EAU.amortissement;
   const CELLULES_CIBLE = EAU.cellules;
 
@@ -91,6 +100,9 @@ const ecranEau = (() => {
     const ctx = toile.getContext('2d', { alpha: false });
     // Étape A (07/11/2026) : couleurs changeables (mode clair / sombre des écrans sur l'eau).
     let [COULEUR_PEU_PROFOND, COULEUR_PROFOND] = options.couleurs || couleursDuFond(toile.ownerDocument);
+    // Effets de l'eau v2 (null = l'eau d'avant, inchangée).
+    let effets = options.effets || null;
+    let houleX = null, houleY = null, refletX = null, refletY = null;
     const basse = toile.ownerDocument.createElement('canvas');
     const ctxBasse = basse.getContext('2d');
     let largeur = 0, hauteur = 0, colonnes = 0, lignes = 0;
@@ -150,7 +162,64 @@ const ecranEau = (() => {
       const t = buf1; buf1 = buf2; buf2 = t;
     }
 
+    // Eau v2 : houle et tache de lumière se calculent par colonne et par ligne (même résultat que les
+    // formules de Zencoder, beaucoup moins de calculs : sinus et exponentielle se séparent en x et en y).
+    function preparerEffets(temps) {
+      if (!houleX || houleX.length !== colonnes) { houleX = new Float32Array(colonnes); refletX = new Float32Array(colonnes); }
+      if (!houleY || houleY.length !== lignes) { houleY = new Float32Array(lignes); refletY = new Float32Array(lignes); }
+      const h = effets.houle, r = effets.reflet;
+      const phaseH = temps * h.vitesse, phaseR = temps * r.vitesse;
+      const cx = 0.5 + Math.sin(phaseR) * 0.35, cy = 0.5 + Math.cos(phaseR * 0.8) * 0.35;
+      for (let x = 0; x < colonnes; x++) {
+        const f = x / colonnes;
+        houleX[x] = Math.sin(f * 2 * Math.PI * h.frequence + phaseH) * 4 * h.intensite;
+        const dx = (f - cx) * r.taille;
+        refletX[x] = Math.exp(-dx * dx * 3);
+      }
+      for (let y = 0; y < lignes; y++) {
+        const f = y / lignes;
+        houleY[y] = Math.sin(f * 2 * Math.PI * h.frequence * 0.7 - phaseH * 1.3) * 4 * h.intensite;
+        const dy = (f - cy) * r.taille;
+        refletY[y] = Math.exp(-dy * dy * 3) * 10 * r.intensite;
+      }
+    }
+
+    function dessinerV2(temps) {
+      preparerEffets(temps);
+      const pixels = image.data;
+      const l = effets.lisereCrete;
+      for (let y = 0; y < lignes; y++) {
+        const t = y / lignes;
+        const r0 = COULEUR_PEU_PROFOND[0] + (COULEUR_PROFOND[0] - COULEUR_PEU_PROFOND[0]) * t;
+        const g0 = COULEUR_PEU_PROFOND[1] + (COULEUR_PROFOND[1] - COULEUR_PEU_PROFOND[1]) * t;
+        const b0 = COULEUR_PEU_PROFOND[2] + (COULEUR_PROFOND[2] - COULEUR_PEU_PROFOND[2]) * t;
+        const base = y * colonnes;
+        for (let x = 0; x < colonnes; x++) {
+          const i = base + x;
+          let gx = 0, gy = 0;
+          if (x > 0 && x < colonnes - 1) gx = buf1[i + 1] - buf1[i - 1];
+          if (y > 0 && y < lignes - 1) gy = buf1[i + colonnes] - buf1[i - colonnes];
+          const c = Math.max(-22, Math.min(22, (gx + gy) * 9)) + houleX[x] + houleY[y] + refletX[x] * refletY[y];
+          let r = r0 + c, g = g0 + c, b = b0 + c * 0.9;
+          // Liseré de crête : éclaircit seulement le haut des vagues (au-dessus d'un petit seuil).
+          const dessus = buf1[i] - 2.2;
+          if (l.intensite > 0 && dessus > 0) {
+            const q = Math.min(dessus / 3, 1) * l.intensite;
+            r += (l.couleur[0] - r) * q; g += (l.couleur[1] - g) * q; b += (l.couleur[2] - b) * q;
+          }
+          const p = i * 4;
+          pixels[p] = Math.max(0, Math.min(255, r));
+          pixels[p + 1] = Math.max(0, Math.min(255, g));
+          pixels[p + 2] = Math.max(0, Math.min(255, b));
+        }
+      }
+      ctxBasse.putImageData(image, 0, 0);
+      ctx.imageSmoothingEnabled = true;
+      ctx.drawImage(basse, 0, 0, colonnes, lignes, 0, 0, largeur, hauteur);
+    }
+
     function dessiner(temps) {
+      if (effets) { dessinerV2(temps); return; }
       const pixels = image.data;
       const reflet = ((Math.sin(temps * 0.00018) * 0.5 + 0.5) - 0.5) * 5;
       for (let y = 0; y < lignes; y++) {
@@ -195,10 +264,13 @@ const ecranEau = (() => {
     }
     if (fenetre && fenetre.addEventListener) fenetre.addEventListener('resize', () => { if (identifiant !== null) dimensionner(); });
     // couleurs : [peu profond, profond] (trois nombres chacun) ; sans argument, celles du fond de Cap.
-    function changerCouleurs(couleurs) {
+    // effetsV2 : EAU_V2 (eau v2 de Zencoder) ou rien (l'eau d'avant).
+    function changerCouleurs(couleurs, effetsV2) {
       [COULEUR_PEU_PROFOND, COULEUR_PROFOND] = couleurs || couleursDuFond(toile.ownerDocument);
+      effets = effetsV2 || null;
     }
     return { demarrer, arreter, perturber, dimensionner, changerCouleurs, couleurs: () => [COULEUR_PEU_PROFOND, COULEUR_PROFOND],
+      effets: () => effets, pixels: () => (image ? image.data : null), avancer: temps => { etape(); dessiner(temps); },
       active: () => identifiant !== null, touchers: () => touchers,
       reglages: () => ({ cellules: cellulesCible, amortissement: AMORTISSEMENT, delaiOndes: EAU.delaiOndes,
         opacite: (() => { try { return toile.ownerDocument.defaultView.getComputedStyle(toile).opacity; } catch (e) { return ''; } })() }) };
@@ -245,8 +317,9 @@ const ecranEau = (() => {
     return {
       demarrer() { voulue = true; if (!doc.hidden) couche.demarrer(); },
       arreter() { voulue = false; couche.arreter(); },
-      changerCouleurs: couleurs => couche.changerCouleurs(couleurs),
+      changerCouleurs: (couleurs, effetsV2) => couche.changerCouleurs(couleurs, effetsV2),
       couleurs: () => couche.couleurs(),
+      effets: () => couche.effets(),
       etat: () => ({ active: couche.active(), touchers: couche.touchers(), reglagesEau: couche.reglages() })
     };
   }
@@ -409,7 +482,7 @@ const ecranEau = (() => {
     parSelecteur('#bouton-revenir-vagues').addEventListener('click', revenirAuxVagues);
 
     return {
-      afficher, entrerDansCap, revenirAuxVagues, demarrerVideo, changerCouleurs: couleurs => couche.changerCouleurs(couleurs),
+      afficher, entrerDansCap, revenirAuxVagues, demarrerVideo, changerCouleurs: (couleurs, effetsV2) => couche.changerCouleurs(couleurs, effetsV2),
       etat: () => ({ visible: !racine.hidden, video: etatVideo, panne: videoEnPanne, boutons: boutons.classList.contains('visible'),
         animation: couche.active(), entree: sortie !== null, reglagesEau: couche.reglages() })
     };
@@ -429,7 +502,7 @@ const ecranEau = (() => {
     ecran.fond = fond;
     // Étape A : mode clair / sombre : la même couleur pour l'eau d'ouverture et l'eau de l'accueil.
     const changerCouleursOuverture = ecran.changerCouleurs;
-    ecran.changerCouleurs = couleurs => { changerCouleursOuverture(couleurs); fond.changerCouleurs(couleurs); };
+    ecran.changerCouleurs = (couleurs, effetsV2) => { changerCouleursOuverture(couleurs, effetsV2); fond.changerCouleurs(couleurs, effetsV2); };
     const interrupteur = doc.getElementById('interrupteur-eau');
     const texteInterrupteur = doc.getElementById('etat-interrupteur-eau');
     function appliquerActive() {
@@ -463,7 +536,7 @@ const ecranEau = (() => {
     return ecran;
   }
 
-  return { REGLAGES, EAU, CLE_VUE, CLE_ACTIVE, creerCouche, eauAccueil, monter, auDemarrage, couleursBandes };
+  return { REGLAGES, EAU, EAU_V2, CLE_VUE, CLE_ACTIVE, creerCouche, eauAccueil, monter, auDemarrage, couleursBandes };
 })();
 
 // Démarrage réel dans Cap. La page des tests automatiques (window.CAP_TESTS) crée ses propres écrans

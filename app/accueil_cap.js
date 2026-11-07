@@ -67,7 +67,9 @@ const accueilCap = (() => {
       racine.classList.toggle('theme-cap-sombre', sombre);
       racine.classList.toggle('theme-cap-clair', !sombre);
       if (boutonTheme) boutonTheme.setAttribute('aria-checked', String(sombre));
-      if (eau && typeof eau.changerCouleurs === 'function') eau.changerCouleurs(sombre && surEau ? EAU_SOMBRE.map(c => [...c]) : null);
+      // Sombre sur l'eau : couleurs ET effets de l'eau v2 de Zencoder (liseré de crête, houle, lumière).
+      const v2 = typeof ecranEau !== 'undefined' ? ecranEau.EAU_V2 : null;
+      if (eau && typeof eau.changerCouleurs === 'function') eau.changerCouleurs(sombre && surEau ? EAU_SOMBRE.map(c => [...c]) : null, sombre && surEau ? v2 : null);
     }
     if (boutonTheme) boutonTheme.addEventListener('click', () => { sombre = !sombre; ecrire(CLE_THEME, sombre ? 'sombre' : 'clair'); appliquerTheme(); });
     // L'écran des tâches s'ouvre ou se ferme : l'eau reprend la bonne couleur.
