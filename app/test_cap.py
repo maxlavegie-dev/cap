@@ -2757,7 +2757,7 @@ TESTS_JS = r"""
     const ids = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').map(q => q.url.pathname);
     attendre(ids.at(-1) !== ids.at(-2), 'toujours le même PDF');
     el('pdf-avant-relations').click();
-    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', 'PDF précédent', 200);
+    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', 'PDF précédent', 400);
     el('pdf-fermer-relations').click();
     attendre(!el('lecteur-pdf-relations').open, 'lecteur pas fermé');
     attendre(c.requetes.every(q => q.methode === 'GET'), 'modification');
@@ -2851,7 +2851,8 @@ TESTS_JS = r"""
   }
   function fauxLecteurZencoder() {
     const appels = [];
-    return { appels, objet: { jouerFichier: (adresse, titre) => appels.push(['jouer', adresse, titre]), arreter: () => appels.push(['arreter']) } };
+    // « audio » : faux lecteur audio, pour simuler la fin d'un morceau (événement « ended »).
+    return { appels, objet: { jouerFichier: (adresse, titre) => appels.push(['jouer', adresse, titre]), arreter: () => appels.push(['arreter']), audio: new EventTarget() } };
   }
   function fausseAdresses() {
     const faites = [];
@@ -2896,7 +2897,7 @@ TESTS_JS = r"""
     let vidages = 0;
     const lecteur = async () => { chargements++; return z.objet; };
     lecteur.vider = () => { vidages++; };
-    relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte,
+    relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte, stockage: c.localStorage,
       lecteur, urls: adresses });
     el('musique-compte-relations').click();
     attendre(el('musique-relations').open, 'fenêtre de musique fermée');
@@ -2957,7 +2958,8 @@ TESTS_JS = r"""
     el('liste-musique-relations').querySelectorAll('button')[1].click();
     await attendreQue(() => z.appels.length === 4 && z.appels[3][2] === '1. Seul FICTIF', `lancement direct : ${JSON.stringify(z.appels)}`);
     attendre(el('lecteur-mp3-relations').open, 'lecteur pas ouvert pour un seul morceau');
-    // Fermeture par le retour du téléphone (sans le bouton) : arrêt et vidage aussi.
+    // Fermeture par le retour du téléphone (sans le bouton : « cancel », puis fermeture) : arrêt et vidage aussi.
+    el('lecteur-mp3-relations').dispatchEvent(new Event('cancel'));
     el('lecteur-mp3-relations').close();
     await attendreQue(() => vidages === 2, 'fermeture par le retour : lecteur pas vidé');
     attendreEgal(z.appels.at(-1), ['arreter'], 'musique pas arrêtée par le retour');
@@ -2975,7 +2977,7 @@ TESTS_JS = r"""
     const { m } = connecterCompteFictif(c);
     const el = id => ui.parId(id);
     let chargements = 0;
-    relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte,
+    relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte, stockage: c.localStorage,
       lecteur: async () => { chargements++; return fauxLecteurZencoder().objet; }, urls: fausseAdresses() });
     el('musique-compte-relations').click();
     await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.ligne-morceau').length === 2, 'liste directe');
@@ -2984,8 +2986,145 @@ TESTS_JS = r"""
     attendreEgal(chargements, 0, 'lecteur chargé pour rien');
     c.maintenant += 3600 * 1000;
     el('liste-musique-relations').querySelector('button.ligne-morceau').click();
-    await attendreQue(() => /Morceau non lu : .*expirée/.test(el('etat-lecteur-mp3').textContent), `expiration : ${el('etat-lecteur-mp3').textContent}`);
+    // Connexion finie : proposition d'autoriser d'abord ; « Jouer quand même » essaie, puis la place est gardée.
+    attendre(!el('avertissement-musique-relations').hidden, 'pas d’avertissement');
+    [...el('avertissement-musique-relations').querySelectorAll('button')].find(b => b.textContent === 'Jouer quand même').click();
+    await attendreQue(() => /La connexion du compte Cap a expiré/.test(el('etat-lecteur-mp3').textContent), `expiration : ${el('etat-lecteur-mp3').textContent}`);
     attendre(!el('etat-lecteur-mp3').classList.contains('en-lecture'), 'rond resté');
+    attendre(!el('reconnecter-lecteur-mp3').hidden, 'bouton d’autorisation caché');
+  });
+
+  // Étape 3 : morceau suivant et connexion qui expire.
+  function brancherMusique(c, ui, m, z, adresses) {
+    relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte,
+      stockage: c.localStorage, lecteur: async () => z.objet, urls: adresses || fausseAdresses() });
+  }
+  async function ouvrirDossierAna(ui) {
+    const el = id => ui.parId(id);
+    el('musique-compte-relations').click();
+    await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.choix-grand-affichage').length === 2, 'dossiers');
+    el('liste-musique-relations').querySelector('button').click();
+    return [...el('liste-musique-relations').querySelectorAll('button.ligne-morceau')];
+  }
+  const idsLus = c => c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').map(q => decodeURIComponent(q.url.pathname.split('/').pop()));
+  const idDe = (f, nom) => f.fichiers.find(x => x.name === nom).id;
+
+  await testAsync('Musique (étape 3, FAUX Drive) : à la fin d’un morceau, le suivant de la MÊME liste se lance (chargé à l’avance) ; fin de liste = arrêt ; lecteur fermé = rien', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    remplirMusiqueFictive(f);
+    const { m } = connecterCompteFictif(c);
+    const el = id => ui.parId(id);
+    const z = fauxLecteurZencoder();
+    brancherMusique(c, ui, m, z);
+    const lignes = await ouvrirDossierAna(ui);
+    // Morceau 8 de l'album (« Deux ») : le 9 (« Dix ») est chargé pendant l'écoute.
+    lignes[7].click();
+    await attendreQue(() => z.appels.length === 1 && idsLus(c).includes(idDe(f, '10 Dix FICTIF.mp3')), `préchargement : ${JSON.stringify(idsLus(c))}`);
+    attendreEgal(z.appels[0][2], '8. Deux FICTIF', 'morceau lancé');
+    const lusAvant = idsLus(c).length;
+    z.objet.audio.dispatchEvent(new Event('ended'));
+    await attendreQue(() => z.appels.length === 2, 'suivant pas lancé');
+    attendreEgal(z.appels[1][2], '9. Dix FICTIF', 'mauvais suivant');
+    // Le 9 venait du chargement à l'avance ; le 10 (« Bonus ») est maintenant chargé à son tour.
+    await attendreQue(() => idsLus(c).length === lusAvant + 1, 'préchargement du 10');
+    attendreEgal(idsLus(c).at(-1), idDe(f, 'Bonus FICTIF.mp3'), 'le 9 relu au lieu du préchargé');
+    z.objet.audio.dispatchEvent(new Event('ended'));
+    await attendreQue(() => z.appels.length === 3, 'dernier morceau');
+    attendreEgal(z.appels[2][2], '10. Bonus FICTIF', 'dernier de l’album');
+    // Fin de l'album : rien d'autre (pas de passage à une autre liste).
+    z.objet.audio.dispatchEvent(new Event('ended'));
+    await new Promise(ok => setTimeout(ok, 50));
+    attendreEgal(z.appels.length, 3, 'lecture après la fin de l’album');
+    // Morceaux libres : le dernier (6, « Zèbre ») ne passe pas à l'album.
+    lignes[5].click();
+    await attendreQue(() => z.appels.length === 4, 'morceau 6');
+    z.objet.audio.dispatchEvent(new Event('ended'));
+    await new Promise(ok => setTimeout(ok, 50));
+    attendreEgal(z.appels.length, 4, 'passage des morceaux libres à l’album');
+    // Lecteur fermé : une fin de morceau ne relance rien.
+    lignes[0].click();
+    await attendreQue(() => z.appels.length === 5, 'morceau 1');
+    el('fermer-lecteur-mp3').click();
+    await attendreQue(() => z.appels.at(-1)[0] === 'arreter', 'pas arrêté');
+    const n = z.appels.length;
+    z.objet.audio.dispatchEvent(new Event('ended'));
+    await new Promise(ok => setTimeout(ok, 50));
+    attendreEgal(z.appels.length, n, 'relancé après la fermeture');
+    attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
+  });
+
+  await testAsync('Musique (étape 3, FAUX Drive) : connexion bientôt finie = proposition d’autoriser d’abord (place gardée : identifiants et numéro, jamais un nom) ; au retour, « Reprendre la musique au morceau N » en un appui', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    remplirMusiqueFictive(f);
+    const { m } = connecterCompteFictif(c);
+    const el = id => ui.parId(id);
+    const z = fauxLecteurZencoder();
+    brancherMusique(c, ui, m, z);
+    attendre(el('reprendre-musique-relations').hidden, 'reprise sans place gardée');
+    const lignes = await ouvrirDossierAna(ui);
+    // Il reste 20 minutes : dernier morceau d'une liste = lancé sans question.
+    c.maintenant += 40 * 60 * 1000;
+    attendreEgal(m.minutesRestantes(), 20, 'minutes restantes');
+    lignes[9].click();
+    await attendreQue(() => z.appels.length === 1, 'dernier morceau pas lancé');
+    attendre(el('avertissement-musique-relations').hidden, 'question inutile');
+    el('fermer-lecteur-mp3').click();
+    // Morceau 7 (début de l'album) : question, deux gros boutons.
+    lignes[6].click();
+    const avert = el('avertissement-musique-relations');
+    attendre(!avert.hidden && /finit dans 20 minute/.test(avert.textContent), `avertissement : ${avert.textContent}`);
+    attendreEgal([...avert.querySelectorAll('button')].map(b => b.textContent), ['Autoriser la lecture du compte Cap', 'Jouer quand même'], 'boutons');
+    attendreEgal(z.appels.filter(a => a[0] === 'jouer').length, 1, 'lancé sans réponse');
+    avert.querySelector('button').click();
+    const place = JSON.parse(c.localStorage.getItem('cap_musique_reprise_v1'));
+    attendreEgal(Object.keys(place).sort(), ['dossier', 'morceau', 'numero'], 'place gardée');
+    attendreEgal([place.morceau, place.numero], [idDe(f, '01 Premier FICTIF.mp3'), 7], 'mauvaise place');
+    attendre(!/FICTIF/.test(c.localStorage.getItem('cap_musique_reprise_v1')), 'un nom est gardé');
+    attendreEgal(c.redirections.at(-1).origin, 'https://accounts.google.com', 'Google pas ouvert');
+    // Retour de Google (page rechargée) : le bouton de reprise attend, un appui relance le morceau 7.
+    const { m: m2 } = connecterCompteFictif(c);
+    const ui2 = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const z2 = fauxLecteurZencoder();
+    brancherMusique(c, ui2, m2, z2);
+    const reprise = ui2.parId('reprendre-musique-relations');
+    attendre(!reprise.hidden, 'bouton de reprise caché');
+    attendreEgal(reprise.textContent, 'Reprendre la musique au morceau 7', 'texte de la reprise');
+    reprise.click();
+    await attendreQue(() => z2.appels.length === 1, `reprise : ${ui2.parId('etat-musique-relations').textContent}`);
+    attendreEgal(z2.appels[0][2], '7. Premier FICTIF', 'mauvais morceau repris');
+    attendre(ui2.parId('musique-relations').open && ui2.parId('liste-musique-relations').querySelectorAll('button.ligne-morceau').length === 10, 'liste du dossier absente');
+    attendreEgal(c.localStorage.getItem('cap_musique_reprise_v1'), null, 'place gardée après la reprise');
+    attendre(reprise.hidden, 'bouton de reprise resté');
+  });
+
+  await testAsync('Musique (étape 3, FAUX Drive) : connexion qui expire en plein album : le morceau chargé à l’avance joue encore, puis place gardée et bouton « Autoriser » sur le lecteur', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    remplirMusiqueFictive(f);
+    const { m } = connecterCompteFictif(c);
+    const el = id => ui.parId(id);
+    const z = fauxLecteurZencoder();
+    brancherMusique(c, ui, m, z);
+    const lignes = await ouvrirDossierAna(ui);
+    lignes[6].click();
+    await attendreQue(() => idsLus(c).includes(idDe(f, '2 Deux FICTIF.mp3')), 'préchargement du 8');
+    // La connexion expire pendant le morceau 7.
+    c.maintenant += 3600 * 1000;
+    z.objet.audio.dispatchEvent(new Event('ended'));
+    await attendreQue(() => z.appels.length === 2, 'le morceau chargé à l’avance n’a pas joué');
+    attendreEgal(z.appels[1][2], '8. Deux FICTIF', 'morceau de marge');
+    z.objet.audio.dispatchEvent(new Event('ended'));
+    await attendreQue(() => /La connexion du compte Cap a expiré/.test(el('etat-lecteur-mp3').textContent), `message : ${el('etat-lecteur-mp3').textContent}`);
+    attendre(/morceau 9/.test(el('etat-lecteur-mp3').textContent) && !el('etat-lecteur-mp3').hidden, 'numéro absent');
+    attendre(!el('reconnecter-lecteur-mp3').hidden, 'bouton caché');
+    attendreEgal(JSON.parse(c.localStorage.getItem('cap_musique_reprise_v1')).numero, 9, 'place');
+    attendre(!el('reprendre-musique-relations').hidden, 'reprise pas proposée');
+    el('reconnecter-lecteur-mp3').click();
+    attendreEgal(c.redirections.at(-1).origin, 'https://accounts.google.com', 'Google pas ouvert');
+    // Bouton posé sur le lecteur, au-dessus de « Arrêter et fermer ».
+    attendre(el('reconnecter-lecteur-mp3').getBoundingClientRect().bottom <= el('fermer-lecteur-mp3').getBoundingClientRect().top, 'boutons l’un sur l’autre');
   });
 
   await testAsync('Musique : chargement du lecteur de Zencoder dans un cadre (lecteur_mp3/index.html), une seule fois ; nouvel essai si le lecteur ne répond pas', async () => {
@@ -3029,9 +3168,12 @@ TESTS_JS = r"""
   });
 
   test('Musique : la liste des dossiers et des MP3 ne va jamais vers l’IA ; rien d’effacé ni d’écrit dans le Drive', () => {
-    for (const interdit of ['cerveau', 'demandes', 'claude', 'method:', "'POST'", "'PATCH'", "'DELETE'", 'localStorage']) {
+    for (const interdit of ['cerveau', 'demandes', 'claude', 'method:', "'POST'", "'PATCH'", "'DELETE'"]) {
       attendre(!SOURCE_RELATIONS_MP3.toLowerCase().includes(interdit.toLowerCase()), `relations_mp3.js contient « ${interdit} »`);
     }
+    // Sur le téléphone, une seule chose est gardée : la place pour reprendre (vérifiée par les tests de l'étape 3).
+    attendreEgal((SOURCE_RELATIONS_MP3.match(/stockage\.(setItem|getItem|removeItem)\(CLE_REPRISE/g) || []).length, 3, 'stockage');
+    attendreEgal((SOURCE_RELATIONS_MP3.match(/stockage\./g) || []).length, 3, 'autre chose gardé');
     const fin = SOURCE_RELATIONS_MP3.slice(SOURCE_RELATIONS_MP3.lastIndexOf('})();'));
     attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(fin), 'branché dans les tests');
   });
@@ -7366,8 +7508,8 @@ def verifier_lecteur_mp3_zencoder():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v71['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v71")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v72['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v72")
 
 
 def verifier_precache_fichiers_existent():

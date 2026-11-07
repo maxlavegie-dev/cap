@@ -105,18 +105,32 @@ const relationsMp3 = (() => {
     return charger;
   }
 
-  function brancher(doc, { compte, arbre, sorte, lecteur, urls = URL }) {
+  // Étape 3 (07/11/2026, accord de Max) : morceau suivant et connexion qui expire.
+  // - À la fin d'un morceau, le suivant de la MÊME liste (morceaux libres, ou album) se lance tout seul ;
+  //   il est chargé à l'avance pendant l'écoute (pas de blanc, et un morceau de marge).
+  // - Avant une liste, si la connexion du compte Cap finit dans moins de 30 minutes : proposition de
+  //   l'autoriser à nouveau d'abord.
+  // - Si elle expire quand même : la place (dossier, morceau, numéro ; jamais un nom) est gardée sur ce
+  //   téléphone, puis « Reprendre la musique au morceau N » relance au bon endroit, en un appui.
+  const CLE_REPRISE = 'cap_musique_reprise_v1';
+  const MINUTES_AVANT_LISTE = 30;
+  const estExpiration = erreur => /expir|pas connecté/i.test(String(erreur && erreur.message || ''));
+
+  function brancher(doc, { compte, arbre, sorte, lecteur, urls = URL, stockage = localStorage }) {
     const el = id => doc.getElementById(id);
     const ouvrir = el('musique-compte-relations');
+    const reprendre = el('reprendre-musique-relations');
     const fenetre = el('musique-relations');
     const etat = el('etat-musique-relations');
+    const avertissement = el('avertissement-musique-relations');
     const liste = el('liste-musique-relations');
     const retour = el('retour-musique-relations');
     const fermer = el('fermer-musique-relations');
     const fenetreLecteur = el('lecteur-mp3-relations');
     const etatLecteur = el('etat-lecteur-mp3');
+    const reconnecter = el('reconnecter-lecteur-mp3');
     const fermerLecteur = el('fermer-lecteur-mp3');
-    if (![ouvrir, fenetre, etat, liste, retour, fermer, fenetreLecteur, etatLecteur, fermerLecteur].every(Boolean)) return;
+    if (![ouvrir, reprendre, fenetre, etat, avertissement, liste, retour, fermer, fenetreLecteur, etatLecteur, reconnecter, fermerLecteur].every(Boolean)) return;
     const raison = erreur => String(erreur && erreur.message || 'raison inconnue').slice(0, 220);
     const noeud = (balise, classe, texte) => {
       const n = doc.createElement(balise);
@@ -125,13 +139,47 @@ const relationsMp3 = (() => {
       return n;
     };
     let dossiers = [];
+    let dossierEnCours = null;
     let adresseEnCours = null;
     // Lecteur de Zencoder, une fois chargé (fermer ne le charge jamais pour rien).
     let zencoderPret = null;
     let demande = 0;
+    // Liste en cours de lecture et place dans cette liste ; morceau suivant chargé à l'avance.
+    let file = [];
+    let position = -1;
+    let avance = null;
+    const fins = new WeakSet();
+    // Vrai quand le lecteur est fermé et déjà nettoyé (pour ne nettoyer qu'une fois par ouverture).
+    let nettoye = true;
+
+    // ----- Place gardée sur le téléphone (identifiants et numéro seulement) -----
+    const lireReprise = () => {
+      try {
+        const r = JSON.parse(stockage.getItem(CLE_REPRISE));
+        return r && typeof r.dossier === 'string' && typeof r.morceau === 'string' && Number.isFinite(r.numero) ? r : null;
+      } catch (erreur) { return null; }
+    };
+    const montrerReprise = () => {
+      const r = lireReprise();
+      reprendre.hidden = !r;
+      if (r) reprendre.textContent = `Reprendre la musique au morceau ${r.numero}`;
+    };
+    const garderPlace = (d, morceau) => {
+      try { stockage.setItem(CLE_REPRISE, JSON.stringify({ dossier: d.id, morceau: morceau.id, numero: morceau.numero })); } catch (erreur) { /* rien */ }
+      montrerReprise();
+    };
+    const oublierPlace = () => {
+      try { stockage.removeItem(CLE_REPRISE); } catch (erreur) { /* rien */ }
+      montrerReprise();
+    };
+
+    const autoriserDeNouveau = () => {
+      try { compte.seConnecter(); } catch (erreur) { message(raison(erreur)); }
+    };
 
     const montrerDossiers = () => {
       retour.hidden = true;
+      avertissement.hidden = true;
       etat.textContent = `${dossiers.length} dossier(s) avec de la musique. Touche un dossier.`;
       liste.replaceChildren(...dossiers.map(d => {
         const bouton = noeud('button', 'choix-grand-affichage', `${d.nom} (${d.musique.total} MP3)`);
@@ -141,25 +189,59 @@ const relationsMp3 = (() => {
       }));
     };
 
-    const ligne = morceau => {
+    // La liste (morceaux libres, ou album) qui contient ce morceau.
+    const listeDe = (d, morceau) => [d.musique.libres, ...d.musique.albums.map(a => a.morceaux)].find(l => l.includes(morceau)) || [morceau];
+
+    const ligne = (d, morceau) => {
       const bouton = noeud('button', 'ligne-morceau');
       bouton.type = 'button';
       bouton.append(noeud('span', 'numero-morceau', String(morceau.numero)), noeud('span', 'nom-morceau', morceau.nom));
-      bouton.addEventListener('click', () => { void jouer(morceau); });
+      bouton.addEventListener('click', () => choisir(d, morceau));
       return bouton;
     };
 
-    const montrerMorceaux = d => {
+    const montrerMorceaux = (d, { sansLancement = false } = {}) => {
+      dossierEnCours = d;
       retour.hidden = dossiers.length < 2;
+      avertissement.hidden = true;
       etat.textContent = `${d.nom} : ${d.musique.total} MP3. Touche un morceau.`;
       const blocs = [];
-      if (d.musique.libres.length) blocs.push(noeud('h3', 'titre-liste-morceaux', 'Morceaux'), ...d.musique.libres.map(ligne));
+      if (d.musique.libres.length) blocs.push(noeud('h3', 'titre-liste-morceaux', 'Morceaux'), ...d.musique.libres.map(m => ligne(d, m)));
       for (const album of d.musique.albums) {
-        blocs.push(noeud('h3', 'titre-liste-morceaux', `${album.nom} (liste de lecture, ${album.morceaux.length})`), ...album.morceaux.map(ligne));
+        blocs.push(noeud('h3', 'titre-liste-morceaux', `${album.nom} (liste de lecture, ${album.morceaux.length})`), ...album.morceaux.map(m => ligne(d, m)));
       }
       liste.replaceChildren(...blocs);
       // Un seul morceau : lancement direct.
-      if (d.musique.total === 1) void jouer(d.musique.libres[0] || d.musique.albums[0].morceaux[0]);
+      if (d.musique.total === 1 && !sansLancement) lancer(d, d.musique.libres[0] || d.musique.albums[0].morceaux[0]);
+    };
+
+    // Avant une liste de plusieurs morceaux : la connexion tiendra-t-elle ?
+    const choisir = (d, morceau) => {
+      const l = listeDe(d, morceau);
+      const restants = l.length - l.indexOf(morceau) - 1;
+      const minutes = typeof compte.minutesRestantes === 'function' ? compte.minutesRestantes() : Infinity;
+      if (restants < 1 || minutes >= MINUTES_AVANT_LISTE) { lancer(d, morceau); return; }
+      const autoriser = noeud('button', 'relations-gros-bouton', 'Autoriser la lecture du compte Cap');
+      autoriser.type = 'button';
+      autoriser.addEventListener('click', () => { garderPlace(d, morceau); autoriserDeNouveau(); });
+      const quandMeme = noeud('button', 'relations-gros-bouton', 'Jouer quand même');
+      quandMeme.type = 'button';
+      quandMeme.addEventListener('click', () => { avertissement.hidden = true; lancer(d, morceau); });
+      avertissement.replaceChildren(
+        noeud('p', '', `La connexion du compte Cap finit dans ${Math.max(0, minutes)} minute(s) : la musique s’arrêterait avant la fin de la liste. `
+          + 'Autorise-la à nouveau d’abord ; ensuite, « Reprendre la musique au morceau ' + morceau.numero + ' » relancera ce morceau.'),
+        autoriser, quandMeme);
+      avertissement.hidden = false;
+      try { avertissement.scrollIntoView({ block: 'center' }); } catch (erreur) { /* rien */ }
+    };
+
+    const lancer = (d, morceau) => {
+      dossierEnCours = d;
+      file = listeDe(d, morceau);
+      position = file.indexOf(morceau);
+      avance = null;
+      oublierPlace();
+      void jouer(morceau);
     };
 
     // Message posé sur le lecteur, seulement pendant le chargement ou en cas de problème.
@@ -167,9 +249,41 @@ const relationsMp3 = (() => {
     // (il répétait le titre affiché par le lecteur) : une fois le morceau lancé, le message est caché.
     const message = texte => { etatLecteur.hidden = false; etatLecteur.textContent = texte; };
 
+    const lire = morceau => compte.appeler(`${drive}/${encodeURIComponent(morceau.id)}?alt=media`).then(r => r.blob());
+
+    // Morceau suivant chargé pendant l'écoute (une erreur ici n'arrête rien : il sera redemandé à la fin).
+    const preparerSuivant = numeroDemande => {
+      const suivant = file[position + 1];
+      if (!suivant || suivant.taille > TAILLE_MAX) return;
+      lire(suivant).then(contenu => { if (numeroDemande === demande) avance = { id: suivant.id, contenu }; }).catch(() => {});
+    };
+
+    // Fin d'un morceau (y compris le bouton « fin » du lecteur) : le suivant de la liste.
+    const surveillerFin = zencoder => {
+      const audio = zencoder.audio;
+      if (!audio || typeof audio.addEventListener !== 'function' || fins.has(audio)) return;
+      fins.add(audio);
+      audio.addEventListener('ended', () => {
+        if (!fenetreLecteur.open || zencoderPret !== zencoder) return;
+        const suivant = file[position + 1];
+        if (!suivant) return;
+        position++;
+        void jouer(suivant);
+      });
+    };
+
+    // Connexion expirée : la place est gardée, puis « Autoriser » (la page de Google, puis le retour dans Cap).
+    const expiree = morceau => {
+      if (dossierEnCours) garderPlace(dossierEnCours, morceau);
+      message(`La connexion du compte Cap a expiré. Touche « Autoriser la lecture du compte Cap » : ensuite, « Reprendre la musique au morceau ${morceau.numero} » relancera ce morceau.`);
+      reconnecter.hidden = false;
+    };
+
     async function jouer(morceau) {
       const numeroDemande = ++demande;
+      reconnecter.hidden = true;
       if (!fenetreLecteur.open) fenetreLecteur.showModal();
+      nettoye = false;
       if (morceau.taille > TAILLE_MAX) {
         message(`« ${morceau.nom} » est trop gros (${Math.round(morceau.taille / 1e6)} Mo, plus de 60 Mo) : pas chargé.`);
         return;
@@ -177,9 +291,10 @@ const relationsMp3 = (() => {
       message(`Lecture en cours… (chargement de « ${morceau.nom} »)`);
       etatLecteur.classList.add('en-lecture');
       try {
-        const [zencoder, reponse] = await Promise.all([lecteur(), compte.appeler(`${drive}/${encodeURIComponent(morceau.id)}?alt=media`)]);
+        const deja = avance && avance.id === morceau.id ? avance.contenu : null;
+        avance = null;
+        const [zencoder, contenu] = await Promise.all([lecteur(), deja ? Promise.resolve(deja) : lire(morceau)]);
         zencoderPret = zencoder;
-        const contenu = await reponse.blob();
         // Un autre morceau a été demandé entre-temps, ou le lecteur a été fermé : celui-ci est abandonné.
         if (numeroDemande !== demande || !fenetreLecteur.open) return;
         const adresse = urls.createObjectURL(contenu);
@@ -190,40 +305,76 @@ const relationsMp3 = (() => {
         // etatLecteur.textContent = `Morceau ${morceau.numero} : ${morceau.nom}`;
         etatLecteur.textContent = '';
         etatLecteur.hidden = true;
+        surveillerFin(zencoder);
+        preparerSuivant(numeroDemande);
       } catch (erreur) {
-        if (numeroDemande === demande) message(`Morceau non lu : ${raison(erreur)}`);
+        if (numeroDemande !== demande) return;
+        if (estExpiration(erreur)) expiree(morceau);
+        else message(`Morceau non lu : ${raison(erreur)}`);
       } finally {
         if (numeroDemande === demande) etatLecteur.classList.remove('en-lecture');
       }
     }
 
-    ouvrir.addEventListener('click', () => attenteLecture.pendant(ouvrir, async () => {
+    // Lecture du Drive puis la fenêtre « Musique » (dossiers, ou la liste d'un seul dossier).
+    const chargerDossiers = async () => {
       if (!fenetre.open) fenetre.showModal();
       liste.replaceChildren();
       retour.hidden = true;
+      avertissement.hidden = true;
       etat.textContent = 'Lecture du Drive du compte Cap… (rien n’est modifié)';
+      const r = dossiersAvecMp3(await arbre(), sorte);
+      dossiers = r.dossiers;
+      if (r.racines !== 1) { etat.textContent = r.racines ? 'Plusieurs dossiers « Relations » à la racine du compte Cap : garde-en un seul.' : 'Aucun dossier « Relations » à la racine du compte Cap.'; return false; }
+      if (!dossiers.length) { etat.textContent = 'Aucun MP3 dans les dossiers « r_ » de « Relations ».'; return false; }
+      return true;
+    };
+
+    ouvrir.addEventListener('click', () => attenteLecture.pendant(ouvrir, async () => {
       try {
-        const r = dossiersAvecMp3(await arbre(), sorte);
-        dossiers = r.dossiers;
-        if (r.racines !== 1) { etat.textContent = r.racines ? 'Plusieurs dossiers « Relations » à la racine du compte Cap : garde-en un seul.' : 'Aucun dossier « Relations » à la racine du compte Cap.'; return; }
-        if (!dossiers.length) { etat.textContent = 'Aucun MP3 dans les dossiers « r_ » de « Relations ».'; return; }
+        if (!await chargerDossiers()) return;
         // Un seul dossier avec de la musique : sa liste directement.
         if (dossiers.length === 1) montrerMorceaux(dossiers[0]); else montrerDossiers();
       } catch (erreur) { etat.textContent = `${raison(erreur)} Rien n’a été modifié.`; }
     }));
+
+    // « Reprendre la musique au morceau N » : la liste du bon dossier, puis ce morceau.
+    reprendre.addEventListener('click', () => attenteLecture.pendant(reprendre, async () => {
+      const r = lireReprise();
+      if (!r) { montrerReprise(); return; }
+      try {
+        if (!await chargerDossiers()) return;
+        const d = dossiers.find(x => x.id === r.dossier);
+        const tous = d ? [...d.musique.libres, ...d.musique.albums.flatMap(a => a.morceaux)] : [];
+        const morceau = tous.find(x => x.id === r.morceau);
+        if (!d || !morceau) { etat.textContent = 'Ce morceau n’est plus dans « Relations ». Choisis-en un autre.'; oublierPlace(); montrerDossiers(); return; }
+        montrerMorceaux(d, { sansLancement: true });
+        lancer(d, morceau);
+      } catch (erreur) { etat.textContent = `${raison(erreur)} Rien n’a été modifié.`; }
+    }));
+
+    reconnecter.addEventListener('click', autoriserDeNouveau);
     retour.addEventListener('click', montrerDossiers);
     fermer.addEventListener('click', () => fenetre.close());
     // « Arrêter et fermer » (posé sur le lecteur), ou fenêtre fermée autrement (retour du téléphone) :
     // la musique s'arrête, la mémoire est libérée, le lecteur est vidé (il se rechargera à la prochaine ouverture).
-    fenetreLecteur.addEventListener('close', () => {
+    // Le nettoyage se fait tout de suite (bouton, ou « cancel » du retour du téléphone), et l'événement
+    // « close », qui peut arriver plus tard, ne nettoie que si le lecteur n'a pas été rouvert entre-temps.
+    const nettoyer = () => {
+      if (nettoye) return;
+      nettoye = true;
       demande++;
+      avance = null;
       etatLecteur.classList.remove('en-lecture');
       if (zencoderPret) zencoderPret.arreter();
       zencoderPret = null;
       if (typeof lecteur.vider === 'function') lecteur.vider();
       if (adresseEnCours) { urls.revokeObjectURL(adresseEnCours); adresseEnCours = null; }
-    });
-    fermerLecteur.addEventListener('click', () => { if (fenetreLecteur.open) fenetreLecteur.close(); });
+    };
+    fenetreLecteur.addEventListener('cancel', nettoyer);
+    fenetreLecteur.addEventListener('close', () => { if (!fenetreLecteur.open) nettoyer(); });
+    fermerLecteur.addEventListener('click', () => { nettoyer(); if (fenetreLecteur.open) fenetreLecteur.close(); });
+    montrerReprise();
   }
 
   return { nomMorceau, trier, morceauxDe, dossiersAvecMp3, chargeurLecteur, brancher, TAILLE_MAX };

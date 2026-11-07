@@ -510,6 +510,8 @@
     <p id="resume-documents-compte" class="relations-gros bloc-resultat" role="status" hidden></p>
     <button id="pdf-compte-relations" class="relations-gros-bouton" type="button" hidden>Afficher les PDF dans Cap</button>
     <button id="musique-compte-relations" class="relations-gros-bouton" type="button">Écouter les MP3 de « Relations »</button>
+    <!-- 07/11/2026 : après une connexion expirée, reprend la musique au bon morceau (place gardée sur le téléphone). -->
+    <button id="reprendre-musique-relations" class="relations-gros-bouton" type="button" hidden>Reprendre la musique</button>
     <hr class="separation-reglages">
     <p id="diagnostic-picker" role="status" hidden></p>
     <p class="erreur" role="alert" hidden></p>
@@ -518,6 +520,7 @@
   <dialog id="musique-relations" aria-labelledby="titre-musique-relations">
     <h2 id="titre-musique-relations" tabindex="-1">Musique de « Relations »</h2>
     <p id="etat-musique-relations" class="relations-gros" role="status"></p>
+    <div id="avertissement-musique-relations" class="avertissement-musique relations-gros" role="alert" hidden></div>
     <div id="liste-musique-relations"></div>
     <button id="retour-musique-relations" class="relations-gros-bouton" type="button" hidden>Retour aux dossiers</button>
     <button id="fermer-musique-relations" class="relations-gros-bouton" type="button">Fermer</button>
@@ -529,6 +532,8 @@
   <dialog id="lecteur-mp3-relations" class="plein-ecran" aria-label="Lecteur MP3">
     <iframe id="cadre-lecteur-mp3" title="Lecteur MP3"></iframe>
     <p id="etat-lecteur-mp3" role="status" hidden></p>
+    <!-- 07/11/2026 : visible seulement si la connexion du compte Cap expire pendant l'écoute. -->
+    <button id="reconnecter-lecteur-mp3" class="bouton-sur-lecteur bouton-sur-lecteur-haut" type="button" hidden>Autoriser la lecture du compte Cap</button>
     <button id="fermer-lecteur-mp3" class="bouton-sur-lecteur" type="button">Arrêter et fermer</button>
   </dialog>
   <!-- Lecteur de PDF dans Cap (07/11/2026) : pages dessinées par pdf.js, copié en local. -->

@@ -3052,3 +3052,12 @@ html.sans-eau .bouton-eau {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   white-space: nowrap;
 }
+
+/* Morceau suivant et connexion qui expire (07/11/2026). */
+.avertissement-musique {
+  margin: 12px 0;
+  padding: 0.75rem;
+  border: 3px solid currentColor;
+  border-radius: 12px;
+}
+.bouton-sur-lecteur-haut { bottom: calc(max(18px, env(safe-area-inset-bottom)) + 70px); }

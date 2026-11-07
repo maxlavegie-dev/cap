@@ -73,6 +73,12 @@ const googleCompteRelations = (() => {
     return Boolean(s && s.expiration > Date.now() + 60000);
   }
 
+  // Minutes avant la fin de la connexion du compte Cap (0 si pas connecté) : pour prévenir avant un album.
+  function minutesRestantes() {
+    const s = sauvegarde();
+    return s ? Math.max(0, Math.floor((s.expiration - Date.now()) / 60000)) : 0;
+  }
+
   // Jette le jeton de ce téléphone (rien d'autre).
   function oublier() { effacer(localStorage, cleJeton); }
 
@@ -148,6 +154,6 @@ const googleCompteRelations = (() => {
     return message;
   }
 
-  return { adresse, enregistrerAdresse, connecte, seConnecter, appeler, oublier, verifier,
+  return { adresse, enregistrerAdresse, connecte, minutesRestantes, seConnecter, appeler, oublier, verifier,
     message: () => message, retourRecent: () => retourRecent };
 })();
