@@ -69,7 +69,7 @@
         <span id="texte-etat-google" role="status">non connecté</span>
         <p id="dernier-envoi"></p>
         <button id="synchroniser-maintenant" type="button">Synchroniser maintenant</button>
-        <button id="connexion-google" type="button">Se connecter à Google</button>
+        <button id="connexion-google" type="button">Autoriser Cap (agenda et Drive)</button>
         <button id="ouvrir-reglages-drive" type="button" aria-haspopup="dialog" aria-controls="reglages-drive">Réglages du Drive</button>
       </div>
       <section id="zone-sauvegarde" aria-label="Sauvegarde du tableau" data-vues="tuiles tout">
@@ -253,7 +253,7 @@
         <label for="rdv-telephone">Téléphone</label>
         <input id="rdv-telephone" name="telephone" type="tel" autocomplete="off">
         <label for="rdv-mail">Mail</label>
-        <input id="rdv-mail" name="mail" type="email" autocomplete="off">
+        <input id="rdv-mail" name="mail" type="text" inputmode="email" autocomplete="off">
         <label for="rdv-notes">Notes</label>
         <textarea id="rdv-notes" name="notes" rows="4"></textarea>
         <fieldset id="rappels-rdv">
@@ -369,12 +369,12 @@
         </div>
         <label for="contact-mail">Mail</label>
         <div class="champ-avec-micro">
-          <input id="contact-mail" name="mail" type="email" autocomplete="off">
+          <input id="contact-mail" name="mail" type="text" inputmode="email" autocomplete="off">
           <button class="micro-champ" type="button" data-champ="mail" aria-label="Dicter le mail" hidden>🎤</button>
         </div>
         <label for="contact-mail2">Deuxième mail</label>
         <div class="champ-avec-micro">
-          <input id="contact-mail2" name="mail2" type="email" autocomplete="off">
+          <input id="contact-mail2" name="mail2" type="text" inputmode="email" autocomplete="off">
           <button class="micro-champ" type="button" data-champ="mail2" aria-label="Dicter le deuxième mail" hidden>🎤</button>
         </div>
         <label for="contact-adresse">Adresse postale</label>
@@ -459,7 +459,7 @@
     <p id="etat-picker"></p>
     <form id="formulaire-cle-picker">
       <label for="cle-picker">Clé API du sélecteur Google (elle reste sur ce téléphone)</label>
-      <input id="cle-picker" type="password" autocomplete="off" spellcheck="false" autocapitalize="off">
+      <input id="cle-picker" class="champ-masque" type="text" autocomplete="off" spellcheck="false" autocapitalize="off">
       <button type="submit">Enregistrer la clé</button>
     </form>
     <button id="retirer-cle-picker" type="button" hidden>Retirer la clé</button>
@@ -492,8 +492,8 @@
     <p id="resume-visibilite-relations" class="relations-gros" role="status" hidden></p>
     <!-- Compte Google neuf dédié à Cap (07/11/2026, essai) : lecture seule, « Relations » seulement. -->
     <label for="adresse-compte-relations">Identifiant du compte Cap (il reste sur ce téléphone)</label>
-    <input id="adresse-compte-relations" type="email" autocomplete="off" spellcheck="false" autocapitalize="off">
-    <button id="connecter-compte-relations" type="button">Connecter le compte Cap (lecture seule)</button>
+    <input id="adresse-compte-relations" type="text" inputmode="email" autocomplete="off" spellcheck="false" autocapitalize="off">
+    <button id="connecter-compte-relations" type="button">Autoriser la lecture du compte Cap</button>
     <button id="compter-compte-relations" type="button">Compter ce que Cap voit dans le compte Cap</button>
     <p id="resume-compte-relations" class="relations-gros" role="status" hidden></p>
     <button id="pdf-compte-relations" class="relations-gros-bouton" type="button" hidden>Afficher un PDF dans Cap</button>
@@ -539,7 +539,7 @@
     <p id="etat-ia"></p>
     <form id="formulaire-cle-ia">
       <label for="cle-ia">Ta clé Claude (elle reste sur ce téléphone)</label>
-      <input id="cle-ia" type="password" autocomplete="off" spellcheck="false" autocapitalize="off">
+      <input id="cle-ia" class="champ-masque" type="text" autocomplete="off" spellcheck="false" autocapitalize="off">
       <button type="submit">Enregistrer la clé</button>
     </form>
     <button id="retirer-cle-ia" type="button" hidden>Retirer la clé</button>
@@ -788,6 +788,7 @@
   <script src="mots_courts.js"></script>
   <script src="emetteur.js"></script>
   <script src="relations.js"></script>
+  <script src="attente.js"></script>
   <script src="relations_creation.js"></script>
   <script src="relations_compte.js"></script>
   <script src="scan_ecran.js"></script>

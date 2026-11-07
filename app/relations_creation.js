@@ -432,7 +432,7 @@ const relationsCreation = (() => {
       zone.textContent = texte;
       try { zone.scrollIntoView({ block: 'center' }); } catch (erreur) { /* rien */ }
     };
-    bouton.addEventListener('click', async () => {
+    bouton.addEventListener('click', () => attenteLecture.pendant(bouton, async () => {
       ecrire('Lecture des dossiers « r_ »… (rien n’est modifié)');
       try {
         const dossier = await appCap();
@@ -441,7 +441,7 @@ const relationsCreation = (() => {
       } catch (erreur) {
         ecrire(`Lecture impossible (${String(erreur && erreur.message || 'raison inconnue').slice(0, 120)}). Rien n’a été modifié.`);
       }
-    });
+    }));
     // Temps 2 de l'essai : Max montre « Relations » (celui créé par Cap) au sélecteur Google, dans Chrome.
     montrerBouton.addEventListener('click', async () => {
       ecrire('Ouverture de la fenêtre de Google… (elle peut mettre quelques secondes)');

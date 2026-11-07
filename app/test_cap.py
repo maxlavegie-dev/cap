@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "relations_creation.js", "relations_compte.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "attente.js", "relations_creation.js", "relations_compte.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -2637,8 +2637,14 @@ TESTS_JS = r"""
     module.brancher(ui.doc, { compte: m, pdfjs: () => module.chargerPdfjs(document, window) });
     attendreEgal(el('adresse-compte-relations').value, COMPTE_CAP_FICTIF, 'identifiant affiché');
     attendre(el('pdf-compte-relations').hidden, 'bouton PDF trop tôt');
+    const texteBouton = el('compter-compte-relations').textContent;
     el('compter-compte-relations').click();
+    // Rond d'attente : tout de suite « Lecture en cours… », bouton grisé, puis texte d'origine.
+    attendre(el('compter-compte-relations').disabled && el('compter-compte-relations').classList.contains('en-lecture')
+      && el('compter-compte-relations').textContent === 'Lecture en cours…', 'pas de rond d’attente');
     await attendreQue(() => /Total : 3 MP3, 4 image\(s\), 2 PDF/.test(el('resume-compte-relations').textContent), `comptage : ${el('resume-compte-relations').textContent}`);
+    await attendreQue(() => !el('compter-compte-relations').disabled, 'bouton resté grisé');
+    attendreEgal([el('compter-compte-relations').textContent, el('compter-compte-relations').classList.contains('en-lecture')], [texteBouton, false], 'bouton pas remis');
     attendre(!el('pdf-compte-relations').hidden && /1 sur 2/.test(el('pdf-compte-relations').textContent), 'bouton PDF');
     el('pdf-compte-relations').click();
     await attendreQue(() => /^Page 1 sur 2$/.test(el('page-pdf-relations').textContent), `PDF : ${el('page-pdf-relations').textContent}`, 200);
@@ -2664,6 +2670,23 @@ TESTS_JS = r"""
     const fin = SOURCE_RELATIONS_COMPTE.slice(SOURCE_RELATIONS_COMPTE.lastIndexOf('})();'));
     attendreEgal(fin.match(/relationsCompte\.\w+/g), ['relationsCompte.brancher', 'relationsCompte.chargerPdfjs'], 'départ automatique');
     attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(fin), 'branché dans les tests');
+  });
+
+  test('Panneau rouge (lot 1) : aucun champ « mot de passe » ni « adresse mail », pas de « Se connecter à Google », clés masquées', () => {
+    const modele = new DOMParser().parseFromString(SOURCE_HTML, 'text/html');
+    attendreEgal(modele.querySelectorAll('input[type="password"], input[type="email"]').length, 0, 'champ de connexion');
+    attendre(!/Se connecter à Google/.test(SOURCE_HTML), 'ancien bouton');
+    attendreEgal(modele.getElementById('connexion-google').textContent, 'Autoriser Cap (agenda et Drive)', 'bouton renommé');
+    for (const id of ['cle-picker', 'cle-ia']) attendre(modele.getElementById(id).classList.contains('champ-masque'), `${id} pas masqué`);
+    attendre(/\.champ-masque \{ -webkit-text-security: disc;/.test(SOURCE_STYLE), 'masquage absent');
+    attendreEgal(modele.getElementById('adresse-compte-relations').getAttribute('inputmode'), 'email', 'clavier');
+  });
+
+  await testAsync('Rond d’attente : remis même si la lecture échoue', async () => {
+    const bouton = document.createElement('button');
+    bouton.textContent = 'Compter FICTIF';
+    await attendreRejet(() => attenteLecture.pendant(bouton, async () => { throw new Error('panne FICTIVE'); }), 'panne FICTIVE');
+    attendreEgal([bouton.textContent, bouton.disabled, bouton.hasAttribute('aria-busy')], ['Compter FICTIF', false, false], 'bouton pas remis');
   });
 
   test('Sélecteur : le rôle « relations » rattache le choix à Cap (numéro du projet) ; les autres dossiers gardent leur réglage', () => {
@@ -6960,8 +6983,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v66['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v66")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v67['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v67")
 
 
 def verifier_precache_fichiers_existent():

@@ -111,7 +111,7 @@ const googleCompteRelations = (() => {
     }
     const s = sauvegarde();
     if (!s || !(s.expiration > Date.now() + 60000)) {
-      throw new Error('Compte Cap pas connecté (ou connexion expirée). Touche « Connecter le compte Cap ».');
+      throw new Error('Compte Cap pas connecté (ou connexion expirée). Touche « Autoriser la lecture du compte Cap ».');
     }
     if (!s.compte) {
       const compte = await lireCompteConnecte(s.jeton);
@@ -129,7 +129,7 @@ const googleCompteRelations = (() => {
     });
     if (reponse.status === 401) {
       oublier();
-      throw new Error('Connexion du compte Cap expirée. Touche « Connecter le compte Cap ».');
+      throw new Error('Connexion du compte Cap expirée. Touche « Autoriser la lecture du compte Cap ».');
     }
     if (!reponse.ok) throw new Error(`Google n’a pas pu lire (erreur ${reponse.status}). Rien n’a été modifié.`);
     return reponse;

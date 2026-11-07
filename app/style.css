@@ -2921,3 +2921,23 @@ html.sans-eau .bouton-eau {
 #canvas-pdf-relations { display: block; width: 100%; height: auto; background: #fff; }
 .lecteur-pdf-boutons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
 #resume-compte-relations { white-space: pre-line; }
+
+/* Lot 1 (07/11/2026) : clés masquées sans champ « mot de passe » (le panneau rouge de Chrome
+   prenait Cap pour une fausse page de connexion). */
+.champ-masque { -webkit-text-security: disc; text-security: disc; }
+
+/* Rond d'attente « Lecture en cours… » (07/11/2026) sur les boutons et messages lents. */
+.en-lecture::before {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5em;
+  vertical-align: -0.15em;
+  border: 0.18em solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: rond-lecture 0.9s linear infinite;
+}
+@keyframes rond-lecture { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .en-lecture::before { animation-duration: 2.5s; } }

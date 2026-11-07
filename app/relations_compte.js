@@ -139,7 +139,7 @@ const relationsCompte = (() => {
       } catch (erreur) { ecrire(raison(erreur)); }
     });
 
-    bouton.addEventListener('click', async () => {
+    bouton.addEventListener('click', () => attenteLecture.pendant(bouton, async () => {
       boutonPdf.hidden = true;
       ecrire('Lecture du Drive du compte Cap… (rien n’est modifié)');
       try {
@@ -148,7 +148,7 @@ const relationsCompte = (() => {
         ecrire(resumer(r));
         if (pdfs.length) { boutonPdf.textContent = `Afficher un PDF dans Cap (1 sur ${pdfs.length})`; boutonPdf.hidden = false; }
       } catch (erreur) { ecrire(`${raison(erreur)} Rien n’a été modifié.`); }
-    });
+    }));
 
     const montrerPage = async () => {
       const vue = doc.defaultView;
@@ -161,13 +161,15 @@ const relationsCompte = (() => {
 
     boutonPdf.addEventListener('click', async () => {
       if (!pdfs.length) return;
-      etiquette.textContent = 'Ouverture du PDF…';
+      etiquette.textContent = 'Lecture en cours… (ouverture du PDF)';
+      etiquette.classList.add('en-lecture');
       if (!lecteur.open) lecteur.showModal();
       try {
         pdf = await ouvrirPdf(compte, pdfs[0], await pdfjs());
         numero = 1;
         await montrerPage();
       } catch (erreur) { etiquette.textContent = `PDF illisible : ${raison(erreur)}`; }
+      finally { etiquette.classList.remove('en-lecture'); }
     });
     const changer = ecart => {
       if (!pdf || numero + ecart < 1 || numero + ecart > pdf.numPages) return;
