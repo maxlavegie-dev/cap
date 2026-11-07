@@ -354,6 +354,14 @@ const relationsMp3 = (() => {
     }));
 
     reconnecter.addEventListener('click', autoriserDeNouveau);
+    // Étape A (07/11/2026, accord de Max) : « Redonner l'accès à Google » recharge Cap (page de Google) et
+    // coupe la musique : la place du morceau en cours est gardée avant (dossier et numéro, jamais un nom).
+    const redonner = el('redonner-acces-google');
+    if (redonner) {
+      redonner.addEventListener('click', () => {
+        if (fenetreLecteur.open && dossierEnCours && file[position]) garderPlace(dossierEnCours, file[position]);
+      }, true);
+    }
     retour.addEventListener('click', montrerDossiers);
     fermer.addEventListener('click', () => fenetre.close());
     // « Arrêter et fermer » (posé sur le lecteur), ou fenêtre fermée autrement (retour du téléphone) :

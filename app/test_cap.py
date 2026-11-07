@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "attente.js", "relations_creation.js", "relations_compte.js", "relations_mp3.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "attente.js", "relations_creation.js", "relations_compte.js", "relations_mp3.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js", "accueil_cap.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -2737,7 +2737,7 @@ TESTS_JS = r"""
     attendreEgal([el('compter-compte-relations').textContent, el('compter-compte-relations').classList.contains('en-lecture')], [texteBouton, false], 'bouton pas remis');
     attendre(!el('pdf-compte-relations').hidden && el('pdf-compte-relations').textContent === 'Afficher les PDF dans Cap (2)', 'bouton PDF');
     el('pdf-compte-relations').click();
-    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', `PDF : ${el('page-pdf-relations').textContent}`, 600);
+    await attendreReel(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', `PDF : ${el('page-pdf-relations').textContent}`);
     attendre(el('pdf-avant-relations').disabled && !el('pdf-apres-relations').disabled, 'boutons du PDF 1');
     attendre(el('lecteur-pdf-relations').open, 'lecteur fermé');
     const canvas = el('canvas-pdf-relations');
@@ -2746,18 +2746,18 @@ TESTS_JS = r"""
     attendre(noir(0.25, 0.25) && !noir(0.75, 0.75), 'page 1 mal dessinée');
     attendre(el('pdf-precedente-relations').disabled && !el('pdf-suivante-relations').disabled, 'boutons de page 1');
     el('pdf-suivante-relations').click();
-    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 2 sur 2' && noir(0.75, 0.75), 'page 2', 600);
+    await attendreReel(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 2 sur 2' && noir(0.75, 0.75), 'page 2');
     attendre(!noir(0.25, 0.25), 'page 2 mal dessinée');
     // PDF suivant : le 2e PDF s'ouvre à sa page 1.
     const mediasAvant = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').length;
     el('pdf-apres-relations').click();
-    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 2 sur 2 · Page 1 sur 2' && noir(0.25, 0.25), `PDF suivant : ${el('page-pdf-relations').textContent}`, 600);
+    await attendreReel(() => el('page-pdf-relations').textContent === 'PDF 2 sur 2 · Page 1 sur 2' && noir(0.25, 0.25), `PDF suivant : ${el('page-pdf-relations').textContent}`);
     attendre(!el('pdf-avant-relations').disabled && el('pdf-apres-relations').disabled, 'boutons du PDF 2');
     attendreEgal(c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').length, mediasAvant + 1, 'PDF suivant non lu');
     const ids = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').map(q => q.url.pathname);
     attendre(ids.at(-1) !== ids.at(-2), 'toujours le même PDF');
     el('pdf-avant-relations').click();
-    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', 'PDF précédent', 600);
+    await attendreReel(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', 'PDF précédent');
     el('pdf-fermer-relations').click();
     attendre(!el('lecteur-pdf-relations').open, 'lecteur pas fermé');
     attendre(c.requetes.every(q => q.methode === 'GET'), 'modification');
@@ -3178,6 +3178,207 @@ TESTS_JS = r"""
     attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(fin), 'branché dans les tests');
   });
 
+  // ----- Étape A (07/11/2026) : accueil sur l'eau, Autre, Réglages, geste haut-bas, alerte partout -----
+  const pause = () => new Promise(r => setTimeout(r, 0));
+  function brancherAccueil(c, ui, options = {}) {
+    const eau = { couleurs: [], changerCouleurs(cs) { this.couleurs.push(cs); } };
+    const petite = { active: false, demarrages: 0, demarrer() { this.active = true; this.demarrages++; }, arreter() { this.active = false; } };
+    const module = accueilCap.brancher(ui.doc, { eau, stockage: c.localStorage, creerPetiteEau: () => petite, ...options });
+    return { module, eau, petite };
+  }
+  const centreDe = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+  const touchable = (ui, el) => { const touche = ui.doc.elementFromPoint(...centreDe(el)); return touche === el || el.contains(touche); };
+
+  await testAsync('Étape A : accueil = Micro, Chercher, Autre en colonne ; « Autre » (Scanner, Réglages, clair/sombre, Fermer) ; « Réglages » regroupe les réglages, textes des boutons Google INCHANGÉS ; « Chercher » ouvre les tâches', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    for (const id of ['microphone', 'ouvrir-chercher', 'ouvrir-autre']) attendre(touchable(ui, el(id)), `${id} pas touchable sur l’accueil`);
+    attendre(el('ecran-autre').hidden && el('ecran-reglages').hidden, 'écran ouvert au départ');
+    // Textes des boutons liés à Google : exactement les mêmes qu'avant l'étape A.
+    attendreEgal(['connexion-google', 'redonner-acces-google', 'ouvrir-reglages-drive', 'ouvrir-reglages-ia'].map(id => el(id).textContent.trim()),
+      ['Autoriser Cap (agenda et Drive)', 'Redonner l’accès à Google', 'Réglages du Drive', 'Réglages du cerveau'], 'texte d’un bouton Google changé');
+    for (const id of ['connexion-google', 'ouvrir-reglages-drive', 'ouvrir-reglages-ia', 'synchroniser-maintenant', 'sauvegarder-maintenant', 'ouvrir-reglages-phrases', 'interrupteur-eau', 'ouvrir-aide']) {
+      attendre(el('ecran-reglages').contains(el(id)), `${id} pas dans « Réglages »`);
+    }
+    attendre(el('ecran-autre').contains(el('ouvrir-scanner')) && el('ecran-autre').contains(el('scans-en-attente')), 'Scanner pas dans « Autre »');
+    // « Autre » : Scanner, Réglages, interrupteur, Fermer ; l'accueil disparaît.
+    el('ouvrir-autre').click();
+    attendre(!el('ecran-autre').hidden && el('ecran-reglages').hidden, '« Autre » pas ouvert');
+    attendreEgal(ui.cadre.contentWindow.getComputedStyle(el('accueil-boutons')).display, 'none', 'accueil encore là sous « Autre »');
+    for (const id of ['ouvrir-scanner', 'ouvrir-reglages-cap', 'bouton-theme-cap', 'fermer-autre']) attendre(touchable(ui, el(id)), `${id} pas touchable dans « Autre »`);
+    attendreEgal(el('ouvrir-scanner').textContent.trim(), 'Scanner', 'nom du bouton Scanner (lecteurs d’écran)');
+    // « Réglages » : chaque réglage est atteignable (en faisant défiler si besoin).
+    el('ouvrir-reglages-cap').click();
+    attendre(!el('ecran-reglages').hidden && el('ecran-autre').hidden, '« Réglages » pas ouvert');
+    for (const id of ['connexion-google', 'synchroniser-maintenant', 'ouvrir-reglages-drive', 'sauvegarder-maintenant', 'ouvrir-reglages-ia', 'ouvrir-reglages-phrases', 'interrupteur-eau', 'ouvrir-aide', 'curseur-intensite-eau', 'fermer-reglages']) {
+      if (el(id).hidden) continue; // montré seulement quand il sert (ex. « Synchroniser maintenant » sans envoi en attente)
+      el(id).scrollIntoView({ block: 'center' });
+      attendre(touchable(ui, el(id)), `${id} pas touchable dans « Réglages »`);
+    }
+    attendre(!ui.doc.querySelector('#ecran-reglages input[type="password"], #ecran-reglages input[type="email"]'), 'champ de connexion dans « Réglages »');
+    el('fermer-reglages').click();
+    attendre(el('ecran-reglages').hidden && el('ecran-autre').hidden && touchable(ui, el('ouvrir-autre')), 'retour à l’accueil impossible');
+    el('ouvrir-autre').click();
+    el('fermer-autre').click();
+    attendre(el('ecran-autre').hidden, '« Fermer » de « Autre »');
+    // « Chercher » : l'écran des tâches, avec la barre de recherche, « + » et « Écrire une demande » ; « Fermer » revient.
+    el('ouvrir-chercher').click();
+    attendre(!el('ecran-complet').hidden && !el('zone-recherche').hidden, '« Chercher » pas ouvert');
+    for (const id of ['saisie-recherche', 'ajouter', 'ouvrir-clavier', 'fermer-chercher']) attendre(touchable(ui, el(id)), `${id} pas touchable dans « Chercher »`);
+    el('fermer-chercher').click();
+    attendre(el('ecran-complet').hidden && el('zone-recherche').hidden && touchable(ui, el('ouvrir-chercher')), 'retour depuis « Chercher »');
+    // Ancien bouton « Eau » : gardé, caché.
+    attendre(el('aller-eau') && el('aller-eau').hidden, 'bouton « Eau » encore visible');
+  });
+
+  await testAsync('Étape A : clair / sombre (lune à gauche = sombre par défaut, soleil à droite = clair), gardé sur le téléphone ; eau sombre sur l’accueil, claire dans « Chercher » ; curseur d’intensité en MAQUETTE', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const { eau } = brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const html = ui.doc.documentElement;
+    attendre(html.classList.contains('theme-cap-sombre') && el('bouton-theme-cap').getAttribute('aria-checked') === 'true', 'sombre pas par défaut');
+    attendreEgal(eau.couleurs.at(-1), accueilCap.EAU_SOMBRE.map(x => [...x]), 'eau pas sombre sur l’accueil');
+    el('ouvrir-autre').click();
+    const curseur = () => el('bouton-theme-cap').querySelector('.curseur-theme').getBoundingClientRect();
+    const gauche = curseur().left;
+    el('bouton-theme-cap').click();
+    attendre(html.classList.contains('theme-cap-clair') && !html.classList.contains('theme-cap-sombre'), 'pas passé en clair');
+    attendreEgal(c.localStorage.getItem(accueilCap.CLE_THEME), 'clair', 'choix non gardé');
+    attendreEgal(eau.couleurs.at(-1), null, 'eau pas claire en mode clair');
+    await new Promise(r => setTimeout(r, 300));
+    attendre(curseur().left > gauche, 'le curseur ne va pas vers le soleil (droite)');
+    el('bouton-theme-cap').click();
+    attendreEgal(c.localStorage.getItem(accueilCap.CLE_THEME), 'sombre', 'retour au sombre non gardé');
+    el('fermer-autre').click();
+    // « Chercher » (écran des tâches) : toujours clair, même en mode sombre.
+    el('ouvrir-chercher').click();
+    await pause();
+    attendreEgal(eau.couleurs.at(-1), null, 'eau sombre derrière les tâches');
+    el('fermer-chercher').click();
+    await pause();
+    attendreEgal(eau.couleurs.at(-1), accueilCap.EAU_SOMBRE.map(x => [...x]), 'eau pas redevenue sombre');
+    // Choix relu au démarrage.
+    c.localStorage.setItem(accueilCap.CLE_THEME, 'clair');
+    const ui2 = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui2);
+    attendre(ui2.doc.documentElement.classList.contains('theme-cap-clair') && ui2.parId('bouton-theme-cap').getAttribute('aria-checked') === 'false', 'choix clair non relu');
+    // Curseur d'intensité : maquette, valeur gardée sous la clé de Zencoder, rien d'autre ne bouge.
+    attendreEgal(el('curseur-intensite-eau').value, '100', 'valeur par défaut');
+    const avant = eau.couleurs.length;
+    el('curseur-intensite-eau').value = '40';
+    el('curseur-intensite-eau').dispatchEvent(new Event('input'));
+    attendreEgal(c.localStorage.getItem('cap_intensite_eau'), '40', 'valeur non gardée');
+    attendreEgal(eau.couleurs.length, avant, 'le curseur maquette commande quelque chose');
+    const ui3 = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui3);
+    attendreEgal(ui3.parId('curseur-intensite-eau').value, '40', 'valeur non relue');
+    attendre(/maquette, non reliée/.test(ui3.doc.querySelector('label[for="curseur-intensite-eau"]').textContent), 'étiquette « maquette » absente');
+  });
+
+  await testAsync('Étape A : geste net de HAUT EN BAS sur l’accueil = retour à l’eau seule ; jamais pour un geste court, lent, de travers, depuis le tout haut, ni quand quelque chose est ouvert', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    let temps = 0;
+    const { module } = brancherAccueil(c, ui, { maintenant: () => temps });
+    const el = id => ui.parId(id);
+    let retours = 0;
+    el('aller-eau').addEventListener('click', () => { retours++; });
+    const geste = (x, y, fx, fy, duree = 200) => {
+      temps = 0;
+      const debut = new Event('touchstart', { bubbles: true });
+      Object.defineProperties(debut, { touches: { value: [{ clientX: x, clientY: y }] }, changedTouches: { value: [] } });
+      ui.doc.elementFromPoint(x, y).dispatchEvent(debut);
+      temps = duree;
+      const fin = new Event('touchend', { bubbles: true });
+      Object.defineProperties(fin, { touches: { value: [] }, changedTouches: { value: [{ clientX: fx, clientY: fy }] } });
+      ui.doc.elementFromPoint(x, y).dispatchEvent(fin);
+    };
+    attendreEgal(module.GESTE.fractionHauteur, 0.3, 'seuil de hauteur');
+    geste(200, 200, 205, 500);
+    attendreEgal(retours, 1, 'geste net (300 px sur 900, droit, rapide) sans retour à l’eau');
+    // Même départ SUR un bouton de l'accueil : le geste compte aussi (« n'importe où »).
+    const [mx, my] = centreDe(el('ouvrir-chercher'));
+    geste(mx, my - 100, mx, my + 220);
+    attendreEgal(retours, 2, 'geste parti d’un bouton ignoré');
+    for (const [nom, args] of [['court', [200, 200, 200, 400]], ['lent', [200, 200, 200, 600, 1500]], ['de travers', [100, 200, 300, 500]],
+      ['tout en haut', [200, 20, 200, 500]], ['vers le haut', [200, 700, 200, 200]]]) {
+      geste(...args);
+      attendreEgal(retours, 2, `geste ${nom} pris pour un retour à l’eau`);
+    }
+    // Quelque chose d'ouvert : « Autre », « Chercher », une fenêtre : rien.
+    el('ouvrir-autre').click();
+    geste(200, 200, 200, 600);
+    el('fermer-autre').click();
+    el('ouvrir-chercher').click();
+    geste(200, 200, 200, 600);
+    el('fermer-chercher').click();
+    el('clavier').showModal();
+    geste(200, 200, 200, 600);
+    el('clavier').close();
+    attendreEgal(retours, 2, 'retour à l’eau alors que quelque chose est ouvert');
+    geste(200, 200, 200, 600);
+    attendreEgal(retours, 3, 'geste plus pris en compte après fermeture');
+  });
+
+  await testAsync('Étape A : alerte « Redonner l’accès à Google » partout : sous sa petite eau sur les écrans de Cap, DANS la fenêtre ouverte (musique…) au-dessus de l’eau ; ne cache aucun bouton ; texte inchangé', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const { petite } = brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const alerte = el('alerte-google');
+    const place = alerte.previousSibling;
+    attendre(place && place.nodeType === 8, 'repère de place absent');
+    attendre(!petite.active, 'petite eau sans alerte');
+    el('texte-alerte-google').textContent = 'Google a refusé (FICTIF).';
+    alerte.hidden = false;
+    await pause();
+    attendre(alerte.classList.contains('alerte-sous-eau') && petite.active, 'alerte pas sous l’eau sur l’accueil');
+    attendreEgal(ui.cadre.contentWindow.getComputedStyle(el('eau-alerte')).opacity, '0.35', 'eau de l’alerte pas à 35 %');
+    attendreEgal(ui.cadre.contentWindow.getComputedStyle(el('eau-alerte')).pointerEvents, 'none', 'l’eau de l’alerte capte les touchers');
+    attendre(touchable(ui, el('redonner-acces-google')), 'bouton de l’alerte pas touchable');
+    // Elle ne cache aucun bouton de l'accueil, ni de « Autre », ni de « Chercher ».
+    for (const id of ['microphone', 'ouvrir-chercher', 'ouvrir-autre']) attendre(touchable(ui, el(id)), `${id} caché par l’alerte`);
+    el('ouvrir-autre').click();
+    await pause();
+    for (const id of ['ouvrir-scanner', 'ouvrir-reglages-cap', 'bouton-theme-cap', 'fermer-autre', 'redonner-acces-google']) attendre(touchable(ui, el(id)), `${id} caché dans « Autre »`);
+    el('fermer-autre').click();
+    el('ouvrir-chercher').click();
+    await pause();
+    for (const id of ['fermer-chercher', 'saisie-recherche', 'redonner-acces-google']) attendre(touchable(ui, el(id)), `${id} caché dans « Chercher »`);
+    el('fermer-chercher').click();
+    // Lecteur de musique ouvert (fenêtre au-dessus de tout) : l'alerte y est posée, au-dessus de l'eau, touchable.
+    el('lecteur-mp3-relations').showModal();
+    await pause();
+    attendre(el('lecteur-mp3-relations').contains(alerte), 'alerte pas dans la fenêtre de musique');
+    attendre(alerte.classList.contains('alerte-dans-fenetre') && !alerte.classList.contains('alerte-sous-eau') && !petite.active, 'alerte encore « sous l’eau » dans la musique');
+    attendre(touchable(ui, el('redonner-acces-google')), 'bouton de l’alerte pas touchable dans la musique');
+    attendre(touchable(ui, el('fermer-lecteur-mp3')), '« Arrêter et fermer » caché par l’alerte');
+    attendre(el('etat-lecteur-mp3').getBoundingClientRect().top >= alerte.getBoundingClientRect().bottom || el('etat-lecteur-mp3').hidden, 'message du lecteur sous l’alerte');
+    el('lecteur-mp3-relations').close();
+    await pause();
+    attendre(alerte.previousSibling === place && alerte.classList.contains('alerte-sous-eau') && petite.active, 'alerte pas revenue à sa place');
+    alerte.hidden = true;
+    await pause();
+    attendre(!petite.active && !ui.doc.documentElement.classList.contains('alerte-google-visible'), 'petite eau encore active sans alerte');
+    attendreEgal(el('redonner-acces-google').textContent, 'Redonner l’accès à Google', 'texte du bouton changé');
+  });
+
+  await testAsync('Étape A (musique) : « Redonner l’accès à Google » pendant la musique = place du morceau gardée (dossier et numéro, jamais un nom)', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    remplirMusiqueFictive(f);
+    const { m } = connecterCompteFictif(c);
+    const z = fauxLecteurZencoder();
+    brancherMusique(c, ui, m, z);
+    const lignes = await ouvrirDossierAna(ui);
+    lignes[7].click();
+    await attendreQue(() => z.appels.length === 1, 'morceau pas lancé');
+    ui.parId('alerte-google').hidden = false;
+    ui.parId('redonner-acces-google').click();
+    const place = JSON.parse(c.localStorage.getItem('cap_musique_reprise_v1'));
+    attendreEgal([Object.keys(place).sort(), place.numero], [['dossier', 'morceau', 'numero'], 8], 'place non gardée');
+    attendre(!/FICTIF/.test(c.localStorage.getItem('cap_musique_reprise_v1')), 'un nom est gardé');
+  });
+
   test('Search Console : les deux balises de vérification de Google sont dans la page (l’ancienne gardée), chacune une seule fois', () => {
     const modele = new DOMParser().parseFromString(SOURCE_HTML, 'text/html');
     const balises = modele.head.querySelectorAll('meta[name="google-site-verification"]');
@@ -3429,6 +3630,17 @@ TESTS_JS = r"""
     attendre(condition(), message);
   }
 
+  // Attente en temps RÉEL (07/11/2026) : le lecteur de PDF (pdf.js) travaille à part, en temps réel, alors que
+  // les attentes ci-dessus avancent en temps simulé ; une petite demande au serveur des tests suspend le
+  // temps simulé pendant qu'elle se fait.
+  async function attendreReel(condition, message, essais = 400) {
+    for (let i = 0; i < essais && !condition(); i++) {
+      try { await window.attenteReelle(i); } catch (erreur) { /* rien */ }
+      await new Promise(r => setTimeout(r, 20));
+    }
+    attendre(condition(), message);
+  }
+
   await testAsync('Écran d’eau : montré au démarrage, une seule fois par ouverture (pas après un rechargement), sans planter si le stockage refuse', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     const h = horlogeEau();
@@ -3489,7 +3701,7 @@ TESTS_JS = r"""
     ecran.afficher();
     // Pendant l'eau, c'est elle qui est touchée (Cap est dessous).
     const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-    attendre(ui.parId('ecran-eau').contains(ui.doc.elementFromPoint(...centre(ui.parId('ouvrir-scanner')))), 'Cap touchable sous l’eau');
+    attendre(ui.parId('ecran-eau').contains(ui.doc.elementFromPoint(...centre(ui.parId('ouvrir-autre')))), 'Cap touchable sous l’eau');
     attendre(!ui.doc.querySelector('.ecran').contains(ui.parId('ecran-eau')), 'eau placée dans l’écran des tuiles');
     // Le glissement vers le haut sur l'eau lance la vidéo ; les tuiles restent fermées (doigt et souris).
     glisser(ui, ui.parId('surface-eau'), 200, 820, 200, 80);
@@ -3504,12 +3716,14 @@ TESTS_JS = r"""
     attendre(!ecran.etat().visible && !ecran.etat().animation, 'eau encore là, ou animation pas arrêtée');
     attendre(!ui.doc.documentElement.classList.contains('eau-ouverte'), 'défilement de Cap encore bloqué');
     // CONTRE LA PANNE DE TOUCHER : après l'entrée, les boutons de Cap reçoivent bien le toucher.
-    for (const id of ['ouvrir-scanner', 'aller-eau']) {
-      attendreEgal(ui.doc.elementFromPoint(...centre(ui.parId(id))), ui.parId(id), `bouton de Cap recouvert après l’entrée : ${id}`);
+    // Étape A (07/11/2026) : les 3 boutons de l'accueil (sous l'eau, qui ne capte aucun toucher).
+    for (const id of ['microphone', 'ouvrir-chercher', 'ouvrir-autre']) {
+      const touche = ui.doc.elementFromPoint(...centre(ui.parId(id)));
+      attendre(touche === ui.parId(id) || ui.parId(id).contains(touche), `bouton de Cap recouvert après l’entrée : ${id}`);
     }
     let ouvert = false;
-    ui.parId('ouvrir-scanner').addEventListener('click', () => { ouvert = true; }, { once: true });
-    const [x, y] = centre(ui.parId('ouvrir-scanner'));
+    ui.parId('ouvrir-autre').addEventListener('click', () => { ouvert = true; }, { once: true });
+    const [x, y] = centre(ui.parId('ouvrir-autre'));
     ui.doc.elementFromPoint(x, y).click();
     attendre(ouvert, 'le bouton de Cap ne répond pas après « Entrer dans Cap »');
     // Le glissement vers le haut de Cap ouvre toujours les tuiles (inchangé).
@@ -3534,7 +3748,8 @@ TESTS_JS = r"""
     await attendreQue(() => !ecran.etat().visible, 'eau toujours là après l’entrée');
     attendre(!ecran.etat().animation && !ui.doc.documentElement.classList.contains('cap-monte'), 'animation pas finie');
     const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-    attendreEgal(ui.doc.elementFromPoint(...centre(ui.parId('ouvrir-scanner'))), ui.parId('ouvrir-scanner'), 'Scanner recouvert après l’entrée');
+    const toucheAutre = ui.doc.elementFromPoint(...centre(ui.parId('ouvrir-autre')));
+    attendre(toucheAutre === ui.parId('ouvrir-autre') || ui.parId('ouvrir-autre').contains(toucheAutre), 'bouton « Autre » recouvert après l’entrée');
     // Un second passage par l'eau : le glissement refait la même entrée.
     ecran.afficher();
     glisserSurEau(ui);
@@ -3545,10 +3760,14 @@ TESTS_JS = r"""
     ecranReduit.afficher();
     ecranReduit.entrerDansCap();
     attendre(!ecranReduit.etat().visible, 'entrée pas immédiate avec les animations réduites');
-    // Fond pâle unique pour l'accueil et l'eau.
+    // Teinte de fond de Cap inchangée ; étape A : sur l'accueil, fond du thème (sombre par défaut, comme
+    // Zencoder ; mode clair = l'ancien fond pâle).
     const fond = ui.cadre.contentWindow.getComputedStyle(ui.doc.documentElement).getPropertyValue('--fond').trim().toLowerCase();
     attendreEgal(fond, '#eaf1f4', 'teinte de fond');
-    attendreEgal(ui.cadre.contentWindow.getComputedStyle(ui.doc.body).backgroundColor, 'rgb(234, 241, 244)', 'fond de l’accueil');
+    attendreEgal(ui.cadre.contentWindow.getComputedStyle(ui.doc.body).backgroundColor, 'rgb(10, 12, 12)', 'fond de l’accueil (sombre)');
+    ui.doc.documentElement.classList.add('theme-cap-clair');
+    attendreEgal(ui.cadre.contentWindow.getComputedStyle(ui.doc.body).backgroundColor, 'rgb(234, 241, 244)', 'fond de l’accueil (clair)');
+    ui.doc.documentElement.classList.remove('theme-cap-clair');
   });
 
   await testAsync('Eau sur l’accueil (lot c20) : CHAQUE bouton visible de l’accueil répond (Scanner compris) et l’eau bouge au toucher ; arrêtée pendant l’ouverture et en arrière-plan', async c => {
@@ -3569,11 +3788,13 @@ TESTS_JS = r"""
     const lum = c => { const v = c.slice(0, 3).map(x => x / 255).map(x => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4)); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
     const contraste = (a, b) => { const [l1, l2] = [lum(a), lum(b)].sort((x, y) => y - x); return (l1 + 0.05) / (l2 + 0.05); };
     const melange = (dessus, alpha, dessous) => dessous.map((c, i) => c * (1 - alpha) + dessus[i] * alpha);
-    const fondHex = fenetre.getComputedStyle(ui.doc.documentElement).getPropertyValue('--fond').trim();
-    const clair = [1, 3, 5].map(i => parseInt(fondHex.slice(i, i + 2), 16));
-    const pireEau = clair.map((c, i) => Math.round(c * 0.8 + [120, 150, 165][i] * 0.2) - 22);
+    // Étape A : accueil sombre par défaut (eau sombre de Zencoder sur fond sombre) ; la date et l'alerte sont
+    // AU-DESSUS de l'eau, les boutons dessous.
+    ecran.changerCouleurs(accueilCap.EAU_SOMBRE.map(c => [...c]));
+    const clair = rgb(fenetre.getComputedStyle(ui.doc.body).backgroundColor);
+    const pireEau = accueilCap.EAU_SOMBRE[1].map(c => Math.max(0, c - 22));
     const opaciteEau = Number(fenetre.getComputedStyle(ui.parId('eau-accueil')).opacity);
-    const eauVue = melange(pireEau, opaciteEau, clair);
+    let eauVue = melange(pireEau, opaciteEau, clair);
     let pire = 99;
     const verifierTextes = racine => {
       for (const el of [racine, ...racine.querySelectorAll('*')]) {
@@ -3596,6 +3817,13 @@ TESTS_JS = r"""
       if (el) verifierTextes(el);
     }
     ui.parId('basculer-vue').click();
+    // L'écran des tâches garde son allure claire (accueil_cap.js remet l'eau claire) : eau pâle derrière.
+    ecran.changerCouleurs(null);
+    {
+      const fondHex = fenetre.getComputedStyle(ui.doc.documentElement).getPropertyValue('--fond').trim();
+      const pale = [1, 3, 5].map(i => parseInt(fondHex.slice(i, i + 2), 16));
+      eauVue = melange(pale.map((c, i) => Math.round(c * 0.8 + [120, 150, 165][i] * 0.2) - 22), opaciteEau, pale);
+    }
     attendre(ui.doc.querySelectorAll('.tuile').length > 0, 'aucune tuile à vérifier');
     for (const tuile of ui.doc.querySelectorAll('.tuile')) {
       verifierTextes(tuile);
@@ -3623,7 +3851,7 @@ TESTS_JS = r"""
       if (vue === 'tuiles') ui.parId('basculer-vue').click();
       const boutons = visibles();
       attendre(boutons.length >= (vue === 'accueil' ? 2 : 1), `pas assez de boutons visibles (${vue}) : ${boutons.length}`);
-      if (vue === 'accueil') attendre(boutons.includes(ui.parId('ouvrir-scanner')), 'Scanner absent des boutons testés');
+      if (vue === 'accueil') attendre(['microphone', 'ouvrir-chercher', 'ouvrir-autre'].every(id => boutons.includes(ui.parId(id))), 'boutons de l’accueil absents des boutons testés');
       for (const b of boutons) {
         const touche = ui.doc.elementFromPoint(...centre(b));
         attendre(touche === b || b.contains(touche), `bouton recouvert (${vue}) : ${b.id || b.className || b.textContent.trim().slice(0, 30)} par ${touche ? (touche.id || touche.className || touche.tagName) : 'rien'}`);
@@ -3634,13 +3862,13 @@ TESTS_JS = r"""
     // Toucher une tuile ou un bouton : le bouton fonctionne ET l'eau bouge.
     const avant = ecran.fond.etat().touchers;
     let ouvert = false;
-    ui.parId('ouvrir-scanner').addEventListener('click', () => { ouvert = true; }, { once: true });
-    const [x, y] = centre(ui.parId('ouvrir-scanner'));
+    ui.parId('ouvrir-autre').addEventListener('click', () => { ouvert = true; }, { once: true });
+    const [x, y] = centre(ui.parId('ouvrir-autre'));
     const cible = ui.doc.elementFromPoint(x, y);
     cible.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 3, clientX: x, clientY: y, isPrimary: true }));
     cible.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 3, clientX: x, clientY: y, isPrimary: true }));
     cible.click();
-    attendre(ouvert, 'Scanner ne répond pas avec l’eau derrière');
+    attendre(ouvert, '« Autre » ne répond pas sous l’eau');
     attendre(ecran.fond.etat().touchers > avant, 'l’eau ne bouge pas au toucher');
     // Pendant l'écran d'ouverture : l'eau de l'accueil s'arrête ; elle repart après l'entrée.
     ui.parId('aller-eau').click();
@@ -3697,9 +3925,10 @@ TESTS_JS = r"""
     attendre(!ecran2.eauActive() && !ecran2.etat().visible && !ecran2.fond.etat().active, 'eau au démarrage malgré l’arrêt');
     attendreEgal(h2.appels.length, 0, 'animation lancée malgré l’arrêt');
     attendreEgal(fenetre2.getComputedStyle(ui2.parId('toile-eau')).display, 'none', 'eau d’ouverture visible malgré l’arrêt');
-    attendreEgal(fenetre2.getComputedStyle(ui2.doc.body).backgroundColor, 'rgb(234, 241, 244)', 'fond pâle absent sans eau');
+    attendreEgal(fenetre2.getComputedStyle(ui2.doc.body).backgroundColor, 'rgb(10, 12, 12)', 'fond du thème absent sans eau');
     const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-    attendreEgal(ui2.doc.elementFromPoint(...centre(ui2.parId('ouvrir-scanner'))), ui2.parId('ouvrir-scanner'), 'Scanner recouvert sans eau');
+    const toucheSansEau = ui2.doc.elementFromPoint(...centre(ui2.parId('ouvrir-autre')));
+    attendre(toucheSansEau === ui2.parId('ouvrir-autre') || ui2.parId('ouvrir-autre').contains(toucheSansEau), '« Autre » recouvert sans eau');
     // Remise en marche : l'eau revient tout de suite sur l'accueil, réglage gardé.
     ui2.parId('interrupteur-eau').click();
     attendre(ecran2.eauActive() && ecran2.fond.etat().active, 'eau pas revenue');
@@ -4796,12 +5025,15 @@ TESTS_JS = r"""
     }
     attendre(ui.parId('date').textContent.length > 0, 'date vide');
     attendre(!ui.parId('heure'), 'heure encore affichée');
-    const recherche = ui.parId('zone-recherche').getBoundingClientRect();
-    const barre = ui.doc.querySelector('.barre-recherche').getBoundingClientRect();
-    attendre(barre.bottom <= ui.doc.querySelector('footer.dictee').getBoundingClientRect().top + 1, 'barre de recherche pas au-dessus des boutons');
-    attendre(recherche.top > ui.cadre.clientHeight / 2, 'barre de recherche pas en bas');
+    // Étape A : accueil = 3 boutons en colonne (Micro, Chercher, Autre) ; la barre de recherche est dans « Chercher ».
+    const colonne = ['microphone', 'ouvrir-chercher', 'ouvrir-autre'].map(id => ui.parId(id).getBoundingClientRect());
+    attendre(colonne.every(r => r.width >= 48 && r.height >= 48 && r.top >= 0 && r.bottom <= ui.cadre.clientHeight + 1), 'boutons de l’accueil hors écran ou trop petits');
+    attendre(colonne[0].bottom <= colonne[1].top && colonne[1].bottom <= colonne[2].top, 'boutons de l’accueil pas en colonne (Micro, Chercher, Autre)');
+    attendre(ui.parId('zone-recherche').hidden && ui.parId('zone-recherche').getBoundingClientRect().height === 0, 'barre de recherche encore sur l’accueil');
     attendre(ui.doc.querySelector('.choix-source').contains(ui.parId('source-recherche')), 'menu hors de la barre');
     ui.parId('basculer-vue').click();
+    const barreChercher = ui.doc.querySelector('.barre-recherche').getBoundingClientRect();
+    attendre(!ui.parId('zone-recherche').hidden && barreChercher.height > 0 && barreChercher.bottom <= ui.cadre.clientHeight + 1, 'barre de recherche absente de « Chercher »');
     attendre(!ui.parId('ecran-complet').hidden && !ui.parId('ecran-complet').inert, 'vue complète non ouverte');
     attendre(ui.parId('accueil').hidden, 'accueil encore visible');
     attendreEgal(ui.parId('basculer-vue').getAttribute('aria-expanded'), 'true', 'état ouvert');
@@ -6102,6 +6334,7 @@ TESTS_JS = r"""
       ...TACHES_FICTIVES[0], id: `FICTIF-${index}`, intitule: `FICTIF ${'long'.repeat(80)} ${index}`, abandonnee_le: ''
     })));
     const ui = preparerInterface(c, { largeur: 360, hauteur: 560 });
+    ui.parId('basculer-vue').click(); // étape A : la recherche est dans « Chercher »
     ui.parId('saisie-recherche').value = 'fictif';
     ui.parId('saisie-recherche').dispatchEvent(new Event('input'));
     attendre(ui.doc.documentElement.scrollWidth <= 360 && ui.doc.body.scrollWidth <= 360, 'débordement horizontal');
@@ -6111,7 +6344,7 @@ TESTS_JS = r"""
     attendre(liste.getBoundingClientRect().bottom <= 560, 'résultats hors écran');
     attendre(liste.getBoundingClientRect().bottom <= ui.doc.querySelector('.barre-recherche').getBoundingClientRect().top, 'résultats pas au-dessus de la barre');
     attendre(liste.getBoundingClientRect().top >= ui.doc.querySelector('header.horloge').getBoundingClientRect().bottom, 'résultats sur la date');
-    for (const id of ['microphone', 'ouvrir-clavier', 'ajouter', 'saisie-recherche', 'source-recherche']) {
+    for (const id of ['ouvrir-clavier', 'ajouter', 'saisie-recherche', 'source-recherche']) {
       const rect = ui.parId(id).getBoundingClientRect();
       attendre(rect.top >= 0 && rect.bottom <= 560 && rect.height >= 48, `${id} hors écran ou trop petit`);
     }
@@ -7529,8 +7762,8 @@ def verifier_visionneuse_zencoder():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v72['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v72")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v73['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v73")
 
 
 def verifier_precache_fichiers_existent():
@@ -7656,6 +7889,7 @@ def construire_page():
         "SOURCE_GOOGLE_COMPTE_RELATIONS": "google_compte_relations.js",
         "SOURCE_RELATIONS_COMPTE": "relations_compte.js",
         "SOURCE_RELATIONS_MP3": "relations_mp3.js",
+        "SOURCE_ACCUEIL_CAP": "accueil_cap.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }
@@ -7677,6 +7911,9 @@ def construire_page():
 window.erreursPage = [];
 window.addEventListener('error', e => window.erreursPage.push(String(e.message)));
 window.addEventListener('unhandledrejection', e => window.erreursPage.push(String(e.reason)));
+// Seule demande réelle permise : l'attente en temps réel des tests (adresse fixe, réponse vide).
+const vraiFetchAttente = window.fetch.bind(window);
+window.attenteReelle = n => vraiFetchAttente('/attente-reelle?' + Number(n), {{ cache: 'no-store' }});
 window.fetch = async () => {{
   const message = 'Vrai fetch interdit dans les tests';
   window.erreursPage.push(message);
@@ -7717,6 +7954,10 @@ class Gestionnaire(BaseHTTPRequestHandler):
         elif chemin.startswith("/src/") and chemin[5:] in SOURCES:
             corps = (APP / chemin[5:]).read_bytes()
             type_contenu = "text/javascript; charset=utf-8"
+        elif chemin == "/attente-reelle":
+            # Attente en temps réel des tests (voir attendreReel) : réponse vide.
+            corps = b""
+            type_contenu = "text/plain; charset=utf-8"
         elif chemin == "/lecteur_mp3/index.html":
             # Copie du lecteur MP3 de Zencoder (chargée dans un cadre).
             corps = (APP / chemin[1:]).read_bytes()

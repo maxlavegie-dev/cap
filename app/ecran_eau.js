@@ -89,7 +89,8 @@ const ecranEau = (() => {
     const reduit = Boolean(options.animationsReduites
       ?? (fenetre && fenetre.matchMedia && fenetre.matchMedia('(prefers-reduced-motion: reduce)').matches));
     const ctx = toile.getContext('2d', { alpha: false });
-    const [COULEUR_PEU_PROFOND, COULEUR_PROFOND] = options.couleurs || couleursDuFond(toile.ownerDocument);
+    // Étape A (07/11/2026) : couleurs changeables (mode clair / sombre des écrans sur l'eau).
+    let [COULEUR_PEU_PROFOND, COULEUR_PROFOND] = options.couleurs || couleursDuFond(toile.ownerDocument);
     const basse = toile.ownerDocument.createElement('canvas');
     const ctxBasse = basse.getContext('2d');
     let largeur = 0, hauteur = 0, colonnes = 0, lignes = 0;
@@ -97,7 +98,8 @@ const ecranEau = (() => {
     let identifiant = null;
     let prochaineOnde = 0;
     let touchers = 0;
-    const cellulesCible = CELLULES_CIBLE; // lot c22 : plus de finesse réduite pour l'accueil
+    // lot c22 : plus de finesse réduite pour l'accueil ; étape A : une petite eau (alerte) peut en demander moins.
+    const cellulesCible = Number(options.cellules) > 0 ? Number(options.cellules) : CELLULES_CIBLE;
 
     function dimensionner() {
       largeur = toile.clientWidth || 360;
@@ -192,7 +194,12 @@ const ecranEau = (() => {
       identifiant = null;
     }
     if (fenetre && fenetre.addEventListener) fenetre.addEventListener('resize', () => { if (identifiant !== null) dimensionner(); });
-    return { demarrer, arreter, perturber, dimensionner, active: () => identifiant !== null, touchers: () => touchers,
+    // couleurs : [peu profond, profond] (trois nombres chacun) ; sans argument, celles du fond de Cap.
+    function changerCouleurs(couleurs) {
+      [COULEUR_PEU_PROFOND, COULEUR_PROFOND] = couleurs || couleursDuFond(toile.ownerDocument);
+    }
+    return { demarrer, arreter, perturber, dimensionner, changerCouleurs, couleurs: () => [COULEUR_PEU_PROFOND, COULEUR_PROFOND],
+      active: () => identifiant !== null, touchers: () => touchers,
       reglages: () => ({ cellules: cellulesCible, amortissement: AMORTISSEMENT, delaiOndes: EAU.delaiOndes,
         opacite: (() => { try { return toile.ownerDocument.defaultView.getComputedStyle(toile).opacity; } catch (e) { return ''; } })() }) };
   }
@@ -238,6 +245,8 @@ const ecranEau = (() => {
     return {
       demarrer() { voulue = true; if (!doc.hidden) couche.demarrer(); },
       arreter() { voulue = false; couche.arreter(); },
+      changerCouleurs: couleurs => couche.changerCouleurs(couleurs),
+      couleurs: () => couche.couleurs(),
       etat: () => ({ active: couche.active(), touchers: couche.touchers(), reglagesEau: couche.reglages() })
     };
   }
@@ -400,7 +409,7 @@ const ecranEau = (() => {
     parSelecteur('#bouton-revenir-vagues').addEventListener('click', revenirAuxVagues);
 
     return {
-      afficher, entrerDansCap, revenirAuxVagues, demarrerVideo,
+      afficher, entrerDansCap, revenirAuxVagues, demarrerVideo, changerCouleurs: couleurs => couche.changerCouleurs(couleurs),
       etat: () => ({ visible: !racine.hidden, video: etatVideo, panne: videoEnPanne, boutons: boutons.classList.contains('visible'),
         animation: couche.active(), entree: sortie !== null, reglagesEau: couche.reglages() })
     };
@@ -418,6 +427,9 @@ const ecranEau = (() => {
     const fond = eauAccueil(doc, options);
     const ecran = monter(racine, { ...options, avantAffichage: () => fond.arreter(), apresEntree: () => { if (active) fond.demarrer(); } });
     ecran.fond = fond;
+    // Étape A : mode clair / sombre : la même couleur pour l'eau d'ouverture et l'eau de l'accueil.
+    const changerCouleursOuverture = ecran.changerCouleurs;
+    ecran.changerCouleurs = couleurs => { changerCouleursOuverture(couleurs); fond.changerCouleurs(couleurs); };
     const interrupteur = doc.getElementById('interrupteur-eau');
     const texteInterrupteur = doc.getElementById('etat-interrupteur-eau');
     function appliquerActive() {

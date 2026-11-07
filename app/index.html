@@ -30,18 +30,93 @@
   </div>
   <div class="ecran">
     <header class="horloge" aria-label="Date du jour">
-      <button id="aller-eau" class="bouton-eau" type="button" aria-controls="ecran-eau">Eau</button>
+      <!-- 07/11/2026 (étape A, accord de Max) : bouton « Eau » désactivé (gardé, caché) : l'accueil est déjà
+           sur l'eau, et un geste net de HAUT EN BAS sur l'accueil ramène à l'eau seule (accueil_cap.js). -->
+      <button id="aller-eau" class="bouton-eau" type="button" aria-controls="ecran-eau" hidden>Eau</button>
       <time id="date"></time>
     </header>
+    <!-- 07/11/2026 (étape A, choix de Max) : l'alerte apparaît partout. Sur les écrans de Cap, elle est SOUS
+         l'eau (sa petite eau à elle, à 35 %, qui ne capte aucun toucher) ; dans une fenêtre ouverte (musique,
+         visionneuse…), elle est posée dans la fenêtre, au-dessus de l'eau. Texte du bouton inchangé. -->
     <div id="alerte-google" role="alert" hidden>
       <p id="texte-alerte-google"></p>
       <button id="redonner-acces-google" type="button">Redonner l’accès à Google</button>
+      <canvas id="eau-alerte" class="eau-alerte" aria-hidden="true"></canvas>
     </div>
     <button id="basculer-vue" class="visuellement-cache" type="button" aria-expanded="false" aria-controls="ecran-complet">Afficher tout</button>
     <div id="accueil"></div>
-    <button id="ouvrir-scanner" class="bouton-scanner" type="button" aria-haspopup="dialog" aria-controls="scanner">Scanner</button>
-    <p id="scans-en-attente" class="scans-en-attente" role="status" aria-live="polite" hidden></p>
-    <section id="zone-recherche" aria-label="Recherche">
+    <!-- 07/11/2026 (étape A, plan accepté par Max) : accueil sur l'eau, 3 boutons en colonne (Micro,
+         Chercher, Autre), icônes du travail de Zencoder sans fond gris. Le micro est le micro de Cap
+         (même bouton, mêmes gestes), déplacé ici depuis la barre du bas. -->
+    <nav id="accueil-boutons" aria-label="Accueil">
+      <button id="microphone" class="bouton-accueil-principal" type="button" aria-label="Dicter une tâche" aria-pressed="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+      </button>
+      <button id="ouvrir-chercher" class="bouton-accueil-principal" type="button" aria-label="Chercher" aria-controls="ecran-complet">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
+      </button>
+      <button id="ouvrir-autre" class="bouton-accueil-principal" type="button" aria-label="Autre" aria-controls="ecran-autre">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
+      </button>
+    </nav>
+    <!-- Écran « Autre » (étape A) : Scanner (le scanner de Cap, déplacé ici avec le nombre de scans en
+         attente), Réglages, interrupteur clair / sombre (écrans sur l'eau seulement), Fermer. -->
+    <section id="ecran-autre" class="ecran-cap" aria-label="Autre" hidden>
+      <div class="grille-autre">
+        <button id="ouvrir-scanner" class="bouton-scanner bouton-autre" type="button" aria-haspopup="dialog" aria-controls="scanner">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 8V4h4M17 4h4v4M21 16v4h-4M7 20H3v-4M3 12h18"/></svg>
+          <span class="visuellement-cache">Scanner</span>
+        </button>
+        <button id="ouvrir-reglages-cap" class="bouton-autre" type="button" aria-controls="ecran-reglages">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" stroke="none" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+          <span class="visuellement-cache">Réglages</span>
+        </button>
+      </div>
+      <p id="scans-en-attente" class="scans-en-attente" role="status" aria-live="polite" hidden></p>
+      <div id="theme-cap">
+        <svg class="icone-theme" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+        <button id="bouton-theme-cap" type="button" role="switch" aria-checked="true" aria-label="Mode sombre (sinon mode clair)"><span class="curseur-theme"></span></button>
+        <svg class="icone-theme" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/><line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/><line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/></svg>
+      </div>
+      <button id="fermer-autre" class="bouton-sur-eau" type="button">Fermer</button>
+    </section>
+    <!-- Écran « Réglages » (étape A) : les réglages de Cap déplacés ici depuis l'écran complet, textes
+         inchangés (dont « Autoriser Cap (agenda et Drive) », « Réglages du Drive », « Réglages du cerveau »),
+         puis le curseur d'intensité de l'eau (MAQUETTE : il ne commande rien pour l'instant). -->
+    <section id="ecran-reglages" class="ecran-cap" aria-label="Réglages" hidden>
+      <h2 class="titre-ecran-cap">Réglages</h2>
+      <!-- Déplacés le 07/11/2026 depuis l'écran complet (attribut data-vues retiré : hors des vues des tâches). -->
+      <div id="etat-synchro">
+        <span id="texte-etat-google" role="status">non connecté</span>
+        <p id="dernier-envoi"></p>
+        <button id="synchroniser-maintenant" type="button">Synchroniser maintenant</button>
+        <button id="connexion-google" type="button">Autoriser Cap (agenda et Drive)</button>
+        <button id="ouvrir-reglages-drive" type="button" aria-haspopup="dialog" aria-controls="reglages-drive">Réglages du Drive</button>
+      </div>
+      <section id="zone-sauvegarde" aria-label="Sauvegarde du tableau">
+        <p id="texte-sauvegarde"></p>
+        <button id="sauvegarder-maintenant" type="button">Sauvegarder maintenant</button>
+      </section>
+      <section id="zone-cerveau" aria-label="Cerveau de Cap">
+        <p id="texte-cerveau"></p>
+        <button id="ouvrir-reglages-ia" type="button" aria-haspopup="dialog" aria-controls="reglages-ia">Réglages du cerveau</button>
+        <button id="ouvrir-reglages-phrases" type="button" aria-haspopup="dialog" aria-controls="reglages-phrases">Mes phrases</button>
+      </section>
+      <!-- Lot c21 : interrupteur de l'eau, gardé sur ce téléphone. Arrêt = plus d'eau nulle part. -->
+      <section id="zone-ambiance" aria-label="Ambiance">
+        <button id="interrupteur-eau" type="button" role="switch" aria-checked="true">
+          <span>Eau</span>
+          <span id="etat-interrupteur-eau">en marche</span>
+        </button>
+      </section>
+      <button id="ouvrir-aide" type="button" aria-haspopup="dialog" aria-controls="aide">Aide</button>
+      <div id="reglage-intensite-eau">
+        <label for="curseur-intensite-eau">Intensité de l’eau (maquette, non reliée)</label>
+        <input id="curseur-intensite-eau" type="range" min="0" max="100" value="100">
+      </div>
+      <button id="fermer-reglages" class="bouton-sur-eau" type="button">Fermer</button>
+    </section>
+    <section id="zone-recherche" aria-label="Recherche" hidden>
       <ul id="resultats-recherche" aria-label="Résultats de recherche" hidden></ul>
       <div class="barre-recherche">
         <div class="choix-source">
@@ -62,36 +137,16 @@
       <div class="entete-complet">
         <button id="retour-tuiles" type="button" hidden>‹ Tuiles</button>
         <h1 id="titre-vue">Tout voir</h1>
-        <button id="ouvrir-aide" type="button" aria-haspopup="dialog" aria-controls="aide">Aide</button>
+        <!-- 07/11/2026 (étape A) : « Aide » déplacé dans Réglages ; « Fermer » ramène à l'accueil. -->
+        <button id="fermer-chercher" type="button">Fermer</button>
       </div>
       <div id="tuiles" class="grille-tuiles" aria-label="Tuiles" data-vues="tuiles"></div>
       <section id="dernieres-actions" aria-labelledby="titre-actions" data-vues="tout actions" hidden>
         <h2 id="titre-actions">Dernières actions</h2>
         <ul id="liste-actions"></ul>
       </section>
-      <div id="etat-synchro" data-vues="tuiles tout">
-        <span id="texte-etat-google" role="status">non connecté</span>
-        <p id="dernier-envoi"></p>
-        <button id="synchroniser-maintenant" type="button">Synchroniser maintenant</button>
-        <button id="connexion-google" type="button">Autoriser Cap (agenda et Drive)</button>
-        <button id="ouvrir-reglages-drive" type="button" aria-haspopup="dialog" aria-controls="reglages-drive">Réglages du Drive</button>
-      </div>
-      <section id="zone-sauvegarde" aria-label="Sauvegarde du tableau" data-vues="tuiles tout">
-        <p id="texte-sauvegarde"></p>
-        <button id="sauvegarder-maintenant" type="button">Sauvegarder maintenant</button>
-      </section>
-      <section id="zone-cerveau" aria-label="Cerveau de Cap" data-vues="tuiles tout">
-        <p id="texte-cerveau"></p>
-        <button id="ouvrir-reglages-ia" type="button" aria-haspopup="dialog" aria-controls="reglages-ia">Réglages du cerveau</button>
-        <button id="ouvrir-reglages-phrases" type="button" aria-haspopup="dialog" aria-controls="reglages-phrases">Mes phrases</button>
-      </section>
-      <!-- Lot c21 : interrupteur de l'eau, gardé sur ce téléphone. Arrêt = plus d'eau nulle part. -->
-      <section id="zone-ambiance" aria-label="Ambiance" data-vues="tuiles tout">
-        <button id="interrupteur-eau" type="button" role="switch" aria-checked="true">
-          <span>Eau</span>
-          <span id="etat-interrupteur-eau">en marche</span>
-        </button>
-      </section>
+      <!-- 07/11/2026 (étape A) : état de la connexion, sauvegarde, cerveau et interrupteur « Eau » déplacés
+           dans l'écran « Réglages » (mêmes éléments, mêmes textes). -->
       <section id="rendez-vous" aria-labelledby="titre-rendez-vous" data-vues="tout rendez-vous" hidden>
         <h2 id="titre-rendez-vous">Prochains rendez-vous</h2>
         <ul id="liste-rendez-vous"></ul>
@@ -122,12 +177,7 @@
     <p id="texte-entendu" role="status" aria-live="polite" aria-atomic="true"></p>
     <div class="commandes">
       <button id="ajouter" type="button" aria-label="Ajouter une tâche">+</button>
-      <button id="microphone" type="button" aria-label="Dicter une tâche" aria-pressed="false">
-        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
-          <rect x="12" y="4" width="8" height="15" rx="4" />
-          <path d="M8 15v1a8 8 0 0 0 16 0v-1M16 24v5M12 29h8" />
-        </svg>
-      </button>
+      <!-- 07/11/2026 (étape A) : le micro est maintenant sur l'accueil (#accueil-boutons). -->
       <button id="ouvrir-clavier" type="button" aria-label="Écrire une demande" aria-haspopup="dialog" aria-controls="clavier">
         <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
           <rect x="3" y="7" width="26" height="18" rx="3" />
@@ -503,7 +553,7 @@
     <hr class="separation-reglages">
     <!-- Compte Google neuf dédié à Cap (07/11/2026, essai) : lecture seule, « Relations » seulement. -->
     <label for="adresse-compte-relations">Identifiant du compte Cap (il reste sur ce téléphone)</label>
-    <input id="adresse-compte-relations" type="text" inputmode="email" autocomplete="off" spellcheck="false" autocapitalize="off">
+    <input id="adresse-compte-relations" type="text" inputmode="email" data-reglage autocomplete="off" spellcheck="false" autocapitalize="off">
     <button id="connecter-compte-relations" type="button">Autoriser la lecture du compte Cap</button>
     <button id="compter-compte-relations" type="button">Compter ce que Cap voit dans le compte Cap</button>
     <p id="resume-compte-relations" class="relations-gros bloc-resultat" role="status" hidden></p>
@@ -835,6 +885,7 @@
   <script src="mode_trier.js"></script>
   <script src="app.js"></script>
   <script src="ecran_eau.js"></script>
+  <script src="accueil_cap.js"></script>
   <script src="installation.js"></script>
 </body>
 </html>

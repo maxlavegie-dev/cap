@@ -1564,7 +1564,9 @@
   }
 
   function tenterReconnexionSilencieuse() {
-    const texteSaisi = Array.from(document.querySelectorAll('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]):not([type="hidden"]), textarea, [contenteditable="true"]'))
+    // Étape A (07/11/2026) : un curseur, ou un champ qui garde un RÉGLAGE (attribut data-reglage, par exemple
+    // l'identifiant du compte Cap), n'est pas un texte en cours : il ne bloque plus le renouvellement.
+    const texteSaisi = Array.from(document.querySelectorAll('input:not([type="checkbox"]):not([type="button"]):not([type="submit"]):not([type="hidden"]):not([type="range"]):not([data-reglage]), textarea, [contenteditable="true"]'))
       .some(champ => (champ.value ?? champ.textContent).trim());
     const conditionsOk = !document.hidden && !document.querySelector('dialog[open]')
       && !dictee.enCours() && !texteSaisi;
@@ -1581,8 +1583,10 @@
     ecranComplet.inert = !complete;
     accueil.hidden = complete;
     accueil.inert = complete;
-    zoneRecherche.hidden = complete;
-    zoneRecherche.inert = complete;
+    // Étape A (07/11/2026) : la barre de recherche est maintenant dans « Chercher » (l'écran des tâches),
+    // plus sur l'accueil (avant : zoneRecherche.hidden = complete).
+    zoneRecherche.hidden = !complete;
+    zoneRecherche.inert = !complete;
     basculerVue.textContent = complete ? 'Revenir à l’accueil' : 'Afficher tout';
     basculerVue.setAttribute('aria-expanded', String(complete));
     if (complete) ecranComplet.focus({ preventScroll: true });
@@ -2204,7 +2208,8 @@
   const surface = document.querySelector('.ecran');
   surface.addEventListener('touchstart', event => {
     debutGlissement = null;
-    if (event.touches.length !== 1 || document.querySelector('dialog[open]')
+    // Étape A (07/11/2026) : pas de glissement vers les tâches quand « Autre » ou « Réglages » est ouvert.
+    if (event.touches.length !== 1 || document.querySelector('dialog[open]') || document.documentElement.classList.contains('ecran-cap-ouvert')
       || event.target.closest('button, input, textarea, select, a, #alerte-google, #zone-recherche')) return;
     const touche = event.touches[0];
     debutGlissement = { x: touche.clientX, y: touche.clientY,

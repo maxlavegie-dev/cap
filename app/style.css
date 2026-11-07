@@ -3061,3 +3061,237 @@ html.sans-eau .bouton-eau {
   border-radius: 12px;
 }
 .bouton-sur-lecteur-haut { bottom: calc(max(18px, env(safe-area-inset-bottom)) + 70px); }
+
+/* ===================================================================================================
+   Étape A (07/11/2026, plan accepté par Max) : accueil sur l'eau, écrans « Autre » et « Réglages »,
+   d'après le travail de Zencoder (Cap_eau_essai_v2_2026_11_07) : icônes sans fond gris, eau DEVANT les
+   boutons (elle ne capte jamais un toucher), mode sombre par défaut, mode clair au choix.
+   L'écran des tâches (« Chercher » en attendant l'étape C) garde son allure claire, eau derrière.
+   =================================================================================================== */
+:root,
+html.theme-cap-sombre {
+  --eau-texte: #e4ece9;
+  --eau-fond-uni: #0a0c0c;
+  --eau-contraste-rgb: 255, 255, 255;
+  --eau-texte-sur-contraste: #2b2d2e;
+}
+html.theme-cap-clair {
+  --eau-texte: #2b2d2e;
+  --eau-fond-uni: #EAF1F4;
+  --eau-contraste-rgb: 40, 45, 44;
+  --eau-texte-sur-contraste: #f4f1ea;
+}
+/* Sur l'accueil et ses écrans : l'eau passe DEVANT (boutons « sous l'eau »), le fond prend le thème. */
+body:not(.vue-complete) .couche-eau-accueil { z-index: 2; }
+body:not(.vue-complete) {
+  background: var(--eau-fond-uni);
+  color: var(--eau-texte);
+}
+body:not(.vue-complete) .horloge,
+body:not(.vue-complete) #statut,
+body:not(.vue-complete) #texte-entendu {
+  color: var(--eau-texte);
+  text-shadow: none;
+}
+/* Sur l'accueil, la barre du bas ne garde que les messages du micro ; « + » et « Écrire une demande »
+   vont avec l'écran des tâches. */
+body:not(.vue-complete) #ajouter,
+body:not(.vue-complete) #ouvrir-clavier { display: none; }
+body.vue-complete #accueil-boutons { display: none; }
+
+/* Les 3 boutons de l'accueil, en colonne. */
+#accueil-boutons {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3vh;
+  padding: 1vh 0;
+}
+html.ecran-cap-ouvert #accueil-boutons,
+html.ecran-cap-ouvert #accueil { display: none; }
+/* L'ancien espace vide de l'accueil laisse toute la place à la colonne de boutons. */
+body:not(.vue-complete) #accueil { display: none; }
+.bouton-accueil-principal,
+#accueil-boutons #microphone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(17vh, 40vw);
+  height: min(17vh, 40vw);
+  padding: 0;
+  border: none;
+  border-radius: 32px;
+  background: none;
+  color: var(--eau-texte);
+  box-shadow: none;
+  text-shadow: none;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  flex: none;
+}
+.bouton-accueil-principal svg {
+  width: 56%;
+  height: 56%;
+}
+/* Un toucher sur l'icône est un toucher sur le bouton. */
+.bouton-accueil-principal svg,
+.bouton-autre svg,
+.bouton-autre span { pointer-events: none; }
+#accueil-boutons #microphone[aria-pressed="true"],
+#accueil-boutons #microphone.live {
+  background: rgba(var(--eau-contraste-rgb), 0.18);
+}
+
+/* Écrans « Autre » et « Réglages » : plein écran, sous l'eau, même allure que Zencoder. */
+.ecran-cap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 2vh 7%;
+  color: var(--eau-texte);
+}
+.ecran-cap[hidden] { display: none; }
+.grille-autre {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6%;
+  width: 100%;
+  margin-top: 4vh;
+}
+.bouton-autre {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 24px;
+  background: none;
+  color: var(--eau-texte);
+  box-shadow: none;
+  text-shadow: none;
+}
+.bouton-autre svg { width: 56%; height: 56%; }
+#ecran-autre .scans-en-attente { margin: 0; }
+#theme-cap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5%;
+  width: 100%;
+  margin: 3vh 0;
+}
+.icone-theme { width: 2.2em; height: 2.2em; color: var(--eau-texte); flex: none; }
+#bouton-theme-cap {
+  position: relative;
+  width: 3.6em;
+  height: 1.9em;
+  flex: none;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(var(--eau-contraste-rgb), 0.3);
+}
+#bouton-theme-cap .curseur-theme {
+  position: absolute;
+  top: 0.18em;
+  left: 0.18em;
+  width: 1.54em;
+  height: 1.54em;
+  border-radius: 50%;
+  background: rgba(var(--eau-contraste-rgb), 1);
+  transition: left 0.25s ease;
+}
+/* Lune à gauche = sombre ; soleil à droite = clair. */
+#bouton-theme-cap[aria-checked="false"] .curseur-theme { left: calc(100% - 1.54em - 0.18em); }
+.titre-ecran-cap { margin: 2vh 0 0; font-size: 1.5rem; }
+/* Boutons posés sur l'eau : blanc voilé, coins ronds (allure des boutons de Zencoder). */
+.bouton-sur-eau,
+#ecran-reglages button {
+  width: 100%;
+  min-height: 56px;
+  margin: 0;
+  padding: 0.8em 1em;
+  border: none;
+  border-radius: 20px;
+  background: rgba(var(--eau-contraste-rgb), 0.72);
+  color: var(--eau-texte-sur-contraste);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-shadow: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+#ecran-reglages #etat-synchro,
+#ecran-reglages #zone-sauvegarde,
+#ecran-reglages #zone-cerveau,
+#ecran-reglages #zone-ambiance {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--eau-texte);
+  text-shadow: none;
+}
+#ecran-reglages p,
+#ecran-reglages #texte-etat-google { color: var(--eau-texte); margin: 0; }
+#reglage-intensite-eau { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+#curseur-intensite-eau { width: 100%; accent-color: rgba(var(--eau-contraste-rgb), 1); }
+
+/* Alerte Google : bande fixée en haut, au-dessus de tout ce qui est sur l'écran, mais jamais devant un
+   autre bouton (l'écran descend d'autant). Sur les écrans de Cap, sa petite eau passe devant elle (35 %). */
+#alerte-google {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 12px;
+  right: 12px;
+  z-index: 3;
+  margin: 0;
+  max-height: 30vh;
+  max-height: 30dvh;
+}
+#alerte-google[hidden] { display: none; }
+html.alerte-google-visible .ecran { padding-top: calc(env(safe-area-inset-top, 0px) + var(--hauteur-alerte, 132px)); }
+.eau-alerte {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  opacity: 0.35;
+  pointer-events: none;
+  display: none;
+}
+#alerte-google.alerte-sous-eau .eau-alerte { display: block; }
+#alerte-google.alerte-dans-fenetre { z-index: 10; }
+/* Dans la musique, le message du lecteur descend sous l'alerte. */
+#lecteur-mp3-relations:has(#alerte-google:not([hidden])) #etat-lecteur-mp3 { top: calc(var(--hauteur-alerte, 132px) + 16px); }
+
+/* Étape A : sur l'accueil, l'écran ne forme plus un bloc à part, pour que la date et l'alerte passent
+   AU-DESSUS de l'eau (z-index 3) pendant que les boutons restent dessous. */
+body:not(.vue-complete) .ecran { z-index: auto; }
+body:not(.vue-complete) .horloge { position: relative; z-index: 3; }
+/* La barre de recherche est dans « Chercher » (écran des tâches), plus sur l'accueil. */
+body:not(.vue-complete) #zone-recherche { display: none; }
+body.vue-complete #zone-recherche { display: flex; }
+/* L'alerte reste bien lisible sous sa petite eau : fond plein. */
+#alerte-google { background: #fff4dc; }
+/* Dans « Réglages », les réglages sont en colonne : plus de « pleine ligne » pour les textes d'état. */
+#ecran-reglages #texte-etat-google,
+#ecran-reglages #dernier-envoi { flex-basis: auto; }
+#ecran-reglages #etat-synchro { align-items: stretch; }
