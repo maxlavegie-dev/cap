@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Cap - essai visualiseur</title>
+<!-- pdf.js copie en local (dossier "pdfjs"), aucun chargement depuis
+     internet, aucun envoi. Charges en scripts classiques (pas en
+     "module") pour fonctionner aussi bien ouvert directement depuis
+     le disque (file://) que depuis un serveur : le fichier worker
+     charge en <script> classique est detecte par pdf.js, qui evite
+     ainsi de creer un vrai Worker navigateur (bloque sous file://). -->
+<!-- Bloc visualiseur isole (etape C, 06/11/2026) : pdf.js local, puis
+     le style et le code du bloc. Voir bloc_visualiseur/LISEZ_MOI.txt
+     pour le detail complet (ce fichier de demo n'est qu'un exemple
+     d'utilisation, le bloc a brancher dans Cap est dans ce dossier). -->
+<script src="bloc_visualiseur/pdfjs/pdf.worker.min.js"></script>
+<script src="bloc_visualiseur/pdfjs/pdf.min.js"></script>
+<link rel="stylesheet" href="bloc_visualiseur/visualiseur.css">
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #d9e4e2;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    font-family: sans-serif;
+  }
+
+  #cadre-exterieur {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #d9e4e2;
+  }
+
+  #cadre-telephone {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #ecran-telephone {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  #camera-telephone {
+    display: none;
+  }
+
+  @media (min-width: 560px) {
+    #cadre-telephone {
+      width: min(90vw, 90vh * 0.45);
+      height: min(90vh, 90vw * (20 / 9));
+      aspect-ratio: 9 / 20;
+      border: 10px solid #2b2d2e;
+      border-radius: 46px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+      background: #111;
+    }
+
+    #ecran-telephone {
+      inset: 0;
+      border-radius: 36px;
+    }
+
+    #camera-telephone {
+      display: block;
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #3a3c3d;
+      z-index: 5;
+    }
+  }
+
+  /* Couche d'eau : jamais d'interception des appuis (lecon du chantier eau_essai) */
+  #toile-eau {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: blur(1.2px);
+    pointer-events: none;
+  }
+
+  /* Deuxieme couche d'eau, optionnelle, AU-DESSUS des documents
+     (mode "eau devant", reglable par Max). Jamais d'interception des
+     appuis non plus. Masquee/affichee et son opacite sont controlees
+     en JavaScript (voir panneau-ambiance-eau). */
+  #toile-eau-dessus {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+    filter: blur(1.2px);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  #toile-eau-dessus.visible {
+    display: block;
+  }
+
+  /* DESACTIVE (07/11/2026, suite) : panneau de reglage manuel de
+     l'ambiance de l'eau (bouton derriere/devant + curseur d'intensite).
+     Retire a la demande de Max : l'eau est maintenant au MAXIMUM fixe
+     partout, et l'eau "devant" (sur les documents) est desormais
+     TOUJOURS active des qu'un document est ouvert (voir JS plus bas),
+     plus besoin de reglage manuel ici. CSS et HTML gardes intacts
+     ci-dessous (jamais affiches, rien ne les montre plus) pour pouvoir
+     revenir en arriere si besoin.
+  #panneau-ambiance-eau {
+    position: absolute;
+    bottom: calc(var(--largeur-cadre, 320px) * 0.045);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: calc(var(--largeur-cadre, 320px) * 0.025);
+    padding: 0.45em 0.8em;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    font-size: calc(var(--largeur-cadre, 320px) * 0.026);
+    color: #3a3a38;
+    z-index: 3;
+  }
+
+  #bouton-mode-eau {
+    border: none;
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 999px;
+    padding: 0.3em 0.8em;
+    font-size: inherit;
+    color: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  #curseur-intensite-eau {
+    width: calc(var(--largeur-cadre, 320px) * 0.26);
+  }
+  FIN DU PANNEAU DESACTIVE */
+
+  /* ============================================================ */
+  /* BLOC ISOLE : LECTEUR MP3 (FICTIF)                              */
+  /* A BRANCHER DANS CAP. Contenu independant de l'eau / du sable.  */
+  /* ============================================================ */
+  #visualiseur {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5%;
+    padding: 6%;
+    box-sizing: border-box;
+    opacity: 0;
+    filter: blur(10px);
+    transform: scale(0.92);
+    transition: opacity 2.6s ease, filter 2.6s ease, transform 2.6s ease;
+    pointer-events: none;
+  }
+
+  #visualiseur.visible {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+    pointer-events: auto;
+  }
+
+  #visualiseur .etiquette-fictif {
+    font-size: calc(var(--largeur-cadre, 320px) * 0.03);
+    color: #7a7d7a;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  #titre-fichier {
+    font-size: calc(var(--largeur-cadre, 320px) * 0.036);
+    color: #3a3a38;
+    text-align: center;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #ecran-choix {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--largeur-cadre, 320px) * 0.06);
+  }
+
+  #bouton-choisir {
+    font-size: calc(var(--largeur-cadre, 320px) * 0.034);
+    padding: 0.8em 1.4em;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255, 255, 255, 0.7);
+    color: #3a3a38;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+  }
+
+  /* Le style du conteneur "#zone-image" et des cartes de documents
+     (".carte-document", ".image-document", l'eclat d'ordre, les
+     boutons de page PDF, le bouton "x" par document, etc.) vit
+     maintenant dans bloc_visualiseur/visualiseur.css (voir le <link>
+     dans <head>). Restent ici seulement les boutons propres a CETTE
+     page de demo ("Ajouter un fichier" et "Fermer" global), qui ne
+     font pas partie du bloc a brancher dans Cap. */
+
+  #bouton-ajouter {
+    position: absolute;
+    top: calc(var(--largeur-cadre, 320px) * 0.04);
+    left: calc(var(--largeur-cadre, 320px) * 0.04);
+    font-size: calc(var(--largeur-cadre, 320px) * 0.032);
+    padding: 0.6em 1.1em;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255, 255, 255, 0.85);
+    color: #3a3a38;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    z-index: 3;
+  }
+
+  #bouton-fermer {
+    position: absolute;
+    top: calc(var(--largeur-cadre, 320px) * 0.04);
+    right: calc(var(--largeur-cadre, 320px) * 0.04);
+    font-size: calc(var(--largeur-cadre, 320px) * 0.032);
+    padding: 0.6em 1.1em;
+    border-radius: 999px;
+    border: none;
+    background: rgba(255, 255, 255, 0.85);
+    color: #3a3a38;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    z-index: 3;
+  }
+  /* ============================================================ */
+  /* FIN DU BLOC VISUALISEUR                                        */
+  /* ============================================================ */
+
+  #message-onde {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+  <div id="cadre-exterieur">
+    <div id="cadre-telephone">
+      <div id="camera-telephone"></div>
+      <div id="ecran-telephone">
+        <canvas id="toile-eau"></canvas>
+
+        <!-- ============================================================ -->
+        <!-- BLOC ISOLE : VISUALISEUR (FICTIF) - A BRANCHER DANS CAP        -->
+        <!-- ============================================================ -->
+        <div id="visualiseur">
+          <div id="ecran-choix">
+            <div class="etiquette-fictif">FICTIF — essai visualiseur</div>
+            <div id="titre-fichier">aucun fichier charge</div>
+            <button id="bouton-choisir">Choisir un fichier</button>
+            <input type="file" id="entree-fichier" accept="image/*,application/pdf" multiple style="display:none">
+          </div>
+        </div>
+
+        <div id="zone-image">
+          <button id="bouton-ajouter">Ajouter un fichier</button>
+          <button id="bouton-fermer">Fermer</button>
+        </div>
+        <!-- ============================================================ -->
+        <!-- FIN DU BLOC VISUALISEUR                                        -->
+        <!-- ============================================================ -->
+
+        <!-- Deuxieme couche d'eau (mode "devant") et panneau de reglage
+             de l'ambiance : propres a cette page de demo, PAS au bloc
+             visualiseur (le bloc ne connait pas l'eau). -->
+        <canvas id="toile-eau-dessus"></canvas>
+
+        <!-- DESACTIVE (07/11/2026, suite) : panneau manuel derriere/
+             devant + curseur. L'eau devant est maintenant toujours
+             active quand un document est ouvert (voir JS), intensite
+             au maximum fixe partout. HTML garde intact, jamais affiche.
+        <div id="panneau-ambiance-eau">
+          <button id="bouton-mode-eau">Eau : derriere</button>
+          <input type="range" id="curseur-intensite-eau" min="0" max="85" value="60">
+        </div>
+        FIN DU PANNEAU DESACTIVE -->
+      </div>
+    </div>
+  </div>
+
+<!-- bloc_visualiseur/visualiseur.js doit etre charge ICI, APRES le
+     HTML de "#zone-image" (voir bloc_visualiseur/LISEZ_MOI.txt,
+     section 5) : ce script lit document.getElementById("zone-image")
+     des son execution. -->
+<script src="bloc_visualiseur/visualiseur.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  // Le reglage du chemin de pdf.js (workerSrc) est fait dans
+  // bloc_visualiseur/visualiseur.js, pas ici.
+
+  var ecranTelephone = document.getElementById("ecran-telephone");
+  var toile = document.getElementById("toile-eau");
+  var ctx = toile.getContext("2d");
+  var toileDessus = document.getElementById("toile-eau-dessus");
+  var ctxDessus = toileDessus.getContext("2d");
+  // DESACTIVE (07/11/2026, suite) : elements du panneau manuel retire,
+  // les deux lignes ci-dessous ne trouvent plus rien dans le HTML
+  // (panneau commente) et ne sont plus utilisees.
+  // var boutonModeEau = document.getElementById("bouton-mode-eau");
+  // var curseurIntensiteEau = document.getElementById("curseur-intensite-eau");
+
+  var visualiseur = document.getElementById("visualiseur");
+  var titreFichier = document.getElementById("titre-fichier");
+  var boutonChoisir = document.getElementById("bouton-choisir");
+  var entreeFichier = document.getElementById("entree-fichier");
+  var zoneImage = document.getElementById("zone-image");
+  var boutonAjouter = document.getElementById("bouton-ajouter");
+  var boutonFermer = document.getElementById("bouton-fermer");
+
+  // ============================================================
+  // EAU DE SYNTHESE (copiee/adaptee depuis Cap_eau_essai, original
+  // non modifie). Simulation simple sur deux memoires (height-field).
+  // ============================================================
+
+  var largeurFenetre = 0, hauteurFenetre = 0;
+  var colonnes = 0, lignes = 0;
+  var buf1, buf2;
+
+  var toileBasseRes = document.createElement("canvas");
+  var ctxBasseRes = toileBasseRes.getContext("2d");
+  var imageData = null;
+
+  // Fond "plat" (degrade de couleur de base, SANS vagues ni reflets),
+  // recalcule a chaque redimensionnement. Sert de socle toujours
+  // visible derriere les vagues : l'intensite ne touche QUE les
+  // vagues/reflets dessines par-dessus, jamais la couleur de fond.
+  var toileBasseResPlate = document.createElement("canvas");
+  var ctxBasseResPlate = toileBasseResPlate.getContext("2d");
+
+  var AMORTISSEMENT = 0.985;
+  var CELLULES_CIBLE = 46000;
+
+  function dimensionner() {
+    largeurFenetre = ecranTelephone.clientWidth;
+    hauteurFenetre = ecranTelephone.clientHeight;
+    ecranTelephone.style.setProperty("--largeur-cadre", largeurFenetre + "px");
+    toile.width = largeurFenetre;
+    toile.height = hauteurFenetre;
+    toileDessus.width = largeurFenetre;
+    toileDessus.height = hauteurFenetre;
+
+    var echelle = Math.sqrt((largeurFenetre * hauteurFenetre) / CELLULES_CIBLE);
+    colonnes = Math.max(20, Math.round(largeurFenetre / echelle));
+    lignes = Math.max(20, Math.round(hauteurFenetre / echelle));
+
+    buf1 = new Float32Array(colonnes * lignes);
+    buf2 = new Float32Array(colonnes * lignes);
+
+    toileBasseRes.width = colonnes;
+    toileBasseRes.height = lignes;
+    imageData = ctxBasseRes.createImageData(colonnes, lignes);
+
+    var pixels = imageData.data;
+    for (var i = 0; i < colonnes * lignes; i++) {
+      pixels[i * 4 + 3] = 255;
+    }
+
+    toileBasseResPlate.width = colonnes;
+    toileBasseResPlate.height = lignes;
+    var imageDataPlate = ctxBasseResPlate.createImageData(colonnes, lignes);
+    var pixelsPlate = imageDataPlate.data;
+    for (var yPlate = 0; yPlate < lignes; yPlate++) {
+      var tPlate = yPlate / lignes;
+      var baseRPlate = COULEUR_PEU_PROFOND[0] + (COULEUR_PROFOND[0] - COULEUR_PEU_PROFOND[0]) * tPlate;
+      var baseGPlate = COULEUR_PEU_PROFOND[1] + (COULEUR_PROFOND[1] - COULEUR_PEU_PROFOND[1]) * tPlate;
+      var baseBPlate = COULEUR_PEU_PROFOND[2] + (COULEUR_PROFOND[2] - COULEUR_PEU_PROFOND[2]) * tPlate;
+      for (var xPlate = 0; xPlate < colonnes; xPlate++) {
+        var pPlate = (yPlate * colonnes + xPlate) * 4;
+        pixelsPlate[pPlate] = baseRPlate;
+        pixelsPlate[pPlate + 1] = baseGPlate;
+        pixelsPlate[pPlate + 2] = baseBPlate;
+        pixelsPlate[pPlate + 3] = 255;
+      }
+    }
+    ctxBasseResPlate.putImageData(imageDataPlate, 0, 0);
+  }
+
+  function ajouterPerturbation(bx, by, force, rayon) {
+    bx = Math.round(bx);
+    by = Math.round(by);
+    for (var dy = -rayon; dy <= rayon; dy++) {
+      for (var dx = -rayon; dx <= rayon; dx++) {
+        var x = bx + dx;
+        var y = by + dy;
+        if (x < 1 || x >= colonnes - 1 || y < 1 || y >= lignes - 1) continue;
+        var distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > rayon) continue;
+        var attenuation = 1 - distance / (rayon + 1);
+        var idx = y * colonnes + x;
+        buf1[idx] += force * attenuation;
+      }
+    }
+  }
+
+  var tempsProchaineOndeAmbiante = 0;
+
+  function ondesAmbiantes(tempsActuel) {
+    if (tempsActuel < tempsProchaineOndeAmbiante) return;
+    tempsProchaineOndeAmbiante = tempsActuel + 1800 + Math.random() * 1600;
+    var bx = 2 + Math.random() * (colonnes - 4);
+    var by = 2 + Math.random() * (lignes - 4);
+    var force = 1.0 + Math.random() * 1.0;
+    var rayon = 1 + Math.round(Math.random() * 2);
+    ajouterPerturbation(bx, by, force, rayon);
+  }
+
+  function etapeSimulation() {
+    for (var y = 1; y < lignes - 1; y++) {
+      var ligneBase = y * colonnes;
+      for (var x = 1; x < colonnes - 1; x++) {
+        var idx = ligneBase + x;
+        var valeur = (
+          buf1[idx - 1] +
+          buf1[idx + 1] +
+          buf1[idx - colonnes] +
+          buf1[idx + colonnes]
+        ) / 2 - buf2[idx];
+        buf2[idx] = valeur * AMORTISSEMENT;
+      }
+    }
+    var tampon = buf1;
+    buf1 = buf2;
+    buf2 = tampon;
+  }
+
+  var COULEUR_PEU_PROFOND = [201, 227, 221];
+  var COULEUR_PROFOND = [156, 182, 184];
+
+  // ============================================================
+  // AMBIANCE DE L'EAU AVEC DOCUMENTS OUVERTS (demande de Max) :
+  // l'eau reste visible et continue de bouger, soit DERRIERE les
+  // documents (fond transparent de "#zone-image", voir
+  // bloc_visualiseur/visualiseur.css), soit DEVANT (deuxieme canevas
+  // d'eau superpose, translucide, voir "#toile-eau-dessus"). Dans les
+  // deux cas, c'est la MEME simulation d'eau (meme "toileBasseRes")
+  // qui est simplement redessinee une deuxieme fois par-dessus en
+  // mode "devant" : aucune deuxieme simulation a faire tourner.
+  // Intensite plafonnee en mode "devant" pour qu'un texte de PDF
+  // reste lisible en dessous.
+  // ============================================================
+
+  // DESACTIVE (07/11/2026, suite) : reglage manuel derriere/devant +
+  // deux intensites separees (plafond 0,35 sur "devant" pour la
+  // lisibilite). Remplace par une intensite UNIQUE, au maximum fixe,
+  // utilisee PARTOUT (fond ET sur les documents), demande de Max :
+  // l'eau doit etre la meme partout et tout le temps, sans plafond de
+  // lisibilite (Max assume qu'une photo soit moins lisible). Code
+  // garde en commentaire pour revenir en arriere si besoin :
+  //
+  // var INTENSITE_MAX_DERRIERE = 1;
+  // var INTENSITE_MAX_DEVANT = 0.35;
+  // var modeEauDevant = false;
+  // var intensiteEauDerriere = 0.6;
+  // var intensiteEauDevant = 0.3;
+  // function appliquerAmbianceEau() { ... }
+  // boutonModeEau.addEventListener("click", function () { ... });
+  // curseurIntensiteEau.addEventListener("input", function () { ... });
+
+  // Intensite UNIQUE pour toute l'application (fond et documents),
+  // fixee au MAXIMUM en attendant que Claude Code la relie au curseur
+  // maquette de Cap_eau_essai (meme cle localStorage "cap_intensite_eau",
+  // non lue ici pour l'instant : Max veut le maximum fixe partout tant
+  // que ce curseur n'est pas vraiment branche).
+  var INTENSITE_EAU_UNIQUE = 1;
+  var intensiteEauDerriere = INTENSITE_EAU_UNIQUE;
+  var intensiteEauDevant = INTENSITE_EAU_UNIQUE;
+  // 07/11/2026 (Claude Code, accord de Max) : SEULE ligne ajoutée à la visionneuse de Zencoder, pour corriger l'image invisible : l'eau devant reprend 35 % d'opacité, comme avant. Rien d'autre n'a changé.
+  intensiteEauDevant = 0.35 * INTENSITE_EAU_UNIQUE;
+
+  function dessiner(tempsActuel) {
+    var pixels = imageData.data;
+    var reflet = Math.sin(tempsActuel * 0.00018) * 0.5 + 0.5;
+
+    for (var y = 0; y < lignes; y++) {
+      var t = y / lignes;
+      var baseR = COULEUR_PEU_PROFOND[0] + (COULEUR_PROFOND[0] - COULEUR_PEU_PROFOND[0]) * t;
+      var baseG = COULEUR_PEU_PROFOND[1] + (COULEUR_PROFOND[1] - COULEUR_PEU_PROFOND[1]) * t;
+      var baseB = COULEUR_PEU_PROFOND[2] + (COULEUR_PROFOND[2] - COULEUR_PEU_PROFOND[2]) * t;
+
+      var ligneBase = y * colonnes;
+      for (var x = 0; x < colonnes; x++) {
+        var idx = ligneBase + x;
+        var gx = 0, gy = 0;
+        if (x > 0 && x < colonnes - 1) gx = buf1[idx + 1] - buf1[idx - 1];
+        if (y > 0 && y < lignes - 1) gy = buf1[idx + colonnes] - buf1[idx - colonnes];
+
+        var caustique = (gx + gy) * 9;
+        if (caustique > 22) caustique = 22;
+        if (caustique < -22) caustique = -22;
+
+        var refletDouceur = (reflet - 0.5) * 5;
+
+        var r = baseR + caustique + refletDouceur;
+        var g = baseG + caustique + refletDouceur;
+        var b = baseB + caustique * 0.9 + refletDouceur;
+
+        var p = idx * 4;
+        pixels[p] = r < 0 ? 0 : (r > 255 ? 255 : r);
+        pixels[p + 1] = g < 0 ? 0 : (g > 255 ? 255 : g);
+        pixels[p + 2] = b < 0 ? 0 : (b > 255 ? 255 : b);
+      }
+    }
+
+    ctxBasseRes.putImageData(imageData, 0, 0);
+
+    // Couche "derriere" : le fond plat (socle, toujours a sa vraie
+    // couleur) est dessine d'abord, PUIS les vagues/reflets par-dessus
+    // avec une opacite = l'intensite choisie par Max. A intensite 0,
+    // seul le fond plat reste visible (pas de noir, pas de vagues). A
+    // intensite 1, les vagues recouvrent entierement le fond plat.
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalAlpha = 1;
+    ctx.drawImage(toileBasseResPlate, 0, 0, colonnes, lignes, 0, 0, largeurFenetre, hauteurFenetre);
+    ctx.globalAlpha = intensiteEauDerriere;
+    ctx.drawImage(toileBasseRes, 0, 0, colonnes, lignes, 0, 0, largeurFenetre, hauteurFenetre);
+    ctx.globalAlpha = 1;
+
+    // L'eau "devant" est maintenant TOUJOURS active des qu'un document
+    // est ouvert (demande de Max, 07/11/2026 suite : plus de bouton
+    // derriere/devant, l'eau est la meme partout et tout le temps,
+    // sans plafond de lisibilite). Des que tous les documents sont
+    // fermes, cette couche disparait toute seule, sans a-coup : l'eau
+    // redevient exactement comme au debut.
+    var documentsOuverts = zoneImage.classList.contains("visible");
+    if (documentsOuverts) {
+      toileDessus.classList.add("visible");
+      ctxDessus.imageSmoothingEnabled = true;
+      ctxDessus.clearRect(0, 0, largeurFenetre, hauteurFenetre);
+      ctxDessus.globalAlpha = intensiteEauDevant;
+      ctxDessus.drawImage(toileBasseRes, 0, 0, colonnes, lignes, 0, 0, largeurFenetre, hauteurFenetre);
+      ctxDessus.globalAlpha = 1;
+    } else {
+      toileDessus.classList.remove("visible");
+    }
+  }
+
+  // ============================================================
+  // EMERGENCE DU LECTEUR DEPUIS LE SABLE (reprend l'esprit de la
+  // fausse page d'accueil de Cap_eau_essai : sable trouble ->
+  // apparition floutee qui se precise -> petit clapot final).
+  // Declenchee automatiquement peu apres le chargement, pour ce
+  // test autonome (pas de geste prealable necessaire ici).
+  // ============================================================
+
+  var DUREE_CACHEE_LECTEUR = 1200;
+  var DUREE_EMERGENCE_LECTEUR = 2600;
+  var DUREE_SORTIE_LECTEUR = 900;
+
+  var etatLecteurVisuel = "absent";
+  var debutPhaseLecteur = 0;
+  var tempsProchainTroubleLecteur = 0;
+
+  function declencherEmergenceLecteur(tempsActuel) {
+    if (etatLecteurVisuel !== "absent") return;
+    etatLecteurVisuel = "cachee";
+    debutPhaseLecteur = tempsActuel;
+    tempsProchainTroubleLecteur = tempsActuel;
+  }
+
+  function avancerEmergenceLecteur(tempsActuel) {
+    if (etatLecteurVisuel === "absent" || etatLecteurVisuel === "posee") return;
+    var ecoule = tempsActuel - debutPhaseLecteur;
+
+    if (etatLecteurVisuel === "cachee") {
+      if (tempsActuel >= tempsProchainTroubleLecteur) {
+        tempsProchainTroubleLecteur = tempsActuel + 150 + Math.random() * 120;
+        var bx = 2 + Math.random() * (colonnes - 4);
+        var by = 2 + Math.random() * (lignes - 4);
+        ajouterPerturbation(bx, by, 0.7 + Math.random() * 0.6, 2 + Math.round(Math.random()));
+      }
+      if (ecoule >= DUREE_CACHEE_LECTEUR) {
+        etatLecteurVisuel = "emergence";
+        debutPhaseLecteur = tempsActuel;
+        tempsProchainTroubleLecteur = tempsActuel;
+        visualiseur.classList.add("visible");
+      }
+    } else if (etatLecteurVisuel === "emergence") {
+      if (tempsActuel >= tempsProchainTroubleLecteur) {
+        tempsProchainTroubleLecteur = tempsActuel + 220;
+        var t = Math.min(ecoule / DUREE_EMERGENCE_LECTEUR, 1);
+        var bx2 = colonnes * (0.2 + Math.random() * 0.6);
+        var by2 = lignes * (0.2 + Math.random() * 0.6);
+        ajouterPerturbation(bx2, by2, 0.5 + t * 1.2, 2);
+      }
+      if (ecoule >= DUREE_EMERGENCE_LECTEUR) {
+        etatLecteurVisuel = "sortie";
+        debutPhaseLecteur = tempsActuel;
+        for (var i = 0; i < 3; i++) {
+          var bx3 = colonnes * (0.25 + Math.random() * 0.5);
+          var by3 = lignes * (0.25 + Math.random() * 0.5);
+          ajouterPerturbation(bx3, by3, 5 + Math.random() * 2, 3);
+        }
+      }
+    } else if (etatLecteurVisuel === "sortie") {
+      if (ecoule >= DUREE_SORTIE_LECTEUR) {
+        etatLecteurVisuel = "posee";
+      }
+    }
+  }
+
+  // ============================================================
+  // CODE DE DEMO (page d'essai uniquement, PAS la visionneuse) :
+  // appelle les fonctions publiques du bloc isole
+  // (bloc_visualiseur/visualiseur.js, charge via <script> dans
+  // <head>) a partir des fichiers choisis par Max. Ceci est un
+  // EXEMPLE d'utilisation pour Cap, pas le bloc lui-meme.
+  // ============================================================
+
+  entreeFichier.addEventListener("change", function (e) {
+    var fichiers = e.target.files;
+    if (!fichiers || fichiers.length === 0) return;
+    var liste = [];
+    for (var i = 0; i < fichiers.length; i++) {
+      var adresse = URL.createObjectURL(fichiers[i]);
+      liste.push({ adresse: adresse, titre: fichiers[i].name });
+    }
+    window.Visualiseur.montrerPlusieurs(liste);
+    titreFichier.textContent = liste[liste.length - 1].titre;
+    entreeFichier.value = "";
+  });
+
+  boutonFermer.addEventListener("click", function () {
+    window.Visualiseur.fermer();
+    titreFichier.textContent = "aucun fichier charge";
+  });
+
+  boutonChoisir.addEventListener("click", function () {
+    entreeFichier.click();
+  });
+
+  boutonAjouter.addEventListener("click", function () {
+    entreeFichier.click();
+  });
+
+  // ============================================================
+  // APPUIS : architecture volontairement simple (lecon tiree du
+  // bug non resolu de Cap_eau_essai). La couche d'eau a
+  // pointer-events: none EN PERMANENCE (jamais retiree). Les ondes
+  // sont declenchees par un ecouteur pose sur le conteneur de
+  // l'ecran, PAS sur le canvas. Aucun setPointerCapture nulle part :
+  // les boutons recoivent leurs clics normalement, sans interference.
+  // ============================================================
+
+  function versCoordonneesBuffer(clientX, clientY) {
+    var rect = ecranTelephone.getBoundingClientRect();
+    var x = clientX - rect.left;
+    var y = clientY - rect.top;
+    return {
+      bx: (x / largeurFenetre) * colonnes,
+      by: (y / hauteurFenetre) * lignes
+    };
+  }
+
+  function onduleEau(clientX, clientY, force) {
+    var c = versCoordonneesBuffer(clientX, clientY);
+    ajouterPerturbation(c.bx, c.by, force || 6, 3);
+  }
+
+  ecranTelephone.addEventListener("pointerdown", function (e) {
+    onduleEau(e.clientX, e.clientY, 6);
+  });
+
+  ecranTelephone.addEventListener("pointermove", function (e) {
+    if (e.pressure === 0 && e.buttons === 0) return;
+    onduleEau(e.clientX, e.clientY, 4);
+  });
+
+  // Les boutons utilisent l'evenement "click" standard, qui marche
+  // aussi bien a la souris qu'au doigt (le navigateur transforme un
+  // appui tactile sur un bouton en "click"). Aucune capture de
+  // pointeur n'est utilisee : rien ne peut bloquer les clics suivants.
+
+  var boucleActive = true;
+
+  // Le bouton "Choisir un fichier" (ecran de depart) ne doit plus
+  // repondre une fois des documents ouverts : "#zone-image" les
+  // recouvre entierement (meme transparente) et capte les clics a sa
+  // place. On le masque donc completement pendant ce temps, et il
+  // revient des que tous les documents sont fermes.
+  function synchroniserBoutonChoisir() {
+    if (zoneImage.classList.contains("visible")) {
+      boutonChoisir.style.display = "none";
+    } else {
+      boutonChoisir.style.display = "";
+    }
+  }
+
+  function boucle(tempsActuel) {
+    if (!boucleActive) return;
+    ondesAmbiantes(tempsActuel);
+    etapeSimulation();
+    dessiner(tempsActuel);
+    avancerEmergenceLecteur(tempsActuel);
+    synchroniserBoutonChoisir();
+    requestAnimationFrame(boucle);
+  }
+
+  window.addEventListener("resize", function () {
+    dimensionner();
+  });
+
+  dimensionner();
+  // DESACTIVE (07/11/2026, suite) : appliquerAmbianceEau() mettait a
+  // jour le panneau manuel, retire (intensite maintenant fixe, voir
+  // INTENSITE_EAU_UNIQUE plus haut).
+  // appliquerAmbianceEau();
+  requestAnimationFrame(boucle);
+  setTimeout(function () {
+    declencherEmergenceLecteur(performance.now());
+  }, 600);
+})();
+</script>
+</body>
+</html>

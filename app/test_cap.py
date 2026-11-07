@@ -7507,6 +7507,27 @@ def verifier_lecteur_mp3_zencoder():
              == "89f175978e471751f9935882d4c73df3303f02ce9d9f0781ea0a5c1fb79b3c4f", "le lecteur de Zencoder a été modifié ailleurs")
 
 
+def verifier_visionneuse_zencoder():
+    # Copie de la visionneuse de Zencoder (07/11/2026, accord de Max) : identique à l'original
+    # (empreintes de C:\\Users\\revox\\Cap_visualiseur_essai) sauf la seule ligne ajoutée (eau devant à 35 %), avec son commentaire daté.
+    # Ni journal ni LISEZ_MOI de Zencoder dans Cap.
+    import hashlib
+    empreinte = lambda texte: hashlib.sha256(texte.encode("utf-8")).hexdigest()
+    lire = lambda chemin: (APP / "visionneuse" / chemin).read_bytes().decode("utf-8").replace("\r\n", "\n")
+    ajout = ("  // 07/11/2026 (Claude Code, accord de Max) : SEULE ligne ajoutée à la visionneuse de Zencoder, pour corriger l'image invisible : "
+             "l'eau devant reprend 35 % d'opacité, comme avant. Rien d'autre n'a changé.\n"
+             "  intensiteEauDevant = 0.35 * INTENSITE_EAU_UNIQUE;\n")
+    page = lire("index.html")
+    attendre(page.count(ajout) == 1, "ligne ajoutée absente ou en double")
+    attendre(page.index(ajout) > page.index("  var intensiteEauDevant = INTENSITE_EAU_UNIQUE;"), "ligne ajoutée au mauvais endroit")
+    attendre(empreinte(page.replace(ajout, "")) == "15961ae16fc5ef126c8824e1cc7c600a558e32e4acd9f08b1a54b627d0f8f209", "page de Zencoder modifiée ailleurs")
+    attendre(empreinte(lire("bloc_visualiseur/visualiseur.js")) == "996f1fdd5d1d13775a74e7277ae6dfb90e69ff03a552478efb08ce71de683a0a", "visualiseur.js modifié")
+    attendre(empreinte(lire("bloc_visualiseur/visualiseur.css")) == "178b4c4c96457df90f1aeaff29430dfe7c05ea4dadc590e34e6b791bf48e9342", "visualiseur.css modifié")
+    restes = sorted(p.relative_to(APP).as_posix() for p in (APP / "visionneuse").rglob("*") if p.is_file())
+    attendre(restes == ["visionneuse/bloc_visualiseur/visualiseur.css", "visionneuse/bloc_visualiseur/visualiseur.js", "visionneuse/index.html"],
+             f"fichiers en trop dans la copie : {restes}")
+
+
 def verifier_version_cache():
     attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v72['\"]\s*;", lire_texte("service-worker.js")),
              "VERSION_CACHE doit définir cap-v72")
@@ -7572,6 +7593,7 @@ TESTS_PWA = [
     ("PWA : HTML, liens manifest et favicon", verifier_liens_manifest_favicon),
     ("PWA : HTML, liens locaux existants", verifier_liens_locaux),
     ("Lecteur MP3 de Zencoder : copie identique, sauf la seule ligne datée du 07/11/2026", verifier_lecteur_mp3_zencoder),
+    ("Visionneuse de Zencoder : copie identique, sauf la seule ligne datée du 07/11/2026 (eau devant à 35 %)", verifier_visionneuse_zencoder),
     ("PWA : service-worker, version de cache", verifier_version_cache),
     ("PWA : service-worker, fichiers précachés existants", verifier_precache_fichiers_existent),
     ("PWA : service-worker, couverture de la précache", verifier_precache_couverture),

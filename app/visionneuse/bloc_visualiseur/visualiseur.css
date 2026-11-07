@@ -1,0 +1,147 @@
+/* ================================================================
+   BLOC ISOLE : VISUALISEUR DE DOCUMENTS (FICTIF) - A BRANCHER DANS CAP
+   ================================================================
+   Style du conteneur "#zone-image" et de tout ce qui y est cree en
+   JavaScript (une "carte-document" par image ou page de PDF). Ne
+   contient PAS l'ecran d'accueil ni les boutons "Choisir un fichier"
+   / "Ajouter un fichier" / "Fermer" global : ceux-la sont a la charge
+   de la page qui utilise ce bloc (voir LISEZ_MOI.txt).
+
+   DEPENDANCE : la variable CSS "--largeur-cadre" doit etre definie
+   (en pixels) sur un ancetre de "#zone-image", par exemple sur
+   l'element qui represente l'ecran du telephone. Si elle n'est pas
+   definie, les tailles de police/boutons tombent sur une valeur de
+   secours de 320px (voir "calc(var(--largeur-cadre, 320px) * ...)").
+   ================================================================ */
+
+/* Conteneur plein cadre : espace unique partage, tous les documents
+   y vivent ensemble (pas de grille, pas de cases). "position:
+   relative" sert de repere pour les cartes en "position: absolute"
+   ci-dessous. A placer dans un parent qui a lui-meme une taille
+   fixe (le cadre de l'ecran). */
+#zone-image {
+  position: absolute;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  background: transparent;
+  touch-action: none;
+  box-sizing: border-box;
+}
+
+#zone-image.visible {
+  display: block;
+}
+
+/* Une carte par document : image OU pdf, jamais les deux. Sa
+   position et sa taille (left/top/width/height) sont calculees en
+   JavaScript a chaque zoom/deplacement pour coller exactement au
+   rectangle visible de l'image ou de la page PDF : ainsi, un appui
+   en dehors de ce rectangle atteint directement le document situe
+   en dessous (chevauchement naturel, pas de grande boite invisible
+   qui bloquerait les appuis). L'ordre d'empilement (premier/dernier
+   plan) se fait simplement en deplacant la carte en fin ou en debut
+   des enfants de #zone-image (aucun z-index necessaire pour l'ordre). */
+.carte-document {
+  position: absolute;
+  overflow: hidden;
+  touch-action: none;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+}
+
+/* Eclat discret, progressif, quand l'ordre premier/dernier plan
+   change (appui long) : montee douce puis descente douce, sans
+   a-coup, environ 0,6 seconde au total. Aucune vibration. */
+@keyframes eclat-ordre-doc {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  50% { box-shadow: 0 0 18px 5px rgba(255, 255, 255, 0.8); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+
+.carte-document.eclat-ordre {
+  animation: eclat-ordre-doc 0.6s ease-in-out;
+}
+
+/* Une image ou une page de PDF (rendue sur un <canvas>, voir
+   visualiseur.js) partagent exactement cette meme classe : meme
+   zoom, meme deplacement, meme code. */
+.image-document {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-orientation: from-image;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.etiquette-page-pdf {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: calc(var(--largeur-cadre, 320px) * 0.028);
+  padding: 0.25em 0.8em;
+  border-radius: 999px;
+  pointer-events: none;
+  z-index: 4;
+  white-space: nowrap;
+}
+
+.bouton-page-pdf {
+  position: absolute;
+  bottom: 6px;
+  width: 1.8em;
+  height: 1.8em;
+  line-height: 1.8em;
+  text-align: center;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: calc(var(--largeur-cadre, 320px) * 0.036);
+  cursor: pointer;
+  z-index: 4;
+}
+
+/* Message d'erreur PDF (page ou fichier illisible) : agrandi et
+   centre au lieu du petit bandeau "page X sur Y" en bas, pour etre
+   vu meme sur une carte vide/noire. */
+.etiquette-page-pdf.erreur-pdf {
+  bottom: auto;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 80%;
+  white-space: normal;
+  text-align: center;
+  font-size: calc(var(--largeur-cadre, 320px) * 0.038);
+  background: rgba(130, 20, 20, 0.85);
+}
+
+.bouton-page-precedente { left: 6px; }
+.bouton-page-suivante { right: 6px; }
+
+.bouton-retirer-document {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 4;
+  width: 1.9em;
+  height: 1.9em;
+  line-height: 1.9em;
+  text-align: center;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: calc(var(--largeur-cadre, 320px) * 0.034);
+  cursor: pointer;
+}
+/* ================================================================
+   FIN DU BLOC VISUALISEUR
+   ================================================================ */
