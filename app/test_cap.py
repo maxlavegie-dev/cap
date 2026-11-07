@@ -7142,6 +7142,19 @@ def verifier_liens_locaux():
     attendre(not manquants, f"liens locaux introuvables dans index.html : {', '.join(manquants)}")
 
 
+def verifier_lecteur_mp3_zencoder():
+    # Copie du lecteur de Zencoder (07/11/2026, accord de Max) : identique à l'original
+    # (empreinte de C:\Users\revox\Cap_lecteur_mp3_essai\index.html) sauf la seule ligne ajoutée, avec son commentaire daté.
+    import hashlib
+    texte = (APP / "lecteur_mp3" / "index.html").read_bytes().decode("utf-8").replace("\r\n", "\n")
+    ajout = ("  // 07/11/2026 (Claude Code, accord de Max) : SEULE ligne ajoutée au lecteur de Zencoder, pour que Cap puisse lancer un morceau, "
+             "l'arrêter et savoir quand il finit. Rien d'autre n'a changé.\n"
+             "  window.lecteurMp3Zencoder = { jouerFichier: jouerFichier, arreter: arreter, audio: audio };\n")
+    attendre(texte.count(ajout) == 1, "ligne ajoutée absente ou en double")
+    attendre(hashlib.sha256(texte.replace(ajout, "").encode("utf-8")).hexdigest()
+             == "89f175978e471751f9935882d4c73df3303f02ce9d9f0781ea0a5c1fb79b3c4f", "le lecteur de Zencoder a été modifié ailleurs")
+
+
 def verifier_version_cache():
     attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v69['\"]\s*;", lire_texte("service-worker.js")),
              "VERSION_CACHE doit définir cap-v69")
@@ -7206,6 +7219,7 @@ TESTS_PWA = [
     ("PWA : icônes PNG, dimensions et signature", verifier_png),
     ("PWA : HTML, liens manifest et favicon", verifier_liens_manifest_favicon),
     ("PWA : HTML, liens locaux existants", verifier_liens_locaux),
+    ("Lecteur MP3 de Zencoder : copie identique, sauf la seule ligne datée du 07/11/2026", verifier_lecteur_mp3_zencoder),
     ("PWA : service-worker, version de cache", verifier_version_cache),
     ("PWA : service-worker, fichiers précachés existants", verifier_precache_fichiers_existent),
     ("PWA : service-worker, couverture de la précache", verifier_precache_couverture),
