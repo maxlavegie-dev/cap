@@ -2750,6 +2750,12 @@ TESTS_JS = r"""
     attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(fin), 'branché dans les tests');
   });
 
+  test('Search Console : la balise de vérification de Google est dans la page, une seule fois', () => {
+    const modele = new DOMParser().parseFromString(SOURCE_HTML, 'text/html');
+    const balises = modele.head.querySelectorAll('meta[name="google-site-verification"]');
+    attendreEgal([...balises].map(b => b.getAttribute('content')), ['AzyYjPSR5WClNkEoHd0ifUIHLoeJ7rCRnEpyGaejhlA'], 'balise');
+  });
+
   test('Panneau rouge (lot 1) : aucun champ « mot de passe » ni « adresse mail », pas de « Se connecter à Google », clés masquées', () => {
     const modele = new DOMParser().parseFromString(SOURCE_HTML, 'text/html');
     attendreEgal(modele.querySelectorAll('input[type="password"], input[type="email"]').length, 0, 'champ de connexion');
