@@ -2893,8 +2893,11 @@ TESTS_JS = r"""
     const z = fauxLecteurZencoder();
     const adresses = fausseAdresses();
     let chargements = 0;
+    let vidages = 0;
+    const lecteur = async () => { chargements++; return z.objet; };
+    lecteur.vider = () => { vidages++; };
     relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte,
-      lecteur: async () => { chargements++; return z.objet; }, urls: adresses });
+      lecteur, urls: adresses });
     el('musique-compte-relations').click();
     attendre(el('musique-relations').open, 'fenêtre de musique fermée');
     await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.choix-grand-affichage').length === 2, `dossiers : ${el('etat-musique-relations').textContent}`);
@@ -2917,7 +2920,19 @@ TESTS_JS = r"""
     attendreEgal(z.appels[0], ['jouer', 'blob:FICTIF-1', '2. Trois FICTIF'], 'morceau lancé');
     const media = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media');
     attendreEgal(media.map(q => decodeURIComponent(q.url.pathname.split('/').pop())), [f.fichiers.find(x => x.name === '03 - Trois FICTIF.mp3').id], 'mauvais fichier lu');
-    attendreEgal(el('etat-lecteur-mp3').textContent, 'Morceau 2 : Trois FICTIF', 'état');
+    // Plus de titre en double au-dessus du lecteur : le message est caché une fois le morceau lancé.
+    attendre(el('etat-lecteur-mp3').hidden && el('etat-lecteur-mp3').textContent === '', `titre en double : ${el('etat-lecteur-mp3').textContent}`);
+    // Plein écran : le lecteur occupe toute la fenêtre, sans marge ni cadre blanc ; le bouton est posé dessus.
+    const vue = ui.cadre.contentWindow;
+    const boite = el('lecteur-mp3-relations').getBoundingClientRect();
+    attendreEgal([boite.left, boite.top, boite.width, boite.height], [0, 0, 412, 900], 'lecteur pas en plein écran');
+    const cadreLecteur = el('cadre-lecteur-mp3').getBoundingClientRect();
+    attendreEgal([cadreLecteur.left, cadreLecteur.top, cadreLecteur.width, cadreLecteur.height], [0, 0, 412, 900], 'cadre du lecteur pas en plein écran');
+    attendreEgal(vue.getComputedStyle(el('lecteur-mp3-relations')).paddingTop, '0px', 'marge intérieure');
+    const bouton = el('fermer-lecteur-mp3').getBoundingClientRect();
+    attendre(bouton.top > 700 && bouton.bottom <= 900 && Math.abs(bouton.left + bouton.width / 2 - 206) < 2, `bouton pas posé en bas du lecteur : ${JSON.stringify(bouton)}`);
+    attendreEgal(vue.getComputedStyle(el('fermer-lecteur-mp3')).position, 'absolute', 'bouton hors du lecteur');
+    attendre(Number(vue.getComputedStyle(el('fermer-lecteur-mp3')).zIndex) > 0, 'bouton sous le lecteur');
     // Autre morceau : l'adresse précédente est libérée.
     lignes[6].click();
     await attendreQue(() => z.appels.length === 2, 'deuxième morceau');
@@ -2930,8 +2945,10 @@ TESTS_JS = r"""
     attendreEgal(c.requetes.length, avant, 'gros fichier chargé');
     attendre(gros.taille > relationsMp30().TAILLE_MAX, 'taille');
     // Arrêter et fermer : arrêt, mémoire libérée, chargé une seule fois.
+    attendre(!el('etat-lecteur-mp3').hidden, 'message du gros fichier caché');
     el('fermer-lecteur-mp3').click();
     attendre(!el('lecteur-mp3-relations').open, 'lecteur resté ouvert');
+    await attendreQue(() => vidages === 1, 'lecteur pas vidé à la fermeture');
     attendreEgal(z.appels.at(-1), ['arreter'], 'pas arrêté');
     attendreEgal(adresses.liberees, ['blob:FICTIF-1', 'blob:FICTIF-2'], 'mémoire non libérée à la fermeture');
     attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
@@ -2940,6 +2957,11 @@ TESTS_JS = r"""
     el('liste-musique-relations').querySelectorAll('button')[1].click();
     await attendreQue(() => z.appels.length === 4 && z.appels[3][2] === '1. Seul FICTIF', `lancement direct : ${JSON.stringify(z.appels)}`);
     attendre(el('lecteur-mp3-relations').open, 'lecteur pas ouvert pour un seul morceau');
+    // Fermeture par le retour du téléphone (sans le bouton) : arrêt et vidage aussi.
+    el('lecteur-mp3-relations').close();
+    await attendreQue(() => vidages === 2, 'fermeture par le retour : lecteur pas vidé');
+    attendreEgal(z.appels.at(-1), ['arreter'], 'musique pas arrêtée par le retour');
+    attendreEgal(adresses.liberees.length, 3, 'mémoire non libérée par le retour');
   });
 
   await testAsync('Musique (écran, FAUX Drive) : un seul dossier avec de la musique = sa liste tout de suite ; fermer sans avoir joué ne charge pas le lecteur ; connexion expirée = message, rien lu', async c => {
@@ -2970,7 +2992,11 @@ TESTS_JS = r"""
     // Le vrai cadre ne peut pas être chargé dans ces tests (temps simulé du navigateur) : faux cadre.
     const fauxCadre = () => {
       const ecouteurs = [];
-      return { ecouteurs, contentWindow: {}, set src(v) { this.adresse = v; }, addEventListener: (type, f) => ecouteurs.push([type, f]) };
+      const cadre = { ecouteurs, contentWindow: { location: { href: 'about:blank' } },
+        set src(v) { this.adresse = v; },
+        addEventListener: (type, f) => ecouteurs.push([type, f]),
+        removeEventListener: (type, f) => { const i = ecouteurs.findIndex(e => e[1] === f); if (i >= 0) ecouteurs.splice(i, 1); } };
+      return cadre;
     };
     const module = relationsMp30();
     const cadre = fauxCadre();
@@ -2980,16 +3006,26 @@ TESTS_JS = r"""
     attendreEgal(cadre.adresse, 'lecteur_mp3/index.html', 'adresse du lecteur');
     const zencoder = { jouerFichier() {}, arreter() {} };
     cadre.contentWindow.lecteurMp3Zencoder = zencoder;
+    // La page blanche (fermeture précédente) finit de charger : ignorée, on attend le lecteur.
+    cadre.ecouteurs[0][1]();
+    attendreEgal(cadre.ecouteurs.length, 1, 'page blanche prise pour le lecteur');
+    cadre.contentWindow.location.href = 'https://cap.fictif/app/lecteur_mp3/index.html';
     cadre.ecouteurs[0][1]();
     attendre(await p1 === zencoder, 'lecteur');
+    // Fermeture : vidé (page blanche), puis rechargé à la prochaine ouverture (la sortie du sable se rejoue).
+    charger.vider();
+    attendreEgal(cadre.adresse, 'about:blank', 'pas vidé');
+    const p3 = charger();
+    attendre(p3 !== p1 && cadre.adresse === 'lecteur_mp3/index.html', 'pas rechargé');
     // Page chargée sans la ligne ajoutée : refus, puis nouvel essai possible.
     const cadre2 = fauxCadre();
     const charger2 = module.chargeurLecteur(cadre2);
     const p2 = charger2();
+    cadre2.contentWindow.location.href = 'https://cap.fictif/app/lecteur_mp3/index.html';
     cadre2.ecouteurs[0][1]();
     await attendreRejet(() => p2, 'pas pu démarrer');
     charger2();
-    attendreEgal(cadre2.ecouteurs.length, 2, 'pas de nouvel essai');
+    attendreEgal(cadre2.ecouteurs.length, 1, 'pas de nouvel essai');
   });
 
   test('Musique : la liste des dossiers et des MP3 ne va jamais vers l’IA ; rien d’effacé ni d’écrit dans le Drive', () => {

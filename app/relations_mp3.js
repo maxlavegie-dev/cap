@@ -77,22 +77,32 @@ const relationsMp3 = (() => {
     return { racines: 1, dossiers };
   }
 
-  // Lecteur de Zencoder dans un cadre de la page, chargé une seule fois.
+  // Lecteur de Zencoder dans un cadre de la page.
+  // 07/11/2026 (accord de Max) : rechargé à chaque ouverture (la sortie du sable se rejoue) et vidé
+  // à la fermeture (son animation s'arrête) : « vider » remet le cadre sur une page blanche.
   function chargeurLecteur(cadre) {
     let promesse = null;
-    return () => {
+    const charger = () => {
       if (!promesse) {
         promesse = new Promise((ok, refus) => {
-          cadre.addEventListener('load', () => {
-            const lecteur = cadre.contentWindow && cadre.contentWindow.lecteurMp3Zencoder;
+          const surChargement = () => {
+            let adresse = '';
+            try { adresse = String(cadre.contentWindow.location.href); } catch (erreur) { /* pas encore lisible */ }
+            // La page blanche de la fermeture précédente peut finir de charger ici : ce n'est pas le lecteur.
+            if (!/lecteur_mp3\/index\.html/.test(adresse)) return;
+            cadre.removeEventListener('load', surChargement);
+            const lecteur = cadre.contentWindow.lecteurMp3Zencoder;
             if (lecteur && typeof lecteur.jouerFichier === 'function' && typeof lecteur.arreter === 'function') ok(lecteur);
             else { promesse = null; refus(new Error('Le lecteur MP3 n’a pas pu démarrer.')); }
-          }, { once: true });
+          };
+          cadre.addEventListener('load', surChargement);
           cadre.src = 'lecteur_mp3/index.html';
         });
       }
       return promesse;
     };
+    charger.vider = () => { promesse = null; cadre.src = 'about:blank'; };
+    return charger;
   }
 
   function brancher(doc, { compte, arbre, sorte, lecteur, urls = URL }) {
@@ -152,14 +162,19 @@ const relationsMp3 = (() => {
       if (d.musique.total === 1) void jouer(d.musique.libres[0] || d.musique.albums[0].morceaux[0]);
     };
 
+    // Message posé sur le lecteur, seulement pendant le chargement ou en cas de problème.
+    // 07/11/2026 (demande de Max) : le titre « Morceau N : nom » au-dessus du lecteur est désactivé
+    // (il répétait le titre affiché par le lecteur) : une fois le morceau lancé, le message est caché.
+    const message = texte => { etatLecteur.hidden = false; etatLecteur.textContent = texte; };
+
     async function jouer(morceau) {
       const numeroDemande = ++demande;
       if (!fenetreLecteur.open) fenetreLecteur.showModal();
       if (morceau.taille > TAILLE_MAX) {
-        etatLecteur.textContent = `« ${morceau.nom} » est trop gros (${Math.round(morceau.taille / 1e6)} Mo, plus de 60 Mo) : pas chargé.`;
+        message(`« ${morceau.nom} » est trop gros (${Math.round(morceau.taille / 1e6)} Mo, plus de 60 Mo) : pas chargé.`);
         return;
       }
-      etatLecteur.textContent = `Lecture en cours… (chargement de « ${morceau.nom} »)`;
+      message(`Lecture en cours… (chargement de « ${morceau.nom} »)`);
       etatLecteur.classList.add('en-lecture');
       try {
         const [zencoder, reponse] = await Promise.all([lecteur(), compte.appeler(`${drive}/${encodeURIComponent(morceau.id)}?alt=media`)]);
@@ -171,9 +186,12 @@ const relationsMp3 = (() => {
         zencoder.jouerFichier(adresse, `${morceau.numero}. ${morceau.nom}`);
         if (adresseEnCours) urls.revokeObjectURL(adresseEnCours);
         adresseEnCours = adresse;
-        etatLecteur.textContent = `Morceau ${morceau.numero} : ${morceau.nom}`;
+        // Ancien titre en double, désactivé le 07/11/2026 :
+        // etatLecteur.textContent = `Morceau ${morceau.numero} : ${morceau.nom}`;
+        etatLecteur.textContent = '';
+        etatLecteur.hidden = true;
       } catch (erreur) {
-        if (numeroDemande === demande) etatLecteur.textContent = `Morceau non lu : ${raison(erreur)}`;
+        if (numeroDemande === demande) message(`Morceau non lu : ${raison(erreur)}`);
       } finally {
         if (numeroDemande === demande) etatLecteur.classList.remove('en-lecture');
       }
@@ -195,13 +213,17 @@ const relationsMp3 = (() => {
     }));
     retour.addEventListener('click', montrerDossiers);
     fermer.addEventListener('click', () => fenetre.close());
-    fermerLecteur.addEventListener('click', () => {
+    // « Arrêter et fermer » (posé sur le lecteur), ou fenêtre fermée autrement (retour du téléphone) :
+    // la musique s'arrête, la mémoire est libérée, le lecteur est vidé (il se rechargera à la prochaine ouverture).
+    fenetreLecteur.addEventListener('close', () => {
       demande++;
-      fenetreLecteur.close();
       etatLecteur.classList.remove('en-lecture');
       if (zencoderPret) zencoderPret.arreter();
+      zencoderPret = null;
+      if (typeof lecteur.vider === 'function') lecteur.vider();
       if (adresseEnCours) { urls.revokeObjectURL(adresseEnCours); adresseEnCours = null; }
     });
+    fermerLecteur.addEventListener('click', () => { if (fenetreLecteur.open) fenetreLecteur.close(); });
   }
 
   return { nomMorceau, trier, morceauxDe, dossiersAvecMp3, chargeurLecteur, brancher, TAILLE_MAX };

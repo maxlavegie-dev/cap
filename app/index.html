@@ -522,10 +522,14 @@
     <button id="retour-musique-relations" class="relations-gros-bouton" type="button" hidden>Retour aux dossiers</button>
     <button id="fermer-musique-relations" class="relations-gros-bouton" type="button">Fermer</button>
   </dialog>
-  <dialog id="lecteur-mp3-relations" aria-labelledby="etat-lecteur-mp3">
-    <p id="etat-lecteur-mp3" class="relations-gros" role="status"></p>
+  <!-- 07/11/2026 (demande de Max) : lecteur en PLEIN ÉCRAN (classe « plein-ecran » : plus de cadre blanc
+       ni de marges) ; titre en double au-dessus désactivé (le message ne sert plus qu'au chargement et aux
+       problèmes, posé sur le lecteur) ; « Arrêter et fermer » posé PAR-DESSUS le lecteur, à son allure
+       (classe « bouton-sur-lecteur »), sans toucher au fichier de Zencoder. -->
+  <dialog id="lecteur-mp3-relations" class="plein-ecran" aria-label="Lecteur MP3">
     <iframe id="cadre-lecteur-mp3" title="Lecteur MP3"></iframe>
-    <button id="fermer-lecteur-mp3" class="relations-gros-bouton" type="button">Arrêter et fermer</button>
+    <p id="etat-lecteur-mp3" role="status" hidden></p>
+    <button id="fermer-lecteur-mp3" class="bouton-sur-lecteur" type="button">Arrêter et fermer</button>
   </dialog>
   <!-- Lecteur de PDF dans Cap (07/11/2026) : pages dessinées par pdf.js, copié en local. -->
   <dialog id="lecteur-pdf-relations" aria-labelledby="page-pdf-relations">
