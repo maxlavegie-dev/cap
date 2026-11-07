@@ -1828,7 +1828,7 @@
       clePicker.enregistrer(champ.value);
       champ.value = '';
       erreurReglagesDrive('');
-      annoncer('Clé du sélecteur Google enregistrée sur ce téléphone.', true);
+      annoncer('Clé du sélecteur Google enregistrée sur ce téléphone.');
     } catch (erreur) {
       erreurReglagesDrive(erreur.message);
     }
@@ -1837,7 +1837,7 @@
   parId('retirer-cle-picker').addEventListener('click', () => {
     clePicker.retirer();
     erreurReglagesDrive('');
-    annoncer('Clé du sélecteur Google retirée de ce téléphone.', true);
+    annoncer('Clé du sélecteur Google retirée de ce téléphone.');
     afficherDrive();
   });
   // Diagnostic du sélecteur (05/11/2026) : étapes franchies, affichées dans « Réglages du Drive ».
@@ -1886,13 +1886,13 @@
 
   parId('choisir-dossier-drive').addEventListener('click', () => {
     void choisirDossierDrive('app_cap', async () => {
-      annoncer('Dossier « App Cap » enregistré.', true);
+      annoncer('Dossier « App Cap » enregistré.');
     });
   });
   parId('oublier-dossier-drive').addEventListener('click', () => {
     googlePicker.oublierDossier();
     erreurReglagesDrive('');
-    annoncer('Dossier oublié : choisis-en un à nouveau quand tu veux.', true);
+    annoncer('Dossier oublié : choisis-en un à nouveau quand tu veux.');
     afficherDrive();
   });
 
@@ -1920,7 +1920,7 @@
         // Rangé aussi dans le Drive, pour que la coque Android le retrouve toute seule.
         try {
           await googlePicker.rangerDansDrive(role);
-          annoncer(`${libelle} enregistré, aussi pour l’application Cap du téléphone.`, true);
+          annoncer(`${libelle} enregistré, aussi pour l’application Cap du téléphone.`);
         } catch (erreur) {
           erreurReglagesDrive(`${libelle} choisi ici, mais pas encore rangé dans le Drive : l’application Cap du téléphone `
             + 'ne le retrouvera pas. Réessaie quand Google répond.');
@@ -1957,7 +1957,7 @@
     try {
       await googlePicker.oublierDossier('documents_personnels');
       erreurReglagesDrive('');
-      annoncer('Dossier des scans oublié : choisis-en un à nouveau quand tu veux.', true);
+      annoncer('Dossier des scans oublié : choisis-en un à nouveau quand tu veux.');
     } catch (erreur) {
       erreurReglagesDrive('Dossier oublié ici, mais pas dans le Drive : réessaie quand Google répond.');
     }

@@ -2682,9 +2682,14 @@ TESTS_JS = r"""
     const el = id => ui.parId(id);
     module.brancher(ui.doc, { compte: m, pdfjs: () => module.chargerPdfjs(document, window) });
     el('compter-compte-relations').click();
-    await attendreQue(() => /Total « Documents » : 8 dossier\(s\), 3 PDF/.test(el('resume-compte-relations').textContent), `écran : ${el('resume-compte-relations').textContent}`);
-    attendre(/Total : 3 MP3, 4 image\(s\), 2 PDF[^]*« Documents » : 3 dossier/.test(el('resume-compte-relations').textContent), 'ordre Relations puis Documents');
-    attendre(/1 sur 5/.test(el('pdf-compte-relations').textContent) && !el('pdf-compte-relations').hidden, `bouton PDF : ${el('pdf-compte-relations').textContent}`);
+    await attendreQue(() => /Total « Documents » : 8 dossier\(s\), 3 PDF/.test(el('resume-documents-compte').textContent), `écran : ${el('resume-documents-compte').textContent}`);
+    // Deux zones séparées, chacune avec son titre ; « Relations » ne contient plus « Documents ».
+    attendre(/Total : 3 MP3, 4 image\(s\), 2 PDF/.test(el('resume-compte-relations').textContent) && !/Documents/.test(el('resume-compte-relations').textContent), 'zone Relations');
+    attendreEgal([el('resume-compte-relations').dataset.titre, el('resume-documents-compte').dataset.titre], ['Relations', 'Documents'], 'titres');
+    attendre(!el('resume-documents-compte').hidden && el('resume-documents-compte').classList.contains('bloc-resultat'), 'zone Documents cachée');
+    attendre(el('resume-compte-relations').compareDocumentPosition(el('resume-documents-compte')) & Node.DOCUMENT_POSITION_FOLLOWING, 'ordre Relations puis Documents');
+    attendreEgal(el('pdf-compte-relations').textContent, 'Afficher les PDF dans Cap (5)', 'bouton PDF');
+    attendre(!el('pdf-compte-relations').hidden, 'bouton PDF caché');
   });
 
   test('Lecteur de PDF : pdf.js chargé à la demande depuis Cap (pdfjs/, jamais Internet), une seule fois, nouvel essai possible après un échec', () => {
@@ -2715,6 +2720,12 @@ TESTS_JS = r"""
     module.brancher(ui.doc, { compte: m, pdfjs: () => module.chargerPdfjs(document, window) });
     attendreEgal(el('adresse-compte-relations').value, COMPTE_CAP_FICTIF, 'identifiant affiché');
     attendre(el('pdf-compte-relations').hidden, 'bouton PDF trop tôt');
+    // Retour de Google : « Réglages du Drive » rouvert, puis le compte connecté affiché (et il reste).
+    attendre(el('reglages-drive').open, 'Réglages du Drive pas rouverts au retour');
+    await attendreQue(() => el('resume-compte-relations').textContent === `Compte Cap connecté : ${COMPTE_CAP_FICTIF}. Touche « Compter ce que Cap voit dans le compte Cap ».`,
+      `message de retour : ${el('resume-compte-relations').textContent}`);
+    attendre(!el('resume-compte-relations').hidden, 'message caché');
+    attendre(!/jeton/.test(el('resume-compte-relations').textContent), 'jeton affiché');
     const texteBouton = el('compter-compte-relations').textContent;
     el('compter-compte-relations').click();
     // Rond d'attente : tout de suite « Lecture en cours… », bouton grisé, puis texte d'origine.
@@ -2723,9 +2734,10 @@ TESTS_JS = r"""
     await attendreQue(() => /Total : 3 MP3, 4 image\(s\), 2 PDF/.test(el('resume-compte-relations').textContent), `comptage : ${el('resume-compte-relations').textContent}`);
     await attendreQue(() => !el('compter-compte-relations').disabled, 'bouton resté grisé');
     attendreEgal([el('compter-compte-relations').textContent, el('compter-compte-relations').classList.contains('en-lecture')], [texteBouton, false], 'bouton pas remis');
-    attendre(!el('pdf-compte-relations').hidden && /1 sur 2/.test(el('pdf-compte-relations').textContent), 'bouton PDF');
+    attendre(!el('pdf-compte-relations').hidden && el('pdf-compte-relations').textContent === 'Afficher les PDF dans Cap (2)', 'bouton PDF');
     el('pdf-compte-relations').click();
-    await attendreQue(() => /^Page 1 sur 2$/.test(el('page-pdf-relations').textContent), `PDF : ${el('page-pdf-relations').textContent}`, 200);
+    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', `PDF : ${el('page-pdf-relations').textContent}`, 200);
+    attendre(el('pdf-avant-relations').disabled && !el('pdf-apres-relations').disabled, 'boutons du PDF 1');
     attendre(el('lecteur-pdf-relations').open, 'lecteur fermé');
     const canvas = el('canvas-pdf-relations');
     attendre(canvas.width >= 200 && canvas.height === canvas.width, `taille du dessin ${canvas.width} x ${canvas.height}`);
@@ -2733,8 +2745,18 @@ TESTS_JS = r"""
     attendre(noir(0.25, 0.25) && !noir(0.75, 0.75), 'page 1 mal dessinée');
     attendre(el('pdf-precedente-relations').disabled && !el('pdf-suivante-relations').disabled, 'boutons de page 1');
     el('pdf-suivante-relations').click();
-    await attendreQue(() => /^Page 2 sur 2$/.test(el('page-pdf-relations').textContent) && noir(0.75, 0.75), 'page 2', 200);
+    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 2 sur 2' && noir(0.75, 0.75), 'page 2', 200);
     attendre(!noir(0.25, 0.25), 'page 2 mal dessinée');
+    // PDF suivant : le 2e PDF s'ouvre à sa page 1.
+    const mediasAvant = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').length;
+    el('pdf-apres-relations').click();
+    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 2 sur 2 · Page 1 sur 2' && noir(0.25, 0.25), `PDF suivant : ${el('page-pdf-relations').textContent}`, 200);
+    attendre(!el('pdf-avant-relations').disabled && el('pdf-apres-relations').disabled, 'boutons du PDF 2');
+    attendreEgal(c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').length, mediasAvant + 1, 'PDF suivant non lu');
+    const ids = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').map(q => q.url.pathname);
+    attendre(ids.at(-1) !== ids.at(-2), 'toujours le même PDF');
+    el('pdf-avant-relations').click();
+    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', 'PDF précédent', 200);
     el('pdf-fermer-relations').click();
     attendre(!el('lecteur-pdf-relations').open, 'lecteur pas fermé');
     attendre(c.requetes.every(q => q.methode === 'GET'), 'modification');
@@ -2748,6 +2770,60 @@ TESTS_JS = r"""
     const fin = SOURCE_RELATIONS_COMPTE.slice(SOURCE_RELATIONS_COMPTE.lastIndexOf('})();'));
     attendreEgal(fin.match(/relationsCompte\.\w+/g), ['relationsCompte.brancher', 'relationsCompte.chargerPdfjs'], 'départ automatique');
     attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(fin), 'branché dans les tests');
+  });
+
+  await testAsync('Compte Cap (confort, FAUX) : au retour d’un refus, « Réglages du Drive » rouvert avec la réponse exacte de Google ; mauvais compte affiché ; sans retour, rien ne s’ouvre', async c => {
+    let m = compteRelationsIsole(c);
+    m.enregistrerAdresse(COMPTE_CAP_FICTIF);
+    m.seConnecter();
+    c.location.hash = `#error=access_denied<b>&state=${c.redirections.at(-1).searchParams.get('state')}`;
+    m = compteRelationsIsole(c);
+    attendre(m.retourRecent(), 'retour non vu');
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const el = id => ui.parId(id);
+    relationsCompte0().brancher(ui.doc, { compte: m, pdfjs: async () => { throw new Error('inutile'); } });
+    attendre(el('reglages-drive').open, 'Réglages pas rouverts');
+    attendreEgal(el('resume-compte-relations').textContent, 'Le compte Cap n’a pas été connecté (refusé ou annulé ; réponse de Google : « access_deniedb »). Rien n’a été lu.', 'réponse de Google');
+    attendreEgal(c.requetes.length, 0, 'lecture malgré le refus');
+    // Mauvais compte au retour : affiché, connexion jetée.
+    const c2 = contexteGoogle();
+    fauxDriveCompteCap(c2, { compte: 'perso-fictif@gmail.com' });
+    const { m: m2 } = connecterCompteFictif(c2);
+    const ui2 = preparerInterface(c2, { largeur: 412, hauteur: 900 });
+    relationsCompte0().brancher(ui2.doc, { compte: m2, pdfjs: async () => { throw new Error('inutile'); } });
+    await attendreQue(() => /^Mauvais compte : Google a connecté « perso-fictif@gmail\.com »/.test(ui2.parId('resume-compte-relations').textContent), `mauvais compte : ${ui2.parId('resume-compte-relations').textContent}`);
+    attendre(!m2.connecte(), 'mauvais compte gardé');
+    // Vérification lente : si Max a touché « Compter » entre-temps, son résultat n'est pas écrasé.
+    const c4 = contexteGoogle();
+    remplirCompteCapFictif(fauxDriveCompteCap(c4));
+    const { m: m4 } = connecterCompteFictif(c4);
+    let finirVerification;
+    const lent = { ...m4, verifier: () => new Promise(ok => { finirVerification = ok; }) };
+    const ui4 = preparerInterface(c4, { largeur: 412, hauteur: 900 });
+    relationsCompte0().brancher(ui4.doc, { compte: lent, pdfjs: async () => { throw new Error('inutile'); } });
+    ui4.parId('compter-compte-relations').click();
+    await attendreQue(() => /^Total : /m.test(ui4.parId('resume-compte-relations').textContent), 'comptage');
+    finirVerification('Compte Cap connecté : FICTIF.');
+    await new Promise(ok => setTimeout(ok, 0));
+    attendre(/^Total : /m.test(ui4.parId('resume-compte-relations').textContent), 'résultat du comptage écrasé');
+    // Chargement normal (pas de retour de Google) : rien ne s'ouvre, rien n'est lu.
+    const c3 = contexteGoogle();
+    const m3 = compteRelationsIsole(c3);
+    attendre(!m3.retourRecent(), 'retour inventé');
+    const ui3 = preparerInterface(c3, { largeur: 412, hauteur: 900 });
+    relationsCompte0().brancher(ui3.doc, { compte: m3, pdfjs: async () => { throw new Error('inutile'); } });
+    attendre(!ui3.parId('reglages-drive').open && ui3.parId('resume-compte-relations').hidden, 'ouvert sans retour');
+    attendreEgal(c3.requetes.length, 0, 'lecture sans retour');
+  });
+
+  test('Confort : séparations entre les blocs des Réglages du Drive ; messages des dossiers et de la clé gardés (plus effacés après 2,6 s)', () => {
+    const modele = new DOMParser().parseFromString(SOURCE_HTML, 'text/html');
+    attendreEgal(modele.querySelectorAll('#reglages-drive > hr.separation-reglages').length, 8, 'séparations');
+    attendre(/\.separation-reglages \{[^}]*border-top: 3px solid/.test(SOURCE_STYLE), 'trait invisible');
+    for (const texte of ['Clé du sélecteur Google enregistrée sur ce téléphone.', 'Dossier « App Cap » enregistré.']) {
+      const i = SOURCE_APP.indexOf(texte);
+      attendre(i > 0 && !/^[^)]*\)?, true\)/.test(SOURCE_APP.slice(i + texte.length, i + texte.length + 12)), `${texte} encore effacé`);
+    }
   });
 
   test('Search Console : la balise de vérification de Google est dans la page, une seule fois', () => {
@@ -7067,8 +7143,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v68['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v68")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v69['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v69")
 
 
 def verifier_precache_fichiers_existent():

@@ -2941,3 +2941,25 @@ html.sans-eau .bouton-eau {
 }
 @keyframes rond-lecture { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .en-lecture::before { animation-duration: 2.5s; } }
+
+/* Lot « confort » (07/11/2026) : blocs des Réglages du Drive bien séparés, résultats titrés. */
+.separation-reglages {
+  border: 0;
+  border-top: 3px solid var(--encre);
+  opacity: 0.35;
+  margin: 1.5rem 0;
+}
+.bloc-resultat {
+  border: 2px solid currentColor;
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+.bloc-resultat:not([data-titre=""])::before {
+  content: attr(data-titre);
+  display: block;
+  font-weight: 700;
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid currentColor;
+}
+#resume-documents-compte { white-space: pre-line; }

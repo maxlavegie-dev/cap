@@ -465,12 +465,15 @@
       <button type="submit">Enregistrer la clé</button>
     </form>
     <button id="retirer-cle-picker" type="button" hidden>Retirer la clé</button>
+    <hr class="separation-reglages">
     <p id="etat-dossier-drive"></p>
     <button id="choisir-dossier-drive" type="button">Choisir le dossier « App Cap »</button>
     <button id="oublier-dossier-drive" type="button" hidden>Oublier ce dossier</button>
+    <hr class="separation-reglages">
     <p id="etat-dossier-documents"></p>
     <button id="choisir-dossier-documents" type="button">Choisir le dossier « Documents Personnels »</button>
     <button id="oublier-dossier-documents" type="button" hidden>Oublier ce dossier</button>
+    <hr class="separation-reglages">
     <p id="etat-classement"></p>
     <button id="choisir-architecture" type="button">Choisir le Doc d’architecture</button>
     <button id="choisir-tableur-classement" type="button">Choisir le tableur de classement</button>
@@ -478,6 +481,7 @@
     <button id="choisir-dictionnaire" type="button">Choisir le Dictionnaire général</button>
     <button id="verifier-classement" type="button" disabled>Vérifier la lecture</button>
     <p id="resume-classement" role="status" hidden></p>
+    <hr class="separation-reglages">
     <button id="calculer-relations" type="button">Calculer la liste « Relations » (rien n’est créé)</button>
     <p id="resume-relations" role="status" hidden></p>
     <button id="essai-relations" type="button">Créer UN dossier d’essai « Relations »</button>
@@ -485,20 +489,25 @@
     <div id="choix-essai-relations"></div>
     <button id="tous-relations" type="button">Créer les dossiers « Relations » de toutes les personnes</button>
     <p id="resume-tous-relations" role="status" hidden></p>
+    <hr class="separation-reglages">
     <button id="reparer-relations" type="button">Réparer les accents des « Journal de bord »</button>
     <p id="resume-reparer-relations" class="relations-gros" role="status" hidden></p>
     <button id="reparer-un-relations" class="relations-gros-bouton" type="button" hidden>Réparer UN journal pour vérifier</button>
     <button id="reparer-tous-relations" class="relations-gros-bouton" type="button" hidden>Oui, répare les autres journaux</button>
+    <hr class="separation-reglages">
     <button id="visibilite-relations" type="button">Essai de visibilité « Relations » (lecture seule)</button>
     <button id="montrer-relations" type="button">Montrer « Relations » à Google (essai)</button>
     <p id="resume-visibilite-relations" class="relations-gros" role="status" hidden></p>
+    <hr class="separation-reglages">
     <!-- Compte Google neuf dédié à Cap (07/11/2026, essai) : lecture seule, « Relations » seulement. -->
     <label for="adresse-compte-relations">Identifiant du compte Cap (il reste sur ce téléphone)</label>
     <input id="adresse-compte-relations" type="text" inputmode="email" autocomplete="off" spellcheck="false" autocapitalize="off">
     <button id="connecter-compte-relations" type="button">Autoriser la lecture du compte Cap</button>
     <button id="compter-compte-relations" type="button">Compter ce que Cap voit dans le compte Cap</button>
-    <p id="resume-compte-relations" class="relations-gros" role="status" hidden></p>
-    <button id="pdf-compte-relations" class="relations-gros-bouton" type="button" hidden>Afficher un PDF dans Cap</button>
+    <p id="resume-compte-relations" class="relations-gros bloc-resultat" role="status" hidden></p>
+    <p id="resume-documents-compte" class="relations-gros bloc-resultat" role="status" hidden></p>
+    <button id="pdf-compte-relations" class="relations-gros-bouton" type="button" hidden>Afficher les PDF dans Cap</button>
+    <hr class="separation-reglages">
     <p id="diagnostic-picker" role="status" hidden></p>
     <p class="erreur" role="alert" hidden></p>
   </dialog>
@@ -509,6 +518,8 @@
     <div class="lecteur-pdf-boutons">
       <button id="pdf-precedente-relations" class="relations-gros-bouton" type="button">Page précédente</button>
       <button id="pdf-suivante-relations" class="relations-gros-bouton" type="button">Page suivante</button>
+      <button id="pdf-avant-relations" class="relations-gros-bouton" type="button">PDF précédent</button>
+      <button id="pdf-apres-relations" class="relations-gros-bouton" type="button">PDF suivant</button>
       <button id="pdf-fermer-relations" class="relations-gros-bouton" type="button">Fermer</button>
     </div>
   </dialog>

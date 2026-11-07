@@ -170,61 +170,102 @@ const relationsCompte = (() => {
     const connecter = el('connecter-compte-relations');
     const bouton = el('compter-compte-relations');
     const zone = el('resume-compte-relations');
+    const zoneDocuments = el('resume-documents-compte');
     const boutonPdf = el('pdf-compte-relations');
     const lecteur = el('lecteur-pdf-relations');
     const canvas = el('canvas-pdf-relations');
     const etiquette = el('page-pdf-relations');
     const precedente = el('pdf-precedente-relations');
     const suivante = el('pdf-suivante-relations');
+    const pdfAvant = el('pdf-avant-relations');
+    const pdfApres = el('pdf-apres-relations');
     const fermer = el('pdf-fermer-relations');
-    if (!champ || !connecter || !bouton || !zone || !boutonPdf || !lecteur || !canvas || !etiquette || !precedente || !suivante || !fermer) return;
-    const ecrire = texte => { zone.hidden = false; zone.textContent = texte; try { zone.scrollIntoView({ block: 'center' }); } catch (erreur) {} };
+    if (![champ, connecter, bouton, zone, zoneDocuments, boutonPdf, lecteur, canvas, etiquette, precedente, suivante, pdfAvant, pdfApres, fermer].every(Boolean)) return;
+    // Chaque zone garde son message jusqu'à la prochaine action (rien ne s'efface tout seul).
+    const montrer = (z, texte, titre = '') => {
+      z.hidden = false;
+      z.dataset.titre = titre;
+      z.textContent = texte;
+    };
+    const ecrire = (texte, titre) => {
+      montrer(zone, texte, titre);
+      try { zone.scrollIntoView({ block: 'start' }); } catch (erreur) {}
+    };
     const raison = erreur => String(erreur && erreur.message || 'raison inconnue').slice(0, 220);
     champ.value = compte.adresse();
     if (compte.message()) ecrire(compte.message());
     let pdfs = [];
     let pdf = null;
+    let indexPdf = 0;
     let numero = 1;
+
+    // Retour de Google pour le compte Cap : « Réglages du Drive » est rouvert, avec le résultat.
+    if (compte.retourRecent()) {
+      const apresChargement = () => {
+        const ouvrir = el('ouvrir-reglages-drive');
+        if (ouvrir && !el('reglages-drive')?.open) ouvrir.click();
+        ecrire(compte.message());
+        if (!compte.connecte()) return;
+        const avant = zone.textContent;
+        const siRienDautre = texte => { if (zone.textContent === avant) ecrire(texte); };
+        compte.verifier().then(siRienDautre).catch(erreur => siRienDautre(raison(erreur)));
+      };
+      if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', apresChargement, { once: true });
+      else apresChargement();
+    }
 
     connecter.addEventListener('click', () => {
       try {
         if (champ.value.trim()) compte.enregistrerAdresse(champ.value);
-        ecrire('Ouverture de la page de Google… Choisis le compte Cap, PAS ton compte personnel. Cap revient tout seul ensuite.');
+        ecrire('Ouverture de la page de Google… Choisis le compte Cap, PAS ton compte personnel. Cap revient tout seul ensuite, et le résultat s’affiche ici.');
         compte.seConnecter();
       } catch (erreur) { ecrire(raison(erreur)); }
     });
 
     bouton.addEventListener('click', () => attenteLecture.pendant(bouton, async () => {
       boutonPdf.hidden = true;
+      zoneDocuments.hidden = true;
       ecrire('Lecture du Drive du compte Cap… (rien n’est modifié)');
       try {
         const r = await compter(compte);
         pdfs = [...r.pdfs, ...r.documents.pdfs];
-        ecrire(`${resumer(r)}\n\n${resumerDocuments(r.documents)}`);
-        if (pdfs.length) { boutonPdf.textContent = `Afficher un PDF dans Cap (1 sur ${pdfs.length})`; boutonPdf.hidden = false; }
+        ecrire(resumer(r), 'Relations');
+        montrer(zoneDocuments, resumerDocuments(r.documents), 'Documents');
+        if (pdfs.length) { boutonPdf.textContent = `Afficher les PDF dans Cap (${pdfs.length})`; boutonPdf.hidden = false; }
       } catch (erreur) { ecrire(`${raison(erreur)} Rien n’a été modifié.`); }
     }));
 
     const montrerPage = async () => {
       const vue = doc.defaultView;
       await dessinerPage(pdf, numero, canvas, Math.min(vue.innerWidth || 400, 900) - 32, vue.devicePixelRatio);
-      // Le numéro n'est affiché qu'une fois la page dessinée.
-      etiquette.textContent = `Page ${numero} sur ${pdf.numPages}`;
+      // Les numéros ne sont affichés qu'une fois la page dessinée.
+      etiquette.textContent = `PDF ${indexPdf + 1} sur ${pdfs.length} · Page ${numero} sur ${pdf.numPages}`;
       precedente.disabled = numero <= 1;
       suivante.disabled = numero >= pdf.numPages;
     };
 
-    boutonPdf.addEventListener('click', async () => {
-      if (!pdfs.length) return;
-      etiquette.textContent = 'Lecture en cours… (ouverture du PDF)';
+    // Ouvre le PDF n° i (le précédent est libéré de la mémoire).
+    const ouvrirIndex = async i => {
+      indexPdf = i;
+      pdfAvant.disabled = i <= 0;
+      pdfApres.disabled = i >= pdfs.length - 1;
+      precedente.disabled = true;
+      suivante.disabled = true;
+      if (pdf) { pdf.destroy(); pdf = null; }
+      etiquette.textContent = `Lecture en cours… (PDF ${i + 1} sur ${pdfs.length})`;
       etiquette.classList.add('en-lecture');
-      if (!lecteur.open) lecteur.showModal();
       try {
-        pdf = await ouvrirPdf(compte, pdfs[0], await pdfjs());
+        pdf = await ouvrirPdf(compte, pdfs[i], await pdfjs());
         numero = 1;
         await montrerPage();
-      } catch (erreur) { etiquette.textContent = `PDF illisible : ${raison(erreur)}`; }
+      } catch (erreur) { etiquette.textContent = `PDF ${i + 1} illisible : ${raison(erreur)}`; }
       finally { etiquette.classList.remove('en-lecture'); }
+    };
+
+    boutonPdf.addEventListener('click', () => {
+      if (!pdfs.length) return;
+      if (!lecteur.open) lecteur.showModal();
+      void ouvrirIndex(0);
     });
     const changer = ecart => {
       if (!pdf || numero + ecart < 1 || numero + ecart > pdf.numPages) return;
@@ -233,6 +274,8 @@ const relationsCompte = (() => {
     };
     precedente.addEventListener('click', () => changer(-1));
     suivante.addEventListener('click', () => changer(1));
+    pdfAvant.addEventListener('click', () => { if (indexPdf > 0) void ouvrirIndex(indexPdf - 1); });
+    pdfApres.addEventListener('click', () => { if (indexPdf < pdfs.length - 1) void ouvrirIndex(indexPdf + 1); });
     fermer.addEventListener('click', () => { lecteur.close(); if (pdf) { pdf.destroy(); pdf = null; } });
   }
 

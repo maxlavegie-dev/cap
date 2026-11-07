@@ -16,6 +16,8 @@ const googleCompteRelations = (() => {
   const cleAdresse = 'cap_google_relations_adresse_v1';
   const DRIVE = 'https://www.googleapis.com/drive/v3/';
   let message = '';
+  // Vrai si CE chargement de la page vient d'un retour de Google pour le compte Cap.
+  let retourRecent = false;
 
   const lire = (espace, cle) => { try { return espace.getItem(cle); } catch (erreur) { return null; } };
   const ecrire = (espace, cle, valeur) => { try { espace.setItem(cle, valeur); } catch (erreur) {} };
@@ -40,11 +42,14 @@ const googleCompteRelations = (() => {
   if (etatRecu && (retour.has('access_token') || retour.has('error'))
     && (etatRecu === lire(sessionStorage, cleEtat) || etatRecu === lire(localStorage, cleEtat))) {
     history.replaceState(null, '', location.pathname + location.search);
+    retourRecent = true;
     effacer(sessionStorage, cleEtat);
     effacer(localStorage, cleEtat);
     const secondes = Number(retour.get('expires_in'));
     if (retour.has('error')) {
-      message = 'Le compte Cap n’a pas été connecté (refusé ou annulé). Rien n’a été lu.';
+      // Le code de Google est montré tel quel (lettres et « _ » seulement), pour comprendre le refus.
+      const code = String(retour.get('error')).replace(/[^a-z_]/gi, '').slice(0, 60);
+      message = `Le compte Cap n’a pas été connecté (refusé ou annulé ; réponse de Google : « ${code} »). Rien n’a été lu.`;
     } else if (!retour.get('access_token') || !Number.isFinite(secondes) || secondes <= 60
       || (retour.get('token_type') || '').toLowerCase() !== 'bearer') {
       message = 'La réponse de Google est incomplète. Reconnecte le compte Cap.';
@@ -52,7 +57,7 @@ const googleCompteRelations = (() => {
       ecrire(localStorage, cleJeton, JSON.stringify({
         jeton: retour.get('access_token'), expiration: Date.now() + secondes * 1000, compte: ''
       }));
-      message = '';
+      message = 'Google a répondu : connexion reçue. Vérification du compte…';
     }
   }
 
@@ -135,5 +140,14 @@ const googleCompteRelations = (() => {
     return reponse;
   }
 
-  return { adresse, enregistrerAdresse, connecte, seConnecter, appeler, oublier, message: () => message };
+  // Après le retour : demande au Drive quel compte est connecté (lecture seule), pour l'afficher.
+  async function verifier() {
+    const reponse = await appeler(`${DRIVE}about?fields=user(emailAddress)`);
+    const compte = normaliser((await reponse.json())?.user?.emailAddress);
+    message = `Compte Cap connecté : ${compte}. Touche « Compter ce que Cap voit dans le compte Cap ».`;
+    return message;
+  }
+
+  return { adresse, enregistrerAdresse, connecte, seConnecter, appeler, oublier, verifier,
+    message: () => message, retourRecent: () => retourRecent };
 })();
