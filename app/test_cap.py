@@ -2826,10 +2826,10 @@ TESTS_JS = r"""
     }
   });
 
-  test('Search Console : la balise de vérification de Google est dans la page, une seule fois', () => {
+  test('Search Console : les deux balises de vérification de Google sont dans la page (l’ancienne gardée), chacune une seule fois', () => {
     const modele = new DOMParser().parseFromString(SOURCE_HTML, 'text/html');
     const balises = modele.head.querySelectorAll('meta[name="google-site-verification"]');
-    attendreEgal([...balises].map(b => b.getAttribute('content')), ['AzyYjPSR5WClNkEoHd0ifUIHLoeJ7rCRnEpyGaejhlA'], 'balise');
+    attendreEgal([...balises].map(b => b.getAttribute('content')), ['AzyYjPSR5WClNkEoHd0ifUIHLoeJ7rCRnEpyGaejhlA', 'FiiCjzO--6k0nz9-Xh2ZRQdaG0qqb0xvZoieMuwydt0'], 'balises');
   });
 
   test('Panneau rouge (lot 1) : aucun champ « mot de passe » ni « adresse mail », pas de « Se connecter à Google », clés masquées', () => {
