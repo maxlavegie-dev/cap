@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "relations_creation.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "relations_creation.js", "relations_compte.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -2418,6 +2418,252 @@ TESTS_JS = r"""
     attendre(parseFloat(ui.cadre.contentWindow.getComputedStyle(el('resume-visibilite-relations')).fontSize) >= 20, 'message pas en gros');
     attendre(c.requetes.every(q => ['GET', 'POST'].includes(q.methode)), 'modification');
     fenetre.close();
+  });
+
+  // ----- Compte Google NEUF dédié à Cap (07/11/2026) : FAUX compte, FAUX Drive -----
+  const COMPTE_CAP_FICTIF = 'compte-cap-fictif@id.gle';
+  function compteRelationsIsole(c) {
+    return objetIsole(SOURCE_GOOGLE_COMPTE_RELATIONS, 'googleCompteRelations', {
+      localStorage: c.localStorage, sessionStorage: c.sessionStorage, location: c.location, history: c.history,
+      fetch: c.fetch, REGLAGES_GOOGLE, crypto, Date: c.Date });
+  }
+  const relationsCompte0 = () => objetIsole(SOURCE_RELATIONS_COMPTE, 'relationsCompte', { window: { CAP_TESTS: true } });
+  // Connexion simulée : bouton, page de Google, retour dans Cap (la page est rechargée).
+  function connecterCompteFictif(c, saisie = '  Compte-Cap-FICTIF@id.gle ') {
+    let m = compteRelationsIsole(c);
+    m.enregistrerAdresse(saisie);
+    m.seConnecter();
+    const url = c.redirections.at(-1);
+    c.location.hash = `#access_token=jeton-compte-cap-fictif&expires_in=3600&token_type=Bearer&state=${url.searchParams.get('state')}`;
+    m = compteRelationsIsole(c);
+    return { m, url };
+  }
+  function pdfFictif() {
+    // Deux pages de 200 x 200 : un carré noir en haut à gauche, puis en bas à droite.
+    const flux = t => `<< /Length ${t.length} >>\nstream\n${t}\nendstream`;
+    const objets = [null, '<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>', flux('0 0 0 rg 20 120 60 60 re f'),
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 6 0 R >>', flux('0 0 0 rg 120 20 60 60 re f')];
+    let texte = '%PDF-1.4\n';
+    const positions = [];
+    for (let i = 1; i < objets.length; i++) { positions.push(texte.length); texte += `${i} 0 obj\n${objets[i]}\nendobj\n`; }
+    const debutXref = texte.length;
+    texte += `xref\n0 ${objets.length}\n0000000000 65535 f \n` + positions.map(n => `${String(n).padStart(10, '0')} 00000 n \n`).join('')
+      + `trailer\n<< /Size ${objets.length} /Root 1 0 R >>\nstartxref\n${debutXref}\n%%EOF\n`;
+    return new TextEncoder().encode(texte);
+  }
+  function fauxDriveCompteCap(c, { compte = COMPTE_CAP_FICTIF } = {}) {
+    const DOSSIER_F = 'application/vnd.google-apps.folder';
+    const f = { fichiers: [], compte, autorisations: [] };
+    let n = 0;
+    f.ajouter = (name, mimeType, parent = 'root', contenu = null) => {
+      const x = { id: `cc-${++n}`, name, mimeType, parents: [parent], contenu };
+      f.fichiers.push(x);
+      return x;
+    };
+    c.repondre = async r => {
+      attendreEgal(r.methode, 'GET', 'compte Cap : lecture seulement');
+      attendre(r.options.body === undefined, 'compte Cap : contenu envoyé');
+      f.autorisations.push(new Headers(r.options.headers).get('Authorization'));
+      if (r.url.pathname === '/drive/v3/about') return reponseGoogle({ user: { emailAddress: f.compte } });
+      const media = /^\/drive\/v3\/files\/([^/]+)$/.exec(r.url.pathname);
+      if (media && r.url.searchParams.get('alt') === 'media') {
+        const x = f.fichiers.find(y => y.id === decodeURIComponent(media[1]));
+        return new Response(x.contenu, { status: 200, headers: { 'Content-Type': x.mimeType } });
+      }
+      if (r.url.pathname !== '/drive/v3/files') throw new Error(`adresse inattendue : ${r.url.pathname}`);
+      const q = r.url.searchParams.get('q');
+      const parent = /^'([^']+)' in parents and trashed=false$/.exec(q);
+      let liste;
+      if (parent) liste = f.fichiers.filter(x => x.parents[0] === parent[1]);
+      else if (q === `name='Relations' and mimeType='${DOSSIER_F}' and 'root' in parents and trashed=false`) {
+        liste = f.fichiers.filter(x => x.name === 'Relations' && x.mimeType === DOSSIER_F && x.parents[0] === 'root');
+      } else throw new Error(`recherche inattendue : ${q}`);
+      // Pages de 2 éléments : la suite (nextPageToken) doit être lue.
+      const debut = Number(r.url.searchParams.get('pageToken') || 0);
+      return reponseGoogle({ files: liste.slice(debut, debut + 2).map(({ id, name, mimeType }) => ({ id, name, mimeType })),
+        ...(debut + 2 < liste.length ? { nextPageToken: String(debut + 2) } : {}) });
+    };
+    return f;
+  }
+  function remplirCompteCapFictif(f) {
+    const D = 'application/vnd.google-apps.folder';
+    const rel = f.ajouter('Relations', D);
+    const jean = f.ajouter('r_Jean Fictif', D, rel.id);
+    const album = f.ajouter('Album FICTIF', D, jean.id);
+    f.ajouter('01 morceau FICTIF secret.mp3', 'audio/mpeg', album.id);
+    f.ajouter('02 morceau FICTIF secret.mp3', 'application/octet-stream', album.id);
+    const liste = f.ajouter('Playlist FICTIVE', D, jean.id);
+    f.ajouter('03 morceau FICTIF secret.mp3', 'audio/mpeg', liste.id);
+    const paule = f.ajouter('r_Paule Image-FICTIF', D, rel.id);
+    for (let i = 1; i <= 4; i++) f.ajouter(`photo FICTIVE secrète ${i}.jpg`, 'image/jpeg', paule.id);
+    const pdf1 = f.ajouter('lettre FICTIVE secrète.pdf', 'application/pdf', paule.id, pdfFictif());
+    const marc = f.ajouter('r_Marc Pdf-FICTIF', D, rel.id);
+    const divers = f.ajouter('Divers FICTIF', D, marc.id);
+    f.ajouter('facture FICTIVE secrète.pdf', 'application/pdf', divers.id, pdfFictif());
+    f.ajouter('texte FICTIF secret.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', divers.id);
+    f.ajouter('r_Zoé Rien-FICTIF', D, rel.id);
+    f.ajouter('notes FICTIVES secrètes.txt', 'text/plain', rel.id);
+    // Un autre « Relations » rangé ailleurs (pas à la racine) : ignoré.
+    const ailleurs = f.ajouter('Ailleurs FICTIF', D);
+    f.ajouter('Relations', D, ailleurs.id);
+    return { pdf1 };
+  }
+
+  await testAsync('Compte Cap (FAUX) : connexion avec lecture seule pour CE compte seulement, identifiant gardé sur le téléphone, retour pris sans gêner la connexion du compte personnel', async c => {
+    // Le compte personnel garde exactement ses deux droits limités.
+    attendreEgal([...REGLAGES_GOOGLE.autorisations], ['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/calendar.app.created'], 'droits du compte personnel');
+    attendreEgal([...REGLAGES_GOOGLE.autorisations_relations], ['https://www.googleapis.com/auth/drive.readonly'], 'droit du compte Cap');
+    const vierge = compteRelationsIsole(c);
+    await attendreRejet(() => vierge.seConnecter(), 'identifiant du compte Cap');
+    await attendreRejet(() => vierge.enregistrerAdresse('pas un identifiant'), 'incomplet');
+    const { m, url } = connecterCompteFictif(c);
+    attendreEgal(url.origin + url.pathname, 'https://accounts.google.com/o/oauth2/v2/auth', 'page de Google');
+    attendreEgal(url.searchParams.get('scope'), 'https://www.googleapis.com/auth/drive.readonly', 'droit demandé');
+    attendreEgal(url.searchParams.get('include_granted_scopes'), 'false', 'droits mélangés');
+    attendreEgal(url.searchParams.get('login_hint'), COMPTE_CAP_FICTIF, 'compte proposé à Google');
+    attendreEgal(url.searchParams.get('response_type'), 'token', 'type de réponse');
+    attendreEgal(url.searchParams.get('client_id'), REGLAGES_GOOGLE.id_client, 'identifiant client');
+    attendreEgal(url.searchParams.get('redirect_uri'), REGLAGES_GOOGLE.adresse_retour, 'adresse de retour');
+    attendre(m.connecte(), 'compte Cap non connecté au retour');
+    attendreEgal(m.adresse(), COMPTE_CAP_FICTIF, 'identifiant nettoyé');
+    attendreEgal(c.localStorage.getItem('cap_google_relations_adresse_v1'), COMPTE_CAP_FICTIF, 'identifiant gardé sur le téléphone');
+    attendreEgal(c.location.hash, '', 'retour effacé');
+    attendreEgal(c.requetes.length, 0, 'réseau au retour');
+    // Le compte personnel n'a rien vu de ce retour : pas connecté, aucun message d'alerte.
+    const perso = c.connexion();
+    attendre(!perso.connecte() && perso.message() === '', `compte personnel gêné : ${perso.message()}`);
+    // Un retour du compte personnel n'est pas pris par le module du compte Cap.
+    c.localStorage.setItem('cap_google_etat_v1', 'etat-perso-fictif');
+    c.location.hash = '#access_token=jeton-perso-fictif&expires_in=3600&token_type=Bearer&state=etat-perso-fictif';
+    compteRelationsIsole(c);
+    attendre(c.location.hash.includes('jeton-perso-fictif'), 'retour du compte personnel avalé');
+    const perso2 = c.connexion();
+    attendreEgal(perso2.jeton(), 'jeton-perso-fictif', 'compte personnel');
+    attendreEgal(compteRelationsIsole(c).connecte(), true, 'compte Cap toujours connecté');
+    // Refus chez Google : message, rien de gardé.
+    const c2 = contexteGoogle();
+    let m2 = compteRelationsIsole(c2);
+    m2.enregistrerAdresse(COMPTE_CAP_FICTIF);
+    m2.seConnecter();
+    c2.location.hash = `#error=access_denied&state=${c2.redirections[0].searchParams.get('state')}`;
+    m2 = compteRelationsIsole(c2);
+    attendre(!m2.connecte() && /pas été connecté/.test(m2.message()), 'refus');
+    // Changer d'identifiant jette l'ancienne connexion.
+    const m3 = compteRelationsIsole(c);
+    m3.enregistrerAdresse('autre-compte-fictif@id.gle');
+    attendre(!m3.connecte(), 'connexion gardée pour un autre compte');
+  });
+
+  await testAsync('Compte Cap (FAUX) : mauvais compte choisi chez Google = connexion jetée, rien lu ; lecture seule imposée', async c => {
+    const f = fauxDriveCompteCap(c, { compte: 'perso-fictif@gmail.com' });
+    remplirCompteCapFictif(f);
+    const { m } = connecterCompteFictif(c);
+    await attendreRejet(() => relationsCompte0().compter(m), 'Mauvais compte');
+    attendre(!m.connecte(), 'jeton gardé');
+    attendre(/perso-fictif@gmail\.com/.test(m.message()), 'compte connecté non nommé');
+    attendreEgal(c.requetes.map(q => q.url.pathname), ['/drive/v3/about'], 'lu malgré le mauvais compte');
+    // Bon compte : lectures seulement ; toute autre demande est refusée sans rien envoyer.
+    const c2 = contexteGoogle();
+    fauxDriveCompteCap(c2);
+    const { m: bon } = connecterCompteFictif(c2);
+    for (const [adresse, options] of [['https://www.googleapis.com/drive/v3/files', { method: 'POST', body: '{}' }],
+      ['https://www.googleapis.com/drive/v3/files/x', { method: 'PATCH' }], ['https://www.googleapis.com/drive/v3/files/x', { method: 'DELETE' }],
+      ['https://www.googleapis.com/drive/v3/files', { body: 'x' }], ['https://sheets.googleapis.com/v4/spreadsheets/x', {}],
+      ['https://www.googleapis.com/upload/drive/v3/files', {}], ['http://www.googleapis.com/drive/v3/files', {}]]) {
+      await attendreRejet(() => bon.appeler(adresse, options), adresse.includes('sheets') || adresse.includes('upload') || adresse.startsWith('http:') ? 'non autorisée' : 'Lecture seule');
+    }
+    attendreEgal(c2.requetes.length, 0, 'demande envoyée');
+    // Jeton expiré : rien envoyé.
+    c2.maintenant += 3600 * 1000;
+    await attendreRejet(() => bon.appeler('https://www.googleapis.com/drive/v3/files'), 'expirée');
+    attendreEgal(c2.requetes.length, 0, 'demande envoyée après expiration');
+  });
+
+  await testAsync('Compte Cap (FAUX Drive) : comptage par dossier « r_ » (MP3, images, PDF, albums), sous-dossiers et pages suivantes lus, aucun nom de fichier, lectures seulement', async c => {
+    const f = fauxDriveCompteCap(c);
+    remplirCompteCapFictif(f);
+    const { m } = connecterCompteFictif(c);
+    const module = relationsCompte0();
+    const r = await module.compter(m);
+    attendreEgal(r.lignes.map(l => [l.nomDossier, l.mp3, l.images, l.pdf, l.albums, l.sousDossiers, l.autres]),
+      [['r_Jean Fictif', 3, 0, 0, 2, 0, 0], ['r_Marc Pdf-FICTIF', 0, 0, 1, 0, 1, 1], ['r_Paule Image-FICTIF', 0, 4, 1, 0, 0, 0], ['r_Zoé Rien-FICTIF', 0, 0, 0, 0, 0, 0]], 'nombres');
+    attendreEgal(r.pdfs.length, 2, 'PDF trouvés');
+    const texte = module.resumer(r);
+    attendreEgal(texte, ['Compte Cap (lecture seule, rien n’est modifié) : 4 dossier(s) « r_ ».',
+      'r_Jean Fictif : 3 MP3 · 0 image(s) · 0 PDF · 2 album(s)',
+      'r_Marc Pdf-FICTIF : 0 MP3 · 0 image(s) · 1 PDF · 0 album(s) · 1 autre(s) sous-dossier(s) · 1 autre(s) fichier(s)',
+      'r_Paule Image-FICTIF : 0 MP3 · 4 image(s) · 1 PDF · 0 album(s)', 'r_Zoé Rien-FICTIF : 0 MP3 · 0 image(s) · 0 PDF · 0 album(s)',
+      '1 autre(s) élément(s) dans « Relations » (pas des dossiers « r_ »).', 'Total : 3 MP3, 4 image(s), 2 PDF, 2 album(s).'].join('\n'), 'résumé');
+    attendre(!/secr|morceau|photo|lettre|facture|notes|Album FICTIF|Playlist|Divers|\.mp3|\.jpg|\.pdf|\.txt/i.test(texte), 'un nom de fichier est affiché');
+    attendre(c.requetes.some(q => q.url.searchParams.get('pageToken')), 'pages suivantes non lues');
+    attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
+    attendre(f.autorisations.every(a => a === 'Bearer jeton-compte-cap-fictif'), 'mauvais jeton utilisé');
+    // Aucun « Relations » à la racine, ou deux : rien n'est choisi au hasard.
+    const c2 = contexteGoogle();
+    const f2 = fauxDriveCompteCap(c2);
+    const { m: m2 } = connecterCompteFictif(c2);
+    attendre(/^Aucun dossier « Relations »/.test(module.resumer(await module.compter(m2))), 'aucun Relations');
+    f2.ajouter('Relations', 'application/vnd.google-apps.folder');
+    f2.ajouter('Relations', 'application/vnd.google-apps.folder');
+    attendre(/^2 dossiers « Relations »/.test(module.resumer(await module.compter(m2))), 'deux Relations');
+  });
+
+  test('Lecteur de PDF : pdf.js chargé à la demande depuis Cap (pdfjs/, jamais Internet), une seule fois, nouvel essai possible après un échec', () => {
+    const module = relationsCompte0();
+    const scripts = [];
+    const faux = { head: { appendChild: x => scripts.push(x) }, createElement: () => ({}) };
+    const fenetre = {};
+    const p1 = module.chargerPdfjs(faux, fenetre);
+    attendre(module.chargerPdfjs(faux, fenetre) === p1, 'chargé deux fois');
+    attendreEgal(scripts.map(x => x.src), ['pdfjs/pdf.min.js'], 'adresse du lecteur');
+    scripts[0].onerror();
+    p1.catch(() => {});
+    module.chargerPdfjs(faux, fenetre).catch(() => {});
+    attendreEgal(scripts.length, 2, 'pas de nouvel essai après un échec');
+    fenetre.pdfjsLib = { GlobalWorkerOptions: {} };
+    scripts[1].onload();
+    attendreEgal(fenetre.pdfjsLib.GlobalWorkerOptions.workerSrc, 'pdfjs/pdf.worker.min.js', 'worker local');
+    attendre(window.pdfjsLib && /^3\.11\.174$/.test(window.pdfjsLib.version), 'version de pdf.js');
+  });
+
+  await testAsync('Compte Cap (FAUX Drive) : écran (identifiant affiché, connexion, comptage, bouton PDF) et PDF dessiné DANS Cap par pdf.js, page suivante, fermer', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    remplirCompteCapFictif(f);
+    const { m } = connecterCompteFictif(c);
+    const module = relationsCompte0();
+    const el = id => ui.parId(id);
+    module.brancher(ui.doc, { compte: m, pdfjs: () => module.chargerPdfjs(document, window) });
+    attendreEgal(el('adresse-compte-relations').value, COMPTE_CAP_FICTIF, 'identifiant affiché');
+    attendre(el('pdf-compte-relations').hidden, 'bouton PDF trop tôt');
+    el('compter-compte-relations').click();
+    await attendreQue(() => /Total : 3 MP3, 4 image\(s\), 2 PDF/.test(el('resume-compte-relations').textContent), `comptage : ${el('resume-compte-relations').textContent}`);
+    attendre(!el('pdf-compte-relations').hidden && /1 sur 2/.test(el('pdf-compte-relations').textContent), 'bouton PDF');
+    el('pdf-compte-relations').click();
+    await attendreQue(() => /^Page 1 sur 2$/.test(el('page-pdf-relations').textContent), `PDF : ${el('page-pdf-relations').textContent}`, 200);
+    attendre(el('lecteur-pdf-relations').open, 'lecteur fermé');
+    const canvas = el('canvas-pdf-relations');
+    attendre(canvas.width >= 200 && canvas.height === canvas.width, `taille du dessin ${canvas.width} x ${canvas.height}`);
+    const noir = (x, y) => { const p = canvas.getContext('2d').getImageData(Math.floor(canvas.width * x), Math.floor(canvas.height * y), 1, 1).data; return p[3] > 200 && p[0] + p[1] + p[2] < 100; };
+    attendre(noir(0.25, 0.25) && !noir(0.75, 0.75), 'page 1 mal dessinée');
+    attendre(el('pdf-precedente-relations').disabled && !el('pdf-suivante-relations').disabled, 'boutons de page 1');
+    el('pdf-suivante-relations').click();
+    await attendreQue(() => /^Page 2 sur 2$/.test(el('page-pdf-relations').textContent) && noir(0.75, 0.75), 'page 2', 200);
+    attendre(!noir(0.25, 0.25), 'page 2 mal dessinée');
+    el('pdf-fermer-relations').click();
+    attendre(!el('lecteur-pdf-relations').open, 'lecteur pas fermé');
+    attendre(c.requetes.every(q => q.methode === 'GET'), 'modification');
+    attendre(c.requetes.some(q => q.url.searchParams.get('alt') === 'media'), 'PDF non lu par le Drive');
+    // Connexion depuis l'écran : identifiant écrit, page de Google demandée avec ce compte.
+    el('adresse-compte-relations').value = 'Autre-Compte-FICTIF@id.gle';
+    el('connecter-compte-relations').click();
+    attendreEgal(c.redirections.at(-1).searchParams.get('login_hint'), 'autre-compte-fictif@id.gle', 'compte demandé');
+    attendre(/PAS ton compte personnel/.test(el('resume-compte-relations').textContent), 'avertissement');
+    // Rien d'automatique : seul le branchement des boutons (hors tests).
+    const fin = SOURCE_RELATIONS_COMPTE.slice(SOURCE_RELATIONS_COMPTE.lastIndexOf('})();'));
+    attendreEgal(fin.match(/relationsCompte\.\w+/g), ['relationsCompte.brancher', 'relationsCompte.chargerPdfjs'], 'départ automatique');
+    attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(fin), 'branché dans les tests');
   });
 
   test('Sélecteur : le rôle « relations » rattache le choix à Cap (numéro du projet) ; les autres dossiers gardent leur réglage', () => {
@@ -6714,8 +6960,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v65['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v65")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v66['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v66")
 
 
 def verifier_precache_fichiers_existent():
@@ -6836,6 +7082,8 @@ def construire_page():
         "SOURCE_ECRAN_EAU": "ecran_eau.js",
         "SOURCE_RELATIONS": "relations.js",
         "SOURCE_RELATIONS_CREATION": "relations_creation.js",
+        "SOURCE_GOOGLE_COMPTE_RELATIONS": "google_compte_relations.js",
+        "SOURCE_RELATIONS_COMPTE": "relations_compte.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }
@@ -6873,6 +7121,11 @@ sessionStorage.setItem('cap_eau_vue_v1', 'oui');
 window.CAP_TESTS = true;
 </script>
 {corps_body}
+<!-- pdf.js chargé d'avance dans les tests (dans Cap : à la demande, voir relations_compte.js), avec son
+     « worker » dans la page, comme la visionneuse de Zencoder : Edge sans fenêtre n'attend pas les
+     chargements faits plus tard. -->
+<script src="/pdfjs/pdf.worker.min.js"></script>
+<script src="/pdfjs/pdf.min.js"></script>
 {scripts}
 <script>const SOURCE_STOCKAGE = {source_json};</script>
 <script>const SOURCE_DICTEE = {source_dictee_json};</script>
@@ -6891,6 +7144,10 @@ class Gestionnaire(BaseHTTPRequestHandler):
             type_contenu = "text/html; charset=utf-8"
         elif chemin.startswith("/src/") and chemin[5:] in SOURCES:
             corps = (APP / chemin[5:]).read_bytes()
+            type_contenu = "text/javascript; charset=utf-8"
+        elif chemin in ("/pdfjs/pdf.min.js", "/pdfjs/pdf.worker.min.js"):
+            # pdf.js copié dans Cap (lecteur de PDF), chargé seulement au premier PDF.
+            corps = (APP / chemin[1:]).read_bytes()
             type_contenu = "text/javascript; charset=utf-8"
         else:
             self.send_error(404)

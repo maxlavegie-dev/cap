@@ -490,8 +490,25 @@
     <button id="visibilite-relations" type="button">Essai de visibilité « Relations » (lecture seule)</button>
     <button id="montrer-relations" type="button">Montrer « Relations » à Google (essai)</button>
     <p id="resume-visibilite-relations" class="relations-gros" role="status" hidden></p>
+    <!-- Compte Google neuf dédié à Cap (07/11/2026, essai) : lecture seule, « Relations » seulement. -->
+    <label for="adresse-compte-relations">Identifiant du compte Cap (il reste sur ce téléphone)</label>
+    <input id="adresse-compte-relations" type="email" autocomplete="off" spellcheck="false" autocapitalize="off">
+    <button id="connecter-compte-relations" type="button">Connecter le compte Cap (lecture seule)</button>
+    <button id="compter-compte-relations" type="button">Compter ce que Cap voit dans le compte Cap</button>
+    <p id="resume-compte-relations" class="relations-gros" role="status" hidden></p>
+    <button id="pdf-compte-relations" class="relations-gros-bouton" type="button" hidden>Afficher un PDF dans Cap</button>
     <p id="diagnostic-picker" role="status" hidden></p>
     <p class="erreur" role="alert" hidden></p>
+  </dialog>
+  <!-- Lecteur de PDF dans Cap (07/11/2026) : pages dessinées par pdf.js, copié en local. -->
+  <dialog id="lecteur-pdf-relations" aria-labelledby="page-pdf-relations">
+    <p id="page-pdf-relations" class="relations-gros" role="status"></p>
+    <canvas id="canvas-pdf-relations"></canvas>
+    <div class="lecteur-pdf-boutons">
+      <button id="pdf-precedente-relations" class="relations-gros-bouton" type="button">Page précédente</button>
+      <button id="pdf-suivante-relations" class="relations-gros-bouton" type="button">Page suivante</button>
+      <button id="pdf-fermer-relations" class="relations-gros-bouton" type="button">Fermer</button>
+    </div>
   </dialog>
   <!-- Dossiers « Relations », étape 3 (06/11/2026) : écran de vérification avant toute création.
        Étape 4 : le bouton « Créer UN dossier d'essai » (une seule personne) ; étape 5 : le bouton de toutes les personnes. -->
@@ -715,6 +732,7 @@
   <script src="indices_rangement.js"></script>
   <script src="sous_categories.js"></script>
   <script src="reglages_google.js"></script>
+  <script src="google_compte_relations.js"></script>
   <script src="google_connexion.js"></script>
   <script src="cle_picker.js"></script>
   <script src="google_picker.js"></script>
@@ -771,6 +789,7 @@
   <script src="emetteur.js"></script>
   <script src="relations.js"></script>
   <script src="relations_creation.js"></script>
+  <script src="relations_compte.js"></script>
   <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>

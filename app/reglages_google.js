@@ -9,6 +9,11 @@ const REGLAGES_GOOGLE = Object.freeze({
     'https://www.googleapis.com/auth/drive.file',
     'https://www.googleapis.com/auth/calendar.app.created'
   ]),
+  // Compte Google NEUF dédié à Cap, pour « Relations » seulement (07/11/2026) : lecture seule de SON
+  // Drive. Jamais demandé pour le compte personnel de Max (voir google_compte_relations.js).
+  autorisations_relations: Object.freeze([
+    'https://www.googleapis.com/auth/drive.readonly'
+  ]),
   nom_fichier_taches: 'Cap – FICTIF – Tâches',
   onglets: Object.freeze({
     taches: 'Tâches',

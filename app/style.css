@@ -2916,3 +2916,8 @@ html.sans-eau .bouton-eau {
 #resume-relations {
   white-space: pre-line;
 }
+
+/* Lecteur de PDF dans Cap (07/11/2026) : la page prend la largeur de l'écran. */
+#canvas-pdf-relations { display: block; width: 100%; height: auto; background: #fff; }
+.lecteur-pdf-boutons { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.75rem; }
+#resume-compte-relations { white-space: pre-line; }
