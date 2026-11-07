@@ -2466,6 +2466,7 @@ TESTS_JS = r"""
       attendre(r.options.body === undefined, 'compte Cap : contenu envoyé');
       f.autorisations.push(new Headers(r.options.headers).get('Authorization'));
       if (r.url.pathname === '/drive/v3/about') return reponseGoogle({ user: { emailAddress: f.compte } });
+      if (r.url.pathname === '/drive/v3/files/root') return reponseGoogle({ id: 'root' });
       const media = /^\/drive\/v3\/files\/([^/]+)$/.exec(r.url.pathname);
       if (media && r.url.searchParams.get('alt') === 'media') {
         const x = f.fichiers.find(y => y.id === decodeURIComponent(media[1]));
@@ -2476,12 +2477,13 @@ TESTS_JS = r"""
       const parent = /^'([^']+)' in parents and trashed=false$/.exec(q);
       let liste;
       if (parent) liste = f.fichiers.filter(x => x.parents[0] === parent[1]);
+      else if (q === 'trashed=false') liste = f.fichiers;
       else if (q === `name='Relations' and mimeType='${DOSSIER_F}' and 'root' in parents and trashed=false`) {
         liste = f.fichiers.filter(x => x.name === 'Relations' && x.mimeType === DOSSIER_F && x.parents[0] === 'root');
       } else throw new Error(`recherche inattendue : ${q}`);
       // Pages de 2 éléments : la suite (nextPageToken) doit être lue.
       const debut = Number(r.url.searchParams.get('pageToken') || 0);
-      return reponseGoogle({ files: liste.slice(debut, debut + 2).map(({ id, name, mimeType }) => ({ id, name, mimeType })),
+      return reponseGoogle({ files: liste.slice(debut, debut + 2).map(({ id, name, mimeType, parents }) => ({ id, name, mimeType, parents })),
         ...(debut + 2 < liste.length ? { nextPageToken: String(debut + 2) } : {}) });
     };
     return f;
@@ -2607,6 +2609,82 @@ TESTS_JS = r"""
     f2.ajouter('Relations', 'application/vnd.google-apps.folder');
     f2.ajouter('Relations', 'application/vnd.google-apps.folder');
     attendre(/^2 dossiers « Relations »/.test(module.resumer(await module.compter(m2))), 'deux Relations');
+  });
+
+  // « Documents » FICTIF (lot 2) : dossiers sur plusieurs niveaux, PDF, boucle de dossiers (garde-fou).
+  function remplirDocumentsFictif(f) {
+    const D = 'application/vnd.google-apps.folder';
+    const docs = f.ajouter('Documents', D);
+    const papiers = f.ajouter('01 Papiers FICTIF', D, docs.id);
+    const n1 = f.ajouter('Niveau 1 FICTIF', D, papiers.id);
+    const n2 = f.ajouter('Niveau 2 FICTIF', D, n1.id);
+    const n3 = f.ajouter('Niveau 3 FICTIF', D, n2.id);
+    const n4 = f.ajouter('Niveau 4 FICTIF', D, n3.id);
+    const profond = f.ajouter('papier FICTIF secret profond.pdf', 'application/pdf', n4.id, pdfFictif());
+    f.ajouter('vide FICTIF secret.txt', 'text/plain', n1.id);
+    const maison = f.ajouter('02 Maison FICTIVE', D, docs.id);
+    f.ajouter('plan FICTIF secret.jpg', 'image/jpeg', maison.id);
+    f.ajouter('bail FICTIF secret.pdf', 'application/pdf', maison.id, pdfFictif());
+    // Boucle : « Niveau 1 » est aussi rangé dans « Niveau 2 » (compté une seule fois).
+    n1.parents.push(n2.id);
+    // « 02 Maison » est aussi rangé dans « Niveau 3 » : compté une seule fois (avec « 01 Papiers », lu avant).
+    maison.parents.push(n3.id);
+    f.ajouter('03 Vide FICTIF', D, docs.id);
+    f.ajouter('perdu FICTIF secret.pdf', 'application/pdf', docs.id, pdfFictif());
+    return { profond };
+  }
+
+  await testAsync('Compte Cap (lot 2, FAUX Drive) : comptage rapide en quelques demandes (liste complète, pas une demande par dossier), « Relations » et « Documents » à toute profondeur, boucle sans effet, aucun nom de fichier', async c => {
+    const f = fauxDriveCompteCap(c);
+    remplirCompteCapFictif(f);
+    const { profond } = remplirDocumentsFictif(f);
+    const { m } = connecterCompteFictif(c);
+    const module = relationsCompte0();
+    const r = await module.compter(m);
+    // Relations inchangé.
+    attendreEgal(module.resumer(r).split('\n').at(-1), 'Total : 3 MP3, 4 image(s), 2 PDF, 2 album(s).', 'Relations');
+    const d = r.documents;
+    attendreEgal(d.lignes.map(l => [l.nomDossier, l.dossiers, l.pdf, l.images, l.autres]),
+      [['01 Papiers FICTIF', 5, 2, 1, 1], ['02 Maison FICTIVE', 0, 0, 0, 0], ['03 Vide FICTIF', 0, 0, 0, 0]], 'Documents');
+    attendre(d.pdfs.includes(profond.id) && d.pdfs.length === 3, 'PDF de Documents');
+    const texte = module.resumerDocuments(d);
+    attendreEgal(texte, ['« Documents » : 3 dossier(s) au premier niveau.',
+      '01 Papiers FICTIF : 5 sous-dossier(s) · 2 PDF · 1 image(s) · 1 autre(s) fichier(s)',
+      '02 Maison FICTIVE : 0 sous-dossier(s) · 0 PDF · 0 image(s) · 0 autre(s) fichier(s)',
+      '03 Vide FICTIF : 0 sous-dossier(s) · 0 PDF · 0 image(s) · 0 autre(s) fichier(s)',
+      '1 fichier(s) directement dans « Documents ».',
+      'Total « Documents » : 8 dossier(s), 3 PDF, 1 image(s), 1 autre(s) fichier(s).'].join('\n'), 'résumé Documents');
+    attendre(!/secr|Niveau \d|\.pdf|\.jpg|\.txt/i.test(texte), 'un nom de fichier ou de sous-dossier est affiché');
+    // Quelques demandes : qui est connecté, la racine, puis la liste complète (pages de 2 ici).
+    const chemins = c.requetes.map(q => q.url.pathname);
+    attendreEgal(chemins.slice(0, 2), ['/drive/v3/about', '/drive/v3/files/root'], 'premières demandes');
+    attendreEgal(c.requetes.length, 2 + Math.ceil(f.fichiers.length / 2), 'nombre de demandes');
+    attendre(c.requetes.slice(2).every(q => q.url.searchParams.get('q') === 'trashed=false'), 'une demande par dossier');
+    attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
+    attendre(/files\(id,name,mimeType,parents\)/.test(c.requetes[2].url.searchParams.get('fields')), 'parents non demandés');
+    // Sans « Documents », ou avec deux : message clair.
+    const c2 = contexteGoogle();
+    const f2 = fauxDriveCompteCap(c2);
+    const { m: m2 } = connecterCompteFictif(c2);
+    attendre(/^Aucun dossier « Documents »/.test(module.resumerDocuments((await module.compter(m2)).documents)), 'aucun Documents');
+    f2.ajouter('Documents', 'application/vnd.google-apps.folder');
+    f2.ajouter('Documents', 'application/vnd.google-apps.folder');
+    attendre(/^2 dossiers « Documents »/.test(module.resumerDocuments((await module.compter(m2)).documents)), 'deux Documents');
+  });
+
+  await testAsync('Compte Cap (lot 2, écran, FAUX Drive) : le comptage montre « Relations » puis « Documents », et le bouton PDF compte aussi les PDF de « Documents »', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    remplirCompteCapFictif(f);
+    remplirDocumentsFictif(f);
+    const { m } = connecterCompteFictif(c);
+    const module = relationsCompte0();
+    const el = id => ui.parId(id);
+    module.brancher(ui.doc, { compte: m, pdfjs: () => module.chargerPdfjs(document, window) });
+    el('compter-compte-relations').click();
+    await attendreQue(() => /Total « Documents » : 8 dossier\(s\), 3 PDF/.test(el('resume-compte-relations').textContent), `écran : ${el('resume-compte-relations').textContent}`);
+    attendre(/Total : 3 MP3, 4 image\(s\), 2 PDF[^]*« Documents » : 3 dossier/.test(el('resume-compte-relations').textContent), 'ordre Relations puis Documents');
+    attendre(/1 sur 5/.test(el('pdf-compte-relations').textContent) && !el('pdf-compte-relations').hidden, `bouton PDF : ${el('pdf-compte-relations').textContent}`);
   });
 
   test('Lecteur de PDF : pdf.js chargé à la demande depuis Cap (pdfjs/, jamais Internet), une seule fois, nouvel essai possible après un échec', () => {
@@ -6983,8 +7061,8 @@ def verifier_liens_locaux():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v67['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v67")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v68['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v68")
 
 
 def verifier_precache_fichiers_existent():

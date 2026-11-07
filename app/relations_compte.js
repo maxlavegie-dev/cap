@@ -6,18 +6,22 @@
 // avec pdf.js (copié en local dans pdfjs/, comme la visionneuse de Zencoder : chaque page dessinée
 // sur un canvas). Aucun nom de fichier n'est affiché ni gardé (seulement les noms des dossiers « r_ »).
 // Rien n'est créé, modifié ni supprimé : le compte Cap ne permet que des lectures.
+// Lot 2 (07/11/2026) : comptage rapide. Cap lit d'un coup la liste de TOUS les fichiers du compte Cap
+// (avec leur dossier parent), en quelques demandes, puis reconstruit l'arbre sur le téléphone, au
+// lieu d'une demande par dossier. Compte aussi « Documents » (à la racine) : seuls les noms des
+// dossiers du premier niveau sont affichés, à l'écran seulement (rien n'est gardé ni envoyé).
 const relationsCompte = (() => {
   const drive = 'https://www.googleapis.com/drive/v3/files';
   const DOSSIER = 'application/vnd.google-apps.folder';
-  const NIVEAUX = 3;
-  const echapper = texte => String(texte).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  // Garde-fou : profondeur maximale, et chaque dossier n'est compté qu'une fois (pas de boucle).
+  const PROFONDEUR_MAX = 20;
 
   async function lister(compte, q) {
     const tous = [];
     let page = '';
     do {
       const url = new URL(drive);
-      url.search = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name,mimeType)', pageSize: '1000',
+      url.search = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name,mimeType,parents)', pageSize: '1000',
         spaces: 'drive', ...(page ? { pageToken: page } : {}) }).toString();
       const corps = await (await compte.appeler(url.href)).json();
       tous.push(...(corps.files || []));
@@ -25,7 +29,21 @@ const relationsCompte = (() => {
     } while (page);
     return tous;
   }
-  const enfants = (compte, id) => lister(compte, `'${echapper(id)}' in parents and trashed=false`);
+
+  // Tout le Drive du compte Cap en une fois (quelques pages de 1000), rangé par dossier parent.
+  async function lireArbre(compte) {
+    const racine = await (await compte.appeler(`${drive}/root?fields=id`)).json();
+    const enfantsDe = new Map();
+    for (const fichier of await lister(compte, 'trashed=false')) {
+      for (const parent of fichier.parents || []) {
+        if (!enfantsDe.has(parent)) enfantsDe.set(parent, []);
+        enfantsDe.get(parent).push(fichier);
+      }
+    }
+    return { racine: racine && racine.id, enfants: id => enfantsDe.get(id) || [] };
+  }
+  const dossiersRacine = (arbre, nom) => arbre.enfants(arbre.racine).filter(x => x.name === nom && x.mimeType === DOSSIER);
+  const parNom = liste => [...liste].sort((a, b) => String(a.name).localeCompare(String(b.name), 'fr'));
 
   function sorte(fichier) {
     const nom = String(fichier.name || '').toLowerCase();
@@ -37,29 +55,56 @@ const relationsCompte = (() => {
     return 'autres';
   }
 
-  async function compterDans(compte, id, niveau, total, pdfs) {
-    for (const fichier of await enfants(compte, id)) {
+  function compterDans(arbre, id, niveau, total, pdfs, vus) {
+    if (vus.has(id)) return;
+    vus.add(id);
+    for (const fichier of arbre.enfants(id)) {
+      if (fichier.mimeType === DOSSIER && vus.has(fichier.id)) continue;
       const s = sorte(fichier);
       total[s]++;
       if (s === 'pdf') pdfs.push(fichier.id);
-      if ((s === 'albums' || s === 'sousDossiers') && niveau < NIVEAUX) await compterDans(compte, fichier.id, niveau + 1, total, pdfs);
+      if (fichier.mimeType === DOSSIER && niveau < PROFONDEUR_MAX) compterDans(arbre, fichier.id, niveau + 1, total, pdfs, vus);
     }
   }
 
-  // « Relations » à la racine du Drive du compte Cap, puis chaque dossier « r_ » (3 niveaux).
-  async function compter(compte) {
-    const racines = await lister(compte, `name='Relations' and mimeType='${DOSSIER}' and 'root' in parents and trashed=false`);
+  // « Relations » à la racine du Drive du compte Cap, puis chaque dossier « r_ ».
+  function compterRelations(arbre) {
+    const racines = dossiersRacine(arbre, 'Relations');
     const resultat = { racines: racines.length, lignes: [], autres: 0, pdfs: [] };
     if (racines.length !== 1) return resultat;
-    const contenu = (await enfants(compte, racines[0].id)).sort((a, b) => a.name.localeCompare(b.name, 'fr'));
-    for (const fichier of contenu) {
+    const vus = new Set([racines[0].id]);
+    for (const fichier of parNom(arbre.enfants(racines[0].id))) {
       if (fichier.mimeType === DOSSIER && fichier.name.startsWith('r_')) {
         const ligne = { nomDossier: fichier.name, mp3: 0, images: 0, pdf: 0, albums: 0, sousDossiers: 0, autres: 0 };
-        await compterDans(compte, fichier.id, 1, ligne, resultat.pdfs);
+        compterDans(arbre, fichier.id, 1, ligne, resultat.pdfs, vus);
         resultat.lignes.push(ligne);
       } else resultat.autres++;
     }
     return resultat;
+  }
+
+  // « Documents » à la racine : une ligne par dossier du premier niveau (tous ses sous-dossiers compris).
+  function compterDocuments(arbre) {
+    const racines = dossiersRacine(arbre, 'Documents');
+    const resultat = { racines: racines.length, lignes: [], directs: 0, pdfs: [] };
+    if (racines.length !== 1) return resultat;
+    const vus = new Set([racines[0].id]);
+    for (const fichier of parNom(arbre.enfants(racines[0].id))) {
+      if (fichier.mimeType === DOSSIER) {
+        const t = { mp3: 0, images: 0, pdf: 0, albums: 0, sousDossiers: 0, autres: 0 };
+        compterDans(arbre, fichier.id, 1, t, resultat.pdfs, vus);
+        resultat.lignes.push({ nomDossier: fichier.name, dossiers: t.albums + t.sousDossiers, pdf: t.pdf, images: t.images, autres: t.mp3 + t.autres });
+      } else {
+        resultat.directs++;
+        if (sorte(fichier) === 'pdf') resultat.pdfs.push(fichier.id);
+      }
+    }
+    return resultat;
+  }
+
+  async function compter(compte) {
+    const arbre = await lireArbre(compte);
+    return { ...compterRelations(arbre), documents: compterDocuments(arbre) };
   }
 
   function resumer(r) {
@@ -71,6 +116,16 @@ const relationsCompte = (() => {
         + (l.sousDossiers ? ` · ${l.sousDossiers} autre(s) sous-dossier(s)` : '') + (l.autres ? ` · ${l.autres} autre(s) fichier(s)` : '')),
       ...(r.autres ? [`${r.autres} autre(s) élément(s) dans « Relations » (pas des dossiers « r_ »).`] : []),
       `Total : ${somme('mp3')} MP3, ${somme('images')} image(s), ${somme('pdf')} PDF, ${somme('albums')} album(s).`].join('\n');
+  }
+
+  function resumerDocuments(d) {
+    if (!d || d.racines === 0) return 'Aucun dossier « Documents » à la racine du Drive du compte Cap.';
+    if (d.racines > 1) return `${d.racines} dossiers « Documents » à la racine du Drive du compte Cap : garde-en un seul.`;
+    const somme = cle => d.lignes.reduce((n, ligne) => n + ligne[cle], 0);
+    return [`« Documents » : ${d.lignes.length} dossier(s) au premier niveau.`,
+      ...d.lignes.map(l => `${l.nomDossier} : ${l.dossiers} sous-dossier(s) · ${l.pdf} PDF · ${l.images} image(s) · ${l.autres} autre(s) fichier(s)`),
+      ...(d.directs ? [`${d.directs} fichier(s) directement dans « Documents ».`] : []),
+      `Total « Documents » : ${d.lignes.length + somme('dossiers')} dossier(s), ${d.pdfs.length} PDF, ${somme('images')} image(s), ${somme('autres')} autre(s) fichier(s).`].join('\n');
   }
 
   // pdf.js chargé seulement au premier PDF (1,4 Mo), depuis Cap lui-même, jamais d'Internet.
@@ -144,8 +199,8 @@ const relationsCompte = (() => {
       ecrire('Lecture du Drive du compte Cap… (rien n’est modifié)');
       try {
         const r = await compter(compte);
-        pdfs = r.pdfs;
-        ecrire(resumer(r));
+        pdfs = [...r.pdfs, ...r.documents.pdfs];
+        ecrire(`${resumer(r)}\n\n${resumerDocuments(r.documents)}`);
         if (pdfs.length) { boutonPdf.textContent = `Afficher un PDF dans Cap (1 sur ${pdfs.length})`; boutonPdf.hidden = false; }
       } catch (erreur) { ecrire(`${raison(erreur)} Rien n’a été modifié.`); }
     }));
@@ -181,7 +236,7 @@ const relationsCompte = (() => {
     fermer.addEventListener('click', () => { lecteur.close(); if (pdf) { pdf.destroy(); pdf = null; } });
   }
 
-  return { compter, resumer, chargerPdfjs, ouvrirPdf, dessinerPage, brancher };
+  return { compter, resumer, resumerDocuments, chargerPdfjs, ouvrirPdf, dessinerPage, brancher };
 })();
 
 if (!(typeof window !== 'undefined' && window.CAP_TESTS)) {
