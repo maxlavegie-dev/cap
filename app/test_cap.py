@@ -7366,8 +7366,8 @@ def verifier_lecteur_mp3_zencoder():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v70['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v70")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v71['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v71")
 
 
 def verifier_precache_fichiers_existent():
