@@ -3295,3 +3295,38 @@ body.vue-complete #zone-recherche { display: flex; }
 #ecran-reglages #texte-etat-google,
 #ecran-reglages #dernier-envoi { flex-basis: auto; }
 #ecran-reglages #etat-synchro { align-items: stretch; }
+
+/* Cadre de téléphone (07/11/2026, demande de Max), repris de la page d'essai de Zencoder
+   (Cap_eau_essai_v2_2026_11_07, lue sans rien y toucher) : sur un écran large (ordinateur, au moins 560 px),
+   Cap s'affiche dans un Pixel 7a dessiné, à la même taille que chez Zencoder ; l'eau garde donc la même
+   finesse. Sur le téléphone (Cap ne tourne qu'en portrait), rien ne change : plein écran. */
+@media (min-width: 560px) {
+  html { height: 100%; background: #d9e4e2; }
+  body {
+    position: relative;
+    width: min(90vw, 90vh * 0.45);
+    height: min(90vh, 90vw * (20 / 9));
+    aspect-ratio: 9 / 20;
+    margin: max(5vh, calc((100vh - min(90vh, 90vw * (20 / 9))) / 2)) auto 0;
+    border: 10px solid #2b2d2e;
+    border-radius: 46px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+    /* Le cadre contient aussi l'eau et l'alerte (éléments « fixés ») : ils restent dans l'écran dessiné. */
+    transform: translateZ(0);
+    /* Coins arrondis de l'écran : l'eau floutée ne déborde pas dans les coins du cadre. */
+    clip-path: inset(0 round 36px);
+  }
+  body::before {
+    content: '';
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    z-index: 5;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #3a3c3d;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+}
