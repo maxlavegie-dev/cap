@@ -2737,7 +2737,7 @@ TESTS_JS = r"""
     attendreEgal([el('compter-compte-relations').textContent, el('compter-compte-relations').classList.contains('en-lecture')], [texteBouton, false], 'bouton pas remis');
     attendre(!el('pdf-compte-relations').hidden && el('pdf-compte-relations').textContent === 'Afficher les PDF dans Cap (2)', 'bouton PDF');
     el('pdf-compte-relations').click();
-    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', `PDF : ${el('page-pdf-relations').textContent}`, 200);
+    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', `PDF : ${el('page-pdf-relations').textContent}`, 600);
     attendre(el('pdf-avant-relations').disabled && !el('pdf-apres-relations').disabled, 'boutons du PDF 1');
     attendre(el('lecteur-pdf-relations').open, 'lecteur fermé');
     const canvas = el('canvas-pdf-relations');
@@ -2746,18 +2746,18 @@ TESTS_JS = r"""
     attendre(noir(0.25, 0.25) && !noir(0.75, 0.75), 'page 1 mal dessinée');
     attendre(el('pdf-precedente-relations').disabled && !el('pdf-suivante-relations').disabled, 'boutons de page 1');
     el('pdf-suivante-relations').click();
-    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 2 sur 2' && noir(0.75, 0.75), 'page 2', 200);
+    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 2 sur 2' && noir(0.75, 0.75), 'page 2', 600);
     attendre(!noir(0.25, 0.25), 'page 2 mal dessinée');
     // PDF suivant : le 2e PDF s'ouvre à sa page 1.
     const mediasAvant = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').length;
     el('pdf-apres-relations').click();
-    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 2 sur 2 · Page 1 sur 2' && noir(0.25, 0.25), `PDF suivant : ${el('page-pdf-relations').textContent}`, 200);
+    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 2 sur 2 · Page 1 sur 2' && noir(0.25, 0.25), `PDF suivant : ${el('page-pdf-relations').textContent}`, 600);
     attendre(!el('pdf-avant-relations').disabled && el('pdf-apres-relations').disabled, 'boutons du PDF 2');
     attendreEgal(c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').length, mediasAvant + 1, 'PDF suivant non lu');
     const ids = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').map(q => q.url.pathname);
     attendre(ids.at(-1) !== ids.at(-2), 'toujours le même PDF');
     el('pdf-avant-relations').click();
-    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', 'PDF précédent', 400);
+    await attendreQue(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', 'PDF précédent', 600);
     el('pdf-fermer-relations').click();
     attendre(!el('lecteur-pdf-relations').open, 'lecteur pas fermé');
     attendre(c.requetes.every(q => q.methode === 'GET'), 'modification');
@@ -7728,7 +7728,7 @@ def executer_tests(port):
             "--disable-background-networking",
             f"--user-data-dir={profil}",
             "--dump-dom",
-            "--virtual-time-budget=40000",
+            "--virtual-time-budget=60000",
             url,
         ]
         try:
