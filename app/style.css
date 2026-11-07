@@ -2963,3 +2963,31 @@ html.sans-eau .bouton-eau {
   border-bottom: 2px solid currentColor;
 }
 #resume-documents-compte { white-space: pre-line; }
+
+/* Musique de « Relations » (07/11/2026) : un morceau par ligne, gros numéro, nom sur une ligne. */
+.ligne-morceau {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 64px;
+  margin: 6px 0;
+  text-align: left;
+  font-size: 1.4rem;
+}
+.numero-morceau {
+  flex: none;
+  min-width: 2.2em;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+}
+.nom-morceau {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.titre-liste-morceaux { font-size: 1.5rem; margin: 1rem 0 0.25rem; }
+#cadre-lecteur-mp3 { display: block; width: 100%; height: 70vh; border: 0; border-radius: 12px; }

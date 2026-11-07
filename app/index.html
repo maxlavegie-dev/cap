@@ -509,9 +509,23 @@
     <p id="resume-compte-relations" class="relations-gros bloc-resultat" role="status" hidden></p>
     <p id="resume-documents-compte" class="relations-gros bloc-resultat" role="status" hidden></p>
     <button id="pdf-compte-relations" class="relations-gros-bouton" type="button" hidden>Afficher les PDF dans Cap</button>
+    <button id="musique-compte-relations" class="relations-gros-bouton" type="button">Écouter les MP3 de « Relations »</button>
     <hr class="separation-reglages">
     <p id="diagnostic-picker" role="status" hidden></p>
     <p class="erreur" role="alert" hidden></p>
+  </dialog>
+  <!-- Musique de « Relations » (07/11/2026) : liste des MP3, puis le lecteur de Zencoder (repris tel quel). -->
+  <dialog id="musique-relations" aria-labelledby="titre-musique-relations">
+    <h2 id="titre-musique-relations" tabindex="-1">Musique de « Relations »</h2>
+    <p id="etat-musique-relations" class="relations-gros" role="status"></p>
+    <div id="liste-musique-relations"></div>
+    <button id="retour-musique-relations" class="relations-gros-bouton" type="button" hidden>Retour aux dossiers</button>
+    <button id="fermer-musique-relations" class="relations-gros-bouton" type="button">Fermer</button>
+  </dialog>
+  <dialog id="lecteur-mp3-relations" aria-labelledby="etat-lecteur-mp3">
+    <p id="etat-lecteur-mp3" class="relations-gros" role="status"></p>
+    <iframe id="cadre-lecteur-mp3" title="Lecteur MP3"></iframe>
+    <button id="fermer-lecteur-mp3" class="relations-gros-bouton" type="button">Arrêter et fermer</button>
   </dialog>
   <!-- Lecteur de PDF dans Cap (07/11/2026) : pages dessinées par pdf.js, copié en local. -->
   <dialog id="lecteur-pdf-relations" aria-labelledby="page-pdf-relations">
@@ -806,6 +820,7 @@
   <script src="attente.js"></script>
   <script src="relations_creation.js"></script>
   <script src="relations_compte.js"></script>
+  <script src="relations_mp3.js"></script>
   <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
   <script src="mode_trier.js"></script>

@@ -11,7 +11,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "attente.js", "relations_creation.js", "relations_compte.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "attente.js", "relations_creation.js", "relations_compte.js", "relations_mp3.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "app.js", "ecran_eau.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -2483,7 +2483,8 @@ TESTS_JS = r"""
       } else throw new Error(`recherche inattendue : ${q}`);
       // Pages de 2 éléments : la suite (nextPageToken) doit être lue.
       const debut = Number(r.url.searchParams.get('pageToken') || 0);
-      return reponseGoogle({ files: liste.slice(debut, debut + 2).map(({ id, name, mimeType, parents }) => ({ id, name, mimeType, parents })),
+      return reponseGoogle({ files: liste.slice(debut, debut + 2).map(({ id, name, mimeType, parents, contenu, taille }) =>
+        ({ id, name, mimeType, parents, ...(taille || contenu ? { size: String(taille || contenu.length) } : {}) })),
         ...(debut + 2 < liste.length ? { nextPageToken: String(debut + 2) } : {}) });
     };
     return f;
@@ -2661,7 +2662,7 @@ TESTS_JS = r"""
     attendreEgal(c.requetes.length, 2 + Math.ceil(f.fichiers.length / 2), 'nombre de demandes');
     attendre(c.requetes.slice(2).every(q => q.url.searchParams.get('q') === 'trashed=false'), 'une demande par dossier');
     attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
-    attendre(/files\(id,name,mimeType,parents\)/.test(c.requetes[2].url.searchParams.get('fields')), 'parents non demandés');
+    attendre(/files\(id,name,mimeType,parents,size\)/.test(c.requetes[2].url.searchParams.get('fields')), 'parents non demandés');
     // Sans « Documents », ou avec deux : message clair.
     const c2 = contexteGoogle();
     const f2 = fauxDriveCompteCap(c2);
@@ -2824,6 +2825,179 @@ TESTS_JS = r"""
       const i = SOURCE_APP.indexOf(texte);
       attendre(i > 0 && !/^[^)]*\)?, true\)/.test(SOURCE_APP.slice(i + texte.length, i + texte.length + 12)), `${texte} encore effacé`);
     }
+  });
+
+  // ----- Musique de « Relations » (07/11/2026) : FAUX Drive, FAUX lecteur (sauf un test du vrai) -----
+  const relationsMp30 = () => objetIsole(SOURCE_RELATIONS_MP3, 'relationsMp3', { window: { CAP_TESTS: true } });
+  function remplirMusiqueFictive(f) {
+    const D = 'application/vnd.google-apps.folder';
+    const son = new TextEncoder().encode('ID3 son FICTIF');
+    const rel = f.ajouter('Relations', D);
+    const ana = f.ajouter('r_Ana Musique-FICTIF', D, rel.id);
+    for (const nom of ['Zèbre FICTIF.mp3', '03 - Trois FICTIF.mp3', 'alpha FICTIF.mp3', '01 Un FICTIF.mp3']) f.ajouter(nom, 'audio/mpeg', ana.id, son);
+    f.ajouter('pochette FICTIVE.jpg', 'image/jpeg', ana.id);
+    const divers = f.ajouter('Divers FICTIF', D, ana.id);
+    f.ajouter('caché FICTIF.mp3', 'application/octet-stream', divers.id, son);
+    const album = f.ajouter('Album Été FICTIF', D, ana.id);
+    for (const nom of ['10 Dix FICTIF.mp3', '2 Deux FICTIF.mp3', '01 Premier FICTIF.mp3', 'Bonus FICTIF.mp3']) f.ajouter(nom, 'audio/mpeg', album.id, son);
+    f.ajouter('Album vide FICTIF', D, ana.id);
+    const gros = f.ajouter('99 Énorme FICTIF.mp3', 'audio/mpeg', ana.id, son);
+    gros.taille = 70 * 1000 * 1000;
+    const bob = f.ajouter('r_Bob Seul-FICTIF', D, rel.id);
+    const seul = f.ajouter('Seul FICTIF.mp3', 'audio/mpeg', bob.id, son);
+    f.ajouter('r_Zoé Sans-Musique-FICTIF', D, rel.id);
+    f.ajouter('perdu FICTIF.mp3', 'audio/mpeg', rel.id, son);
+    return { seul, gros };
+  }
+  function fauxLecteurZencoder() {
+    const appels = [];
+    return { appels, objet: { jouerFichier: (adresse, titre) => appels.push(['jouer', adresse, titre]), arreter: () => appels.push(['arreter']) } };
+  }
+  function fausseAdresses() {
+    const faites = [];
+    const liberees = [];
+    let n = 0;
+    return { faites, liberees, createObjectURL: contenu => { faites.push(contenu); return `blob:FICTIF-${++n}`; }, revokeObjectURL: a => liberees.push(a) };
+  }
+
+  test('Musique : noms affichés sans extension ni numéro, ordre numéro puis alphabétique', () => {
+    const m = relationsMp30();
+    attendreEgal(['03 - Trois FICTIF.mp3', '01Un.MP3', '12.mp3', 'Sans numéro FICTIF.mp3'].map(m.nomMorceau), ['Trois FICTIF', 'Un', '12', 'Sans numéro FICTIF'], 'noms');
+    // Un nom commençant par un signe (« (Live) », « _ ») passe après les morceaux numérotés.
+    const tries = m.trier(['b.mp3', '(Live) FICTIF.mp3', '10 x.mp3', 'A.mp3', '_intro FICTIF.mp3', '2 y.mp3', '01 z.mp3'].map(nomFichier => ({ nomFichier })));
+    attendreEgal(tries.slice(0, 3).map(x => x.nomFichier), ['01 z.mp3', '2 y.mp3', '10 x.mp3'], 'numéros d’abord');
+    attendreEgal(tries.slice(3).map(x => x.nomFichier).filter(n => /^[Ab]/.test(n)), ['A.mp3', 'b.mp3'], 'ordre alphabétique');
+  });
+
+  await testAsync('Musique (FAUX Drive) : MP3 d’un dossier « r_ » (morceaux libres puis albums en liste de lecture, numéros continus), dossiers sans musique écartés, lectures seulement', async c => {
+    const f = fauxDriveCompteCap(c);
+    remplirMusiqueFictive(f);
+    const { m } = connecterCompteFictif(c);
+    const arbre = await relationsCompte0().lireArbre(m);
+    const r = relationsMp30().dossiersAvecMp3(arbre, relationsCompte0().sorte);
+    attendreEgal(r.dossiers.map(d => [d.nom, d.musique.total]), [['r_Ana Musique-FICTIF', 10], ['r_Bob Seul-FICTIF', 1]], 'dossiers');
+    const ana = r.dossiers[0].musique;
+    attendreEgal(ana.libres.map(x => [x.numero, x.nom]), [[1, 'Un FICTIF'], [2, 'Trois FICTIF'], [3, 'Énorme FICTIF'], [4, 'alpha FICTIF'], [5, 'caché FICTIF'], [6, 'Zèbre FICTIF']], 'morceaux libres');
+    attendreEgal(ana.albums.map(a => [a.nom, a.morceaux.map(x => [x.numero, x.nom])]),
+      [['Album Été FICTIF', [[7, 'Premier FICTIF'], [8, 'Deux FICTIF'], [9, 'Dix FICTIF'], [10, 'Bonus FICTIF']]]], 'album');
+    attendre(ana.libres[2].taille === 70 * 1000 * 1000, 'taille lue');
+    attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
+  });
+
+  await testAsync('Musique (écran, FAUX Drive) : dossiers en très gros, liste un morceau par ligne (gros numéro + nom), un appui lance le morceau dans le lecteur de Zencoder ; arrêter libère la mémoire', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    const { gros } = remplirMusiqueFictive(f);
+    const { m } = connecterCompteFictif(c);
+    const el = id => ui.parId(id);
+    const z = fauxLecteurZencoder();
+    const adresses = fausseAdresses();
+    let chargements = 0;
+    relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte,
+      lecteur: async () => { chargements++; return z.objet; }, urls: adresses });
+    el('musique-compte-relations').click();
+    attendre(el('musique-relations').open, 'fenêtre de musique fermée');
+    await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.choix-grand-affichage').length === 2, `dossiers : ${el('etat-musique-relations').textContent}`);
+    attendreEgal([...el('liste-musique-relations').querySelectorAll('button')].map(b => b.textContent), ['r_Ana Musique-FICTIF (10 MP3)', 'r_Bob Seul-FICTIF (1 MP3)'], 'boutons des dossiers');
+    el('liste-musique-relations').querySelector('button').click();
+    const lignes = [...el('liste-musique-relations').querySelectorAll('button.ligne-morceau')];
+    attendreEgal(lignes.map(b => [b.querySelector('.numero-morceau').textContent, b.querySelector('.nom-morceau').textContent]).slice(0, 2), [['1', 'Un FICTIF'], ['2', 'Trois FICTIF']], 'lignes');
+    attendreEgal(lignes.length, 10, 'nombre de lignes');
+    attendreEgal([...el('liste-musique-relations').querySelectorAll('h3')].map(h => h.textContent), ['Morceaux', 'Album Été FICTIF (liste de lecture, 4)'], 'titres');
+    // Une seule ligne : gros numéro et nom côte à côte, nom coupé s'il est trop long.
+    const styleNom = ui.cadre.contentWindow.getComputedStyle(lignes[0].querySelector('.nom-morceau'));
+    attendre(styleNom.whiteSpace === 'nowrap' && styleNom.textOverflow === 'ellipsis', 'nom sur plusieurs lignes');
+    attendre(parseFloat(ui.cadre.contentWindow.getComputedStyle(lignes[0].querySelector('.numero-morceau')).fontSize) >= 30, 'numéro pas assez gros');
+    attendre(!el('retour-musique-relations').hidden, 'retour aux dossiers caché');
+    attendreEgal(z.appels.length, 0, 'lancé sans appui');
+    // Appui sur le morceau 2 : lu par le compte Cap, donné au lecteur de Zencoder.
+    lignes[1].click();
+    attendre(el('lecteur-mp3-relations').open, 'lecteur pas ouvert');
+    await attendreQue(() => z.appels.length === 1, `lecteur : ${el('etat-lecteur-mp3').textContent}`);
+    attendreEgal(z.appels[0], ['jouer', 'blob:FICTIF-1', '2. Trois FICTIF'], 'morceau lancé');
+    const media = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media');
+    attendreEgal(media.map(q => decodeURIComponent(q.url.pathname.split('/').pop())), [f.fichiers.find(x => x.name === '03 - Trois FICTIF.mp3').id], 'mauvais fichier lu');
+    attendreEgal(el('etat-lecteur-mp3').textContent, 'Morceau 2 : Trois FICTIF', 'état');
+    // Autre morceau : l'adresse précédente est libérée.
+    lignes[6].click();
+    await attendreQue(() => z.appels.length === 2, 'deuxième morceau');
+    attendreEgal(z.appels[1], ['jouer', 'blob:FICTIF-2', '7. Premier FICTIF'], 'morceau de l’album');
+    attendreEgal(adresses.liberees, ['blob:FICTIF-1'], 'mémoire non libérée');
+    // Trop gros : refusé sans rien charger.
+    const avant = c.requetes.length;
+    lignes[2].click();
+    await attendreQue(() => /trop gros/.test(el('etat-lecteur-mp3').textContent), 'gros fichier');
+    attendreEgal(c.requetes.length, avant, 'gros fichier chargé');
+    attendre(gros.taille > relationsMp30().TAILLE_MAX, 'taille');
+    // Arrêter et fermer : arrêt, mémoire libérée, chargé une seule fois.
+    el('fermer-lecteur-mp3').click();
+    attendre(!el('lecteur-mp3-relations').open, 'lecteur resté ouvert');
+    attendreEgal(z.appels.at(-1), ['arreter'], 'pas arrêté');
+    attendreEgal(adresses.liberees, ['blob:FICTIF-1', 'blob:FICTIF-2'], 'mémoire non libérée à la fermeture');
+    attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
+    // Retour aux dossiers, puis dossier d'un seul morceau : lancement direct.
+    el('retour-musique-relations').click();
+    el('liste-musique-relations').querySelectorAll('button')[1].click();
+    await attendreQue(() => z.appels.length === 4 && z.appels[3][2] === '1. Seul FICTIF', `lancement direct : ${JSON.stringify(z.appels)}`);
+    attendre(el('lecteur-mp3-relations').open, 'lecteur pas ouvert pour un seul morceau');
+  });
+
+  await testAsync('Musique (écran, FAUX Drive) : un seul dossier avec de la musique = sa liste tout de suite ; fermer sans avoir joué ne charge pas le lecteur ; connexion expirée = message, rien lu', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    const D = 'application/vnd.google-apps.folder';
+    const rel = f.ajouter('Relations', D);
+    const r = f.ajouter('r_Unique FICTIF', D, rel.id);
+    f.ajouter('01 A FICTIF.mp3', 'audio/mpeg', r.id, new Uint8Array(4));
+    f.ajouter('02 B FICTIF.mp3', 'audio/mpeg', r.id, new Uint8Array(4));
+    const { m } = connecterCompteFictif(c);
+    const el = id => ui.parId(id);
+    let chargements = 0;
+    relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte,
+      lecteur: async () => { chargements++; return fauxLecteurZencoder().objet; }, urls: fausseAdresses() });
+    el('musique-compte-relations').click();
+    await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.ligne-morceau').length === 2, 'liste directe');
+    attendre(el('retour-musique-relations').hidden, 'retour inutile affiché');
+    el('fermer-lecteur-mp3').click();
+    attendreEgal(chargements, 0, 'lecteur chargé pour rien');
+    c.maintenant += 3600 * 1000;
+    el('liste-musique-relations').querySelector('button.ligne-morceau').click();
+    await attendreQue(() => /Morceau non lu : .*expirée/.test(el('etat-lecteur-mp3').textContent), `expiration : ${el('etat-lecteur-mp3').textContent}`);
+    attendre(!el('etat-lecteur-mp3').classList.contains('en-lecture'), 'rond resté');
+  });
+
+  await testAsync('Musique : chargement du lecteur de Zencoder dans un cadre (lecteur_mp3/index.html), une seule fois ; nouvel essai si le lecteur ne répond pas', async () => {
+    // Le vrai cadre ne peut pas être chargé dans ces tests (temps simulé du navigateur) : faux cadre.
+    const fauxCadre = () => {
+      const ecouteurs = [];
+      return { ecouteurs, contentWindow: {}, set src(v) { this.adresse = v; }, addEventListener: (type, f) => ecouteurs.push([type, f]) };
+    };
+    const module = relationsMp30();
+    const cadre = fauxCadre();
+    const charger = module.chargeurLecteur(cadre);
+    const p1 = charger();
+    attendre(charger() === p1, 'chargé deux fois');
+    attendreEgal(cadre.adresse, 'lecteur_mp3/index.html', 'adresse du lecteur');
+    const zencoder = { jouerFichier() {}, arreter() {} };
+    cadre.contentWindow.lecteurMp3Zencoder = zencoder;
+    cadre.ecouteurs[0][1]();
+    attendre(await p1 === zencoder, 'lecteur');
+    // Page chargée sans la ligne ajoutée : refus, puis nouvel essai possible.
+    const cadre2 = fauxCadre();
+    const charger2 = module.chargeurLecteur(cadre2);
+    const p2 = charger2();
+    cadre2.ecouteurs[0][1]();
+    await attendreRejet(() => p2, 'pas pu démarrer');
+    charger2();
+    attendreEgal(cadre2.ecouteurs.length, 2, 'pas de nouvel essai');
+  });
+
+  test('Musique : la liste des dossiers et des MP3 ne va jamais vers l’IA ; rien d’effacé ni d’écrit dans le Drive', () => {
+    for (const interdit of ['cerveau', 'demandes', 'claude', 'method:', "'POST'", "'PATCH'", "'DELETE'", 'localStorage']) {
+      attendre(!SOURCE_RELATIONS_MP3.toLowerCase().includes(interdit.toLowerCase()), `relations_mp3.js contient « ${interdit} »`);
+    }
+    const fin = SOURCE_RELATIONS_MP3.slice(SOURCE_RELATIONS_MP3.lastIndexOf('})();'));
+    attendre(/!\(typeof window !== 'undefined' && window\.CAP_TESTS\)/.test(fin), 'branché dans les tests');
   });
 
   test('Search Console : les deux balises de vérification de Google sont dans la page (l’ancienne gardée), chacune une seule fois', () => {
@@ -7156,8 +7330,8 @@ def verifier_lecteur_mp3_zencoder():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v69['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v69")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v70['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v70")
 
 
 def verifier_precache_fichiers_existent():
@@ -7281,6 +7455,7 @@ def construire_page():
         "SOURCE_RELATIONS_CREATION": "relations_creation.js",
         "SOURCE_GOOGLE_COMPTE_RELATIONS": "google_compte_relations.js",
         "SOURCE_RELATIONS_COMPTE": "relations_compte.js",
+        "SOURCE_RELATIONS_MP3": "relations_mp3.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }
@@ -7342,6 +7517,10 @@ class Gestionnaire(BaseHTTPRequestHandler):
         elif chemin.startswith("/src/") and chemin[5:] in SOURCES:
             corps = (APP / chemin[5:]).read_bytes()
             type_contenu = "text/javascript; charset=utf-8"
+        elif chemin == "/lecteur_mp3/index.html":
+            # Copie du lecteur MP3 de Zencoder (chargée dans un cadre).
+            corps = (APP / chemin[1:]).read_bytes()
+            type_contenu = "text/html; charset=utf-8"
         elif chemin in ("/pdfjs/pdf.min.js", "/pdfjs/pdf.worker.min.js"):
             # pdf.js copié dans Cap (lecteur de PDF), chargé seulement au premier PDF.
             corps = (APP / chemin[1:]).read_bytes()
@@ -7371,7 +7550,7 @@ def executer_tests(port):
             "--disable-background-networking",
             f"--user-data-dir={profil}",
             "--dump-dom",
-            "--virtual-time-budget=20000",
+            "--virtual-time-budget=40000",
             url,
         ]
         try:

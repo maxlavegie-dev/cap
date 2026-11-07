@@ -21,7 +21,7 @@ const relationsCompte = (() => {
     let page = '';
     do {
       const url = new URL(drive);
-      url.search = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name,mimeType,parents)', pageSize: '1000',
+      url.search = new URLSearchParams({ q, fields: 'nextPageToken,files(id,name,mimeType,parents,size)', pageSize: '1000',
         spaces: 'drive', ...(page ? { pageToken: page } : {}) }).toString();
       const corps = await (await compte.appeler(url.href)).json();
       tous.push(...(corps.files || []));
@@ -279,7 +279,7 @@ const relationsCompte = (() => {
     fermer.addEventListener('click', () => { lecteur.close(); if (pdf) { pdf.destroy(); pdf = null; } });
   }
 
-  return { compter, resumer, resumerDocuments, chargerPdfjs, ouvrirPdf, dessinerPage, brancher };
+  return { lireArbre, sorte, compter, resumer, resumerDocuments, chargerPdfjs, ouvrirPdf, dessinerPage, brancher };
 })();
 
 if (!(typeof window !== 'undefined' && window.CAP_TESTS)) {
