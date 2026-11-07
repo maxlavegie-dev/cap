@@ -3406,6 +3406,22 @@ TESTS_JS = r"""
     attendre(!/FICTIF/.test(c.localStorage.getItem('cap_musique_reprise_v1')), 'un nom est gardé');
   });
 
+  await testAsync('Mode conversation : « Arrêter » répond au VRAI doigt (il n’est plus traversé par le toucher), sur l’accueil sous l’eau comme dans « Chercher »', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const bandeau = ui.parId('bandeau-live');
+    const bouton = ui.parId('arreter-live');
+    bandeau.hidden = false;
+    const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
+    for (const ecran of ['accueil', 'chercher']) {
+      if (ecran === 'chercher') ui.parId('basculer-vue').click();
+      const touche = ui.doc.elementFromPoint(...centre(bouton));
+      attendre(touche === bouton || bouton.contains(touche), `« Arrêter » traversé par le doigt (${ecran}) : ${touche ? (touche.id || touche.tagName) : 'rien'}`);
+      attendreEgal(ui.cadre.contentWindow.getComputedStyle(bouton).pointerEvents, 'auto', `« Arrêter » ne prend pas le toucher (${ecran})`);
+    }
+    // La barre du bas laisse toujours passer les touchers ailleurs (vers l'eau).
+    attendreEgal(ui.cadre.contentWindow.getComputedStyle(ui.doc.querySelector('footer.dictee')).pointerEvents, 'none', 'barre du bas qui capte les touchers');
+  });
+
   test('Search Console : les deux balises de vérification de Google sont dans la page (l’ancienne gardée), chacune une seule fois', () => {
     const modele = new DOMParser().parseFromString(SOURCE_HTML, 'text/html');
     const balises = modele.head.querySelectorAll('meta[name="google-site-verification"]');
@@ -7789,8 +7805,8 @@ def verifier_visionneuse_zencoder():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v73['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v73")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v74['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v74")
 
 
 def verifier_precache_fichiers_existent():

@@ -539,6 +539,9 @@ body.vue-complete #zone-recherche {
 }
 
 #arreter-live {
+  /* 07/11/2026 (accord de Max) : la barre du bas laisse passer les touchers (pointer-events: none) ;
+     « Arrêter » ne les reprenait pas et ne répondait jamais au doigt. Il les reprend maintenant. */
+  pointer-events: auto;
   min-height: 48px;
   padding: 0 18px;
   border: 0;
