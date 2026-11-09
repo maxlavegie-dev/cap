@@ -11,8 +11,12 @@ const REGLAGES_GOOGLE = Object.freeze({
   ]),
   // Compte Google NEUF dédié à Cap, pour « Relations » seulement (07/11/2026) : lecture seule de SON
   // Drive. Jamais demandé pour le compte personnel de Max (voir google_compte_relations.js).
+  // 09/11/2026 (décision de Max, tableur « Commandes vocales (Cap) ») : + drive.file, le plus petit droit d'écriture :
+  // Cap peut créer des fichiers dans le Drive du compte Cap et modifier SEULEMENT ceux qu'il a créés. Ne sert qu'après le
+  // « Autoriser » de Max. Avant : drive.readonly seul.
   autorisations_relations: Object.freeze([
-    'https://www.googleapis.com/auth/drive.readonly'
+    'https://www.googleapis.com/auth/drive.readonly',
+    'https://www.googleapis.com/auth/drive.file'
   ]),
   nom_fichier_taches: 'Cap – FICTIF – Tâches',
   onglets: Object.freeze({

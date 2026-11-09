@@ -14,8 +14,10 @@
      le style et le code du bloc. Voir bloc_visualiseur/LISEZ_MOI.txt
      pour le detail complet (ce fichier de demo n'est qu'un exemple
      d'utilisation, le bloc a brancher dans Cap est dans ce dossier). -->
-<script src="bloc_visualiseur/pdfjs/pdf.worker.min.js"></script>
-<script src="bloc_visualiseur/pdfjs/pdf.min.js"></script>
+<!-- 07/11/2026 (Claude Code, accord de Max) : pdf.js pris dans Cap (app/pdfjs, même fichier, même empreinte, pas de deuxième copie).
+     Anciens chemins : bloc_visualiseur/pdfjs/pdf.worker.min.js et bloc_visualiseur/pdfjs/pdf.min.js. -->
+<script src="../pdfjs/pdf.worker.min.js"></script>
+<script src="../pdfjs/pdf.min.js"></script>
 <link rel="stylesheet" href="bloc_visualiseur/visualiseur.css">
 <style>
   html, body {
@@ -507,7 +509,7 @@
   var INTENSITE_EAU_UNIQUE = 1;
   var intensiteEauDerriere = INTENSITE_EAU_UNIQUE;
   var intensiteEauDevant = INTENSITE_EAU_UNIQUE;
-  // 07/11/2026 (Claude Code, accord de Max) : SEULE ligne ajoutée à la visionneuse de Zencoder, pour corriger l'image invisible : l'eau devant reprend 35 % d'opacité, comme avant. Rien d'autre n'a changé.
+  // 07/11/2026 (Claude Code, accord de Max) : ligne ajoutée à la visionneuse de Zencoder, pour corriger l'image invisible : l'eau devant reprend 35 % d'opacité, comme avant. Seul autre changement (même jour, accord de Max) : les chemins de pdf.js, en haut de la page.
   intensiteEauDevant = 0.35 * INTENSITE_EAU_UNIQUE;
 
   function dessiner(tempsActuel) {

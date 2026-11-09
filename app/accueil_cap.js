@@ -15,6 +15,9 @@ const accueilCap = (() => {
   const CLE_INTENSITE = 'cap_intensite_eau'; // même clé que la maquette de Zencoder ; NON reliée pour l'instant
   // Couleurs de l'eau en mode sombre : celles de l'eau v2 de Zencoder (fond sombre, pas noir pur).
   const EAU_SOMBRE = Object.freeze([Object.freeze([34, 40, 42]), Object.freeze([16, 20, 22])]);
+  // 08/11/2026 (accord de Max) : couleurs de l'eau en mode CLAIR sur les écrans sur l'eau = celles de la visionneuse
+  // et du lecteur de Zencoder (avant : tirées du fond pâle de Cap). L'écran des tâches garde l'ancienne eau (étape 2 à part).
+  const EAU_CLAIRE = Object.freeze([Object.freeze([201, 227, 221]), Object.freeze([156, 182, 184])]);
   // Geste haut-bas : seuils réglables (accord de Max).
   const GESTE = Object.freeze({
     fractionHauteur: 0.3, // au moins 30 % de la hauteur de l'écran
@@ -23,7 +26,7 @@ const accueilCap = (() => {
     bandeHautPx: 48 // départ ignoré tout en haut (rideau des notifications d'Android)
   });
 
-  function brancher(doc, { eau = null, stockage = null, maintenant = () => Date.now(), creerPetiteEau = null } = {}) {
+  function brancher(doc, { eau = null, stockage = null, maintenant = () => Date.now(), creerPetiteEau = null, creerEauScanner = null } = {}) {
     const el = id => doc.getElementById(id);
     const racine = doc.documentElement;
     const corps = doc.body;
@@ -43,21 +46,142 @@ const accueilCap = (() => {
 
     // ----- Écrans « Autre » et « Réglages » -----
     let ecranOuvert = null;
+    const micro = el('ecran-micro'); // 08/11/2026 (étape 2)
+    const chercher = el('ecran-chercher'); // 09/11/2026 (étape 1 de l'intégration de Zencoder)
+    const messageAutre = el('message-autre');
+    // 08/11/2026 (accord de Max, étape 1) : ouvertures et retours DOUX (transition_ecrans.js). Avant : montrer
+    // faisait directement le travail de montrerDirect (gardé tel quel ci-dessous).
     function montrer(ecran) {
-      for (const e of [autre, reglages]) e.hidden = e !== ecran;
+      if (typeof transitionEcrans !== 'undefined') transitionEcrans.changer(doc, () => montrerDirect(ecran));
+      else montrerDirect(ecran);
+    }
+    function montrerDirect(ecran) {
+      if (messageAutre) { messageAutre.hidden = true; messageAutre.textContent = ''; }
+      // 08/11/2026 (étape 2) : l'écran Micro s'ajoute. Avant : for (const e of [autre, reglages]) …
+      // 09/11/2026 : + l'écran Chercher. Avant : for (const e of [autre, reglages, micro]) …
+      for (const e of [autre, reglages, micro, chercher]) if (e) e.hidden = e !== ecran;
       ecranOuvert = ecran;
       racine.classList.toggle('ecran-cap-ouvert', Boolean(ecran));
       appliquerTheme();
     }
-    el('ouvrir-autre').addEventListener('click', () => montrer(autre));
-    el('ouvrir-reglages-cap').addEventListener('click', () => montrer(reglages));
-    el('fermer-autre').addEventListener('click', () => montrer(null));
-    el('fermer-reglages').addEventListener('click', () => montrer(null));
+    // ----- 09/11/2026 (accord de Max, étape 3) : RÈGLE DU RETOUR : fermer ramène à l'écran d'où l'on vient -----
+    // Petite pile EN MÉMOIRE seulement (rien de gardé : après un retour de Google, la page repart de l'accueil).
+    // Ouvrir un écran depuis un autre note celui d'où l'on vient ; fermer (bouton, geste, « ferme ») y revient.
+    // Rouvrir un écran déjà dans la pile la raccourcit (jamais de boucle). « accueil » et « eau » à la voix la vident
+    // (événement « cap-vider-pile »). L'écran d'eau n'y entre jamais. Les fenêtres posées par-dessus ne changent pas.
+    // Écrans : 'accueil', 'ecran-autre', 'ecran-reglages', 'ecran-micro', 'ecran-chercher', 'taches' (écran des tâches).
+    const pile = [];
+    const ecranCourant = () => (vueComplete() ? 'taches' : (ecranOuvert ? ecranOuvert.id : 'accueil'));
+    function noterDepart(vers) {
+      const ici = ecranCourant();
+      if (vers === ici) return;
+      const deja = pile.indexOf(vers);
+      if (deja >= 0) pile.length = deja; // déjà dans la pile : on y revient, sans boucle
+      else if (vers === 'accueil') pile.length = 0;
+      else pile.push(ici);
+    }
+    function ouvrirEcran(ecran) {
+      noterDepart(ecran ? ecran.id : 'accueil');
+      montrer(ecran);
+    }
+    function revenir() {
+      const ici = ecranCourant();
+      const avant = pile.pop() || 'accueil';
+      const vers = avant === 'accueil' || avant === 'taches' ? null : el(avant);
+      const changer = fin => (typeof transitionEcrans !== 'undefined' ? transitionEcrans.changer(doc, fin) : fin());
+      changer(() => {
+        if (ici === 'taches' && avant !== 'taches' && !ecranComplet.hidden) basculerVue.click(); // ferme l'écran des tâches
+        montrerDirect(vers);
+        if (avant === 'taches' && ecranComplet.hidden) basculerVue.click();
+      });
+    }
+    doc.addEventListener('cap-vider-pile', () => { pile.length = 0; });
+    // Avant le 09/11/2026 : ouvrir = montrer(écran) ; fermer = montrer(null) (toujours l'accueil).
+    el('ouvrir-autre').addEventListener('click', () => ouvrirEcran(autre));
+    el('ouvrir-reglages-cap').addEventListener('click', () => ouvrirEcran(reglages));
+    el('fermer-autre').addEventListener('click', () => revenir());
+    el('fermer-reglages').addEventListener('click', () => revenir());
+    // 08/11/2026 (accord de Max, étape 2) : écran Micro. Le micro de l'accueil ouvre l'écran (aucune dictée) ;
+    // « + » et le clavier touchent « + » et « Écrire une demande » (même code, mêmes fenêtres).
+    // 09/11/2026 : « + » et la nouvelle icône sont dans l'accueil : branchés même sans écran Micro. Avant : if (micro) {
+    if (micro || el('rangee-micro-accueil')) {
+      const toucher = id => () => { const b = el(id); if (b) b.click(); };
+      if (el('ouvrir-micro')) el('ouvrir-micro').addEventListener('click', () => ouvrirEcran(micro)); // 09/11/2026 : pile (avant : montrer)
+      if (el('fermer-micro')) el('fermer-micro').addEventListener('click', () => revenir()); // 09/11/2026 : pile (avant : montrer(null))
+      if (el('micro-ajouter')) el('micro-ajouter').addEventListener('click', toucher('ajouter'));
+      if (el('micro-clavier')) el('micro-clavier').addEventListener('click', toucher('ouvrir-clavier'));
+      if (el('micro-ecrire')) el('micro-ecrire').addEventListener('click', toucher('ouvrir-clavier')); // 09/11/2026 : icône provisoire
+    }
+    // 08/11/2026 (accord de Max) : Notes et Agenda décidés mais pas encore branchés : grisés, un toucher le dit.
+    for (const [id, nom] of [['ouvrir-notes', 'Notes'], ['ouvrir-agenda', 'Agenda']]) {
+      const bouton = el(id);
+      if (bouton && messageAutre) bouton.addEventListener('click', () => { messageAutre.hidden = false; messageAutre.textContent = `${nom} : pas encore prêt.`; });
+    }
 
     // « Chercher » : l'écran des tâches et rendez-vous, avec la barre de recherche (en attendant l'étape C).
-    ouvrirChercher.addEventListener('click', () => { if (ecranComplet.hidden) basculerVue.click(); });
+    // 09/11/2026 (accord de Max) : solution d'attente REMPLACÉE par l'écran Chercher (ci-dessous) quand il existe.
+    // Ligne d'avant, gardée pour une page sans cet écran :
+    // ouvrirChercher.addEventListener('click', () => { if (ecranComplet.hidden) basculerVue.click(); });
+    if (!chercher) ouvrirChercher.addEventListener('click', () => { if (ecranComplet.hidden) basculerVue.click(); });
+    // ----- 09/11/2026 (accord de Max) : écran Chercher (maquette de Zencoder) -----
+    // Chaque icône touche le MÊME bouton qu'avant (mêmes fenêtres, mêmes messages, rien en double) :
+    // To-do = l'écran des tâches ; Documents = l'œil (visionneuse) ; Média = le Lecteur (musique) ; Photo = grisé.
+    // La barre : le texte part dans la recherche de Cap (écran des tâches), résultats tout de suite.
+    if (chercher) {
+      const messageChercher = el('message-chercher');
+      const champ = el('chercher-champ');
+      const toucher = id => { const b = el(id); if (b) b.click(); };
+      // Chercher disparaît doucement et l'écran des tâches sort du sable (une seule transition).
+      function versTaches(texte) {
+        noterDepart('taches'); // 09/11/2026 (étape 3) : « Fermer » des tâches ramènera ici
+        const changer = fin => (typeof transitionEcrans !== 'undefined' ? transitionEcrans.changer(doc, fin) : fin());
+        changer(() => {
+          montrerDirect(null);
+          if (ecranComplet.hidden) basculerVue.click();
+          if (typeof texte === 'string') {
+            // 09/11/2026 (partie 2 A) : la source choisie dans Chercher suit la recherche.
+            const sourceChercher = el('chercher-source');
+            const sourceTaches = el('source-recherche');
+            if (sourceChercher && sourceTaches && sourceChercher.value && sourceTaches.querySelector(`option[value="${sourceChercher.value}"]`)) sourceTaches.value = sourceChercher.value;
+            const saisie = el('saisie-recherche');
+            if (saisie) { saisie.value = texte; saisie.dispatchEvent(new doc.defaultView.Event('input', { bubbles: true })); }
+          }
+        });
+      }
+      ouvrirChercher.addEventListener('click', () => {
+        if (messageChercher) { messageChercher.hidden = true; messageChercher.textContent = ''; }
+        if (champ) champ.value = '';
+        if (el('propositions-chercher')) { el('propositions-chercher').replaceChildren(); el('propositions-chercher').hidden = true; } // 09/11/2026
+        ouvrirEcran(chercher); // 09/11/2026 : pile (avant : montrer(chercher))
+      });
+      el('chercher-todo').addEventListener('click', () => versTaches());
+      // 09/11/2026 (accord de Max, mission C) : « À trier » : l'écran des tâches (même chemin que To-do, donc « Fermer »
+      // revient à Chercher), ouvert sur la liste « À trier », la dernière phrase en haut (app.js, « cap-ouvrir-a-trier »).
+      if (el('chercher-a-trier')) el('chercher-a-trier').addEventListener('click', () => {
+        versTaches();
+        doc.dispatchEvent(new doc.defaultView.CustomEvent('cap-ouvrir-a-trier'));
+      });
+      el('chercher-documents').addEventListener('click', () => toucher('ouvrir-oeil'));
+      el('chercher-media').addEventListener('click', () => toucher('ouvrir-lecteur'));
+      el('chercher-photo').addEventListener('click', () => {
+        if (messageChercher) { messageChercher.hidden = false; messageChercher.textContent = 'Photo : pas encore prêt.'; }
+      });
+      if (champ) {
+        champ.addEventListener('keydown', e => {
+          if (e.key !== 'Enter') return;
+          e.preventDefault();
+          const texte = champ.value.trim();
+          champ.value = ''; // rien ne reste « en cours de saisie » sur l'écran Chercher
+          champ.blur();
+          versTaches(texte);
+        });
+      }
+      el('fermer-chercher-cap').addEventListener('click', () => { if (champ) champ.value = ''; revenir(); }); // 09/11/2026 : pile (avant : montrer(null))
+    }
     const fermerChercher = el('fermer-chercher');
-    if (fermerChercher) fermerChercher.addEventListener('click', () => { if (!ecranComplet.hidden) basculerVue.click(); });
+    // 09/11/2026 (étape 3) : « Fermer » de l'écran des tâches revient à l'écran d'où l'on vient (Chercher, Autre…), sinon à
+    // l'accueil. Avant : if (!ecranComplet.hidden) basculerVue.click();
+    if (fermerChercher) fermerChercher.addEventListener('click', () => { if (!ecranComplet.hidden) revenir(); });
 
     // ----- Mode clair / sombre (écrans sur l'eau seulement ; l'écran des tâches reste clair) -----
     let sombre = lire(CLE_THEME) !== 'clair';
@@ -69,7 +193,9 @@ const accueilCap = (() => {
       if (boutonTheme) boutonTheme.setAttribute('aria-checked', String(sombre));
       // Sombre sur l'eau : couleurs ET effets de l'eau v2 de Zencoder (liseré de crête, houle, lumière).
       const v2 = typeof ecranEau !== 'undefined' ? ecranEau.EAU_V2 : null;
-      if (eau && typeof eau.changerCouleurs === 'function') eau.changerCouleurs(sombre && surEau ? EAU_SOMBRE.map(c => [...c]) : null, sombre && surEau ? v2 : null);
+      // 08/11/2026 : clair sur l'eau = couleurs de Zencoder (EAU_CLAIRE) ; écran des tâches = ancienne eau (null).
+      const couleurs = surEau ? (sombre ? EAU_SOMBRE : EAU_CLAIRE).map(c => [...c]) : null;
+      if (eau && typeof eau.changerCouleurs === 'function') eau.changerCouleurs(couleurs, sombre && surEau ? v2 : null);
     }
     if (boutonTheme) boutonTheme.addEventListener('click', () => { sombre = !sombre; ecrire(CLE_THEME, sombre ? 'sombre' : 'clair'); appliquerTheme(); });
     // L'écran des tâches s'ouvre ou se ferme : l'eau reprend la bonne couleur.
@@ -115,8 +241,83 @@ const accueilCap = (() => {
 
     // ----- Alerte Google partout -----
     let petiteEau = null;
+    // Eau de l'accueil en PAUSE pendant la musique et la visionneuse (fenêtres plein écran, qui la cachent) :
+    // batterie (accord de Max, 07/11/2026) ; elle repart à la fermeture si l'eau est en marche.
+    let eauEnPause = false;
+    function pauseEau(fenetres) {
+      const pleinEcran = fenetres.some(f => f.classList.contains('plein-ecran'));
+      // 09/11/2026 (défaut 1) : filet de sécurité : sans fenêtre plein écran, l'eau en marche qui se serait arrêtée repart
+      // (elle ne restait arrêtée qu'en changeant d'écran).
+      if (eau && eau.fond && !pleinEcran && !eauEnPause && typeof eau.fond.etat === 'function' && !eau.fond.etat().active
+        && (typeof eau.eauActive !== 'function' || eau.eauActive()) && !racine.classList.contains('eau-ouverte')) eau.fond.demarrer();
+      if (!eau || !eau.fond || pleinEcran === eauEnPause) return;
+      eauEnPause = pleinEcran;
+      if (pleinEcran) eau.fond.arreter();
+      else if ((typeof eau.eauActive !== 'function' || eau.eauActive()) && !racine.classList.contains('eau-ouverte')) eau.fond.demarrer();
+    }
+    // 08/11/2026 (lot D, accord de Max) : écran de scan = même fond et même eau que les autres écrans (couleurs du
+    // mode clair ou sombre), animée seulement pendant qu'il est ouvert ; l'eau de l'accueil, cachée, est en pause.
+    let eauScanner = null;
+    function eauDuScanner() {
+      const scanner = el('scanner');
+      const toile = el('eau-scanner');
+      if (!scanner || !toile) return;
+      if (scanner.open && !eauScanner && typeof creerEauScanner === 'function') {
+        eauScanner = creerEauScanner(toile);
+        if (eauScanner) {
+          const fenetre = doc.defaultView;
+          const position = e => [e.clientX / (fenetre.innerWidth || 1), e.clientY / (fenetre.innerHeight || 1)];
+          const reglages = typeof ecranEau !== 'undefined' ? ecranEau : null;
+          // 08/11/2026 (accord de Max) : traînée continue entre deux positions du doigt (tracer), si l'eau la connaît.
+          let dernier = null;
+          scanner.addEventListener('pointerdown', e => { dernier = position(e); if (reglages) eauScanner.perturber(...dernier, reglages.EAU.forcePose, reglages.EAU.rayon); }, { passive: true });
+          scanner.addEventListener('pointermove', e => {
+            if (!reglages || !e.buttons) return;
+            const p = position(e);
+            if (dernier && typeof eauScanner.tracer === 'function') eauScanner.tracer(...dernier, ...p, reglages.forceGlisse(doc), reglages.EAU.rayon);
+            else eauScanner.perturber(...p, reglages.forceGlisse(doc), reglages.EAU.rayon);
+            dernier = p;
+          }, { passive: true });
+        }
+      }
+      if (!eauScanner) return;
+      if (scanner.open) {
+        const v2 = typeof ecranEau !== 'undefined' ? ecranEau.EAU_V2 : null;
+        eauScanner.changerCouleurs((sombre ? EAU_SOMBRE : EAU_CLAIRE).map(c => [...c]), sombre ? v2 : null);
+        eauScanner.demarrer();
+      } else {
+        eauScanner.arreter();
+      }
+    }
+    // 09/11/2026 (accord de Max) : le petit micro de tous les écrans suit la fenêtre ouverte du dessus (comme la note de
+    // musique) ; sans fenêtre, il est sur la page. Il ne bouge pas à l'écran (position fixe, en haut à droite).
+    function placerPetitMicro(fenetres) {
+      const petit = el('petit-micro');
+      if (!petit) return;
+      const dessus = fenetres.length ? fenetres[fenetres.length - 1] : corps;
+      if (petit.parentNode !== dessus) dessus.appendChild(petit);
+      const bulle = el('bulle-micro'); // 09/11/2026 : la bulle suit le micro
+      if (bulle && bulle.parentNode !== dessus) dessus.appendChild(bulle);
+      const signe = el('signe-micro'); // 09/11/2026 (étape 4) : le pouce et la croix aussi
+      if (signe && signe.parentNode !== dessus) dessus.appendChild(signe);
+      const apprendre = el('bouton-apprendre'); // 09/11/2026 : le bouton « phrase à apprendre » aussi
+      if (apprendre && apprendre.parentNode !== dessus) dessus.appendChild(apprendre);
+    }
+    // 09/11/2026 (défaut 5 vu par Max : pas de micro dans la fenêtre de gros choix ouverte par-dessus « Musique ») : la
+    // fenêtre du DESSUS est la dernière OUVERTE (ordre d'ouverture), pas la dernière dans la page. Avant :
+    // const fenetres = [...doc.querySelectorAll('dialog[open]')]; (ordre de la page : le micro partait dans « Musique », cachée).
+    const ordreOuverture = [];
+    function fenetresOuvertes() {
+      const ouvertes = [...doc.querySelectorAll('dialog[open]')];
+      for (let i = ordreOuverture.length - 1; i >= 0; i--) if (!ouvertes.includes(ordreOuverture[i])) ordreOuverture.splice(i, 1);
+      for (const d of ouvertes) if (!ordreOuverture.includes(d)) ordreOuverture.push(d);
+      return [...ordreOuverture];
+    }
     function placerAlerte() {
-      const fenetres = [...doc.querySelectorAll('dialog[open]')];
+      const fenetres = fenetresOuvertes();
+      placerPetitMicro(fenetres); // 09/11/2026
+      pauseEau(fenetres);
+      eauDuScanner();
       const cible = fenetres.length ? fenetres[fenetres.length - 1] : null;
       if (cible) {
         if (alerte.parentNode !== cible) cible.appendChild(alerte);
@@ -137,10 +338,12 @@ const accueilCap = (() => {
     placerAlerte();
     appliquerTheme();
 
-    return { GESTE, montrer, placerAlerte, retourEau, theme: () => (sombre ? 'sombre' : 'clair'), ecranOuvert: () => ecranOuvert };
+    // 09/11/2026 : + pile (lecture seule, pour les essais).
+    return { GESTE, montrer, placerAlerte, retourEau, theme: () => (sombre ? 'sombre' : 'clair'), ecranOuvert: () => ecranOuvert, eauScanner: () => eauScanner,
+      pile: () => [...pile] };
   }
 
-  return { CLE_THEME, CLE_INTENSITE, EAU_SOMBRE, GESTE, brancher };
+  return { CLE_THEME, CLE_INTENSITE, EAU_SOMBRE, EAU_CLAIRE, GESTE, brancher };
 })();
 
 if (typeof document !== 'undefined' && !(typeof window !== 'undefined' && window.CAP_TESTS)) {
@@ -150,6 +353,8 @@ if (typeof document !== 'undefined' && !(typeof window !== 'undefined' && window
     eau: (typeof ecranEau !== 'undefined' && ecranEau.instance) || null,
     stockage,
     // Petite eau de l'alerte : la même eau que partout, en moins fine (petite surface).
-    creerPetiteEau: toile => (toile && typeof ecranEau !== 'undefined' ? ecranEau.creerCouche(toile, { cellules: 6000 }) : null)
+    creerPetiteEau: toile => (toile && typeof ecranEau !== 'undefined' ? ecranEau.creerCouche(toile, { cellules: 6000 }) : null),
+    // 08/11/2026 (lot D) : eau de l'écran de scan : la même eau que partout (même finesse).
+    creerEauScanner: toile => (toile && typeof ecranEau !== 'undefined' ? ecranEau.creerCouche(toile) : null)
   });
 }

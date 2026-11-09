@@ -181,7 +181,7 @@ const motsCourts = (() => {
     const candidats = [];
     for (const r of liste) {
       // Bonus du titre (06/11/2026, après un essai sur un faux courrier) : un mot cité en passant
-      // (« radiographie » dans le corps du texte) ne doit pas l'emporter sur le titre écrit en haut.
+      // (« photographie » dans le corps du texte ; 09/11/2026 : exemple neutre, avant un exemple de santé) ne doit pas l'emporter sur le titre écrit en haut.
       const alternative = r.alternatives
         .filter(a => a.every(trouve.motType))
         .map(a => ({ mots: a, score: a.reduce((s, m) => s + poidsDe(m), 0)

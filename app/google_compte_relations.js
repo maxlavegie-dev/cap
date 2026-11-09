@@ -120,6 +120,21 @@ const googleCompteRelations = (() => {
     if (String(options.method || 'GET').toUpperCase() !== 'GET' || options.body !== undefined) {
       throw new Error('Lecture seule : le compte Cap ne sert qu’à lire.');
     }
+    const s = await jetonVerifie(); // 09/11/2026 : vérification mise à part (servie aussi à l'écriture limitée)
+    const reponse = await fetch(url.href, {
+      method: 'GET', headers: { Authorization: `Bearer ${s.jeton}` }, cache: 'no-store', redirect: 'error'
+    });
+    if (reponse.status === 401) {
+      oublier();
+      throw new Error('Connexion du compte Cap expirée. Touche « Autoriser la lecture du compte Cap ».');
+    }
+    if (!reponse.ok) throw new Error(`Google n’a pas pu lire (erreur ${reponse.status}). Rien n’a été modifié.`);
+    return reponse;
+  }
+
+  // 09/11/2026 : le jeton du compte Cap, vérifié (pas expiré ; c'est bien le compte enregistré, sinon jeté). Même code
+  // qu'avant dans appeler().
+  async function jetonVerifie() {
     const s = sauvegarde();
     if (!s || !(s.expiration > Date.now() + 60000)) {
       throw new Error('Compte Cap pas connecté (ou connexion expirée). Touche « Autoriser la lecture du compte Cap ».');
@@ -135,14 +150,52 @@ const googleCompteRelations = (() => {
       s.compte = compte;
       ecrire(localStorage, cleJeton, JSON.stringify(s));
     }
+    return s;
+  }
+
+  // ----- 09/11/2026 (décision de Max) : ÉCRITURE LIMITÉE du compte Cap, pour le tableur « Commandes vocales (Cap) » -----
+  // Avec le droit drive.file, Google ne laisse modifier que les fichiers créés par Cap. En plus, le CODE ne laisse passer
+  // que ces demandes-là (tout le reste est refusé avant d'aller chez Google) :
+  //  - créer un tableur : POST https://sheets.googleapis.com/v4/spreadsheets ;
+  //  - poser la marque invisible : PATCH https://www.googleapis.com/drive/v3/files/{id}, corps = appProperties SEULEMENT,
+  //    sans autre paramètre que « fields » (donc ni déplacement, ni renommage, ni corbeille) ;
+  //  - écrire des cases : PUT …/v4/spreadsheets/{id}/values/{plage} ; ajouter des lignes : POST …/values/{plage}:append.
+  // Jamais de suppression, d'effacement, de partage. La lecture (appeler) reste en lecture seule.
+  const ID_FICHIER = '[A-Za-z0-9_-]{10,200}';
+  function ecritureAutorisee(url, methode, corps) {
+    if (url.protocol !== 'https:' || url.username || url.password || url.port) return false;
+    const params = [...url.searchParams.keys()];
+    if (methode === 'POST' && url.hostname === 'sheets.googleapis.com' && url.pathname === '/v4/spreadsheets') return params.length === 0;
+    if (methode === 'PATCH' && url.hostname === 'www.googleapis.com' && new RegExp(`^/drive/v3/files/${ID_FICHIER}$`).test(url.pathname)) {
+      if (params.some(p => p !== 'fields')) return false;
+      try { const c = JSON.parse(corps); return c && typeof c === 'object' && Object.keys(c).length === 1 && c.appProperties && typeof c.appProperties === 'object'; } catch (erreur) { return false; }
+    }
+    if (url.hostname === 'sheets.googleapis.com' && params.every(p => ['valueInputOption', 'insertDataOption'].includes(p))) {
+      if (methode === 'PUT' && new RegExp(`^/v4/spreadsheets/${ID_FICHIER}/values/[^/:]+$`).test(url.pathname)) return true;
+      if (methode === 'POST' && new RegExp(`^/v4/spreadsheets/${ID_FICHIER}/values/[^/:]+:append$`).test(url.pathname)) return true;
+    }
+    return false;
+  }
+  async function appelerEcriture(adresseUrl, options = {}) {
+    const url = new URL(adresseUrl);
+    const methode = String(options.method || 'GET').toUpperCase();
+    const corps = typeof options.body === 'string' ? options.body : '';
+    if (!ecritureAutorisee(url, methode, corps)) throw new Error('Écriture non autorisée pour le compte Cap.');
+    const s = await jetonVerifie();
     const reponse = await fetch(url.href, {
-      method: 'GET', headers: { Authorization: `Bearer ${s.jeton}` }, cache: 'no-store', redirect: 'error'
+      method: methode, headers: { Authorization: `Bearer ${s.jeton}`, 'Content-Type': 'application/json' }, body: corps,
+      cache: 'no-store', redirect: 'error'
     });
     if (reponse.status === 401) {
       oublier();
       throw new Error('Connexion du compte Cap expirée. Touche « Autoriser la lecture du compte Cap ».');
     }
-    if (!reponse.ok) throw new Error(`Google n’a pas pu lire (erreur ${reponse.status}). Rien n’a été modifié.`);
+    if (reponse.status === 403) {
+      const erreur = new Error('Le compte Cap n’a pas encore le droit d’écrire : touche « Autoriser la lecture du compte Cap » (Google demandera le nouveau droit).');
+      erreur.statut = 403;
+      throw erreur;
+    }
+    if (!reponse.ok) { const erreur = new Error(`Google n’a pas pu écrire (erreur ${reponse.status}).`); erreur.statut = reponse.status; throw erreur; }
     return reponse;
   }
 
@@ -154,6 +207,7 @@ const googleCompteRelations = (() => {
     return message;
   }
 
-  return { adresse, enregistrerAdresse, connecte, minutesRestantes, seConnecter, appeler, oublier, verifier,
+  // 09/11/2026 : + appelerEcriture, ecritureAutorisee (écriture limitée, voir plus haut).
+  return { adresse, enregistrerAdresse, connecte, minutesRestantes, seConnecter, appeler, appelerEcriture, ecritureAutorisee, oublier, verifier,
     message: () => message, retourRecent: () => retourRecent };
 })();

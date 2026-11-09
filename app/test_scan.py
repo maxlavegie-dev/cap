@@ -651,7 +651,8 @@ TESTS_JS = r"""
       await pause(600);
       egal((await e.file.enAttente()).length, 0, 'déposé au retour du réseau');
       attendre(!indicateur.hidden && indicateur.textContent.includes('Tous les scans sont déposés'), 'indicateur après dépôt : ' + indicateur.textContent);
-      attendre(e.id('scanner-etat').textContent.includes('Tous les scans sont déposés'), 'état après dépôt');
+      // 08/11/2026 (demande de Max) : plus de « Tous les scans sont déposés… » en bas de l'écran de scan ; rien n'y reste.
+      attendre(e.id('scanner-etat').hidden && e.id('scanner-etat').textContent === '', 'état après dépôt : ' + e.id('scanner-etat').textContent);
     } finally {
       delete navigator.onLine;
     }
@@ -853,8 +854,8 @@ TESTS_JS = r"""
 
   // ---------- Lot 3.3 : nommage (noms fictifs seulement) ----------
   await test('nommage : accents, majuscules, séparateurs, morceaux manquants', () => {
-    const p = scanNommage.proposer({ type: 'Ordonnance', organisme: 'Dr Dupont (FICTIF)', personne: 'Zoe Test', date: '2026-05-14', description: 'Antibiotique à prendre' });
-    egal(p.base, '2026-05-14 - ORDONNANCE - DR DUPONT FICTIF - ZOE TEST - ANTIBIOTIQUE A PRENDRE', 'exemple du document');
+    const p = scanNommage.proposer({ type: 'Devis', organisme: 'Me Dupont (FICTIF)', personne: 'Zoe Test', date: '2026-05-14', description: 'Pièce à fournir' });
+    egal(p.base, '2026-05-14 - DEVIS - ME DUPONT FICTIF - ZOE TEST - PIECE A FOURNIR', 'exemple du document');
     egal(p.nom, p.base + '.pdf', 'extension');
     egal([p.dateValide, p.manques], [true, []], 'rien ne manque');
     const q = scanNommage.proposer({ type: 'Fiche de paie', organisme: 'Société Œuvre-Test', personne: '', date: '2026-09', description: '' });
@@ -1004,25 +1005,25 @@ TESTS_JS = r"""
   // ---------- Étape 3 : scanner de Google (coque) et nom tiré du tableur, FAUX documents ----------
   const tableurFictif = [
     { numero: 2, mot_cle: 'carte test Prenom_fictif', modele: '[date] Carte test Prenom_fictif Nom_fictif', chemin: ['01_IDENTITE_ET_ETAT_CIVIL', 'Pieces_identite'] },
-    { numero: 3, mot_cle: 'mutuelle fictive', modele: '[date] Releve mutuelle fictive Prenom_fictif', chemin: ['02_SANTE', 'Prenom_fictif', 'Remboursements'] },
+    { numero: 3, mot_cle: 'syndic fictif', modele: '[date] Releve syndic fictif Prenom_fictif', chemin: ['02_MAISON', 'Prenom_fictif', 'Factures_energie'] },
     { numero: 4, mot_cle: 'banque fictive', modele: '[date] Releve banque fictive', chemin: ['04_BANQUE_ET_FINANCES'] },
-    { numero: 5, mot_cle: 'releve mutuelle fictive', modele: '[date] Releve mutuelle fictive Prenom_fictif', chemin: ['02_SANTE'] }
+    { numero: 5, mot_cle: 'releve syndic fictif', modele: '[date] Releve syndic fictif Prenom_fictif', chemin: ['02_MAISON'] }
   ];
 
   await test('nommage : mot-clé du tableur, date du document, modèle gardé tel quel, jamais de date inventée', async () => {
-    let p = nommageScan.proposer('MUTUELLE FICTIVE\nRelevé du 12/03/2026 pour Prénom FICTIF', tableurFictif);
-    egal([p.raison, p.mot_cle, p.nom], ['trouve', 'mutuelle fictive', '2026-03-12 Releve mutuelle fictive Prenom_fictif'], 'mot-clé et date');
-    p = nommageScan.proposer('Relevé MUTUELLE Fictive, sans aucune date', tableurFictif);
-    egal(p.nom, 'DATE A PRECISER Releve mutuelle fictive Prenom_fictif', 'date absente');
+    let p = nommageScan.proposer('SYNDIC FICTIF\nRelevé du 12/03/2026 pour Prénom FICTIF', tableurFictif);
+    egal([p.raison, p.mot_cle, p.nom], ['trouve', 'syndic fictif', '2026-03-12 Releve syndic fictif Prenom_fictif'], 'mot-clé et date');
+    p = nommageScan.proposer('Relevé SYNDIC Fictif, sans aucune date', tableurFictif);
+    egal(p.nom, 'DATE A PRECISER Releve syndic fictif Prenom_fictif', 'date absente');
     egal(nommageScan.dateDuTexte('Fait le 1er mars 2026, payé le 05/04/2026'), '2026-03-01', 'première date, mois en toutes lettres');
     egal(nommageScan.dateDuTexte('Le 31/02/2026 puis 2026-04-07'), '2026-04-07', 'date impossible écartée');
     egal(nommageScan.dateDuTexte('Référence 12345678, aucune date'), '', 'date inventée');
-    p = nommageScan.proposer('Courrier FICTIF de la BANQUE FICTIVE et de la mutuelle fictive', tableurFictif);
+    p = nommageScan.proposer('Courrier FICTIF de la BANQUE FICTIVE et de la syndic fictif', tableurFictif);
     egal([p.raison, p.nom], ['contradictoire', ''], 'deux modèles différents : aucune proposition');
     egal(nommageScan.proposer('Prospectus FICTIF sans mot-clé', tableurFictif).raison, 'aucun', 'aucun mot-clé');
     egal(nommageScan.proposer('Lettre bancaire fictive', tableurFictif).raison, 'aucun', 'mot-clé pris dans un autre mot');
     egal(nommageScan.proposer('   ', tableurFictif).raison, 'sans_texte', 'texte vide');
-    egal(nommageScan.verifierNom('2026-03-12 Relevé Mutuelle.pdf'), { ok: true, base: '2026-03-12 Relevé Mutuelle', raison: '', change: false }, 'nom gardé tel quel');
+    egal(nommageScan.verifierNom('2026-03-12 Relevé Syndic.pdf'), { ok: true, base: '2026-03-12 Relevé Syndic', raison: '', change: false }, 'nom gardé tel quel');
     egal(nommageScan.verifierNom('a/b'), { ok: true, base: 'a-b', raison: '', change: true }, 'caractère interdit remplacé');
     attendre(!nommageScan.verifierNom('  ').ok, 'nom vide accepté');
   });
@@ -1065,7 +1066,7 @@ TESTS_JS = r"""
     cliquer(e.id('scanner-google'));
     egal(g.appels, ['scanner'], 'scanner de Google non lancé');
     const res = await e.ecran.recevoirScanGoogle({ pages: [
-      { url: pageJpegFictive(), texte: 'MUTUELLE FICTIVE', lu: true },
+      { url: pageJpegFictive(), texte: 'SYNDIC FICTIF', lu: true },
       { url: pageJpegFictive(), texte: 'Relevé du 12/03/2026', lu: true }
     ] });
     egal(res.pages, 2, 'pages reçues');
@@ -1076,26 +1077,26 @@ TESTS_JS = r"""
     const fenetre = e.id('scanner');
     attendre(fenetre.querySelector('header').nextElementSibling === e.id('scanner-proposition'), 'fenêtre pas en haut');
     egal((await e.file.lister()).length, 0, 'scan enregistré avant la réponse');
-    egal(e.id('scanner-proposition-nom').textContent, '2026-03-12 Releve mutuelle fictive Prenom_fictif.pdf', 'nom proposé');
-    attendre(e.id('scanner-proposition-info').textContent.includes('36 caractères lus'), `caractères : ${e.id('scanner-proposition-info').textContent}`);
+    egal(e.id('scanner-proposition-nom').textContent, '2026-03-12 Releve syndic fictif Prenom_fictif.pdf', 'nom proposé');
+    attendre(e.id('scanner-proposition-info').textContent.includes('33 caractères lus'), `caractères : ${e.id('scanner-proposition-info').textContent}`);
     attendre(e.id('scanner-proposition-daccord').hidden && !e.id('scanner-proposition-oui').hidden, 'mauvais boutons avec un nom');
     cliquer(e.id('scanner-proposition-oui'));
     await pause(1500);
     const fiche = (await e.file.lister())[0];
-    egal([fiche.pages, fiche.nom_valide], [2, '2026-03-12 Releve mutuelle fictive Prenom_fictif.pdf'], 'nom retenu après Oui');
+    egal([fiche.pages, fiche.nom_valide], [2, '2026-03-12 Releve syndic fictif Prenom_fictif.pdf'], 'nom retenu après Oui');
     attendre(fiche.nom.startsWith('SCAN-'), 'nom d’origine perdu');
     egal(g.lignes.length, 1, 'ligne au Journal Numérisation');
     const l = g.lignes[0];
-    egal([l.journal, l.action, l.resultat], ['numerisation', 'Lecture du texte', 'mot-clé : mutuelle fictive'], 'ligne du journal');
-    attendre(l.details.includes('caractères lus : 36') && l.details.includes('pages lues : 2 sur 2') && l.details.includes('réponse : Oui')
+    egal([l.journal, l.action, l.resultat], ['numerisation', 'Lecture du texte', 'mot-clé : syndic fictif'], 'ligne du journal');
+    attendre(l.details.includes('caractères lus : 33') && l.details.includes('pages lues : 2 sur 2') && l.details.includes('réponse : Oui')
       && l.details.includes(`ancien nom : ${fiche.nom}`), `détails : ${l.details}`);
-    attendre(!l.details.includes('Relevé du 12/03/2026') && !l.details.includes('MUTUELLE FICTIVE'), 'texte lu recopié dans le journal');
+    attendre(!l.details.includes('Relevé du 12/03/2026') && !l.details.includes('SYNDIC FICTIF'), 'texte lu recopié dans le journal');
   });
 
   await test('écran Google : « Non », « Modifier », aucun mot-clé (« D’accord » ou nom écrit par Max)', async () => {
     const cas = [
-      ['non', 'MUTUELLE FICTIVE le 12/03/2026', '', 'Non', 'mot-clé : mutuelle fictive'],
-      ['modifier', 'MUTUELLE FICTIVE le 12/03/2026', '2026-03-12 Mutuelle corrigee FICTIF.pdf', 'Modifié', 'mot-clé : mutuelle fictive'],
+      ['non', 'SYNDIC FICTIF le 12/03/2026', '', 'Non', 'mot-clé : syndic fictif'],
+      ['modifier', 'SYNDIC FICTIF le 12/03/2026', '2026-03-12 Syndic corrigee FICTIF.pdf', 'Modifié', 'mot-clé : syndic fictif'],
       ['daccord', 'Prospectus FICTIF', '', 'D’accord', 'aucun mot-clé trouvé'],
       ['ecrire', 'Prospectus FICTIF', 'Prospectus FICTIF ecrit par Max.pdf', 'Écrit par Max', 'aucun mot-clé trouvé']
     ];
@@ -1125,16 +1126,16 @@ TESTS_JS = r"""
   });
 
   // ---------- 06/11/2026 : recherche par mots-clés courts et par score, FAUX courrier, FAUX noms ----------
-  const tableurSante = [
-    { numero: 2, mot_cle: 'compte rendu de suivi Théo Exemplaire', organisme: 'Hôpital fictif', modele: '[date] Compte rendu suivi Théo Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 3, mot_cle: 'compte rendu Théo Exemplaire', organisme: '', modele: '[date] Compte rendu Théo Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 4, mot_cle: 'bilan sylvothérapique Théo Exemplaire', organisme: 'Hôpital fictif', modele: '[date] Bilan sylvothérapique Théo Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 5, mot_cle: 'compte rendu de suivi Lina Exemplaire', organisme: '', modele: '[date] Compte rendu suivi Lina Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 6, mot_cle: 'compte rendu sylvothérapie Lina Exemplaire', organisme: '', modele: '[date] Compte rendu sylvothérapie Lina Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 7, mot_cle: 'bilan sylvothérapique Lina Exemplaire', organisme: '', modele: '[date] Bilan sylvothérapique Lina Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 8, mot_cle: 'radio Théo Exemplaire', organisme: '', modele: '[date] Radio Théo Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 10, mot_cle: 'radiographie Théo Exemplaire', organisme: '', modele: '[date] Radiographie Théo Exemplaire', chemin: ['02_SANTE'] },
-    { numero: 11, mot_cle: 'ordonnance orthophonie Théo Exemplaire', organisme: '', modele: '[date] Ordonnance orthophonie Théo Exemplaire', chemin: ['02_SANTE'] },
+  const tableurMaison = [
+    { numero: 2, mot_cle: 'compte rendu de suivi Théo Exemplaire', organisme: 'Garage fictif', modele: '[date] Compte rendu suivi Théo Exemplaire', chemin: ['02_MAISON'] },
+    { numero: 3, mot_cle: 'compte rendu Théo Exemplaire', organisme: '', modele: '[date] Compte rendu Théo Exemplaire', chemin: ['02_MAISON'] },
+    { numero: 4, mot_cle: 'bilan climatiseur Théo Exemplaire', organisme: 'Garage fictif', modele: '[date] Bilan climatiseur Théo Exemplaire', chemin: ['02_MAISON'] },
+    { numero: 5, mot_cle: 'compte rendu de suivi Lina Exemplaire', organisme: '', modele: '[date] Compte rendu suivi Lina Exemplaire', chemin: ['02_MAISON'] },
+    { numero: 6, mot_cle: 'compte rendu climatisation Lina Exemplaire', organisme: '', modele: '[date] Compte rendu climatisation Lina Exemplaire', chemin: ['02_MAISON'] },
+    { numero: 7, mot_cle: 'bilan climatiseur Lina Exemplaire', organisme: '', modele: '[date] Bilan climatiseur Lina Exemplaire', chemin: ['02_MAISON'] },
+    { numero: 8, mot_cle: 'photo Théo Exemplaire', organisme: '', modele: '[date] Photo Théo Exemplaire', chemin: ['02_MAISON'] },
+    { numero: 10, mot_cle: 'photographie Théo Exemplaire', organisme: '', modele: '[date] Photographie Théo Exemplaire', chemin: ['02_MAISON'] },
+    { numero: 11, mot_cle: 'devis charpenterie Théo Exemplaire', organisme: '', modele: '[date] Devis charpenterie Théo Exemplaire', chemin: ['02_MAISON'] },
     { numero: 12, mot_cle: 'certificat Théo Exemplaire', organisme: '', modele: '[date] Certificat Théo Exemplaire', chemin: ['01_IDENTITE'] },
     { numero: 9, mot_cle: 'relevé bancaire Théo Exemplaire', organisme: 'Banque fictive', modele: '[date] Releve bancaire Théo Exemplaire', chemin: ['04_BANQUE'] }
   ];
@@ -1143,17 +1144,17 @@ TESTS_JS = r"""
       ['Expression du tableur (sans la personne)', 'Lignes du tableur d\'origine', 'Nombre de lignes', 'Mots courts proposés (type)', 'Mots trop courants dans cette ligne', 'Suffit seul ?', 'Statut', 'Proposé le', 'Correction de Max'],
       ['compte rendu de suivi', '2, 5', '2', 'compte rendu suivi', 'compte rendu', 'Oui', 'À valider', '2026-11-06', ''],
       ['compte rendu', '3', '1', 'compte rendu', 'compte rendu', 'Non (jamais seul)', 'À valider', '2026-11-06', ''],
-      ['bilan sylvothérapique', '4, 7', '2', 'bilan sylvothérapique', 'bilan', 'Oui', 'À valider', '2026-11-06', ''],
-      ['compte rendu sylvothérapie', '6', '1', 'compte rendu sylvothérapie', 'compte rendu', 'Oui', 'À valider', '2026-11-06', ''],
-      ['radio', '8', '1', 'radio', 'radio', 'Non (jamais seul)', 'À valider', '2026-11-06', ''],
-      ['radiographie', '10', '1', 'radiographie', '', 'Oui', 'À valider', '2026-11-06', ''],
-      ['ordonnance orthophonie', '11', '1', 'ordonnance orthophonie', '', 'Oui', 'À valider', '2026-11-06', ''],
+      ['bilan climatiseur', '4, 7', '2', 'bilan climatiseur', 'bilan', 'Oui', 'À valider', '2026-11-06', ''],
+      ['compte rendu climatisation', '6', '1', 'compte rendu climatisation', 'compte rendu', 'Oui', 'À valider', '2026-11-06', ''],
+      ['photo', '8', '1', 'photo', 'photo', 'Non (jamais seul)', 'À valider', '2026-11-06', ''],
+      ['photographie', '10', '1', 'photographie', '', 'Oui', 'À valider', '2026-11-06', ''],
+      ['devis charpenterie', '11', '1', 'devis charpenterie', '', 'Oui', 'À valider', '2026-11-06', ''],
       ['certificat', '12', '1', 'certificat', '', 'Oui', 'À valider', '2026-11-06', ''],
       ['relevé bancaire', '9', '1', 'relevé', 'relevé', 'Oui', 'Corrigé', '2026-11-06', 'relevé bancaire | extrait bancaire (note FICTIVE)']
     ],
     organismes: [
       ['Organisme du tableur', 'Nombre de lignes', 'Mots courts proposés (séparés par |)', 'Remarque', 'Statut', 'Proposé le', 'Correction de Max'],
-      ['Hôpital fictif', '2', 'hôpital fictif', '', 'À valider', '2026-11-06', ''],
+      ['Garage fictif', '2', 'garage fictif', '', 'À valider', '2026-11-06', ''],
       ['Banque fictive', '1', 'banque fictive', '', 'Refusé', '2026-11-06', '']
     ],
     personnes: [
@@ -1164,18 +1165,19 @@ TESTS_JS = r"""
     courants: [
       ['Mot (sans accents ni majuscules)', 'Nombre d\'expressions où il apparaît', 'Jamais seul ?', 'Statut', 'Proposé le', 'Correction de Max'],
       ['compte', '3', 'Oui', 'À valider', '2026-11-06', ''], ['rendu', '3', 'Oui', 'À valider', '2026-11-06', ''],
-      ['bilan', '2', 'Oui', 'À valider', '2026-11-06', ''], ['radio', '1', 'Oui', 'À valider', '2026-11-06', ''],
+      ['bilan', '2', 'Oui', 'À valider', '2026-11-06', ''], ['photo', '1', 'Oui', 'À valider', '2026-11-06', ''],
       ['releve', '1', 'Oui', 'À valider', '2026-11-06', ''], ['bancaire', '1', 'Oui', 'Refusé', '2026-11-06', '']
     ]
   };
-  // Faux courrier d'un médecin à un confrère (rien de vrai). La date de naissance vient en premier.
-  function courrierFictif(patient, { bilan = false } = {}) {
-    return ['CENTRE HOSPITALIER FICTIF – Service de SYLVOTHÉRAPIE', `Patient : ${patient}, né le 03/02/1970`,
-      'COMPTE RENDU DE SUIVI EN SYLVOTHÉRAPIE', 'Cher confrère,',
-      `J'ai revu ${patient} pour une gêne visuelle. Champ visuel normal.`,
-      'Radiographie du poignet sans anomalie.',
-      bilan ? 'Un bilan sylvothérapique complet est prévu dans trois mois.' : 'Pas d’examen supplémentaire.',
-      'Bien confraternellement, Dr FICTIF', 'Fait le 14/10/2026'].join('\n');
+  // Faux courrier d'un service technique à un collègue (rien de vrai). La date de naissance vient en premier.
+  // 09/11/2026 (décision de Max, avant publication) : avant, un faux courrier médical ; plus aucun contenu de santé, même fictif.
+  function courrierFictif(client, { bilan = false } = {}) {
+    return ['CENTRE TECHNIQUE FICTIF – Service de CLIMATISATION', `Client : ${client}, né le 03/02/1970`,
+      'COMPTE RENDU DE SUIVI EN CLIMATISATION', 'Cher collègue,',
+      `J'ai revu ${client} pour une fenêtre qui ferme mal. Châssis normal.`,
+      'Photographie du portail sans anomalie.',
+      bilan ? 'Un bilan climatiseur complet est prévu dans trois mois.' : 'Pas d’examen supplémentaire.',
+      'Bien cordialement, Me FICTIF', 'Fait le 14/10/2026'].join('\n');
   }
 
   await test('mots courts : la correction de Max prime (avant la parenthèse, formes « | »), « Refusé » ignoré', async () => {
@@ -1191,61 +1193,61 @@ TESTS_JS = r"""
     attendre(mots.courants.has('compte') && !mots.courants.has('bancaire'), 'mots trop courants (refus compris)');
   });
 
-  await test('mots courts : courrier FICTIF de sylvothérapie, prénom long, prénom court, nom de famille seul', async () => {
+  await test('mots courts : courrier FICTIF de climatisation, prénom long, prénom court, nom de famille seul', async () => {
     const mots = motsCourts.analyser(ongletsFictifs);
     // 1. Prénom long (correction de Max) : une seule proposition, la date de naissance écartée ;
-    //    la « radiographie » citée en passant ne l'emporte pas sur le titre (mots côte à côte, en haut).
-    let p = motsCourts.proposer(courrierFictif('M. Théodore EXEMPLAIRE'), tableurSante, mots);
+    //    la « photographie » citée en passant ne l'emporte pas sur le titre (mots côte à côte, en haut).
+    let p = motsCourts.proposer(courrierFictif('M. Théodore EXEMPLAIRE'), tableurMaison, mots);
     egal([p.raison, p.nom, p.mot_cle, p.personne_incertaine], ['trouve', '2026-10-14 Compte rendu suivi - Théo Exemplaire',
       'compte rendu suivi + prénom', false], 'prénom long');
     attendre(p.score > 5, `score : ${p.score}`);
     // 2. Prénom court : même résultat.
-    p = motsCourts.proposer(courrierFictif('M. Théo EXEMPLAIRE'), tableurSante, mots);
+    p = motsCourts.proposer(courrierFictif('M. Théo EXEMPLAIRE'), tableurMaison, mots);
     egal([p.raison, p.nom], ['trouve', '2026-10-14 Compte rendu suivi - Théo Exemplaire'], 'prénom court');
     // 3. Nom de famille seul : personne incertaine, 3 titres proches proposés.
-    p = motsCourts.proposer(courrierFictif('M. EXEMPLAIRE'), tableurSante, mots);
+    p = motsCourts.proposer(courrierFictif('M. EXEMPLAIRE'), tableurMaison, mots);
     egal([p.raison, p.personne_incertaine, p.choix.length], ['choix', true, 3], 'nom de famille seul');
-    egal(p.choix.map(c => c.nom).sort(), ['2026-10-14 Compte rendu suivi - Lina Exemplaire', '2026-10-14 Compte rendu suivi - Théo Exemplaire',
-      '2026-10-14 Compte rendu sylvothérapie - Lina Exemplaire'], 'titres proposés');
-    // 4. Le courrier parle aussi d'un « bilan sylvothérapique » : deux titres proches, Cap ne choisit pas seul.
-    p = motsCourts.proposer(courrierFictif('M. Théodore EXEMPLAIRE', { bilan: true }), tableurSante, mots);
+    egal(p.choix.map(c => c.nom).sort(), ['2026-10-14 Compte rendu climatisation - Lina Exemplaire', '2026-10-14 Compte rendu suivi - Lina Exemplaire',
+      '2026-10-14 Compte rendu suivi - Théo Exemplaire'], 'titres proposés');
+    // 4. Le courrier parle aussi d'un « bilan climatiseur » : deux titres proches, Cap ne choisit pas seul.
+    p = motsCourts.proposer(courrierFictif('M. Théodore EXEMPLAIRE', { bilan: true }), tableurMaison, mots);
     egal([p.raison, p.choix.map(c => c.nom)], ['choix', ['2026-10-14 Compte rendu suivi - Théo Exemplaire',
-      '2026-10-14 Bilan sylvothérapique - Théo Exemplaire']], 'deux titres proches');
+      '2026-10-14 Bilan climatiseur - Théo Exemplaire']], 'deux titres proches');
   });
 
   await test('mots courts : mots trop courants jamais seuls, autre personne écartée, aucun texte, pluriel', async () => {
     const mots = motsCourts.analyser(ongletsFictifs);
-    egal(motsCourts.proposer('Compte rendu de Théodore Exemplaire. Radio du poignet.', tableurSante, mots).raison, 'aucun', 'mots courants seuls');
-    egal(motsCourts.proposer('Compte rendu de suivi pour Lina Exemplaire', tableurSante, mots).nom,
+    egal(motsCourts.proposer('Compte rendu de Théodore Exemplaire. Photo du portail.', tableurMaison, mots).raison, 'aucun', 'mots courants seuls');
+    egal(motsCourts.proposer('Compte rendu de suivi pour Lina Exemplaire', tableurMaison, mots).nom,
       'DATE-A-PRECISER Compte rendu suivi - Lina Exemplaire', 'la bonne personne, l’autre écartée');
-    egal(motsCourts.proposer('   ', tableurSante, mots).raison, 'sans_texte', 'texte vide');
-    egal(motsCourts.proposer('Extraits bancaires de Théo, le 02/01/2026', tableurSante, mots).nom,
+    egal(motsCourts.proposer('   ', tableurMaison, mots).raison, 'sans_texte', 'texte vide');
+    egal(motsCourts.proposer('Extraits bancaires de Théo, le 02/01/2026', tableurMaison, mots).nom,
       '2026-01-02 Releve bancaire - Théo Exemplaire', 'forme corrigée et pluriel');
     egal(nommageScan.dateDuTexte('Née le 12/05/1980. Courrier du 03/09/2026'), '2026-09-03', 'date de naissance écartée');
   });
 
   await test('mots courts : même début (8 lettres ou plus) pour le type, y compris un cas où la règle se trompe', async () => {
     const mots = motsCourts.analyser(ongletsFictifs);
-    // Le faux document écrit le nom du métier, pas celui de la spécialité : même début, la ligne est trouvée.
-    let p = motsCourts.proposer(['ORDONNANCE FICTIVE', 'Séances avec un orthophoniste diplômé pour Théo Exemplaire.', 'Fait le 02/03/2026'].join(' '), tableurSante, mots);
-    egal([p.raison, p.nom], ['trouve', '2026-03-02 Ordonnance orthophonie - Théo Exemplaire'], 'même début trouvé');
+    // Le faux document écrit « charpentes », le tableur « charpenterie » : même début, la ligne est trouvée.
+    let p = motsCourts.proposer(['DEVIS FICTIF', 'Travaux de charpentes par un artisan diplômé pour Théo Exemplaire.', 'Fait le 02/03/2026'].join(' '), tableurMaison, mots);
+    egal([p.raison, p.nom], ['trouve', '2026-03-02 Devis charpenterie - Théo Exemplaire'], 'même début trouvé');
     // La règle se trompe : « certification » a le même début que « certificat ». Cap propose ce
     // titre (FAUX ici) ; il n'est retenu que si Max dit « Oui ».
-    p = motsCourts.proposer('Certification qualité FICTIVE de l’atelier de Théo Exemplaire, le 05/05/2026', tableurSante, mots);
+    p = motsCourts.proposer('Certification qualité FICTIVE de l’atelier de Théo Exemplaire, le 05/05/2026', tableurMaison, mots);
     egal([p.raison, p.nom], ['trouve', '2026-05-05 Certificat - Théo Exemplaire'], 'erreur connue de la règle');
     // Jamais pour les prénoms : une forme plus longue d'un prénom ne compte pas.
-    p = motsCourts.proposer('Compte rendu de suivi pour Théodorine Exemplaire', tableurSante, mots);
+    p = motsCourts.proposer('Compte rendu de suivi pour Théodorine Exemplaire', tableurMaison, mots);
     egal([p.raison, p.personne_incertaine], ['choix', true], 'prénom : pas de même début');
     // Mots trop courts (moins de 8 lettres) : pas de même début.
-    egal(motsCourts.proposer('Radiologue FICTIF pour Théo', tableurSante, mots).raison, 'aucun', 'mot trop court ou trop différent');
+    egal(motsCourts.proposer('Photocopie FICTIVE pour Théo', tableurMaison, mots).raison, 'aucun', 'mot trop court ou trop différent');
     // Les 3 meilleurs candidats sont rendus, avec leur score.
-    p = motsCourts.proposer(courrierFictif('M. EXEMPLAIRE'), tableurSante, mots);
+    p = motsCourts.proposer(courrierFictif('M. EXEMPLAIRE'), tableurMaison, mots);
     attendre(p.meilleurs.length === 3 && p.meilleurs.every(c => c.nom && c.mot_cle && c.score > 0), `meilleurs : ${JSON.stringify(p.meilleurs)}`);
   });
 
   function monterScore(options = {}) {
     const g = monterGoogle();
-    g.options.classement = { lireTableurChoisi: async () => tableurSante,
+    g.options.classement = { lireTableurChoisi: async () => tableurMaison,
       lireMotsCourts: options.motsEnPanne ? async () => { throw new Error('mots injoignables FICTIF'); } : async () => motsCourts.analyser(ongletsFictifs) };
     return g;
   }
@@ -1370,7 +1372,7 @@ TESTS_JS = r"""
     'Ancienne liste': [
       ['First Name', 'Middle Name', 'Last Name', 'Name Prefix', 'Nickname', 'Organization Name', 'Organization Title', 'Notes', 'Birthday',
         'E-mail 1 - Value', 'Phone 1 - Value', 'Address 1 - City', 'Address 1 - Postal Code'],
-      ['Jean', '', 'Fictif', 'Dr', '', '', 'Médecin FICTIF', 'note FICTIVE 06 11 11 11 11', '1970-01-01', 'jean.fictif@exemple.test', '04 00 00 00 01', 'Villefictive', '99000'],
+      ['Jean', '', 'Fictif', 'Me', '', '', 'Notaire FICTIF', 'note FICTIVE 06 11 11 11 11', '1970-01-01', 'jean.fictif@exemple.test', '04 00 00 00 01', 'Villefictive', '99000'],
       ['Jeanne', '', 'Fictif', '', '', '', '', '', '', '', '04 00 00 00 02', '', ''],
       ['Banque', '', '', '', '', '', '', '', '', '', '04 00 00 00 03', '', ''],
       ['Théo', '', 'Exemplaire', '', '', '', '', '', '', '', '04 00 00 00 09', '', ''],
@@ -1380,13 +1382,13 @@ TESTS_JS = r"""
     ],
     'Tri contacts': [
       ['Nom dans les contacts', 'Organisation / étiquette', 'Téléphone', 'Mail', 'Note d’origine', 'Catégorie', 'Décision', 'Nom propre pour le dictionnaire', 'Rôle / lien avec Max', 'Remarques'],
-      ['Dr Fictif Jean', '', '04 00 00 00 01', '', 'note FICTIVE', 'Santé FICTIVE', '', 'Jean Fictif', 'Médecin', '']
+      ['Me Fictif Jean', '', '04 00 00 00 01', '', 'note FICTIVE', 'Maison FICTIVE', '', 'Jean Fictif', 'Notaire', '']
     ],
     Dictionnaire: [
       ['Prénom', 'Nom', 'Type', 'Rôle', 'Lien avec Max', 'Appellations et surnoms', 'Coordonnées', 'Téléphone', 'Mail', 'Domaine', 'Note pour IA',
         'Date de naissance / anniversaire', 'Adresse postale', 'Deuxième téléphone', 'Deuxième mail', 'Fonction / titre', 'Site web', 'Note'],
-      ['Jean', 'Fictif', 'Personne', 'Médecin FICTIF', 'Médecin de Théo', '', '', '04 00 00 00 01', '', 'Santé', 'NE PAS LIRE 04 77 77 77 77',
-        '01/01/1970', '1 rue FICTIVE 99000 Villefictive', '', '', 'Docteur', '', 'note FICTIVE 04 88 88 88 88'],
+      ['Jean', 'Fictif', 'Personne', 'Notaire FICTIF', 'Notaire de Théo', '', '', '04 00 00 00 01', '', 'Maison', 'NE PAS LIRE 04 77 77 77 77',
+        '01/01/1970', '1 rue FICTIVE 99000 Villefictive', '', '', 'Maître', '', 'note FICTIVE 04 88 88 88 88'],
       ['Lina', 'Exemplaire', 'Personne', 'Sœur FICTIVE', '', '', '', '04 00 00 00 08', '', 'Famille', '', '', '', '', '', '', '', '']
     ]
   };
@@ -1405,12 +1407,12 @@ TESTS_JS = r"""
 
   await test('émetteur : nom exact et seul → certain (Dictionnaire prioritaire) ; souple, homonymes, téléphone partagé ou seul → cases', async () => {
     const entrees = emetteur.analyser(dicoFictif);
-    let r = emetteur.reconnaitre('Courrier FICTIF du Dr Jean Fictif concernant Théo Exemplaire', entrees, personnesExclues);
+    let r = emetteur.reconnaitre('Courrier FICTIF du Me Jean Fictif concernant Théo Exemplaire', entrees, personnesExclues);
     egal([r.etat, r.candidats.length, r.candidats[0].onglet, r.candidats[0].numero, r.candidats[0].complet], ['certain', 1, 'Dictionnaire', 2, 'Jean Fictif'], 'nom exact');
     attendre(Object.keys(r.candidats[0]).every(k => ['onglet', 'numero', 'complet', 'court', 'score', 'exact'].includes(k)), 'indice rendu avec le candidat');
-    r = emetteur.reconnaitre('Courrier FICTIF du Dr Jean Fictiff', entrees, personnesExclues);
+    r = emetteur.reconnaitre('Courrier FICTIF du Me Jean Fictiff', entrees, personnesExclues);
     egal([r.etat, r.candidats[0].complet], ['choix', 'Jean Fictif'], 'graphie souple : jamais de choix automatique');
-    r = emetteur.reconnaitre('Avis FICTIF du Docteur Fictif', entrees, personnesExclues);
+    r = emetteur.reconnaitre('Avis FICTIF du Maître Fictif', entrees, personnesExclues);
     egal([r.etat, r.candidats.map(c => c.complet).sort()], ['choix', ['Jean Fictif', 'Jeanne Fictif']], 'titre + nom de famille partagé');
     r = emetteur.reconnaitre('Appeler le 04 00 00 00 06 FICTIF', entrees, personnesExclues);
     egal([r.etat, r.candidats.map(c => c.complet).sort()], ['choix', ['Luc Dupontel', 'Marc Dupontel']], 'téléphone partagé');
@@ -1423,21 +1425,21 @@ TESTS_JS = r"""
   await test('émetteur : famille et Max jamais reconnus (nom complet, coordonnées), mots génériques et indices faibles seuls → rien', async () => {
     const entrees = emetteur.analyser(dicoFictif);
     for (const texte of ['Courrier FICTIF de Lina Exemplaire', 'Tél. 04 00 00 00 08 FICTIF', 'Théo Exemplaire, tél. 04 00 00 00 09 FICTIF',
-      'Votre Banque FICTIVE', 'Villefictive 99000, rue FICTIVE', 'Docteur Banque FICTIF']) {
+      'Votre Banque FICTIVE', 'Villefictive 99000, rue FICTIVE', 'Maître Banque FICTIF']) {
       egal(emetteur.reconnaitre(texte, entrees, personnesExclues).etat, 'aucun', texte);
     }
     // Les indices faibles départagent : même nom de famille, la ville de l'entrée la fait passer devant.
-    const r = emetteur.reconnaitre('Avis FICTIF du Docteur Fictif, Villefictive', entrees, personnesExclues);
+    const r = emetteur.reconnaitre('Avis FICTIF du Maître Fictif, Villefictive', entrees, personnesExclues);
     egal(r.candidats[0].complet, 'Jean Fictif', 'indice faible pour départager');
   });
 
   await test('émetteur : forme courte pour les cases, allongée si deux formes se ressemblent', async () => {
     egal(emetteur.formeCourte('Jean-Baptiste Fictif-Exemplaire'), 'J. Fictif-Exemplaire', 'personne au nom long');
-    egal(emetteur.formeCourte('Centre FICTIF de Santé des Lilas Fleuris'), 'CFSLF', 'organisme long');
+    egal(emetteur.formeCourte('Centre FICTIF de Sport des Lilas Fleuris'), 'CFSLF', 'organisme long');
     egal(emetteur.formeCourte('Jean Fictif'), 'Jean Fictif', 'nom court gardé');
     const entrees = emetteur.analyser({ Dictionnaire: [['Prénom', 'Nom', 'Type'],
       ['Jean-Baptiste', 'Fictif-Exemplaire', 'Personne'], ['Jean-Bernard', 'Fictif-Exemplaire', 'Personne']] });
-    const r = emetteur.reconnaitre('Avis FICTIF du Dr Fictif-Exemplaire', entrees, {});
+    const r = emetteur.reconnaitre('Avis FICTIF du Me Fictif-Exemplaire', entrees, {});
     egal(r.candidats.map(c => c.court).sort(), ['Jean-Baptiste Fictif-Exemplaire', 'Jean-Bernard Fictif-Exemplaire'], 'formes courtes allongées');
   });
 
@@ -1446,14 +1448,14 @@ TESTS_JS = r"""
     egal(emetteur.colonnesALire('Tri contacts', ['Nom dans les contacts', 'Remarques', 'Appellations et surnoms']), [0, 2], 'tri contacts : appellations lues');
     const onglets = {
       'Ancienne liste': [['First Name', 'Last Name', 'Notes', 'Appellations et surnoms'],
-        ['P.', 'Fictivo-Exemple', 'note FICTIVE', 'Docteur Paul FICTIVO'],
+        ['P.', 'Fictivo-Exemple', 'note FICTIVE', 'Maître Paul FICTIVO'],
         ['Doc', '', '', 'Doc']],
       'Tri contacts': [['Nom dans les contacts', 'Appellations et surnoms'], ['Cabinet FICTIF', 'Maison FICTIVE des Lilas']],
       Dictionnaire: [['Prénom', 'Nom', 'Type', 'Domaine', 'Appellations et surnoms'], ['Lina', 'Exemplaire', 'Personne', 'Famille', 'Tata Linou']]
     };
     const entrees = emetteur.analyser(onglets);
     // Les colonnes de nom ne correspondent pas au scan, mais l'appellation écrite par Max, oui.
-    let r = emetteur.reconnaitre('ORDONNANCE FICTIVE\nDocteur Paul FICTIVO\nPour Théo Exemplaire', entrees, personnesExclues);
+    let r = emetteur.reconnaitre('DEVIS FICTIF\nMaître Paul FICTIVO\nPour Théo Exemplaire', entrees, personnesExclues);
     egal([r.etat, r.candidats[0].onglet, r.candidats[0].numero], ['certain', 'Ancienne liste', 2], 'appellation exacte');
     egal(r.diagnostic.candidats.appellation, 1, 'diagnostic : appellation');
     r = emetteur.reconnaitre('Courrier FICTIF de la Maison FICTIVE des Lilas', entrees, personnesExclues);
@@ -1463,17 +1465,17 @@ TESTS_JS = r"""
     egal(emetteur.reconnaitre('Mot FICTIF de Tata Linou', entrees, personnesExclues).etat, 'aucun', 'appellation de la famille');
   });
 
-  await test('émetteur : fiche « Dr Nom » et prénom entre le titre et le nom → cases ; nom coupé par d’autres mots → rien, et le diagnostic le montre', async () => {
-    const entrees = emetteur.analyser({ 'Ancienne liste': [['First Name', 'Last Name'], ['Dr Fictivoz', '']] });
-    let r = emetteur.reconnaitre('Ordonnance FICTIVE du Dr Fictivoz', entrees, {});
+  await test('émetteur : fiche « Me Nom » et prénom entre le titre et le nom → cases ; nom coupé par d’autres mots → rien, et le diagnostic le montre', async () => {
+    const entrees = emetteur.analyser({ 'Ancienne liste': [['First Name', 'Last Name'], ['Me Fictivoz', '']] });
+    let r = emetteur.reconnaitre('Devis FICTIF de Me Fictivoz', entrees, {});
     egal(r.etat, 'certain', 'titre juste avant le nom');
-    r = emetteur.reconnaitre('Ordonnance FICTIVE du Docteur Luc FICTIVOZ', entrees, {});
+    r = emetteur.reconnaitre('Devis FICTIF du Maître Luc FICTIVOZ', entrees, {});
     egal([r.etat, r.candidats.length, r.diagnostic.candidats.souple], ['choix', 1, 1], 'prénom entre les deux : jamais certain');
-    r = emetteur.reconnaitre('Ordonnance FICTIVE du Docteur Luc Jean Marc FICTIVOZ', entrees, {});
+    r = emetteur.reconnaitre('Devis FICTIF du Maître Luc Jean Marc FICTIVOZ', entrees, {});
     egal(r.etat, 'aucun', 'trop de mots entre le titre et le nom');
     // Cas du test c16 (FICTIF) : la lecture du texte a glissé une adresse entre le prénom et le nom.
     const fiche = emetteur.analyser({ 'Ancienne liste': [['First Name', 'Last Name', 'Phone 1 - Value'], ['Paul', 'Fictivo', '04 00 00 00 07']] });
-    r = emetteur.reconnaitre('Docteur Paul\n12 rue FICTIVE 99000 Villefictive\nFICTIVO\nOrdonnance', fiche, {});
+    r = emetteur.reconnaitre('Maître Paul\n12 rue FICTIVE 99000 Villefictive\nFICTIVO\nDevis', fiche, {});
     egal(r.etat, 'aucun', 'nom coupé par la lecture');
     egal(r.diagnostic, { lues: { 'Ancienne liste': 1, 'Tri contacts': 0, Dictionnaire: 0 }, titres: 1, telephones: 0,
       candidats: { telephone_mail: 0, exact: 0, appellation: 0, souple: 0 }, famille_ecartee: 0 }, 'diagnostic en nombres');
@@ -1486,14 +1488,14 @@ TESTS_JS = r"""
     egal(d('Le 3 févr 2026 FICTIF').date, '2026-02-03', 'mois abrégé avec accent');
     egal(d('Le 17mai 2025 FICTIF').date, '2025-05-17', 'jour collé au mois');
     egal(d('Le 1er déc. 2025 FICTIF').date, '2025-12-01', '1er et décembre abrégé');
-    let r = d('Ordonnance FICTIVE du 17/05/2O25');
+    let r = d('Devis FICTIF du 17/05/2O25');
     egal([r.date, r.corrigee, r.diagnostic.corrections, r.diagnostic.choisie], ['2025-05-17', true, 1, 'chiffres'], 'lettre O dans l’année');
-    r = d('Ordonnance FICTIVE du 17 mal 2025');
+    r = d('Devis FICTIF du 17 mal 2025');
     egal([r.date, r.corrigee], ['2025-05-17', true], '« mal » lu pour « mai »');
-    egal(d('Ordonnance FICTIVE du l7/05/2025').date, '2025-05-17', 'lettre l pour 1');
-    r = d('Ordonnance FICTIVE du 17/05/25');
+    egal(d('Devis FICTIF du l7/05/2025').date, '2025-05-17', 'lettre l pour 1');
+    r = d('Devis FICTIF du 17/05/25');
     egal([r.date, r.diagnostic.non_acceptees, r.diagnostic.choisie], ['', 1, 'aucune'], 'année sur 2 chiffres jamais acceptée');
-    r = d('Patient FICTIF né le 01/02/1980. Fait le 03/04/2026');
+    r = d('Client FICTIF né le 01/02/1980. Fait le 03/04/2026');
     egal([r.date, r.diagnostic.rejetees.naissance, r.diagnostic.candidates.chiffres], ['2026-04-03', 1, 2], 'naissance écartée et comptée');
     r = d('Le 31/02/2026 FICTIF');
     egal([r.date, r.diagnostic.rejetees.impossible], ['', 1], 'date impossible comptée');
@@ -1526,13 +1528,13 @@ TESTS_JS = r"""
     return g;
   }
   function courrierAvecEmetteur(signature) {
-    return courrierFictif('M. Théodore EXEMPLAIRE').replace('Dr FICTIF', signature);
+    return courrierFictif('M. Théodore EXEMPLAIRE').replace('Me FICTIF', signature);
   }
 
   await test('écran Google : émetteur certain dans le nom, journal (onglet et numéro seulement) et description', async () => {
     const g = monterEmetteur();
     const avant = Object.keys(localStorage).sort();
-    const e = await scanGoogle(g, [{ texte: courrierAvecEmetteur('Dr Jean Fictif, tél. 04 00 00 00 01') }]);
+    const e = await scanGoogle(g, [{ texte: courrierAvecEmetteur('Me Jean Fictif, tél. 04 00 00 00 01') }]);
     await terminerPuisVoir(e);
     attendre(!e.id('scanner-choix-emetteur').open, 'fenêtre de choix ouverte alors que l’émetteur est certain');
     egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Jean Fictif - Théo Exemplaire.pdf', 'émetteur dans le nom');
@@ -1550,7 +1552,7 @@ TESTS_JS = r"""
 
   await test('écran Google : hésitation → grande fenêtre de choix AVANT le nom (une ligne par case), puis « Aucun de ceux-là »', async () => {
     let g = monterEmetteur();
-    let e = await scanGoogle(g, [{ texte: courrierAvecEmetteur('Docteur Fictif') }]);
+    let e = await scanGoogle(g, [{ texte: courrierAvecEmetteur('Maître Fictif') }]);
     cliquer(e.id('scanner-terminer'));
     await pause(300);
     const fenetre = e.id('scanner-choix-emetteur');
@@ -1572,7 +1574,7 @@ TESTS_JS = r"""
     attendre(g.lignes[0].details.includes('émetteur : Ancienne liste n° 3 (choisi par Max parmi 2)'), `journal : ${g.lignes[0].details}`);
     // « Aucun de ceux-là » : nom sans émetteur, la description le note.
     g = monterEmetteur();
-    e = await scanGoogle(g, [{ texte: courrierAvecEmetteur('Docteur Fictif') }]);
+    e = await scanGoogle(g, [{ texte: courrierAvecEmetteur('Maître Fictif') }]);
     cliquer(e.id('scanner-terminer'));
     await pause(300);
     cliquer([...e.id('scanner-choix-emetteur-cases').querySelectorAll('button')].find(b => b.textContent === 'Aucun de ceux-là'));
@@ -1608,15 +1610,15 @@ TESTS_JS = r"""
 
   await test('écran Google : dans le même scan, un membre FICTIF de la famille reconnu comme personne, jamais comme émetteur', async () => {
     const g = monterEmetteur();
-    const texte = ['Courrier FICTIF de Lina Exemplaire, tél. 04 00 00 00 08', 'COMPTE RENDU DE SUIVI', 'Pour Lina Exemplaire, revue par le Dr Jean Fictif.',
+    const texte = ['Courrier FICTIF de Lina Exemplaire, tél. 04 00 00 00 08', 'COMPTE RENDU DE SUIVI', 'Pour Lina Exemplaire, revue par le Me Jean Fictif.',
       'Fait le 14/10/2026'].join('\n');
     const e = await scanGoogle(g, [{ texte }]);
     await terminerPuisVoir(e);
     attendre(!e.id('scanner-choix-emetteur').open, 'fenêtre de choix ouverte');
-    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Jean Fictif - Lina Exemplaire.pdf', 'famille = personne, émetteur = Dr FICTIF');
+    egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Jean Fictif - Lina Exemplaire.pdf', 'famille = personne, émetteur = Me FICTIF');
     // Sans le médecin, la famille seule n'est jamais l'émetteur : nom sans émetteur.
     const g2 = monterEmetteur();
-    const e2 = await scanGoogle(g2, [{ texte: texte.replace(', revue par le Dr Jean Fictif', '') }]);
+    const e2 = await scanGoogle(g2, [{ texte: texte.replace(', revue par le Me Jean Fictif', '') }]);
     await terminerPuisVoir(e2);
     attendre(!e2.id('scanner-choix-emetteur').open, 'la famille proposée comme émetteur');
     egal(e2.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Lina Exemplaire.pdf', 'personne reconnue, aucun émetteur');
@@ -1627,7 +1629,7 @@ TESTS_JS = r"""
 
   await test('écran Google : lecture échouée page par page, aucun texte lu, tableur non lu, annulation', async () => {
     let g = monterGoogle();
-    let e = await scanGoogle(g, [{ texte: 'MUTUELLE FICTIVE' }, { lu: false, texte: '' }]);
+    let e = await scanGoogle(g, [{ texte: 'SYNDIC FICTIF' }, { lu: false, texte: '' }]);
     attendre(e.id('scanner-message').textContent.includes('Lecture échouée : page 2'), `échec non signalé : ${e.id('scanner-message').textContent}`);
     await terminerPuisVoir(e);
     attendre(e.id('scanner-proposition-info').textContent.includes('lecture échouée : page 2'), 'échec absent de la fenêtre');
@@ -1648,7 +1650,7 @@ TESTS_JS = r"""
     await pause(1500);
     egal(g.lignes[0].resultat, 'aucun texte lu', 'journal : aucun texte lu');
     g = monterGoogle({ tableurEnPanne: true });
-    e = await scanGoogle(g, [{ texte: 'MUTUELLE FICTIVE' }]);
+    e = await scanGoogle(g, [{ texte: 'SYNDIC FICTIF' }]);
     await terminerPuisVoir(e);
     attendre(e.id('scanner-proposition-info').textContent.includes('tableur injoignable FICTIF'), 'panne du tableur non dite');
     cliquer(e.id('scanner-proposition-daccord'));
@@ -1666,7 +1668,7 @@ TESTS_JS = r"""
   await test('écran Google : diagnostic par page (taille, rotation, blocs, lignes, caractères) dans la fenêtre et le journal, jamais le texte', async () => {
     const g = monterGoogle();
     const e = await scanGoogle(g, [
-      { texte: 'MUTUELLE FICTIVE texte secret FICTIF', largeur: 2480, hauteur: 3508, rotation: 90, rotation_exif: 0, blocs: 3, lignes: 7, caracteres: 36, essais: 4 },
+      { texte: 'SYNDIC FICTIF texte secret FICTIF', largeur: 2480, hauteur: 3508, rotation: 90, rotation_exif: 0, blocs: 3, lignes: 7, caracteres: 36, essais: 4 },
       { lu: false, texte: '' },
       { texte: 'Autre page FICTIVE' }
     ]);
@@ -1680,7 +1682,7 @@ TESTS_JS = r"""
     await pause(1500);
     const details = g.lignes[0].details;
     attendre(details.includes('diagnostic : page 1 : 2480×3508 px, rotation 90°') && details.includes('page 2 : lecture échouée'), `journal : ${details}`);
-    attendre(!details.includes('secret') && !details.includes('MUTUELLE FICTIVE'), 'texte lu dans le journal');
+    attendre(!details.includes('secret') && !details.includes('SYNDIC FICTIF'), 'texte lu dans le journal');
   });
 
   await test('écran : sans la coque Android, pas de bouton du scanner de Google', async () => {

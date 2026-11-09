@@ -421,9 +421,9 @@ Zencoder note chaque étape dans ce journal AVANT de la commencer. Jamais deux o
 
 - 06/11/2026 : **Essai de `cap-coque-essai-c13.apk` RÉUSSI, d'après Max** (étape 3 : scan de Google et lecture du texte). Détails de l'essai pas encore notés. Session reprise, en attente du prochain message de Max. Rien publié.
 
-- 06/11/2026 : **Résultat de l'essai c13 donné par Max : 2193 caractères lus sur 1 page (contre 2 avant), lecture validée ; mais « aucun mot-clé du tableur trouvé ».** Consigne de Max : ne rien coder ; le tableur « Classement documents administratifs » reste la BASE (titres, dossiers, règles) ; on AJOUTE des mots-clés courts, on ne remplace rien, on marque et on date, on n'efface jamais ; propositions dans un Google Sheet à relire (pas de CSV ni de Markdown) ; tableur d'origine non modifié sans accord ; toujours Oui / Modifier / Non ; aucune nouvelle autorisation Google. **Analyse (lecture seule du tableur, à la demande de Max, rien modifié) :** environ 1020 lignes ; la colonne « Mot-clé repéré » contient surtout des expressions longues « type de document + prénom et nom de la personne » (ex. « ordonnance » suivi du nom complet), et quelques expressions sans personne (ex. « bulletin de paie »). La recherche actuelle exige l'expression ENTIÈRE, mots collés et dans le même ordre : un courrier qui écrit « Monsieur NOM Prénom », ou met d'autres mots entre le type et le nom, ne correspond jamais. Cause de l'échec trouvée, sans savoir quel document Max a scanné. **Proposition faite à Max (pas codée) :** séparer chaque règle en mots-clés courts (le type) + personne (prénom cherché n'importe où) + organisme ; score par règle (mots rares comptent plus, mots trop courants comme « prime », « mandat », « radio » ne suffisent jamais seuls) ; proposer seulement si une règle est nettement en tête, sinon proposer 2 ou 3 choix ou rien ; toujours Oui / Modifier / Non. Mots-clés courts à préparer dans un NOUVEAU tableur à valider par Max, puis ajoutés au tableur d'origine dans une colonne marquée et datée, seulement avec son accord. Question posée à Max : créer ce nouveau tableur dans son Drive. Rien publié, aucun prénom de proche noté ici.
+- 06/11/2026 : **Résultat de l'essai c13 donné par Max : 2193 caractères lus sur 1 page (contre 2 avant), lecture validée ; mais « aucun mot-clé du tableur trouvé ».** Consigne de Max : ne rien coder ; le tableur « Classement documents administratifs » reste la BASE (titres, dossiers, règles) ; on AJOUTE des mots-clés courts, on ne remplace rien, on marque et on date, on n'efface jamais ; propositions dans un Google Sheet à relire (pas de CSV ni de Markdown) ; tableur d'origine non modifié sans accord ; toujours Oui / Modifier / Non ; aucune nouvelle autorisation Google. **Analyse (lecture seule du tableur, à la demande de Max, rien modifié) :** environ 1020 lignes ; la colonne « Mot-clé repéré » contient surtout des expressions longues « type de document + prénom et nom de la personne » (ex. un type de document suivi du nom complet), et quelques expressions sans personne (ex. « bulletin de paie »). La recherche actuelle exige l'expression ENTIÈRE, mots collés et dans le même ordre : un courrier qui écrit « Monsieur NOM Prénom », ou met d'autres mots entre le type et le nom, ne correspond jamais. Cause de l'échec trouvée, sans savoir quel document Max a scanné. **Proposition faite à Max (pas codée) :** séparer chaque règle en mots-clés courts (le type) + personne (prénom cherché n'importe où) + organisme ; score par règle (mots rares comptent plus, mots trop courants comme « prime », « mandat », « radio » ne suffisent jamais seuls) ; proposer seulement si une règle est nettement en tête, sinon proposer 2 ou 3 choix ou rien ; toujours Oui / Modifier / Non. Mots-clés courts à préparer dans un NOUVEAU tableur à valider par Max, puis ajoutés au tableur d'origine dans une colonne marquée et datée, seulement avec son accord. Question posée à Max : créer ce nouveau tableur dans son Drive. Rien publié, aucun prénom de proche noté ici. [09/11/2026 : mots de santé rendus neutres avant publication, décision de Max]
 
-- 06/11/2026 à 09:05 : **FAIT, accord de Max : tableur « Cap – Mots-clés courts – à valider » créé dans le Drive de Max, dossier App Cap. Rien codé.** Tableur d'origine « Classement documents administratifs » lu seulement, PAS modifié. Confidentialité (consigne de Max) : ce tableur contient des prénoms de proches ; il reste dans le Drive, jamais dans GitHub, le code, les tests ni ce journal ; dans le dépôt, seulement du faux. Préparation faite hors du dépôt (dossier temporaire de session). Onglets : « Mode d'emploi » ; « Types » (500 expressions distinctes au lieu de 1021 lignes, car la même expression revient pour chaque personne ; numéros des lignes d'origine ; 1 à 3 mots courts proposés ; mots trop courants ; « Suffit seul ? » : 19 expressions d'un seul mot courant marquées « Non (jamais seul) », ex. prime, mandat, radio, scanner, compte rendu) ; « Organismes » (80 ; organismes trop vagues comme « Employeur » ou « Divers » non cherchés ; les mots « banque », « laboratoire », « mutuelle », « tribunal » : petit bonus) ; « Personnes » (3 noms, prénom seul cherché ; nom de famille seul = personne incertaine, choix proposés) ; « Mots trop courants » (41 mots). Chaque ligne : Statut « À valider » (liste : Validé, Corrigé, Refusé), « Proposé le 2026-11-06 », colonne « Correction de Max » ; aucune ligne à supprimer. Signalé à Max dans le tableur : ligne 199 de son tableur sans mot-clé (ignorée par Cap aujourd'hui), ligne 1024 vide. Aucune nouvelle autorisation Google pour Cap. À noter pour la suite : Cap n'a accès qu'aux fichiers qu'il crée ou que Max choisit (`drive.file`) ; pour lire ce nouveau tableur, Max devra le choisir une fois dans Cap, ou ses mots validés iront dans une colonne ajoutée, marquée et datée, du tableur d'origine (seulement avec son accord). Prochaine étape après la relecture de Max : code en local (recherche par score, 2 ou 3 choix, journal avec mot-clé, score et réponse), tests avec de FAUX documents et de faux noms, nouvel APK d'essai. Objectif fixé par Max : le prochain essai doit trouver le titre de son document de santé. Rien publié.
+- 06/11/2026 à 09:05 : **FAIT, accord de Max : tableur « Cap – Mots-clés courts – à valider » créé dans le Drive de Max, dossier App Cap. Rien codé.** Tableur d'origine « Classement documents administratifs » lu seulement, PAS modifié. Confidentialité (consigne de Max) : ce tableur contient des prénoms de proches ; il reste dans le Drive, jamais dans GitHub, le code, les tests ni ce journal ; dans le dépôt, seulement du faux. Préparation faite hors du dépôt (dossier temporaire de session). Onglets : « Mode d'emploi » ; « Types » (500 expressions distinctes au lieu de 1021 lignes, car la même expression revient pour chaque personne ; numéros des lignes d'origine ; 1 à 3 mots courts proposés ; mots trop courants ; « Suffit seul ? » : 19 expressions d'un seul mot courant marquées « Non (jamais seul) », ex. prime, mandat, radio, scanner, compte rendu) ; « Organismes » (80 ; organismes trop vagues comme « Employeur » ou « Divers » non cherchés ; les mots « banque », « laboratoire », « tribunal » et un mot d'organisme : petit bonus) ; « Personnes » (3 noms, prénom seul cherché ; nom de famille seul = personne incertaine, choix proposés) ; « Mots trop courants » (41 mots). Chaque ligne : Statut « À valider » (liste : Validé, Corrigé, Refusé), « Proposé le 2026-11-06 », colonne « Correction de Max » ; aucune ligne à supprimer. Signalé à Max dans le tableur : ligne 199 de son tableur sans mot-clé (ignorée par Cap aujourd'hui), ligne 1024 vide. Aucune nouvelle autorisation Google pour Cap. À noter pour la suite : Cap n'a accès qu'aux fichiers qu'il crée ou que Max choisit (`drive.file`) ; pour lire ce nouveau tableur, Max devra le choisir une fois dans Cap, ou ses mots validés iront dans une colonne ajoutée, marquée et datée, du tableur d'origine (seulement avec son accord). Prochaine étape après la relecture de Max : code en local (recherche par score, 2 ou 3 choix, journal avec mot-clé, score et réponse), tests avec de FAUX documents et de faux noms, nouvel APK d'essai. Objectif fixé par Max : le prochain essai doit trouver le titre de son document de santé. Rien publié. [09/11/2026 : mots de santé rendus neutres avant publication, décision de Max]
 
 - 06/11/2026 à 09:30 : **TERMINÉ (en local) : recherche par mots-clés courts et par score ; 281/281 tests Cap, 62/62 scanner ; version `cap-v48` ; APK d'essai `cap-coque-essai-c14.apk` (99 fichiers de Cap vérifiés identiques au PC, aucun fichier de test) ; RIEN publié ; aucune nouvelle autorisation Google.** Tag local de sauvegarde avant : `sauvegarde-avant-mots-courts-score`. Infos de Max : le dernier scan est un document de santé, texte lu presque parfaitement ; le courrier écrit la forme longue du prénom de Max, pas la forme courte ; Max a corrigé l'onglet « Personnes » (statut « Corrigé », « Correction de Max » = les deux formes séparées par « | », suivies d'une note entre parenthèses). Nouveau `app/mots_courts.js` (sans DOM) : lit le tableur à valider (correction de Max prioritaire, seul ce qui précède la parenthèse, formes séparées par « | » ; « Refusé » sans correction = non utilisé ; colonnes retrouvées par leur en-tête) ; pour chaque ligne du tableur de classement (toujours la base : modèle et chemin) : type (tous ses mots courts présents, n'importe où, sans majuscules ni accents, pluriel simple accepté), personne (une des formes du prénom ; un autre prénom de la famille seul = ligne écartée ; aucun prénom = personne incertaine), organisme (petit bonus) ; score = rareté des mots (mots trop courants comptés au quart, jamais suffisants seuls sans organisme) × bonus si les mots sont côte à côte (× 1,3) et dans le haut du document (× 1,3), + 3 pour le prénom, + 1 pour l'organisme ; une ligne nettement en tête : proposée ; 2 ou 3 lignes à 85 % ou plus du meilleur score : boutons de choix ; plus de 3 : rien. `nommage_scan.js` : une date précédée de « né(e) le », « naissance » ou « DDN » n'est jamais la date du document. `classement.js` : `lireMotsCourts` (4 onglets lus à chaque scan, rien gardé ; pas choisi : recherche stricte d'avant, et Cap le dit). `google_picker.js` + `app.js` + `index.html` : bouton « Choisir le tableur des mots-clés courts » dans « Réglages du Drive » (même fenêtre Google, même droit `drive.file`, rangé pour la coque). `scan_ecran.js` + `style.css` : score affiché, « Personne pas sûre (prénom non lu) », boutons des 2 ou 3 titres ; rien n'est retenu sans titre touché puis « Oui » ; Journal Numérisation : « mot-clé : … ; score : … », ou « choix entre N titres : … », détails « recherche : par score / stricte (raison) », titres proposés, titre touché, réponse ; jamais le texte lu. Tests (faux document de santé, faux noms, prénom court et long fictifs) : prénom long, prénom court, nom de famille seul (3 choix), un deuxième type proche en plus (2 choix), examen cité en passant écarté, mots courants seuls refusés, autre personne écartée, date de naissance écartée, écran (titre par score, choix puis Oui, mots-clés courts en panne). Essai à blanc sur les VRAIES données de Max (hors dépôt, dans le dossier temporaire de session, rien enregistré dans le dépôt) avec un faux document : avec le titre du document en haut, la forme longue ou courte du prénom donne le bon titre seul ; nom de famille seul : 3 choix (une par personne) ; avec en plus un deuxième type proche dans le texte : 2 choix ; SANS le titre en haut, un examen cité en passant l'emporte (limite connue, le « Oui » de Max protège). Constat dans le tableur de Max : une des lignes de ce type existe pour les deux autres personnes mais pas pour Max. **Point bloquant pour l'essai :** le nouveau tableur a été créé par l'outil Google de Claude, pas par Cap ; avec `drive.file`, Cap ne peut le lire que si Max le choisit une fois avec la fenêtre Google, qui ne marche que dans Chrome, sur la version EN LIGNE ; il faut donc publier (accord de Max demandé), puis Max le choisit dans Chrome (en désactivant puis RÉACTIVANT « Ouvrir les liens compatibles » de la coque). Sans ce choix, l'APK d'essai fait la recherche stricte (et le dit dans le journal). Publication en attente : 14 commits locaux (`git log origin/main..main`), dont la coque (scan de Google, lecture du texte) et ce travail. Commit local du code (`73adc4e`). Qui a fait quoi : le modèle principal, aucun subagent.
 
@@ -457,8 +457,8 @@ Zencoder note chaque étape dans ce journal AVANT de la commencer. Jamais deux o
 - 06/11/2026 : **TERMINÉ (en local), accord de Max : lecture de la date élargie et diagnostic de la date ; 282/282 tests Cap, 78/78 scanner ; version `cap-v52` ; RIEN publié, rien installé, aucun APK, aucun tag poussé.** Tag local de sauvegarde avant : `sauvegarde-2026-11-06-avant-dates` (à ne jamais publier). `app/nommage_scan.js` : nouvelle `analyserDates` (et `dateDuTexte` s'en sert) : espaces permis autour des séparateurs, jour collé au mois, mois abrégés (janv., févr., avr., juil., sept., oct., nov., déc.), et DANS UNE DATE SEULEMENT les confusions de lecture évidentes (O → 0, l ou I → 1, « mal » → « mai ») ; année sur 2 chiffres jamais acceptée (comptée « non acceptée ») ; dates impossibles et dates de naissance rejetées et comptées ; jamais une date inventée. `app/mots_courts.js` : diagnostic et « date corrigée » transmis. `app/scan_ecran.js` : une date corrigée est montrée dans le nom proposé avec « Date lue avec une correction de lecture : vérifie-la dans le nom » (Max valide par Oui / Modifier / Non) ; description « Date du nom : lue sur le document, avec une correction de lecture » ; Journal Numérisation : « diagnostic date : candidates n (chiffres, lettres, iso) ; rejetées n (impossible, naissance) ; formes non acceptées n ; corrections de lecture n ; choisie : … », des nombres seulement, jamais la date. Tests avec de fausses dates : toutes les formes, confusions corrigées, année sur 2 chiffres refusée, naissance et date impossible comptées, lettres seules, numéro de téléphone et « mal » sans jour jamais pris pour une date, écran et journal sans la date. Erreur de ma part corrigée avant le commit : j'avais d'abord pris comme exemple, dans un commentaire et dans des tests, la même date que le document de Max ; remplacée par des dates inventées. Contrôle des mots privés, des mots de spécialité et de cette date : rien.
 - 06/11/2026 à 17:08 : **APK d'essai `cap-coque-essai-c18.apk` (Cap `cap-v52`) construit et INSTALLÉ sur le téléphone de Max (Pixel 7a), avec son accord**, par câble USB (`adb install -r`, « Success », mise à jour à 17:08:05, rien désinstallé avant). Tag local de sauvegarde avant : `sauvegarde-2026-11-06-avant-apk-c18` (à ne jamais publier). Contenu vérifié : les 79 fichiers de Cap identiques au PC, aucun fichier de test, aucun mot privé, aucune vraie date, cache `cap-v52` ; APK ignoré par git. Rien publié, aucun tag poussé. À faire par Max : refaire le scan du document de santé, puis lire « émetteur », « diagnostic émetteur » et « diagnostic date » dans le Journal Numérisation. Cette note reste en local.
 - 06/11/2026 : **Études en lecture seule (aucun code), décisions de Max.** (1) Spécialité du médecin : pistes 2 (colonne « Spécialité » du Dictionnaire, remplie par Max) et 1 (mot de spécialité lu après « Dr » / « Docteur », une seule trouvée sinon rien) ; option (a) : Max ajoute lui-même les lignes « type + spécialité » ; la règle de nommage ne change pas ; la liste des spécialités ira dans un nouvel onglet « Spécialités » du tableur des mots-clés courts (Drive), jamais dans le code. Constat (nombres seulement) : sur 32 lignes ajoutées par Max dans « Types » le 06/11, 1 seule correspond déjà à des lignes du tableur de classement (3 lignes, une par personne) ; 31 n'ont aucune correspondance, même en comparant les mots ou leur racine ; le tableur de classement est indispensable (Cap ne propose que ses lignes). (2) Recherche du type : aujourd'hui un score où tout compte en même temps (l'émetteur n'influence pas encore le type) ; un mot de « Types » sans ligne dans le tableur de classement n'est jamais utilisé ; le scan de 17:14 a lu 571 caractères (le chiffre « 60 » venait d'une erreur de transcription orale). Décision : d'abord un avertissement « Lecture faible » et une case « Ajouter un mot vu sur le document » ; ensuite la cascade avec une colonne « Mot fort » ; bonus des gros caractères : plus tard ; lecture par l'IA : NON (aucun changement de confidentialité). (3) Prénom seul : vérifié dans le code, une appellation d'un seul mot compte autant qu'un nom complet (6 points) et suffit à proposer quelqu'un ; diagnostic des trois scans : 1 candidat par nom exact, 1 par appellation ; cause déduite : le prénom d'un autre médecin du même cabinet, identique à l'appellation d'un collègue. **Règle validée par Max : « prénom seul = jamais assez »** (un mot seul qui est un prénom d'une colonne prénom des trois onglets n'est qu'un indice faible ; il faut en plus le nom de famille, ou « Dr » juste à côté pour une fiche avec nom, ou téléphone, mail, organisation, adresse) ; risque accepté par Max (il remplira l'appellation complète des fiches « Dr Prénom » quand il le faudra). **Ordre des travaux fixé par Max :** 1. publication de `cap-v51` et `cap-v52` (liste montrée avant l'envoi) ; 2. « Lecture faible » + « Ajouter un mot vu » ; 3. « prénom seul = jamais assez » (tests FICTIFS) ; 4. piste 2, puis piste 1, puis cascade « Mot fort ». Sauvegarde locale datée avant chaque étape ; rien n'est codé avant le Oui de Max pour l'étape en question.
-- 06/11/2026 : **Correction de confidentialité n° 3, accord de Max, avant la publication de `cap-v51` et `cap-v52` :** la spécialité inventée des faux documents de `app/test_scan.py` (choisie lors de la correction n° 2) pouvait correspondre à un vrai document de Max ; remplacée par une spécialité inventée sans aucun lien (« sylvothérapie »), absente jusque-là du dépôt et de son historique. Texte des faux documents seulement (12 endroits, plus l'ordre alphabétique d'une liste attendue), aucune logique touchée. Tag local de sauvegarde avant : `sauvegarde-2026-11-06-avant-specialite-tests` (à ne jamais publier). Historique déjà publié NON réécrit (accord de Max : `cap-v50` garde l'ancienne spécialité inventée). Tests : 78/78 scanner, 282/282 Cap. Rien publié.
-- 06/11/2026 : **Suite de la correction n° 3, choix B de Max :** l'ancienne spécialité inventée a aussi été retirée des 5 commits locaux NON publiés qui la contenaient encore (remplacée par « sylvothérapie », messages inchangés) ; tag local de sauvegarde avant : `sauvegarde-2026-11-06-avant-reecriture-specialite` (à ne jamais publier) ; historique déjà publié non touché ; contenu final identique ; vérifié : l'ancienne spécialité n'apparaît plus dans aucun des 9 commits à publier ; le mot « lunettes » d'une vieille entrée du journal (sans lien avec les documents, déjà en ligne) est laissé, décision de Max. Tests : 78/78 scanner, 282/282 Cap. Rien publié.
+- 06/11/2026 : **Correction de confidentialité n° 3, accord de Max, avant la publication de `cap-v51` et `cap-v52` :** la spécialité inventée des faux documents de `app/test_scan.py` (choisie lors de la correction n° 2) pouvait correspondre à un vrai document de Max ; remplacée par une spécialité inventée sans aucun lien (une spécialité inventée), absente jusque-là du dépôt et de son historique. Texte des faux documents seulement (12 endroits, plus l'ordre alphabétique d'une liste attendue), aucune logique touchée. Tag local de sauvegarde avant : `sauvegarde-2026-11-06-avant-specialite-tests` (à ne jamais publier). Historique déjà publié NON réécrit (accord de Max : `cap-v50` garde l'ancienne spécialité inventée). Tests : 78/78 scanner, 282/282 Cap. Rien publié. [09/11/2026 : mots de santé rendus neutres avant publication, décision de Max]
+- 06/11/2026 : **Suite de la correction n° 3, choix B de Max :** l'ancienne spécialité inventée a aussi été retirée des 5 commits locaux NON publiés qui la contenaient encore (remplacée par une spécialité inventée, messages inchangés) ; tag local de sauvegarde avant : `sauvegarde-2026-11-06-avant-reecriture-specialite` (à ne jamais publier) ; historique déjà publié non touché ; contenu final identique ; vérifié : l'ancienne spécialité n'apparaît plus dans aucun des 9 commits à publier ; le mot « lunettes » d'une vieille entrée du journal (sans lien avec les documents, déjà en ligne) est laissé, décision de Max. Tests : 78/78 scanner, 282/282 Cap. Rien publié. [09/11/2026 : mots de santé rendus neutres avant publication, décision de Max]
 - 06/11/2026 à 18:25 : **PUBLIÉ, avec l'accord explicite de Max : 9 commits envoyés** (`8fc48ba..80c0bd9`), un seul `git push origin main`, branche main seulement, sans aucun tag (vérifié : aucun tag en ligne). Juste avant : rien n'avait changé depuis la dernière vérification (9 commits, arbre propre). Contrôle des 9 commits : aucun mot privé, aucune spécialité réelle ni l'ancienne inventée, nom de famille seulement dans l'adresse du dépôt, aucun lien Drive, aucune date de document réel, aucun APK ni fichier secret. Le site a mis environ 7 minutes à se reconstruire. Vérifié en ligne ensuite : page de Cap 200, cache `cap-v52` (contient `cap-v51` et `cap-v52`), lecture de la date élargie et appellations présentes, ancienne spécialité inventée absente de la version en ligne. Tests avant l'envoi : 78/78 scanner, 282/282 Cap. Cette note reste en local (pas de publication sans accord). En attente, dans l'ordre fixé par Max : 2. « Lecture faible » + « Ajouter un mot vu » ; 3. « prénom seul = jamais assez » ; 4. piste 2 « Spécialité », piste 1, cascade « Mot fort ».
 - 06/11/2026 à 18:30 : **JALON, décision de Max : la numérisation est mise EN PAUSE après la publication de `cap-v51` et `cap-v52`** ; on reprendra par l'avertissement « Lecture faible » + « Ajouter un mot vu » (pas commencé, rien codé). État et ordre des travaux en attente : voir le bloc « ÉTAT AU 06/11/2026 », jalon de 18:30. Tag local de sauvegarde avant cette mise à jour : `sauvegarde-2026-11-06-avant-jalon-numerisation` (à ne jamais publier). Rien publié.
 - 06/11/2026 à 18:45 : **PUBLIÉ, avec l'accord explicite de Max : 2 notes du journal** (`80c0bd9..a65daf6` : note de publication de 18:25 et jalon de 18:30), un seul `git push origin main`, sans aucun tag (vérifié : aucun tag en ligne). Contrôle avant l'envoi : aucun mot privé, aucune spécialité réelle, nom de famille seulement dans l'adresse du dépôt, aucun lien Drive, aucune date de vrai document, aucun APK ni fichier secret ; rien n'avait changé depuis le contrôle précédent. Dépôt à jour. Numérisation toujours en pause (jalon de 18:30 inchangé). Cette note reste en local.
@@ -477,7 +477,7 @@ Zencoder note chaque étape dans ce journal AVANT de la commencer. Jamais deux o
 - 06/11/2026 : **TERMINÉ (en local), lot c22, accord de Max : 291/291 tests Cap, 78/78 scanner ; cache `cap-v56` ; APK `cap-coque-essai-c22.apk` construit (81 fichiers de Cap identiques au PC, aucun fichier de test, aucun mot privé, 52,2 Mo), PAS installé sur le Pixel ; rien publié, aucun tag poussé ; aucune nouvelle autorisation Google.** Tag local de sauvegarde avant : `sauvegarde-2026-11-06-avant-lot-c22` (à ne jamais publier). `app/ecran_eau.js` : un seul jeu de réglages `EAU` (46 000 points, amortissement 0,985, doigt posé 6, doigt qui glisse 7, onde 3, ondes seules toutes les 1,8 s environ) pour l'ouverture ET l'accueil ; l'eau de l'accueil suit le doigt pendant un défilement (écoute passive des mouvements du doigt, le défilement garde son geste). `app/style.css` : opacité commune (plus de réglage à part pour l'accueil) ; option A : tuiles, alerte, Scanner, recherche et les trois boutons du bas à 60 % d'opacité, contour net, halo clair autour du texte ; trois textes passés à l'encre principale car le calcul du pire cas les plaçait sous 8:1 (« Tâches » de la recherche : 6,6:1, déjà 7,5:1 avant ; compteur « (0) » des tuiles : 6,3:1). Tests : toutes les valeurs de l'eau comparées entre l'ouverture et l'accueil ; contraste CALCULÉ de chaque texte de l'accueil et des tuiles dans le pire cas (eau la plus foncée sous la carte), au moins 8:1 partout (entrées des listes déroulantes exclues : affichées par le téléphone, jamais sur l'eau) ; tuiles semi-transparentes ; l'eau suit le doigt au défilement sans le bloquer ; chaque bouton répond (Scanner compris) avec l'eau active. Téléphone virtuel (pas le Pixel) : c22 installé, part d'eau visible sur les tuiles mesurée de 47 % à environ 68 %. Remarque : sur une capture du téléphone virtuel, un cadre sombre entourait la zone des tuiles (probablement le repère de sélection après le geste de test), à surveiller à l'essai.
 - 06/11/2026 à 21:25 : **APK d'essai `cap-coque-essai-c22.apk` (lot c22, `cap-v56`) INSTALLÉ sur le téléphone de Max (Pixel 7a), avec son accord**, par câble USB (`adb install -r` visant le Pixel seulement, « Success », mise à jour à 21:25:03, rien désinstallé avant). Rien publié, aucun tag touché. À faire par Max : comparer l'eau de l'accueil et celle de l'ouverture, lisibilité des tuiles. Cette note reste en local.
 - 06/11/2026 : **Essai c22 par Max : VALIDÉ** (« l'eau de l'accueil est exactement la même que celle de l'ouverture », « très satisfaisant » ; c19 à c22 testés sur le Pixel).
-- 06/11/2026 à 21:39 : **PUBLIÉ, avec l'accord explicite de Max : 15 commits envoyés** (`a65daf6..e896abe`, lots c19 à c22 : écran d'eau, barres du téléphone, fond pâle, montée de sous le sable, eau sur l'accueil, interrupteur « Eau », même eau partout, option A), un seul `git push origin main`, branche main seulement, sans aucun tag (vérifié : aucun tag en ligne). Tag local de sauvegarde avant la préparation : `sauvegarde-2026-11-06-avant-publication-c19-c22` (à ne jamais publier). Juste avant l'envoi : rien n'avait changé depuis la liste. Contrôle des 15 commits : aucun mot privé, aucune spécialité réelle ni type de santé réel, nom de famille seulement dans l'adresse du dépôt, aucun lien Drive, aucune date de vrai document, aucun APK ni fichier secret, aucune métadonnée dans la vidéo ; spécialités inventées des tests : « sylvothérapie » et « orthophonie » (celle-ci déjà en ligne depuis 18:25, sans problème selon Max). Environ 5,7 Mo de fichiers, dont la vidéo du galet (4,96 Mo, accepté par Max). Tests avant l'envoi : 291/291 Cap, 78/78 scanner. Vérifié en ligne après la reconstruction du site : page de Cap 200, cache `cap-v56`, `ecran_eau.js` (même eau, 46 000 points), `style.css` et `index.html` en 200, vidéo servie (200, 4 957 485 octets, video/mp4). Téléphone virtuel éteint (`adb -s emulator-5554 emu kill`, celui que j'avais lancé). Cette note reste en local. En attente, rien commencé : étude des dossiers « Relations », relecture de la visionneuse de Zencoder, numérisation en pause.
+- 06/11/2026 à 21:39 : **PUBLIÉ, avec l'accord explicite de Max : 15 commits envoyés** (`a65daf6..e896abe`, lots c19 à c22 : écran d'eau, barres du téléphone, fond pâle, montée de sous le sable, eau sur l'accueil, interrupteur « Eau », même eau partout, option A), un seul `git push origin main`, branche main seulement, sans aucun tag (vérifié : aucun tag en ligne). Tag local de sauvegarde avant la préparation : `sauvegarde-2026-11-06-avant-publication-c19-c22` (à ne jamais publier). Juste avant l'envoi : rien n'avait changé depuis la liste. Contrôle des 15 commits : aucun mot privé, aucune spécialité réelle ni type de santé réel, nom de famille seulement dans l'adresse du dépôt, aucun lien Drive, aucune date de vrai document, aucun APK ni fichier secret, aucune métadonnée dans la vidéo ; spécialités inventées des tests : une spécialité inventée et une autre spécialité inventée (celle-ci déjà en ligne depuis 18:25, sans problème selon Max). Environ 5,7 Mo de fichiers, dont la vidéo du galet (4,96 Mo, accepté par Max). Tests avant l'envoi : 291/291 Cap, 78/78 scanner. Vérifié en ligne après la reconstruction du site : page de Cap 200, cache `cap-v56`, `ecran_eau.js` (même eau, 46 000 points), `style.css` et `index.html` en 200, vidéo servie (200, 4 957 485 octets, video/mp4). Téléphone virtuel éteint (`adb -s emulator-5554 emu kill`, celui que j'avais lancé). Cette note reste en local. En attente, rien commencé : étude des dossiers « Relations », relecture de la visionneuse de Zencoder, numérisation en pause. [09/11/2026 : mots de santé rendus neutres avant publication, décision de Max]
 - 06/11/2026 : **Étude en lecture seule des dossiers « Relations » faite (aucun code, rien créé) ; DÉCISION de Max :** un dossier nommé exactement « Relations » (R majuscule, le reste en minuscules, S à la fin), à la RACINE de « App Cap » ; pour chaque personne de l'onglet « Dictionnaire » du Dictionnaire général : un dossier « r_Prénom Nom » avec un Google Doc « Journal de bord » et deux sous-dossiers « Reçus » et « Envoyés ». Faisable avec `drive.file` seulement (Cap crée déjà des dossiers dans des dossiers montrés par Max, retrouvés par une étiquette invisible) ; créer le « Journal de bord » passe par le Drive ; y ÉCRIRE plus tard demanderait une réécriture complète ou le service Google Docs (non permis aujourd'hui) : étape 6 EN PAUSE. Règles : sans doublon (étiquette invisible par personne, une création à la fois, vérification juste avant chaque création) ; homonymes et fiches incomplètes signalés à Max, rien créé sans son choix ; changement de nom : Cap propose « Renommer ? », jamais d'action automatique ; si un dossier « r_ » fait à la main existe, Cap ne crée rien et le signale ; Cap ne supprime JAMAIS rien ; l'IA ne reçoit jamais le Dictionnaire. Ordre accepté par Max : 2. calcul de la liste (lecture seule, des nombres) ; 3. création, testée sur un FAUX Drive et un FAUX Dictionnaire, 100 % FICTIF, rien dans le vrai Drive ; 4. dossier de Max seulement, après lui avoir montré ce qui sera créé et son Oui explicite ; 5. toutes les personnes, après l'écran de vérification (liste, nombre) et son Oui ; 6. écriture dans les journaux de bord : en pause. Limite signalée à Max : avec `drive.file`, Cap ne voit pas les dossiers faits à la main. Rien codé, rien publié ; l'étape 2 attend le Oui de Max.
 - 06/11/2026 : **TERMINÉ (en local), dossiers « Relations », étape 2 : calcul de la liste, lecture seule, accord de Max. 294/294 tests Cap, 78/78 scanner ; cache `cap-v57` ; aucun dossier créé, aucune écriture dans le Drive, aucune nouvelle autorisation Google ; pas d'APK, rien publié, aucun tag poussé.** Tag local de sauvegarde avant : `sauvegarde-2026-11-06-avant-relations-etape2` (à ne jamais publier). Max a aussi accepté : avant chaque création (étapes 4 et 5), l'écran de vérification demandera « As-tu déjà créé toi-même un dossier r_ pour l'une de ces personnes ? » ; si Oui, rien n'est créé (Cap ne voit pas les dossiers faits à la main). Nouveau `app/relations.js` (sans accès au Drive, sans stockage) : `calculer` compte les dossiers « r_Prénom Nom » à prévoir, les homonymes (même prénom et nom, majuscules et accents ignorés : aucun dossier prévu pour eux), les fiches incomplètes (prénom ou nom manquant), les fiches sans type (à vérifier, rien de prévu, en cas de doute on ne fait rien) et les fiches qui ne sont pas des personnes ; `resumer` n'affiche QUE des nombres. `app/classement.js` : `lireDictionnairePersonnes` lit l'onglet « Dictionnaire » seul, colonnes Prénom, Nom et Type seulement (GET), à chaque calcul, rien gardé. Bouton « Calculer la liste « Relations » (rien n'est créé) » dans « Réglages du Drive », sous « Vérifier la lecture ». Tests 100 % FICTIF (faux Drive, faux Dictionnaire) : calcul, colonnes reconnues par leur titre, seules les 3 colonnes demandées, GET seulement, rien écrit sur le téléphone, aucun nom à l'écran, messages si le Dictionnaire n'est pas choisi ou illisible. À essayer par Max (Chrome, une fois publié et avec son accord) : appuyer sur le bouton et lire les nombres. Étape 3 : attend le Oui de Max.
 - 06/11/2026 : **TERMINÉ (en local), dossiers « Relations », étape 3 : création testée UNIQUEMENT sur un faux Drive et un faux Dictionnaire (FICTIF), accord de Max. 299/299 tests Cap, 78/78 scanner ; cache `cap-v58` ; rien créé dans le vrai Drive ; aucun bouton de Cap ne lance la création avec le vrai Drive (vérifié par un test) ; aucune nouvelle autorisation Google ; pas d'APK, rien publié, aucun tag poussé.** Tag local de sauvegarde avant : `sauvegarde-2026-11-06-avant-relations-etape3` (à ne jamais publier). Nouveau `app/relations_creation.js` : « Relations » (à la racine de « App Cap ») › « r_Prénom Nom » › « Journal de bord » (Google Doc vide, créé par le Drive), « Reçus », « Envoyés ». Chaque élément porte une étiquette invisible (personne : prénom et nom sans accents ni majuscules, plus le numéro de ligne du Dictionnaire), cherchée JUSTE AVANT sa création ; une personne après l'autre ; un second appui pendant le travail ne crée rien ; une ligne dans le Journal Général par élément créé (chantier « Relations ») ; seulement des lectures et des créations (jamais de suppression, de renommage ni de déplacement). Homonymes, fiches incomplètes, fiches sans type et changements de nom (nouvelle fiche à la même ligne qu'un dossier dont la fiche n'existe plus) : rien n'est créé, Cap s'arrête et montre les choix en très gros (« Je corrige d'abord le Dictionnaire » ou « Continuer seulement pour les autres fiches ») ; un changement de nom est seulement PROPOSÉ (« Renommer ? »), le renommage lui-même n'est pas codé. Dossier « r_ » dont la fiche a disparu : gardé tel quel, compté. Écran de vérification (`#verification-relations`) : nombre et liste des dossiers, question « As-tu déjà créé toi-même un dossier r_ pour l'une de ces personnes ? » : Oui = rien créé ; Non = bouton « Oui, crée ces N dossiers ». Tests (faux Drive) : création complète, deux appuis de suite, nouvel appui et ancien plan sans doublon, coupure au milieu puis reprise sans doublon, homonyme, fiche incomplète, sans type, changement de nom, question Oui/Non, choix en très gros, seulement www.googleapis.com en GET/POST, rien supprimé ni déplacé ; le test anti-doublon a été vérifié en le cassant exprès (il échoue bien). Limite à garder en tête : avec `drive.file`, Cap ne voit pas non plus un dossier « Relations » fait à la main ; il en créerait un second. À dire à Max avant l'étape 4.
@@ -573,6 +573,11 @@ Zencoder note chaque étape dans ce journal AVANT de la commencer. Jamais deux o
 - 07/11/2026, 21h52 : **Essai de `cap-v73` sur le Pixel (coque)** : geste haut-bas, Réglages du Drive, Réglages du cerveau, « Synchroniser maintenant » (dernier envoi 21h44), appui court sur le micro : OK. **Bug : en mode conversation, « Arrêter » ne fait rien.** Étude sans code. VÉRIFIÉ (lecture du style et essai sur l'ordinateur, avant et après l'étape A, avec la copie figée) : la barre du bas (`.dictee`) ne prend aucun toucher (`pointer-events: none`, pour laisser passer les touchers vers l'eau) et seuls le micro, « + », « Écrire une demande » et le message d'état le reprennent ; « Arrêter » (`#arreter-live`) ne le reprend pas : un toucher passe au travers (le point touché donne la page, pas le bouton), AVANT comme APRÈS l'étape A ; bug ancien, PAS causé par `cap-v73` ; la couche d'eau ne capte rien. Les tests appelaient le bouton directement (sans vrai toucher) et ne le voyaient pas. En attendant : toucher le micro arrête la conversation (VÉRIFIÉ dans le code), ou dire « stop ». Correction proposée : une ligne de style (`pointer-events: auto` sur « Arrêter ») + un test de vrai toucher ; en option, le bandeau au-dessus de l'eau (lisibilité). Attend l'accord de Max.
 - 07/11/2026, 22h24 : **Plan des étapes B (visionneuse) et C (Chercher) : étude (aucun code).** Signalé à Max : la correction « Arrêter » n'est PAS faite ni publiée (VÉRIFIÉ : en ligne `cap-v73`, aucune sauvegarde de correction ; elle attend sa réponse sur l'option du bandeau) ; la décision « accueil à 4 boutons (Micro, Chercher, Autre, Téléphone) et Autre à 5 éléments (Scanner, Réglages, Notes, Agenda, Fermer), 07/11 vers 21h » ne figure pas dans ce journal : prise telle que dite par Max. B lot 1 (PDF) : visionneuse en plein écran dans un cadre (comme la musique) ; PDF lu par le compte Cap puis donné à `Visualiseur.montrerFichier` ; branchement sur le pdf.js de Cap = 3 chemins à changer dans la copie (2 lignes de la page, 1 de `visualiseur.js`) : modification de la copie de Zencoder, à soumettre à Max ; ancien petit lecteur de PDF désactivé (commentaire daté) ; limite proposée côté Cap : 4 documents à la fois (Zencoder : 12) ; fermeture = documents fermés, mémoire libérée, cadre vidé ; alerte Google posée dans la fenêtre, le cadre de la visionneuse descend d'autant (ses boutons « Ajouter un fichier » et « Fermer » sont en haut) ; l'eau de l'accueil mise en pause pendant la musique et la visionneuse (batterie). Lot 2 (images) : images réduites à 2048 px avant affichage (mémoire), HEIC sans doute illisible. C : écran Chercher de Zencoder (4 icônes, barre, Fermer) branché sur les tâches, « Documents » (navigation dans les dossiers, à construire), la musique, les images, la recherche existante. Placement du changement 4 boutons / Autre 5 : proposé APRÈS B et AVANT C (mêmes écrans que C, pour éviter les doublons Agenda / Notes / To-do ; B n'y touche pas). Attend l'accord de Max.
 - 07/11/2026, 22h31 : **Correction « Arrêter » (mode conversation), sur l'ordinateur, PAS publiée** (accord de Max, sans le bandeau au-dessus de l'eau ; Max l'essaiera plus tard). Sauvegardes : tag local `sauvegarde-2026-11-07-avant-correction-arreter` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_correction_arreter_2026_11_07`. Une ligne de style (`pointer-events: auto` sur `#arreter-live`, commentaire daté) ; nouveau test au vrai doigt (le point touché est bien le bouton, sur l'accueil et dans « Chercher ») ; panne volontaire (ligne retirée) détectée ; 344/344, `test_scan` 78/78. Cache `cap-v74`. Sauvegarde à part, publiable seule.
+- 07/11/2026, 22h38 : **Étape B, lot 1 (PDF dans la visionneuse de Zencoder), sur l'ordinateur, PAS publié**, sauvegarde séparée de la correction « Arrêter » (accord de Max : 3 chemins changés, 4 documents au plus, eau de l'accueil en pause). Sauvegardes : tag local `sauvegarde-2026-11-07-avant-visionneuse-lot1` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_visionneuse_lot1_2026_11_07`. Copie de Zencoder : 3 chemins de pdf.js vers celui de Cap (`../pdfjs/`, même empreinte, pas de deuxième copie), commentaires datés, anciens chemins notés ; commentaire de la ligne à 35 % mis à jour ; dossier de Zencoder intact ; test d'intégrité adapté. Nouveau `visionneuse_cap.js` : visionneuse en plein écran dans un cadre (rechargée à chaque ouverture, vidée à la fermeture) ; PDF lus par le compte Cap, donnés à `Visualiseur.montrerFichier` sous les noms « PDF 1.pdf »… (aucun nom de fichier montré) ; 4 au plus (message pour les autres) ; fermeture (bouton « Fermer la visionneuse » ou retour du téléphone) = documents fermés, adresses libérées, cadre vidé ; connexion expirée = message. « Afficher les PDF dans Cap » ouvre la visionneuse ; ancien petit lecteur DÉSACTIVÉ (code et fenêtre gardés, commentaires datés). Alerte Google posée dans la visionneuse, qui descend d'autant (ses boutons du haut restent visibles). Eau de l'accueil en pause pendant la visionneuse et la musique. Cache `cap-v75`. Tests 348/348 (4 nouveaux), `test_scan` 78/78 ; 5 pannes volontaires détectées. VÉRIFIÉ sur l'ordinateur (Edge sans fenêtre) : la copie affiche un PDF FICTIF avec le pdf.js de Cap (capture `C:\Users\revox\Cap_captures_visionneuse_lot1_2026_11_07`). DÉDUIT : PDF du Drive dans la visionneuse sur le Pixel (seulement en ligne, avec le compte Cap).
+- 07/11/2026, 23h16 : **Max valide la correction « Arrêter » (essai sur l'ordinateur) et le lot 1 de B (sur l'ordinateur, pas de publication).** Précisé à Max : le lot 1 ne contient que les PDF ; les images (lot 2) ne sont pas faites. **Liste de publication de « Arrêter » seule montrée (pas publiée)** : envoi limité à la sauvegarde `c641248` (`git push origin c641248:main`), qui précède le lot 1 : 5 sauvegardes (`bccbda6`, `f3ed364`, `f392b0e` : notes de journal seulement ; `0f3330c` : la correction, cache `cap-v74` ; `c641248` : note) ; aucune réécriture, le lot 1 reste sur l'ordinateur. Contrôle sur cet état exact : aucun mot privé ni nom réel, 0 tag, deux balises `google-site-verification`, aucun champ de connexion, textes des 4 boutons Google inchangés ; tests lancés sur une copie de travail à cet état : 344/344 et 78/78. Attend l'accord de Max.
+- 07/11/2026, 23h19 : **« Arrêter » publié seul (`cap-v74`)** (accord de Max) : `git push origin c641248:main`, 5 sauvegardes `fd56b79..c641248`, branche `main` seule ; le lot 1 de B reste sur l'ordinateur. Vérifié en ligne : `cap-v74` servi, correction présente dans `style.css`, visionneuse branchée absente, deux balises `google-site-verification`, aucun champ de connexion ; 0 tag dans le dépôt en ligne.
+- 07/11/2026, 23h21 : **Essai de la version locale sur le Pixel, dans la coque : étude (aucun code).** VÉRIFIÉ (journal et code) : « hier » = APK d'ESSAI de la coque (`gradle assembleEssai`) qui range une copie du dossier `app` dans l'APK ; à la même adresse que le site (même mémoire, même retour de Google), chaque fichier de Cap est lu dans l'APK au lieu d'Internet (service worker compris), fichier absent = 404, jamais de mélange ; installé par câble USB (`adb install -r`, débogage autorisé par Max, mémoire gardée). VÉRIFIÉ ce soir (`adb`, lecture seule) : le Pixel est branché et reconnu ; l'appli Cap installée date du 06/11 à 21:25 = l'APK d'essai c22 (fichiers de `cap-v56`). DÉDUIT : l'essai de `cap-v73` « dans la coque » a sans doute été fait dans Chrome ou l'icône installée depuis Chrome (à confirmer par Max). Retour à la version en ligne : installer la coque normale reconstruite depuis le code actuel (même signature, mémoire gardée). Aucun risque pour la Search Console (rien publié) ; connexion Google et réglages gardés (même adresse, même paquet). Attend l'accord de Max pour construire et installer.
+- 07/11/2026, 23h27 : **APK d'essai `cap-coque-essai-c23.apk` construit et INSTALLÉ sur le Pixel 7a de Max, avec son accord** (« oui »), par câble USB (`adb install -r` visant le Pixel seulement, « Success », mise à jour à 23:27:00, rien désinstallé avant, mémoire gardée). Contenu vérifié avant : les 95 fichiers de Cap identiques au dossier `app` de l'ordinateur (étape A, « Arrêter », lot 1 de B ; cache `cap-v75`), aucun fichier Python, aucun mot privé, deux balises `google-site-verification`. APK ignoré par git. Rien publié. Pour revenir à la version en ligne après les essais : construire et installer la coque normale depuis le code actuel (même signature), avec l'accord de Max.
 evox\Cap_app_copie_figee_avant_correction_arreter_2026_11_07`. Une ligne de style (`pointer-events: auto` sur `#arreter-live`, commentaire daté) ; nouveau test au vrai doigt (le point touché est bien le bouton, sur l'accueil et dans « Chercher ») ; panne volontaire (ligne retirée) détectée ; 344/344, `test_scan` 78/78. Cache `cap-v74`. Sauvegarde à part, publiable seule.
 - 29/10/2026 : à la demande de Max (Lot 2), les tâches cochées ne restent plus dans leur catégorie : elles vont dans la ligne repliée « Terminées (N) ». Rien n'est effacé : la tâche garde sa date et sa catégorie, et décocher la remet à sa place. Cela remplace le choix du 28/10 (« les tâches cochées restent dans leur catégorie »).
 - 29/10/2026 : un rendez-vous dicté n'est jamais ajouté directement : Cap ouvre une fiche préremplie que Max vérifie et confirme. Déplacer un rendez-vous à la voix n'est pas encore géré (Cap le dit et propose « Modifier »).
@@ -610,3 +615,1290 @@ evox\Cap_app_copie_figee_avant_correction_arreter_2026_11_07`. Une ligne de styl
 - 28/10/2026 : COMPLÉMENT 4 (texte complet : `PROMPT_COMPLEMENT_4.txt`) : mode conversation continue (appui long d'environ 2 s sur le micro, vibration et son doux grave à l'entrée et à la sortie, micro allumé bien visible, sortie par un appui ou seule après 3 minutes de silence, test batterie) ; conversation en arrière-plan pendant l'usage d'autres applis ; alerte quand Google refuse ou expire (priorité n° 1) ; nouvelle règle de travail ; compte rendu à chaque étape ; sauvegarde avant les grosses modifications.
 - 28/10/2026 : après l'essai Google (texte complet : `PROMPT_COMPLEMENT_ACCUEIL_RDV.txt`) : écran d'accueil épuré (jour, heure, barre de recherche, boutons du bas ; un glissement vers le haut montre l'écran complet) ; texte un peu plus gros sauf l'heure ; recherche tapée sans IA (tâches et rendez-vous, autres sources grisées) ; dernières actions avec l'heure ; fiche de rendez-vous cliquable et modifiable (adresse, téléphone « Appeler », mail « Écrire », « Itinéraire », notes, rappel affiché ET vraie notification) ; indicateur des envois en attente et bouton « Synchroniser maintenant » ; animations douces gardées pour la toute fin.
 - 28/10/2026 : CLAVIER DE PHRASES (texte complet : `PROMPT_COMPLEMENT_CLAVIER.txt`). Pour utiliser Cap sans parler : des débuts de phrases tout prêts (« Retrouve-moi... ») à compléter, une saisie libre, un interrupteur « réponse silencieuse », un historique des demandes à relancer, de gros boutons. Les phrases sont rangées dans le Drive de Max, modifiables sans code, et les plus utilisées remontent toutes seules. Plan validé par Max et construit le 28/10/2026. Reste pour plus tard : phrases dans le Drive (semaine 2), placement définitif, phrases pour les personnes fréquentes, et les deux idées à tester (mode « je ne peux pas parler », phrases selon le moment de la journée).
+
+## 08/11/2026, 00h54 : retour de Max sur Cap ESSAI c23 (lecture seule, aucun code changé)
+- Marche : avec le réglage Android « ouvrir les liens dans l'application » (changé par Max), la connexion Google reste dans l'application. Le geste ouvre l'accueil à 3 boutons. L'alerte s'affiche.
+- Refus du compte Cap. VÉRIFIÉ en lisant le stockage de Cap sur le téléphone (adb, lecture seule, copie temporaire effacée ensuite ; l'identifiant n'est écrit nulle part) : l'identifiant enregistré a 2 lettres différentes au début par rapport au compte Cap attendu (même longueur, même domaine). C'est probablement une faute de dictée ou de frappe. Google a donc connecté le vrai compte Cap, choisi dans la liste, et Cap l'a refusé parce qu'il ne correspondait pas à l'identifiant mal tapé (DÉDUIT : le jeton a été jeté, rien n'a été lu). Le retour dans l'application n'y est pour rien : l'identifiant était bien gardé.
+- Fond gris puis noir. VÉRIFIÉ dans le code : l'écran d'eau seule (#ecran-eau) a le fond pâle var(--fond), avec l'eau sombre à 55 % par-dessus, ce qui donne du gris. L'accueil a le fond du thème (--eau-fond-uni, noir en sombre). Correction proposée : une ligne de style, `body:not(.vue-complete) #ecran-eau { background: var(--eau-fond-uni); }`, puis les tests et le cache cap-v76. En attente de l'accord de Max. Rien n'est publié.
+
+## 08/11/2026, 01h11 : fond de l'eau seule corrigé (accord de Max), Cap ESSAI c24 installé
+- Sauvegarde : tag local sauvegarde-avant-fond-eau-seule-2026-11-08 et copie figée C:\Users\revox\Cap_app_copie_figee_avant_fond_eau_seule_2026_11_08.
+- style.css : une ligne datée, `body:not(.vue-complete) #ecran-eau { background: var(--eau-fond-uni); }`. L'eau seule prend le fond de l'accueil : noir en sombre, pâle en clair (lune/soleil). Cache cap-v76.
+- Nouveau test : fond de l'eau seule = fond de l'accueil dans les deux modes, et « Revenir aux vagues » lisible sur le noir (contraste au moins 4,5). Tests : 349/349 et 78/78. Commit local 8f30c0c.
+- APK essai c24 (cap-coque-essai-c24.apk, ignoré par git) : 95/95 fichiers identiques à app/, 0 mot privé, 2 balises de vérification. Installé sur le Pixel (install -r, données gardées) à 01h10, « Success ». Rien n'est publié (en ligne : cap-v74).
+
+## 08/11/2026, 01h41 : retours de Max sur Cap ESSAI c24, étude du zoom et du bip (lecture seule, aucun code changé)
+- Validé par Max : le fond de l'eau seule (blanc en clair, noir en sombre, sans saut) ; le compte Cap connecté après avoir retapé l'identifiant (34 dossiers, 3 PDF, 0 image) ; la visionneuse (« c'est génial ») ; le mode conversation. « Fermer la visionneuse » ramène en bas des Réglages du Drive : on laisse.
+- Zoom. VÉRIFIÉ dans la copie de Zencoder (visualiseur.js, code identique à l'original) : le « double appui » est compté à chaque doigt levé, même à la fin d'un pincement. En levant les 2 doigts (moins de 320 ms d'écart), il croit voir un double appui : si le zoom est à 1,05 ou moins, il saute à 2,5 (« zoome très fort tout seul ») ; au-dessus, il revient à 1 (« refuse de dézoomer »). ZOOM_MIN = 0,5 et ZOOM_MAX = 6. Correction proposée : ignorer le double appui quand un pincement vient d'avoir lieu (environ 6 lignes datées dans la copie de Cap ; le dossier de Zencoder n'est pas touché). En option : ZOOM_MIN plus bas. Le test d'intégrité de la copie est à mettre à jour.
+- Bip. VÉRIFIÉ : le bip de Cap (app.js, bip()) ne sonne que 2 fois par conversation, une impulsion de 0,15 s à chaque fois : 880 Hz au début, 520 Hz à la fin. Dans la coque, chaque nouvelle écoute appelle SpeechRecognizer.startListening (MainActivity.demarrerEcoute). DÉDUIT : le bip répété vient du service de reconnaissance vocale d'Android (Google), à chaque écoute. Sa hauteur ne se règle pas. On peut seulement le couper un instant (son du téléphone), puis jouer à sa place notre propre son grave. C'est un changement de la coque, avec un risque sur le volume du téléphone, à remettre à coup sûr. Idée notée, non demandée : un point rouge ou vert qui montre si Cap écoute. Boule de verre pour le micro : idée de Max, déjà notée, pas à coder.
+
+## 08/11/2026, 02h05 : zoom de la visionneuse corrigé (accord de Max), Cap ESSAI c25 installé ; étude couleur et eau (lecture seule)
+- Sauvegarde : tag local sauvegarde-avant-zoom-visionneuse-2026-11-08 et copie figée C:\Users\revox\Cap_app_copie_figee_avant_zoom_visionneuse_2026_11_08.
+- Copie de Cap app/visionneuse/bloc_visualiseur/visualiseur.js : 4 ajouts datés, rien d'effacé. ZOOM_MIN = 0,25 (dézoom jusqu'au quart). Un pincement marque doc.pincementRecent : ses doigts levés ne comptent plus comme un double appui (plus de saut à 2,5 ni de retour à 1 au lâcher). Le dossier de Zencoder n'est pas touché (empreinte 996f1fdd… vérifiée).
+- Tests : le test d'intégrité retire les 4 ajouts avant de comparer à l'original. Nouveau test dans la vraie page copiée : pincer puis lâcher garde la taille, quart et 6 fois atteints, retour exact à la taille d'ouverture, double appui d'un doigt intact. Le serveur des tests sert la copie de la visionneuse. Ce test échoue avec l'ancien fichier (vérifié). 350/350 et 78/78. Cache cap-v77. Commit 9e0ce01.
+- APK essai c25 : 95/95 fichiers identiques, 0 mot privé, 2 balises de vérification. Installé à 01h55, « Success ». Rien n'est publié.
+- Bip : reporté, étape séparée plus tard (essai sur le Pixel pour savoir quel son Android joue ; rien de promis sur la basse).
+- Étude couleur et eau. VÉRIFIÉ dans le code : visionneuse et lecteur ont le même fond, #d9e4e2. Même eau aussi : couleurs [201,227,221] → [156,182,184], flou 1,2 px, 46000 cellules, amortissement 0,985, ondes seules toutes les 1,8 à 3,4 s, doigt posé 6 et doigt qui glisse 4. Différence entre les deux : l'eau de la visionneuse est opaque (avec une 2e couche à 35 % devant les documents), celle du lecteur est à 60 %. Accueil clair de Cap : fond #EAF1F4, couleurs tirées de ce fond ([234,241,244] → [211,223,228]), opacité 0,55, flou 1,4 px, doigt qui glisse 7 ; même calcul, mêmes cellules. Proposition en attente de l'accord de Max : en mode clair seulement, le fond #d9e4e2, les couleurs de Zencoder, l'opacité 0,6 et le flou 1,2 px. Le mode sombre ne change pas.
+
+## 08/11/2026, 02h06 : mode clair sur l'eau aux couleurs de Zencoder (étape 1, accord de Max), Cap ESSAI c26 installé
+- Sauvegarde : tag local sauvegarde-avant-eau-claire-zencoder-2026-11-08 et copie figée C:\Users\revox\Cap_app_copie_figee_avant_eau_claire_zencoder_2026_11_08.
+- Mode clair, écrans sur l'eau seulement (eau seule, accueil, Autre, Réglages) : fond #d9e4e2 (avant #EAF1F4) ; couleurs d'eau [201,227,221] → [156,182,184] (accueilCap.EAU_CLAIRE) ; transparence 60 % ; flou 1,2 px ; doigt qui glisse 4 (ecranEau.forceGlisse). Le texte du mode clair passe de #2b2d2e à #1a1c1c pour garder 8:1 dans le pire cas (6,9:1 sinon, vu par le test).
+- Inchangé : le mode sombre (fond, couleurs, effets v2, 55 %, flou 1,4 px, doigt 7) et « Chercher », avec ses fenêtres (étape 2, à part).
+- Tests revus : couleurs claires, effets, doigt (4, 7 dans « Chercher » et en sombre), fond, transparence et flou dans les deux modes, lisibilité du mode clair sur l'accueil. 350/350 et 78/78. Cache cap-v78. Commit 322546c.
+- APK essai c26 : 95/95 fichiers identiques, 0 mot privé, 2 balises de vérification. Installé à 02h04, « Success ». Rien n'est publié.
+- Bouton « Afficher les PDF dans Cap » absent. VÉRIFIÉ (relations_compte.js) : il est caché au départ et n'apparaît qu'après un « Compter » réussi, dans la même ouverture de Cap. Chaque réinstallation et chaque réouverture le cachent à nouveau. Le bouton des MP3, lui, est toujours visible. C'est lié à la connexion seulement de façon indirecte : « Compter » a besoin d'une connexion du compte Cap encore valable (environ 1 h), sinon il affiche le message d'expiration et le bouton reste caché.
+
+## 08/11/2026, 02h20 : étude de l'icône ŒIL dans « Autre » (demande de Max ; lecture seule, aucun code)
+- VÉRIFIÉ (index.html, style.css) : « Autre » contient aujourd'hui une grille de 2 colonnes de boutons carrés (Scanner, Réglages), icônes au trait 1,6, sans texte visible, puis l'interrupteur lune/soleil et « Fermer ».
+- Proposition de mise en page : grille symétrique 2-2-1. Scanner et Œil en haut, Notes et Agenda au milieu, Réglages centré en bas, puis lune/soleil et Fermer. Mêmes icônes au trait. Boutons un peu plus petits si besoin, pour que tout tienne sans défiler (vérifié par un test à 412 × 800).
+- Œil, à l'ouverture : les PDF du compte Cap, 4 au plus, comme aujourd'hui. Les images viendront avec le lot 2 (il y en a 0 pour l'instant), puis éventuellement un choix.
+- Connexion expirée ou identifiant absent : message clair dans la visionneuse, avec le bouton « Autoriser la lecture du compte Cap » (même texte, même fonction, aucun droit nouveau). Simple : au retour de Google, Réglages du Drive se rouvre comme aujourd'hui. En option : revenir directement dans la visionneuse.
+- « Afficher les PDF dans Cap » : on le garde pour l'instant, comme solution de secours, et on le retire plus tard, une fois l'œil validé.
+- Notes et Agenda : grisés. Un toucher affiche « Pas encore prêt ».
+- Coût moyen : environ 80 lignes, 4 ou 5 tests, cache, APK d'essai. Risques : la place sur les petits écrans, et une lecture du Drive à chaque ouverture par l'œil (quelques secondes). Retour en arrière : tag et copie figée avant. En attente de l'accord de Max.
+
+## 08/11/2026, 02h35 : l'œil dans « Autre » (accord de Max), Cap ESSAI c27 installé
+- Sauvegarde : tag local sauvegarde-avant-oeil-autre-2026-11-08 et copie figée C:\Users\revox\Cap_app_copie_figee_avant_oeil_autre_2026_11_08.
+- « Autre » à 5 icônes au trait, en 2-2-1 symétrique : Scanner et Œil, puis Notes et Agenda grisés (« Notes : pas encore prêt. »), puis Réglages centré. En dessous : lune/soleil et Fermer. Taille réglée pour que tout tienne sans défiler à 412 × 800, 412 × 915 et 360 × 640, et avec l'alerte Google affichée.
+- Œil (relations_compte.js) : il lit les PDF du compte Cap (lecture seule) et les ouvre dans la visionneuse, 4 au plus. Sans identifiant : message. Pas connecté ou connexion expirée : message, plus le bouton « Autoriser la lecture du compte Cap » dans la visionneuse (même texte, même fonction, mêmes droits ; aucune autorisation nouvelle).
+- Retour direct : ce bouton note cap_retour_visionneuse_v1, une simple heure, valable 10 minutes. Au retour de Google, la visionneuse se rouvre seule et lit les PDF. Sans cette marque, ou si elle a plus de 10 minutes, retour habituel dans Réglages du Drive. Les refus et les mauvais comptes s'affichent dans la visionneuse.
+- « Afficher les PDF dans Cap » est gardé dans Réglages du Drive, en secours.
+- Tests : mise en page (3 tailles, symétrie, grisés) ; œil dans les 6 cas (sans identifiant, sans connexion, Autoriser, retour direct, connecté, expiré, retour habituel). Le test du curseur lune/soleil était instable (transition en temps réel) : il utilise maintenant l'attente en temps réel. 352/352 trois fois de suite, et 78/78. Cache cap-v79. Commit 64e89dd.
+- APK essai c27 : 95/95 fichiers identiques, 0 mot privé, 2 balises de vérification. Installé à 02h33, « Success ». Rien n'est publié.
+
+## 08/11/2026, 02h54 : lot D, apparence de l'écran de scan (accord de Max), Cap ESSAI c28 installé
+- Décision de Max (correction de son message) : « Utiliser Google Scan » reste ACTIF. C'est le scanner de Google qui marche déjà dans l'application (ML Kit, essai réussi le 06/11).
+- Sauvegarde : tag local sauvegarde-avant-lot-D-scan-2026-11-08 et copie figée C:\Users\revox\Cap_app_copie_figee_avant_lot_D_scan_2026_11_08. Dossier de Zencoder intact (empreinte de index.html vérifiée, inchangée).
+- index.html : mêmes éléments, mêmes identifiants, seul l'ordre change. Ordre : caméra, « Page 1 », petit « Mode rafale », grille 2×2 (Prendre la photo, Utiliser l'appareil photo du téléphone, Utiliser Google Scan, Fermer), puis aperçu, nom et pages. Le titre est gardé pour la lecture d'écran (caché à l'œil). Ancien texte « Scanner avec Google (recommandé) » remplacé par « Utiliser Google Scan » (même bouton). Le texte « appareil photo du téléphone » est gardé, car les messages du scanner le citent.
+- style.css (bloc daté) : fond du thème (vert d'eau ou noir) et eau derrière (canvas eau-scanner : 60 % et 1,2 px en clair, comme les autres écrans). Caméra arrondie (46 % de la hauteur). Rafale en pastille, seul bouton avec un fond. Grille de boutons au texte seul. Textes et cadres de travail lisibles sur les deux fonds.
+- accueil_cap.js : eau du scan (même eau, mêmes couleurs selon lune/soleil, effets v2 en sombre), animée seulement pendant le scan, qui réagit au toucher. L'eau de l'accueil, cachée, est en pause (classe plein-ecran). Repli possible si la batterie ou la fluidité souffrent : eau immobile pendant le scan.
+- Test : fond et eau dans les deux modes, pause de l'accueil, ordre, grille 2×2 centrée, rafale plus petite, boutons touchables, lisibilité d'au moins 7:1 dans le pire cas. Il a fait foncer la pastille rafale en clair (6,1:1 avant). Captures d'écran vérifiées dans les deux modes ; « Prendre la photo » aligné sur les 3 autres (fond orange retiré). 353/353 deux fois, et 78/78 pour le scanner. Cache cap-v80. Commit de941f5.
+- APK essai c28 : 95/95 fichiers identiques, 0 mot privé, 2 balises de vérification. Installé à 02h52, « Success ». Rien n'est publié.
+
+## 08/11/2026, 09h58 : écran de scan, deux textes retirés (essai c29)
+
+- Demande de Max : il trouve la numérisation jolie ; retirer « Place le document dans le cadre, bien à plat, sur un fond plus sombre » et « Tous les scans sont déposés dans 00_A_CLASSER » (en bas), pour gagner de la place.
+- Sauvegarde : tag `sauvegarde-avant-retrait-textes-scan-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_retrait_textes_scan_2026_11_08`.
+- Fait : texte d'aide retiré (gardé en commentaire daté dans index.html) ; la ligne du bas se cache quand rien n'attend (les scans en attente et les erreurs restent annoncés) ; caméra 46vh → 54vh. Aucune fonction retirée : les scans vont toujours dans 00_A_CLASSER. L'indicateur de l'ACCUEIL (« Tous les scans sont déposés… », 10 s après un envoi) n'est pas touché.
+- Tests : 353/353 et 78/78 (test du scanner adapté : la ligne du bas est vide et cachée ; test du lot D : textes absents, l'écran ne défile pas). Cache cap-v81. Commit 52d0936.
+- « Cap ESSAI » c29 vérifié (95 fichiers de Cap identiques, aucun mot privé, balises Search Console présentes) et installé sur le Pixel à 09h56 (Success). Rien publié.
+
+## 08/11/2026, 10h05 : étude (lecture seule) des transitions de boutons et des vagues coupées
+
+- Demande de Max : 1) boutons qui s'éloignent dans le flou vers le fond, puis ceux du nouvel écran qui arrivent de loin, sans jamais se croiser ; 2) plus de remise à zéro des vagues au geste qui ouvre l'accueil, traces plus fluides partout.
+- VÉRIFIÉ dans le code : Autre et Réglages basculent d'un coup (attribut hidden, montrer() dans accueil_cap.js) ; œil et scan sont des fenêtres (dialog). L'eau seule (#toile-eau) et l'eau de l'accueil (#eau-accueil) sont deux calculs séparés (deux creerCouche, deux tableaux). L'eau de l'accueil ne démarre qu'à la fin de la montée (1 s) et demarrer() refait des tableaux vides (dimensionner) : c'est la remise à zéro. Même chose au retour du scan.
+- Proposition en attente de l'accord de Max (aucun code) : passer l'état des vagues d'une eau à l'autre au début de la montée ; ne plus vider l'eau à la reprise ; tracer le geste en continu (points intermédiaires) ; transitions par une seule fonction (≈ 0,2 s départ + 0,25 s arrivée, coupées si « animations réduites »).
+
+## 08/11/2026, 10h12 : vagues sans remise à zéro et traînée continue (essai c30)
+
+- Accord de Max : le 2 d'abord (traces recopiées dans l'eau de l'accueil, traînée continue entre deux points du doigt). Le 1 (boutons dans la profondeur) attend son accord sur les vagues.
+- Sauvegarde : tag `sauvegarde-avant-vagues-continues-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_vagues_continues_2026_11_08`.
+- ecran_eau.js (ajouts datés) :
+  - dimensionner() garde les vagues si la taille ne change pas (plus de vidage à la reprise : retour du scan, Cap revenu au premier plan) ;
+  - tracer() : une touche d'eau tous les 3 carreaux entre deux positions du doigt, 64 au plus par mouvement ;
+  - exporterEtat()/importerEtat() (tailles différentes : carreau le plus proche) ;
+  - au geste vers le haut, l'eau de l'accueil reçoit les vagues et démarre tout de suite, sous l'eau seule qui s'efface ; au bouton « Eau », l'eau seule reprend celles de l'accueil.
+- accueil_cap.js : même traînée sur l'eau du scan.
+- Test nouveau (traînée sans trou, reprise sans vidage, recopie entre tailles, passage au geste, traînée sur l'accueil, retour à l'eau seule). Aucun ancien test de l'eau ne supposait une eau neuve : tous passent sans changement. 354/354, scan 78/78. Cache cap-v82. Commits 8eaf136, 6411b2b.
+- APK c30 : 95 fichiers de Cap identiques, 0 mot privé, 2 balises. Installé à 10h10, Success. Rien publié.
+- DÉDUIT, à confirmer sur le Pixel : pendant la seconde de montée, deux eaux tournent ensemble ; un geste rapide donne une vague plus forte qu'avant (plus de touches).
+
+## 08/11/2026, 10h40 : retour de Max sur c30, étude (lecture seule) de la descente des boutons
+
+- Retour de Max : tests 1, 2 et 3 des vagues OK (retour à l'eau seule par le geste de haut en bas). L'eau est validée et close : on ne touche plus à son rendu.
+- Défaut : au geste de haut en bas, les boutons de l'accueil disparaissent d'un coup (à la montée ils apparaissent doucement).
+- VÉRIFIÉ dans le code : accueil_cap.js (geste de haut en bas, touchend → retourEau() → clic sur #aller-eau) → ecran_eau.js afficher() : `racine.hidden = false` d'un coup ; #ecran-eau est opaque et au-dessus de tout (z-index 900), et avantAffichage arrête l'eau de l'accueil. Aucune animation, alors que la montée (entrerDansCap) a « eau-sort » + « cap-monte » (1 s).
+- Proposition en attente de l'accord de Max (aucun code) : descente symétrique (classes « eau-revient » et « cap-descend », 1 s, coupée si animations réduites), eau de l'accueil arrêtée à la FIN de la descente au lieu du début.
+
+## 08/11/2026, 10h34 : descente douce vers l'eau seule (essai c31)
+
+- Accord de Max : descente symétrique de la montée (date et boutons qui s'enfoncent, flou, fondu en environ 1 s ; eau seule qui revient en fondu avec les vagues ; animations réduites respectées ; geste vers le haut pendant la descente = arrêt propre ; eau de l'accueil arrêtée à la fin).
+- Sauvegarde : tag `sauvegarde-avant-descente-douce-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_descente_douce_2026_11_08`.
+- ecran_eau.js (ajouts datés) : afficher({ descente: true }) depuis #aller-eau (geste de haut en bas) : classes « eau-revient » (#ecran-eau) et « cap-descend » (html), même durée que la montée (dureeSortieMs, 1 s) ; avantAffichage (arrêt de l'eau de l'accueil) appelé à la fin ; entrerDansCap() arrête d'abord la descente (finDescente). Premier affichage, animations réduites ou durée 0 : d'un coup comme avant. Rendu de l'eau non touché.
+- style.css : keyframes « eau-revient » (fondu) et « cap-descend-dans-le-sable » (inverse de la montée : translateY(14vh), scale 0.98, flou 6 px, fondu). Repli prévu si ça saccade : retirer blur(6px).
+- Test nouveau (descente, classes, animations, eau de l'accueil en marche pendant la descente puis arrêtée, arrêt propre par le geste vers le haut, animations réduites). 355/355, scan 78/78. Cache cap-v83. Commit a06bc7e.
+- APK c31 : 95 fichiers identiques, 0 mot privé, 2 balises. Installé à 10h32, Success. Rien publié.
+- DÉDUIT : si le geste vers le haut arrive au milieu de la descente, l'accueil repart du début de la montée (petit saut de transparence possible).
+
+## 08/11/2026, 10h44 : icône « Lecteur » dans Autre (essai c32)
+
+- Retour de Max : la descente douce marche parfaitement sur le Pixel.
+- Demande de Max (à coder directement) : icône « Lecteur » dans Autre, qui ouvre le lecteur MP3 déjà intégré, comme l'œil ouvre la visionneuse ; message clair si rien à afficher.
+- Sauvegarde : tag `sauvegarde-avant-icone-lecteur-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_icone_lecteur_2026_11_08`.
+- Place choisie : grille 2-2-2 : Scanner | Œil ; Notes | Agenda (grisés) ; Lecteur | Réglages (Réglages n'est plus seul et centré ; ancienne règle CSS gardée en commentaire daté). Icône : note de musique, même trait que les autres.
+- relations_mp3.js (ajout daté) : ouvrirLecteur() ouvre la fenêtre « Musique » (dossiers, morceaux, puis le lecteur de Zencoder, inchangés). Identifiant absent, pas connecté, connexion expirée, aucun « Relations », aucun MP3 : message clair. Quand il le faut, bouton « Autoriser la lecture du compte Cap » (nouveau bouton #autoriser-musique-relations, même texte et même droit drive.readonly que les autres, aucune nouvelle autorisation). « Arrêter et fermer » ramène à la liste, puis « Fermer » ramène à Autre. Pas d'attenteLecture sur l'icône (elle aurait effacé le dessin) : un second appui pendant la lecture est ignoré.
+- Après la page de Google, Cap revient comme avant sur « Réglages du Drive » (pas de retour direct dans la musique, contrairement à l'œil) : Max retouche le Lecteur.
+- Tests : test de Autre adapté (6 icônes, Lecteur et Réglages symétriques en bas, 3 tailles d'écran) ; nouveau test du Lecteur (5 cas, FAUX Drive, lecture seule). 356/356, scan 78/78. Cache cap-v84. Commit f2600b0.
+- APK c32 : 95 fichiers identiques, 0 mot privé, 2 balises. Installé à 10h42, Success. Rien publié.
+
+## 08/11/2026, 10h53 : Lecteur, retour direct dans la musique après la page de Google (essai c33)
+
+- Accord de Max : retour direct dans la musique après Google, comme pour l'œil.
+- Sauvegarde : tag `sauvegarde-avant-retour-musique-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_retour_musique_2026_11_08`.
+- Fait (ajouts datés) :
+  - relations_mp3.js : « Autoriser la lecture du compte Cap » de la fenêtre « Musique » note l'heure de la demande (clé cap_retour_musique_v1, valable 10 min, jamais un nom ni un identifiant), puis ouvre la page de Google. Messages « tu reviendras ici ». Au retour, si la connexion a échoué (refus, mauvais compte), la raison donnée par le compte s'affiche (première ouverture seulement).
+  - visionneuse_cap.js : retourDemande(stockage, maintenant, cle) sert aussi pour la musique (CLE_RETOUR_MUSIQUE).
+  - relations_compte.js : au retour de Google avec cette marque, Autre puis le Lecteur s'ouvrent seuls (dossiers lus) au lieu de « Réglages du Drive ». Marque trop vieille ou absente = retour habituel.
+- Tests : nouveau test du retour direct (marque notée, retour dans Autre puis la musique avec les dossiers, marque effacée, lecture seule, Fermer = Autre ; vieille marque = Réglages du Drive). Test de confidentialité de la musique adapté (la seule chose gardée en plus est l'heure de la demande). 357/357, scan 78/78. Cache cap-v85. Commit 907ce18.
+- APK c33 : 95 fichiers identiques, 0 mot privé, 2 balises. Installé à 10h51, Success. Rien publié.
+
+## 08/11/2026, 11h11 : écran de choix des dossiers de musique sur l'eau, règle générale de Max (essai c34)
+
+- Retour de Max : le retour direct dans la musique après Google lui plaît beaucoup.
+- RÈGLE GÉNÉRALE DE MAX (08/11/2026, valable pour toujours, notée aussi dans EXPLICATIONS.md) : toute fenêtre ou tout écran de choix = pas de titre ni de texte d'aide inutile, pas de grande fenêtre ni de cadre, uniquement de gros boutons identiques posés sur l'eau (« Fermer » compris, calqué sur eux) ; transition : l'écran d'avant disparaît dans le rien, puis les boutons sortent de sous le sable ; animations réduites = rien. Fenêtre existante non conforme : la signaler à Max, ne pas la modifier d'office. Nouvelle fenêtre : conforme dès sa création.
+- Sauvegarde : tag `sauvegarde-avant-choix-sur-eau-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_choix_sur_eau_2026_11_08`.
+- Fait :
+  - nouveau module app/choix_sur_eau.js (ouvrir, fermer ; ajouté au service worker, à index.html et aux tests) : la fenêtre s'ouvre tout de suite ; l'écran d'avant (.ecran : accueil, Autre ; et les fenêtres déjà ouvertes dessous) disparaît en fondu 0,45 s, puis les boutons sortent du sable (keyframes de la montée, 1 s, après 0,45 s). Fermer : les boutons disparaissent (0,45 s), puis l'écran d'avant remonte du sable (1 s). Retour du téléphone géré. Animations réduites : d'un coup.
+  - style.css : classe `fenetre-choix` (plein écran transparent, sans cadre ni voile ; boutons .choix-grand-affichage et .relations-gros-bouton identiques, couleur de l'eau, lisibles en sombre et en clair, 440 px au plus).
+  - index.html : musique : titre « Musique de « Relations » » retiré de l'affichage (gardé en commentaire daté) ; « Fermer », « Retour aux dossiers » et « Autoriser… » prennent la classe des boutons de dossiers.
+  - relations_mp3.js : textes d'aide « N dossier(s) avec de la musique. Touche un dossier. » et « nom : N MP3. Touche un morceau. » retirés ; ouverture et fermeture par choixSurEau. Messages utiles (lecture du Drive, identifiant absent, pas connecté, expiré, aucun MP3) gardés.
+- Contrôle visuel (captures, noms FICTIFS) en sombre et en clair : un défaut trouvé et corrigé (sur un écran large, « Fermer » était plus large que les boutons de dossiers).
+- Tests : nouveau test (sans titre ni aide ni cadre ni voile, plein écran, « Fermer » identique aux boutons sur 15 propriétés, fondu puis sable, fermeture inverse, fenêtre de dessous rendue, contraste ≥ 7:1 en sombre et en clair, animations réduites) ; 3 tests attendent désormais la fin du fondu de « Fermer ». 358/358, scan 78/78. Cache cap-v86. Commit 2244db7.
+- APK c34 : 96 fichiers identiques (nouveau fichier choix_sur_eau.js), 0 mot privé, 2 balises. Installé à 11h09, Success. Rien publié.
+- Fenêtres existantes NON conformes, signalées à Max (pas modifiées) : liste des morceaux (même fenêtre : lignes numérotées et titres d'albums, pas de gros boutons identiques) ; « Plusieurs personnes correspondent » (annuaire) ; choix de la date (« Je ne suis pas sûr. Touche la bonne date ») ; choix de l'émetteur au scan ; écran « Trier ».
+
+## 08/11/2026, 11h31 : Lecteur, geste de haut en bas, musique en arrière-plan, liste des morceaux à la règle (essai c35)
+
+- Retour de Max : l'écran de choix des dossiers est « très chouette » (testé sur le Pixel).
+- Décisions de Max (code direct) : 1) dans le lecteur, geste de haut en bas = « Arrêter et fermer » (fondu du son très court, lecteur qui s'en va en vapeur, liste qui revient) ; bouton « Arrêter et fermer » caché. 1 bis) bouton « Musique en arrière-plan » (la musique continue) et petit indicateur qui ramène au lecteur. 2) liste des morceaux : eau visible et jouable, transitions comme les dossiers, à la règle générale. 4) ne pas toucher aux 4 autres fenêtres signalées.
+- Sauvegarde : tag `sauvegarde-avant-lecteur-geste-arriere-plan-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_lecteur_geste_arriere_plan_2026_11_08`.
+- Fait (ajouts datés) :
+  - choix_sur_eau.js : changer() (copie inerte « fantôme » de l'ancien écran, sans identifiants, qui disparaît en 0,45 s, puis le nouvel écran sort du sable) et reapparaitre().
+  - relations_mp3.js : dossiers ↔ morceaux et « Retour aux dossiers » par changer() ; geste sur une bande du bord droit (largeur 40 px au plus, de 12 % du haut jusqu'à 140 px au-dessus du bas ; hors des curseurs de Zencoder qui s'arrêtent à 10 % du bord ; au moins 20 % de la hauteur vers le bas, deux fois plus vertical que de côté, en moins de 1,5 s) : volume à zéro en 0,3 s, lecteur en vapeur 0,45 s, puis arrêt et nettoyage, la liste ressort du sable. « Musique en arrière-plan » : même vapeur, rien n'est arrêté, morceaux suivants joués sans ramener le lecteur, indicateur (note, en haut à droite, posé dans la fenêtre du dessus) qui ramène au lecteur ; fin de la liste en arrière-plan = tout s'arrête, l'indicateur s'en va ; connexion expirée en arrière-plan = indicateur orange.
+  - index.html : « Arrêter et fermer » caché (code gardé), bande du geste avec une petite poignée, bouton « Musique en arrière-plan », indicateur.
+  - style.css : liste des morceaux en gros boutons identiques (gros numéro + nom), titres « Morceaux » et albums cachés (un espace sépare les listes de lecture), vapeur du lecteur, bande, indicateur.
+  - ecran_eau.js : SEULEMENT l'aiguillage des touchers : les touchers dans un écran de choix sur l'eau font bouger l'eau (ancienne règle gardée en commentaire). Rendu de l'eau non touché.
+- Tests : nouveau test (eau jouable derrière le choix, fantôme et sable, liste à la règle, bande du geste bien placée, faux gestes ignorés, fondu du son avant l'arrêt, vapeur, arrière-plan qui continue et enchaîne, indicateur sur la liste puis sur Autre, retour au lecteur) ; 3 anciens tests reportés de « Arrêter et fermer » sur « Musique en arrière-plan ». 359/359, scan 78/78. Cache cap-v87. Commit 2d89652.
+- Captures (noms FICTIFS) en sombre et en clair : lisibles ; numéro rendu moins haut (line-height 1).
+- APK c35 : 96 fichiers identiques, 0 mot privé, 2 balises. Installé à 11h29, Success. Rien publié.
+- Écran éteint (DÉDUIT, non vérifié) : la coque ne met pas la page en pause (aucun onPause dans MainActivity.java) : la musique devrait continuer écran éteint, mais Android peut l'arrêter au bout d'un moment (pas de service de premier plan).
+- Signalé à Max sans modifier : l'ouverture du lecteur depuis la liste est d'un coup (pas de fondu ni de sable) ; l'écran du lecteur a l'eau et le sable propres de Zencoder, pas l'eau de Cap ; le retour du téléphone ferme le lecteur d'un coup (son coupé net).
+
+## 08/11/2026, 11h51 : Lecteur, la note ronde remplace le bouton « Musique en arrière-plan » (essai c36)
+
+- Retour de Max (essai de 11h29) : tout marche. Écran éteint une minute : la musique continue (VÉRIFIÉ par Max sur le Pixel).
+- Décision de Max : le grand bouton « Musique en arrière-plan » disparaît (caché, code gardé) ; la note ronde est toujours là quand le lecteur est ouvert, discrète ; la toucher = arrière-plan (vapeur), puis elle devient pleinement visible ; ensuite comme avant (retour au lecteur, orange si la connexion expire, arrêt par la note puis le geste).
+- Sauvegarde : tag `sauvegarde-avant-note-ronde-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_note_ronde_2026_11_08`.
+- Fait : relations_mp3.js : montrerIndicateur() décide selon l'état (lecteur ouvert = note discrète ; arrière-plan = pleine ; sinon cachée), la note passe tout de suite sur l'écran d'en dessous quand la musique part en arrière-plan ; toucher la note sur le lecteur = arrière-plan. style.css : note discrète à 45 % d'opacité, fond blanc voilé comme les boutons du lecteur, en haut à droite (12 px du haut et du bord droit, 48 px), sous l'alerte Google quand elle est affichée ; message du lecteur arrêté à 72 px du bord droit ; bande du geste toujours sous la note (au moins 72 px plus bas que le haut de la note). index.html : bouton caché avec commentaire daté.
+- Tests adaptés (place et transparence de la note, rien sous elle, bande du geste en dessous, bouton « Autoriser » sans chevauchement, note touchable sous l'alerte). 359/359, scan 78/78. Cache cap-v88. Commit 648e578.
+- APK c36 : 96 fichiers identiques, 0 mot privé, 2 balises. Installé à 11h49, Success. Rien publié.
+
+## 08/11/2026, 12h10 : retouches d'affichage du lecteur (essai c37)
+
+- Retour de Max : la note ronde lui plaît beaucoup. Quatre retouches demandées (code direct).
+- Sauvegarde : tag `sauvegarde-avant-retouches-lecteur-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_retouches_lecteur_2026_11_08`.
+- Vérifié avant : l'en-tête est l'étiquette « FICTIF — essai lecteur » de la maquette de Zencoder (classe etiquette-fictif) : affichage seul, aucun code ne s'en sert (« sélecteur » = « essai lecteur » entendu à l'oral, DÉDUIT). « Choisir un MP3 » ouvre le choix d'un fichier du téléphone (entrée cachée de Zencoder) ; ce texte n'apparaît nulle part ailleurs dans Cap ni dans les tests.
+- DÉDUIT (cause du noir et de l'orange) : le lecteur écrit ▶ et ⏸ en caractères ; le téléphone dessine ▶ en noir et ⏸ en émoji orange (police des émojis d'Android) ; ce n'était sans doute pas un focus. Corrigé dans les deux cas : caractères cachés, dessins à la place, et plus aucun focus ni surbrillance après le toucher.
+- Fait : relations_mp3.js : retoucherLecteur(), appelée par Cap quand la page du lecteur est chargée (le FICHIER DE ZENCODER N'EST PAS MODIFIÉ : son test d'empreinte passe) : étiquette cachée ; ▶ ⏸ ⏮ ⏭ cachés et dessinés (SVG, couleur #3a3a38 des textes du lecteur, centrés, triangle décalé d'une unité sur 24 vers la droite pour le centrage optique), le dessin suit le changement lecture/pause ; tap-highlight transparent, pas de contour, blur au doigt levé ; « Choisir un MP3 » → « Choisir » (texte d'origine gardé dans data-texte-zencoder, même bouton, même fonction).
+- Captures (vraie page du lecteur) en lecture et en pause : dessins centrés, étiquette absente, « Choisir ». Le lecteur a la même allure en mode sombre et en mode clair (ses couleurs ne dépendent pas du thème de Cap).
+- Signalé sans modifier : la visionneuse affiche aussi une étiquette de maquette « FICTIF — essai visualiseur ».
+- Test nouveau dans la vraie page du lecteur (étiquette, « Choisir » qui ouvre toujours le choix de fichier, dessins, centrage, pause, surbrillance et focus des 4 boutons, retouche unique). 360/360, scan 78/78. Cache cap-v89. Commit de33bee.
+- APK c37 : 96 fichiers identiques, 0 mot privé, 2 balises. Installé à 12h08, Success. Rien publié.
+
+## 08/11/2026, 12h18 : plus d'étiquette de maquette « FICTIF » à l'écran (essai c38)
+
+- Retour de Max : les quatre retouches du lecteur lui conviennent.
+- Demande de Max : enlever de l'écran toute étiquette de maquette de Zencoder (« FICTIF », « essai », « maquette », « sélecteur »), affichage seulement ; les « FICTIF » des données de test, journaux et dépôt restent.
+- Sauvegarde : tag `sauvegarde-avant-etiquettes-fictif-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_etiquettes_fictif_2026_11_08`.
+- Recherche faite (pages de Cap, lecteur, visionneuse) : seules étiquettes de maquette de Zencoder : « FICTIF — essai lecteur » (déjà cachée) et « FICTIF — essai visualiseur » (visionneuse, classe etiquette-fictif, affichage seul : aucun code ne s'en sert ; visualiseur.js utilise une autre étiquette, celle des pages).
+- Fait : visionneuse_cap.js : retoucherVisionneuse() pose `#visualiseur .etiquette-fictif { display: none; }` dans la page chargée ; le fichier de Zencoder n'est pas modifié (test d'empreinte OK), le texte reste dans la page.
+- Signalés à Max, NON modifiés (textes de Cap qui servent, pas des étiquettes de Zencoder) : « Intensité de l’eau (maquette, non reliée) » (Réglages : dit honnêtement que le curseur ne commande rien ; un test l'exige) ; « Clé API du sélecteur Google » (réglage du sélecteur de fichiers de Google) ; « Créer UN dossier d’essai « Relations » », « Essai de visibilité « Relations » », « Montrer « Relations » à Google (essai) » (boutons de Réglages du Drive). Les tâches fictives (« FICTIF — … ») sont des données : elles restent.
+- Test nouveau dans la vraie visionneuse (étiquette cachée, texte gardé, écran de choix intact, retouche unique) et balayage des textes des écrans de Cap (aucune étiquette de maquette, sauf l'exception signalée). 361/361, scan 78/78. Cache cap-v90. Commit 445965a.
+- APK c38 : 96 fichiers identiques, 0 mot privé, 2 balises. Installé à 12h16, Success. Rien publié.
+
+## 08/11/2026, 12h35 : bilan de la journée, attentes, changement de chantier (commande vocale)
+
+- Retour de Max : retouches du lecteur et retrait des étiquettes OK. NE PAS retirer « (maquette, non reliée) » du curseur d'intensité : on le fera quand il sera relié.
+- BILAN DU 08/11/2026 (toutes les entrées détaillées plus haut, rien d'effacé) : fond de l'eau seule (c24) ; zoom de la visionneuse au quart (c25) ; couleurs claires de Zencoder et force du doigt 4 (c26) ; œil dans Autre et retour direct dans la visionneuse (c27) ; lot D, écran de scan de Zencoder (c28) ; deux textes du scan retirés (c29) ; vagues sans remise à zéro et traînée continue (c30) ; descente douce vers l'eau seule (c31) ; icône Lecteur (c32) ; retour direct dans la musique après Google (c33) ; écrans de choix sur l'eau et RÈGLE GÉNÉRALE de Max (c34) ; geste de haut en bas dans le lecteur, musique en arrière-plan, liste des morceaux à la règle (c35) ; note ronde à la place du bouton d'arrière-plan (c36) ; retouches du lecteur : étiquette cachée, lecture/pause dessinées, « Choisir » (c37) ; étiquette de la visionneuse cachée (c38, installée à 12h16). Tests à la fin : 361/361 et scan 78/78. Cache local cap-v90 (en ligne : cap-v74). Rien publié.
+- EN ATTENTE (hors commande vocale) :
+  - quatre fenêtres hors règle générale, Max décidera : « Plusieurs personnes correspondent », choix de la date, choix de l'expéditeur au scan, écran « Trier » ;
+  - l'écran du lecteur a l'eau et le sable propres à Zencoder (pas l'eau de Cap) ; l'ouverture du lecteur depuis la liste se fait d'un coup ;
+  - la touche retour du téléphone ferme le lecteur d'un coup et coupe le son net ;
+  - retour direct dans la musique après Google : pas encore essayé par Max ;
+  - publication groupée à faire, seulement avec le Oui de Max (après la liste et la vérification de confidentialité) ;
+  - panneau rouge de Chrome et examen de Google en attente (règles Search Console toujours en vigueur) ;
+  - intégration à venir du travail de Zencoder : lumière de bord et deux boutons de micro ;
+  - curseur d'intensité : « (maquette, non reliée) » gardé jusqu'à ce qu'il soit relié ;
+  - Max se demande si la musique devrait continuer quand il quitte l'application : rien n'est décidé, étude plus tard. (VÉRIFIÉ par Max : elle continue écran éteint.)
+- CHANGEMENT DE CHANTIER : tous les autres chantiers sont arrêtés. Nouveau chantier : la COMMANDE VOCALE (le but final de Max). Première étape : étude en lecture seule du chemin d'une phrase de Max (entrée suivante).
+
+## 08/11/2026, 12h24 : étude (lecture seule) du chemin d'une phrase de Max
+
+- Correction : l'entrée précédente porte l'heure « 12h35 » par erreur ; elle a été écrite à 12h19.
+- VÉRIFIÉ dans le code (demandes.js, cerveau.js, cerveau_claude.js, cerveau_prepare.js, actions_cap.js, scan_lecture.js) :
+  - AUCUN code ne lit aujourd'hui le tableur « Commandes vocales » : les commandes connues sont écrites en dur dans le code.
+  - Ordre dans traiterDemande() : 1) session de note en cours (accumule, ou fin de note) ; 2) ouverture d'une note ; 3) commandes des fichiers vocaux (listes, Échéancier, À faire) ; 4) commandes de l'annuaire (fiche, appel, mail ; le nom est cherché sur le téléphone, jamais envoyé à l'IA) ; 5) réponse à une question ou une proposition en attente (oui, non, choix) ; 6) « annule » ; 7) phrase du clavier toute faite → cerveau ; 8) sinon : déplacement de rendez-vous (message), rendez-vous dicté (proposition, code pur), puis le CERVEAU.
+  - Le cerveau choisit son fournisseur : Haiku si une clé est enregistrée (et la fiche de consignes chargée, sans BROUILLON), sinon les « réponses préparées ». Haiku n'est appelé QUE si les étapes 1 à 6 (et le rendez-vous dicté) n'ont rien reconnu ; il se tait quand le code a compris.
+  - Sans Haiku (réponses préparées), une phrase non reconnue devient une TÂCHE dans « À trier » (ou dans une catégorie nommée) : il n'y a pas de message « pas compris ». Avec Haiku : s'il échoue (réseau, plafond), Cap passe aux réponses préparées et le dit.
+  - Ce que reçoit Haiku : la date et l'heure, la fiche de consignes de Max (gardée sur le téléphone, 20 000 caractères au plus ; fiche de secours publique de 1 332 caractères), les noms des catégories et sous-catégories, 5 outils (ajouter_tache, proposer_rangement, proposer_rendez_vous, lire_taches, lire_rendez_vous), les 6 derniers échanges, la phrase. Pour lire_taches / lire_rendez_vous, un deuxième appel avec une copie réduite des tâches ou des rendez-vous. Jamais l'annuaire ni le Dictionnaire général (aucun chemin dans le code).
+  - Autre usage de Haiku : « Lire le texte (IA) » du scanner (images des pages, avec le oui de Max à chaque lecture).
+  - Garde-fous : limite d'échanges par jour (60 par défaut), plafond du mois (4 € par défaut), réponse 300 jetons au plus.
+- DÉDUIT (coût) : environ 2 000 à 7 000 jetons envoyés par phrase selon la taille de la fiche, soit environ 0,3 à 0,8 centime par phrase (le double avec une lecture des tâches).
+- Si Haiku est retiré : rien ne casse dans le code (repli automatique) ; mais les phrases libres deviennent toutes des tâches « À trier », les questions sur les tâches et l'agenda n'ont plus de réponse, les rangements reformulés disparaissent, et la lecture IA du scanner s'arrête (message clair, déjà prévu sans clé). Clé valable jusqu'au 29/11/2026.
+
+## 08/11/2026, 12h41 : étude de couverture du tableur « Commandes vocales » (lecture seule)
+
+- Accord de Max pour l'étude, sans code. Tableur lu dans le Drive de Max (onglet principal, 8 868 lignes ; colonnes A à F) ; rien n'en est copié dans le dépôt ; aucun nom de personne noté ici.
+- VÉRIFIÉ (tableur) : 30 codes en colonne E : LIS-01, TEL-01, DIC-01, DIC-02, NAV-01 à NAV-24, plus « COMMUN » (blocs partagés : verbes d'ouverture, compléments). 5 142 lignes n'ont pas encore de code (21 intentions : météo, fiche personne, mails, SMS, agenda, rappel, minuteur, biographie, etc.). Colonne F : 87 lignes « RETIRER » (dont 9 sur des lignes codées : NAV-06 et NAV-10), 4 lignes « CONFLIT » (« terminé » arrête la dictée). Aucun code pour la musique (MP3) ni pour l'œil.
+- VÉRIFIÉ (code) : la reconnaissance en code pur se fait par le DÉBUT de la phrase (phrases_modifiables.js, « Mes phrases ») : listes (« liste, … »), à faire, échéance, bloc-notes / brouillon vocal + « note », « terminé », annuaire (fiche, appel, mail). Aucune navigation à la voix, aucun mode sombre/clair, aucune fermeture d'écran, aucun « quitter », aucune musique.
+- Couverture par code : LIS-01 partielle (« liste, du lait » oui ; « ajoute du lait à la liste de courses », « il me faut… » non) ; TEL-01 partielle (« appelle / téléphone à / passe un coup de fil à » oui ; tournures avec « je voudrais », « tu peux » non) ; DIC-01 partielle (seulement « bloc-notes, note » ou « brouillon vocal, note ») ; DIC-02 partielle (seulement « terminé ») ; NAV-01 à NAV-24 absentes (NAV-05 Agenda et NAV-06 Notes visent des écrans grisés ; NAV-12 à NAV-23 visent des écrans qui n'existent pas encore, sauf l'échéancier et la liste de courses qui sont des fichiers du Drive).
+- Plan proposé à Max (un Oui par étape) : 1) Cap lit lui-même le tableur (choisi une fois dans Chrome, droit drive.file déjà accordé ; copie gardée sur le téléphone ; lignes RETIRER exclues ; jamais envoyé à l'IA) ; 2) reconnaissance « phrase → code commande », testée avec un tableur FICTIF ; 3) réponse « Je ne suis pas une IA, dis-moi ce que tu veux. » quand rien n'est reconnu (au lieu de la tâche « À trier »), phrase gardée ; 4) brancher les actions module par module (NAV d'abord) ; 5) codes MP3 à ajouter au tableur, puis la musique à la voix ; 6) décision sur Haiku avant le 29/11/2026.
+
+- Correction (12h34) : l'entrée ci-dessus porte « 12h41 » par erreur ; elle a été écrite à 12h33.
+
+## 08/11/2026, 12h46 : commandes vocales, étape 1 : Cap lit lui-même le tableur (essai c39)
+
+- Accord de Max (étape 1). Conditions : copie sur le téléphone sans « RETIRER », jamais envoyée à l'IA, aucune nouvelle autorisation Google, tests sur un FAUX tableur FICTIF seulement, vrais prénoms (lignes d'appel, lignes 58, 60, 63, 64) jamais copiés.
+- Sauvegarde : tag `sauvegarde-avant-lecture-commandes-vocales-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_lecture_commandes_vocales_2026_11_08`.
+- VÉRIFIÉ avant : les lignes 58, 60, 63 et 64 sont du bloc « Cible » (appel) ; les prénoms d'appel sont dans les blocs « Cible » et « Nom d'appel » : ces deux blocs sont écartés en entier (règle par bloc, solide même si les lignes changent de place).
+- Fait :
+  - nouveau module app/commandes_vocales.js (sans IA) : lit la première feuille (A:F) du tableur choisi, colonnes retrouvées par leur titre ; garde seulement les lignes avec un code, ni « RETIRER », ni blocs de noms ; 4 champs (code, commande, bloc, formulation) ; copie dans le téléphone (localStorage « cap_commandes_vocales_v1 ») ; résumé en nombres.
+  - google_picker.js : nouveau fichier choisi « commandes_vocales » (même mécanisme que le tableur de classement : fenêtre de Google dans Chrome, droit drive.file, rangé dans le Drive pour que la coque le retrouve). Aucune nouvelle autorisation.
+  - Réglages du Drive : « Choisir le tableur « Commandes vocales » », « Lire les commandes vocales », état et résumé en nombres (jamais une formulation ni un nom à l'écran).
+- Calcul fait sur l'ordinateur avec la même règle (DÉDUIT, à confirmer par la lecture sur le téléphone) : 8 746 lignes lues, 3 589 formulations gardées, 29 codes (COMMUN compris), 83 « à retirer », 281 lignes de noms écartées, 4 793 sans code.
+- Tests : nouveau test sur un faux tableur FICTIF (comptes, lignes gardées, aucun nom, colonnes dans un autre ordre, lecture GET de la première feuille A:F, copie, oubli, erreurs) ; nouvelle vérification que ni commandes_vocales.js ne touche à l'IA, ni les fichiers de l'IA ne touchent aux commandes vocales. 363/363, scan 78/78. Cache cap-v91. Commit b4f10b0.
+- APK c39 : 97 fichiers identiques (nouveau commandes_vocales.js), 0 mot privé, 2 balises. Installé à 12h44, Success. Rien publié.
+- Question de Max sur Haiku (réponse, sans code) : interrupteur par fonction possible (voix et lecture des scans passent par deux chemins séparés, VÉRIFIÉ) ; la numérisation marche sans la clé (VÉRIFIÉ : la clé ne sert qu'au bouton « Lire le texte (IA) » ; le scanner de Google donne son texte sur le téléphone, sans IA, et le nom se propose avec).
+
+## 08/11/2026, 12h53 : écart 87 / 83 lignes « à retirer » expliqué
+
+- VÉRIFIÉ en recomptant la colonne des remarques : 83 lignes « RETIRER » et 4 lignes « CONFLIT » (« terminé » arrête la dictée), soit 87 remarques. L'étude de couverture (12h33) a écrit « 87 lignes RETIRER » par erreur : les 4 « CONFLIT » y étaient comptées. Cap écarte bien les 83 « RETIRER » ; les 4 « CONFLIT » sont gardées (elles ne sont pas marquées « à retirer ») et seront à trancher par Max à l'étape 2.
+- Consignes d'essai renvoyées à Max (son message précédent était arrivé coupé).
+
+- Correction (12h50) : cette entrée porte « 12h53 » par erreur ; elle a été écrite à 12h49.
+
+## 08/11/2026, 12h59 : étape 1 bloquée (tableur impossible à choisir), étude des moyens de débloquer
+
+- Retour de Max : dans Cap ESSAI, « Choisir le tableur « Commandes vocales » » ne fait rien (fenêtre de Google absente) ; dans Chrome, le bouton n'existe pas (version en ligne cap-v74). Étape 1 impossible à essayer.
+- VÉRIFIÉ : la coque ouvre seulement les pages accounts.google.com dans Chrome (MainActivity.java) ; la fenêtre du sélecteur de Google, elle, reste dans la coque, sans session Google (déjà noté dans google_picker.js le 05/11/2026). En ligne : origin/main a 47 commits de retard, 19 fichiers différents.
+- Options étudiées : 1) publier (Chrome aurait le bouton) ; 2) sélecteur dans la coque : demanderait une page EN LIGNE ouverte dans Chrome puis un retour dans l'application, donc publier aussi, plus du code Android ; 3) identifiant tapé une fois : refusé par Google avec le droit drive.file (DÉDUIT : un fichier non choisi dans la fenêtre de Google reste invisible pour Cap, « appNotAuthorizedToFile ») ; 4) proposé en plus : Max partage le tableur avec le compte Cap (lecture), qui a déjà le droit drive.readonly ; Cap le lit avec ce compte, dans la coque, sans publier ni nouvelle autorisation.
+- Recommandation à Max : option 4 (attente de son accord, aucun code).
+
+## 08/11/2026, 13h12 : commandes vocales lues avec le compte Cap (option 4, essai c40)
+
+- Accord de Max : option 4. Max partage le tableur « Commandes vocales » avec le compte Cap, en lecture seule.
+- Sauvegarde : tag `sauvegarde-avant-commandes-vocales-compte-cap-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_commandes_vocales_compte_cap_2026_11_08`.
+- Fait (ajouts datés) :
+  - commandes_vocales.js : lireAvecCompteCap() : le compte Cap (droit drive.readonly déjà accordé, porte « API Drive en lecture seulement » inchangée) cherche le tableur par son nom exact, puis l'exporte en CSV (première feuille) ; lireCsv() (guillemets, virgules, retours à la ligne) ; mêmes exclusions qu'à l'étape 1 ; identifiant absent, pas connecté, introuvable, en double : message clair. La lecture par la fenêtre de choix reste dans le code (pour après une publication).
+  - Réglages du Drive : « Choisir le tableur « Commandes vocales » » caché (gardé) ; « Lire les commandes vocales » toujours actif ; « Autoriser la lecture du compte Cap » affiché si la connexion manque ou a expiré (le retour de Google rouvre « Réglages du Drive », chemin habituel).
+- Contrôle sur l'ordinateur (copie temporaire du vrai tableur convertie en CSV, effacée aussitôt, seuls des nombres affichés) : 8 746 lues, 3 589 gardées, 83 « à retirer », 281 lignes de noms écartées, 4 793 sans code, 29 codes.
+- Tests : nouveau test (CSV, recherche par nom exact, export, deux lectures Drive seulement, exclusions, messages) et test des boutons de Réglages du Drive. 365/365, scan 78/78. Cache cap-v92. Commit 26f9eb4.
+- APK c40 : 97 fichiers identiques, 0 mot privé, 2 balises. Installé à 13h11, Success. Rien publié.
+
+## 08/11/2026, 13h27 : commandes vocales, étape 2 : reconnaître la commande dans la phrase (essai c41)
+
+- Étape 1 validée par Max sur le Pixel : 3 589 gardées, 29 codes, 83 « à retirer », 281 lignes de prénoms écartées, 4 793 sans code (nombres annoncés). Tableur partagé avec le compte Cap en lecture seule (fait par Max).
+- Accord de Max pour l'étape 2. Sauvegarde : tag `sauvegarde-avant-reconnaissance-commandes-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_reconnaissance_commandes_2026_11_08`.
+- Fait (code pur, sans IA, AUCUNE action lancée) : commandes_vocales.js : reconnaitre(phrase) : formulations rangées par bloc (action : verbes et tournures ; cible : mot-clé, écran cible ; l'un ou l'autre : variantes de transcription et débuts de phrase ; ignorés : compléments, déterminants) ; lignes COMMUN partagées par commande ; il faut une action ET une cible du même code (un code sans cible se contente d'une action ; une variante entière qui contient déjà un verbe du code suffit) ; mots entiers, sans accents ni ponctuation ; le plus long gagne ; égalité signalée, jamais tranchée ; lignes « CONFLIT » gardées et signalées (nouveau champ « conflit » dans la copie). Réglages du Drive : champ « Phrase à essayer (rien ne sera fait) », bouton « Reconnaître la phrase », résultat.
+- Essai sur l'ordinateur avec une copie temporaire du vrai tableur (effacée ensuite, seuls des codes affichés) : reconnus : ouvre autre, ouvre-moi les réglages, va dans le scanner, montre-moi l'agenda, je veux voir mes notes, reviens à l'accueil, remets-moi l'eau seule, ferme ça, stop, arrête la dictée, passe en mode sombre, mets le mode clair, quitte / ferme l'application, éteins cap, ouvre chercher, ajoute du lait à la liste de courses, appelle (TEL-01), lance la dictée, ouvre l'échéancier, ouvre ma liste de courses. Non reconnus (règle « action + cible ») : « ferme » seul, « l'os seul » seul, « mode nuit » seul, « il me faut du pain » (pas de « liste ») ; « joue une chanson » (aucun code musique dans le tableur).
+- « terminé » seul → DIC-02 (arrêter la dictée), car le tableur l'a aussi en DIC-02 ; les 4 lignes « CONFLIT » sont sous NAV-09 (Fermer : « termine », « termines », « termine ça », « termine sa ») : règle proposée à Max, pas appliquée.
+- Tests : nouveau test de la reconnaissance (faux tableur FICTIF) et test du champ d'essai (texte simple, rien qui ressemble à une connexion). 367/367, scan 78/78. Cache cap-v93. Commit 7fa31c1.
+- APK c41 : 97 fichiers identiques, 0 mot privé, 2 balises. Installé à 13h26, Success. Rien publié.
+
+## 08/11/2026, 13h31 : règle des lignes « CONFLIT » validée et appliquée dans le tableur
+
+- Décision de Max : « termine » et ses formes arrêtent toujours la dictée (DIC-02) et ne ferment jamais l'écran ; les 4 lignes « CONFLIT » deviennent « à retirer » de Fermer (NAV-09), sans rien effacer.
+- Fait dans le tableur « Commandes vocales » (Drive de Max, colonne des remarques seulement, 4 cellules) : lignes 4509 (« termine »), 4530 (« termines »), 4676 (« termine ca »), 4677 (« termine sa »), toutes NAV-09 : la remarque commence maintenant par « RETIRER 08/11/2026 (Max) : … » et garde l'ancienne remarque « CONFLIT … » à la suite. Relu après écriture : VÉRIFIÉ. Aucune autre cellule touchée, aucun code changé.
+- Attendu à la prochaine lecture sur le téléphone (DÉDUIT) : 3 585 formulations gardées, 87 « à retirer », le reste inchangé (281 lignes de prénoms, 4 793 sans code, 29 codes).
+
+- Correction (13h56) : cette entrée porte « 13h31 » par erreur ; elle a été écrite à 13h55.
+
+## 08/11/2026, 14h14 : retour sur l'étape 2, étape 3 mise en attente (question à Max), dossier des tuiles pour Zencoder
+
+- Essais de Max (étape 2) : lecture 4 334 gardées, 33 codes, 87 « à retirer », 281 lignes de prénoms, 4 793 sans code (l'agent des commandes vocales a ajouté des lignes, dont MUS-01 à MUS-07). Reconnues : « terminé » → DIC-02 sans conflit, « ouvre-moi les réglages » → NAV-03, « montre-moi l'agenda » → NAV-05, « joue une chanson » → MUS-01.
+- VÉRIFIÉ dans le tableur : « baisse le volume » : aucune commande de volume (ni « baisse », ni « volume ») ; « mets en pause » : MUS-05 a bien « mets en pause », mais MUS-05 a aussi des mots-clés (la musique, le morceau…), donc la règle « verbe + cible » demande « mets la musique en pause ». Nouveaux blocs non pris en compte par la reconnaissance : « Expression de pause / reprise / arrêt », « Cible de titre / d'album / de personne » (avec [TITRE] et [PRÉNOM] à remplir). Propositions faites à Max, rien codé.
+- Étape 3 (« Je ne suis pas une IA, dis-moi ce que tu veux. ») : codée puis ANNULÉE avant tout enregistrement (rien commité, code revenu à l'état d'avant, 367/367). Raison : 15 anciens tests ont montré que le micro de l'accueil (« Dicter une tâche ») et la saisie libre comptent sur le rangement dans « À trier » ; avec le changement, « acheter du lait » dicté ne serait plus une tâche. Question posée à Max avant de continuer. Sauvegarde déjà faite : tag `sauvegarde-avant-pas-une-ia-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_pas_une_ia_2026_11_08`.
+- Mission tuiles (lecture seule, rien changé dans le code de Cap) : dossier `C:\Users\revox\Cap_tuiles_todo_reference` (hors Projet_Cap) : tuiles.js (copie exacte), tuiles_extrait.css (règles des tuiles), style_complet_reference.css, extrait de l'écran « Tout voir » (index.html), afficherTuiles() (app.js), demo_tuiles_FICTIF.html (page autonome, données FICTIVES, vérifiée en capture), LISEZ_MOI.txt. Accès dans Cap : accueil → « Chercher » → écran « Tout voir ». Aucun mot privé (vérifié).
+
+- Correction (14h10) : cette entrée porte « 14h14 » par erreur ; elle a été écrite à 14h09.
+
+## 08/11/2026, 14h13 : décisions de Max sur l'étape 3 et sur la musique (rien codé)
+
+- Étape 3 : CHOIX B. Le micro « Dicter une tâche » garde le rangement dans « À trier ». La réponse « Je ne suis pas une IA, dis-moi ce que tu veux. » servira seulement au micro des COMMANDES, à brancher plus tard avec les deux boutons de micro de Zencoder. Rien de plus à coder maintenant.
+- Musique (règle validée, à coder plus tard) : pour la pause (MUS-05) et la reprise (MUS-06), le verbe seul suffira. « arrête » et « stop » SEULS restent à la dictée (DIC-02), jamais à la musique ; pour arrêter la musique (MUS-07), il faudra un mot de contenu (« la musique », « le morceau »…).
+- En attente : l'agent des commandes vocales ajoute les commandes de volume au tableur ; ne pas coder avant.
+- Dossier des tuiles remis à Max pour Zencoder : `C:\Users\revox\Cap_tuiles_todo_reference`.
+
+## 08/11/2026, 15h23 : étude du geste RETOUR universel (lecture seule, rien codé)
+- Demande de Max : glisser de haut en bas ferme l'écran ou la fenêtre du dessus, avec une sortie douce (fondu, puis fermeture) comme le lecteur MP3. La visionneuse PDF garde son bouton Fermer. Les 4 fenêtres de Zencoder (personnes qui correspondent, choix de date, choix d'expéditeur, Trier) ne changent pas : le geste est branché depuis Cap, et leur bouton Fermer reste en secours.
+- Constat : la plupart des fenêtres passent déjà par `fermeture_fenetres.js` (touche à côté, question Garder / Jeter quand du texte est commencé). Le geste peut passer par ce même chemin, ou cliquer le bouton Fermer existant.
+- Risques notés : défilement des listes (geste compté seulement si la liste est tout en haut), rideau des notifications d'Android (bande du haut ignorée), déplacement des tuiles (exclu), curseurs et champs de texte (exclus). Le lecteur et la visionneuse sont dans des cadres (iframe) : le geste n'y passe pas, le lecteur garde sa bande du bord droit. L'accueil a déjà « haut vers bas = retour à l'eau ».
+- Décision demandée à Max : la sortie douce pour toutes les fenêtres, ou seulement un fondu rapide.
+- Correction (15h25) : la décision demandée à Max est plutôt « où le geste peut partir » : de n'importe où dans la fenêtre, quand la liste est tout en haut (recommandé), ou seulement depuis une bande en haut de la fenêtre. La sortie douce serait la même partout (fondu de 450 ms, rien si les animations sont réduites).
+
+## 08/11/2026, 15h36 : geste RETOUR universel codé (choix A de Max), APK c42 installé sur le Pixel
+- Sauvegarde avant : tag local `sauvegarde-avant-geste-retour-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_geste_retour_2026_11_08`.
+- Nouveau `app/geste_retour.js`. Glisser de haut en bas, depuis n'importe où dans la fenêtre ou l'écran du dessus : fondu de 450 ms (rien si les animations sont réduites), puis fermeture.
+  - Fenêtres connues de `fermeture_fenetres.js` : même sortie commune. Si un texte est commencé, la question « Garder / Jeter » vient tout de suite, sans fondu ni fermeture. Nouvelle fonction `gerer` ajoutée à ce fichier.
+  - Écrans « Autre » et « Réglages », et fenêtres sans sortie commune (scanner, vérification…) : le geste touche leur bouton « Fermer ». Fenêtre de choix (musique) : « Fermer » touché tout de suite, car il a déjà sa propre sortie.
+  - Le bouton « Fermer » reste partout en secours. La visionneuse PDF, la visionneuse et le lecteur MP3 sont exclus (le lecteur garde son geste du bord droit).
+  - Ignoré : un départ dans les 48 px du haut, un champ de texte, un curseur, une tuile en déplacement, une liste qui n'est pas tout en haut. Seuils : 20 % de la hauteur, deux fois plus vertical que de côté, moins de 1,5 s.
+  - L'accueil et « Tout voir » gardent leurs propres gestes ; le module ne s'en mêle pas.
+- Cache cap-v94. Tests : 377/377 (10 nouveaux) et test_scan 78/78.
+- APK cap-coque-essai-c42.apk : 98 fichiers identiques à app/, 0 .py, 2 balises Search Console, aucun mot privé. Installé sur le Pixel (`adb install -r`). Rien n'est publié.
+- Commandes vocales : toujours en attente, rien codé dans cette étape.
+
+## 08/11/2026, 15h52 : retour de Max sur c42 (geste OK) ; étude en lecture seule de deux défauts (rien codé)
+- Geste de retour : validé par Max.
+- Défaut 1, ouvertures brutales. VÉRIFIÉ dans le code : « Autre » et « Réglages » s'ouvrent et se ferment en basculant `hidden` (`accueil_cap.js`, `montrer`), sans aucune animation. Mêmes défauts : « Chercher » / « Tout voir » (`changerVue` dans `app.js`) et le retour à l'accueil après « Fermer ». DÉDUIT (aucune animation d'ouverture dans `style.css`) : toutes les fenêtres ordinaires (clavier, ajout, scanner, lecteur, visionneuse…) s'ouvrent aussi d'un coup ; seule la fenêtre de choix (`choix_sur_eau.js`) suit la règle.
+- Défaut 2, écran Micro. VÉRIFIÉ : avant l'étape A (tag `sauvegarde-2026-11-07-avant-etape-A`), la barre du bas avait « + », le micro et le clavier côte à côte. Le « + » (`#ajouter`, ouvre « Ajouter une tâche ») et le clavier (`#ouvrir-clavier`, « Écrire une demande ») existent toujours, avec leur code, mais sont cachés sur l'accueil par le style. Le « + » n'a jamais proposé de choix tâche / to-do / événement : un rendez-vous se crée par « + Nouveau rendez-vous » dans « Tout voir » ; aucune fiche à la main pour un to-do (« À faire » se remplit à la voix).
+- Décision demandée à Max : la dictée démarre-t-elle dès le premier appui sur le micro, ou seulement en touchant le micro au milieu ?
+
+## 08/11/2026, 16h14 : écran Micro, décision de Max et comparaison avec l'écran de Zencoder (lecture seule, rien codé)
+- Décision de Max : toucher le micro de l'accueil ne lance PAS la dictée. La page s'efface doucement ; environ 1 s après, « + » à gauche, micro au milieu, petit clavier à droite. Ces boutons n'existent qu'après ce premier appui. Seul le micro du milieu lance la dictée. Gros boutons identiques sur l'eau, sans cadre.
+- Lu chez Zencoder (lecture seule, `C:\Users\revox\Cap_boule_essai`, JOURNAL_BOULE.txt, v4 du 08/11/2026) : même départ (micro de l'accueil, fondu, apparition après 0,9 s). Ensuite DEUX boutons l'un sous l'autre : en haut le micro « une phrase », en bas « continu » (flèche circulaire et ondes). Pas de « + », pas de clavier. Geste vers le bas = cache seulement les boutons, sans arrêter la conversation ; geste vers le haut = les fait revenir pendant une conversation. Rien de relié à Cap.
+- Constat : c'est le MÊME écran (même entrée), avec deux dessins différents. Proposition faite à Max : les réunir (rangée « + / micro / clavier », bouton « continu » en dessous). Points à trancher plus tard : geste vers le bas (ferme l'écran avec le geste de retour, ou cache seulement les boutons pendant une conversation) ; appui long actuel du micro (conversation) remplacé par le bouton « continu ».
+
+## 08/11/2026, 16h22 : écran Micro réuni (décision de Max) ; plan en étapes proposé (rien codé)
+- Décision de Max : on réunit les deux écrans. Accueil INCHANGÉ (un seul micro, Chercher, Autre ; ni « + » ni clavier). Au toucher du micro de l'accueil : tout s'efface doucement, puis environ 1 s après apparaissent la rangée « + » / micro / clavier, et en dessous le bouton « continu » de Zencoder. Seul le micro du milieu lance la dictée. Quatre boutons identiques sur l'eau, sans cadre ; aucune animation si les animations sont réduites.
+- Plan proposé :
+  - Étape 1 : une transition commune (disparition dans le rien, puis sortie du sable) pour Autre, Réglages, Chercher et les retours à l'accueil (défaut 1).
+  - Étape 2 : écran Micro avec la même transition. Le micro de l'accueil devient un simple bouton d'ouverture ; le vrai micro (`#microphone`, son code de dictée inchangé) va au milieu. « + » et le clavier : les boutons existants. Fermeture par le geste de retour.
+  - Étape 3 : bouton « continu » (conversation), qui remplace l'appui long du micro, avec un état actif très visible.
+  - Plus tard : choix du « + » (tâche / to-do / événement), lumière de bord et boule de verre.
+- Risques notés : 11 tests visent `#microphone` sur l'accueil ; la dictée de la coque Android doit marcher pareil (essai sur le Pixel) ; la touche retour d'Android n'est gérée nulle part (VÉRIFIÉ) ; conflit possible entre le geste vers le haut de Zencoder (faire revenir les boutons) et l'ouverture des tâches sur l'accueil ; bouton « Fermer » de l'écran Micro à décider.
+
+## 08/11/2026, 16h34 : étape 1, ouvertures DOUCES des écrans (accord de Max) ; APK c43 installé sur le Pixel
+- Sauvegarde avant : tag local `sauvegarde-avant-ouvertures-douces-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_ouvertures_douces_2026_11_08`.
+- Nouveau `app/transition_ecrans.js`. L'écran d'avant reste dessiné à sa place, inerte et sans capter le doigt, et fond en 450 ms ; puis le nouvel écran sort du sable en 1 s (keyframes de la montée de l'accueil). L'état change tout de suite, comme avant. Animations réduites : rien. Après le geste de retour (écran déjà fondu), l'accueil monte sans second fondu.
+- Branché sur : accueil ↔ Autre, Autre ↔ Réglages, retours à l'accueil (`accueil_cap.js`, `montrer` → `montrerDirect` gardé tel quel) ; Chercher / Tout voir et ses retours, glissement compris (`app.js`, `changerVue` → `changerVueDirect` gardé tel quel). Ancien code gardé, commentaires datés.
+- Pas encore traité (étape à part) : l'ouverture des fenêtres (clavier, ajout, scanner, lecteur, visionneuse…).
+- Tests : 385/385 (8 nouveaux ; 5 anciens tests mesurent maintenant après la transition) ; panne volontaire (transition coupée) détectée par 5 tests ; test_scan 78/78. Cache cap-v95.
+- APK cap-coque-essai-c43.apk : 99 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Étape 2 (écran Micro) : attend le Oui de Max.
+
+## 08/11/2026, 16h58 : étape 2, écran Micro, et « Fermer » retiré de « Autre » (accord de Max) ; APK c44 installé sur le Pixel
+- Sauvegarde avant : tag local `sauvegarde-avant-ecran-micro-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_ecran_micro_2026_11_08`.
+- Retouche demandée par Max : « Fermer » de « Autre » retiré de l'écran. Le bouton est gardé, caché (`hidden`), avec un commentaire daté ; le geste de retour s'en sert (`geste_retour.js` : boutons cachés des écrans de Cap).
+- Accueil inchangé à l'œil : le micro de l'accueil devient `#ouvrir-micro` (même dessin) et n'ouvre que l'écran Micro, sans dictée.
+- Nouvel écran `#ecran-micro` (écran de Cap, transition douce) : rangée « + » / micro / clavier, gros boutons identiques sur l'eau, sans cadre ni fond.
+  - Le vrai micro `#microphone` est déplacé au milieu (même bouton, même code de dictée, appui long = conversation, comme avant).
+  - « + » et le clavier touchent `#ajouter` et `#ouvrir-clavier` (mêmes fenêtres qu'avant).
+  - Fermeture par le geste de retour (`#fermer-micro` caché).
+- Changement à savoir : un appui long sur le micro de l'ACCUEIL ne lance plus la conversation (il faut ouvrir l'écran Micro). Le bouton « continu » viendra à l'étape 3.
+- Tests : 393/393 (8 nouveaux ; 10 anciens tests adaptés au nouvel identifiant et au « Fermer » caché, commentaires datés) ; panne volontaire (le micro de l'accueil qui dicte) vue par 5 tests ; test_scan 78/78. Cache cap-v96.
+- APK cap-coque-essai-c44.apk : 99 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Étape 3 : attend le Oui de Max.
+
+## 08/11/2026, 17h17 : étape 3, bouton « continu » (accord de Max ; étape 2 validée sur le Pixel) ; APK c45 installé
+- Sauvegarde avant : tag local `sauvegarde-avant-bouton-continu-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_bouton_continu_2026_11_08`.
+- Écran Micro : bouton `#micro-continu` sous la rangée, centré sous le micro, identique aux trois autres, sans cadre ni fond au repos. Icône de Zencoder recopiée (flèche circulaire et ondes, `Cap_boule_essai` v4, lecture seule).
+  - Un toucher lance la conversation continue (même code `demarrerLive`) ; un second l'arrête.
+  - Actif : très visible (fond clair plein, icône sombre, halo, comme l'écran validé de Zencoder), changement en 0,9 s ; rien si les animations sont réduites.
+  - Sans dictée disponible : message clair, rien d'actif.
+- L'appui long du micro ne lance plus la conversation (`APPUI_LONG_CONVERSATION = false`, code gardé, commentaire daté) ; l'appui court dicte toujours.
+- Fermer l'écran Micro par le geste n'arrête pas la conversation : le bandeau « Arrêter » reste, et « continu » est toujours actif au retour.
+- Tests : 398/398 (5 nouveaux ; l'ancien test de l'appui long passe par « continu », commentaire daté) ; panne volontaire (appui long remis) vue par le test de la page principale (les tests en cadre ont des minuteries simulées et ne la voient pas) ; test_scan 78/78. Cache cap-v97.
+- APK cap-coque-essai-c45.apk : 99 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié.
+
+## 08/11/2026, 17h39 : dossier de référence des fenêtres de saisie pour Zencoder ; question sur l'arrêt de la conversation (rien codé dans Cap)
+- Dossier `C:\Users\revox\Cap_saisie_reference` (hors Projet_Cap, sans git) : HTML des fenêtres « Ajouter une tâche » (`#ajout-tache`) et « Écrire une demande » (`#clavier`), extrait de style (69 blocs) et style complet, extraits d'app.js (ouverture et validation), copies de phrases_clavier.js, preferences_clavier.js, demandes.js, etapes_par_defaut.js, fermeture_fenetres.js, page de démonstration FICTIVE (vérifiée par capture), LISEZ_MOI.txt en mots simples. Aucun mot privé (vérifié), aucune clé. Rien de modifié dans Projet_Cap.
+- Décision de Max : retirer le bandeau « Arrêter » (code gardé, désactivé) ; le bouton « continu » suffit. PAS ENCORE CODÉ : Max a d'abord posé une question.
+- Question : écran Micro fermé par le geste pendant la conversation, comment l'arrêter depuis l'accueil ? VÉRIFIÉ dans le code : la conversation s'arrête déjà en disant « stop » (ou « arrête », « termine », « au revoir »…), après une minute de silence, et quand Cap passe en arrière-plan. Proposition (aucune fenêtre, aucun cadre) : pendant la conversation, le micro de l'accueil porte un léger halo fixe (pas de clignotement) ; le toucher rouvre l'écran Micro, où « continu » est allumé ; un toucher sur « continu » arrête.
+
+## 08/11/2026, 17h50 : halo du micro de l'accueil et bandeau « Arrêter » retiré (accord de Max) ; APK c46 installé
+- Sauvegarde avant : tag local `sauvegarde-avant-halo-micro-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_halo_micro_2026_11_08`.
+- Bandeau « Arrêter » : plus affiché (`BANDEAU_LIVE = false` dans app.js, code gardé, commentaire daté). Le bouton `#arreter-live` et son code restent.
+- Pendant la conversation : léger halo FIXE sur le micro de l'accueil (classe `conversation-en-cours`, apparition en 0,9 s, aucun clignotement ; rien d'animé si animations réduites) ; nom pour le lecteur d'écran « Micro (conversation en cours) ». Le toucher rouvre l'écran Micro, où « continu » est allumé ; un toucher sur « continu » arrête et enlève le halo. « stop » à la voix arrête toujours.
+- Outil de test : budget de temps simulé d'Edge porté de 60 à 180 s (délai 120 → 300 s), commentaire daté. Les transitions douces faisaient dépasser 60 s : le résultat était lu avant la fin des tests (vide). Ce n'était pas une panne de Cap.
+- Tests : 399/399 (1 nouveau ; 3 anciens adaptés : ils vérifient le micro « live » et « continu » au lieu du bandeau) ; panne volontaire (bandeau remis) vue par 3 tests ; test_scan 78/78. Cache cap-v98.
+- APK cap-coque-essai-c46.apk : 99 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié.
+
+## 08/11/2026, 18h24 : écran Micro validé sur le Pixel ; chantier « codage des commandes vocales » : lecture et plan (rien codé)
+- Max a validé sur le Pixel l'écran Micro (étapes 1, 2, 3 et halo).
+- Lu en lecture seule : le « Journal de bord, commande vocale » (Drive), jusqu'à l'entrée de 17h45. Le tableur va jusqu'à la ligne 13692 et compte 181 lignes RETIRER. Codes : NAV-01 à 24, DIC-01 et 02, TEL-01, COMMUN, MUS-01 à 23, VIS-01 à 08, DOC-01 à 03. Espaces réservés : [PRÉNOM], [TITRE], [DOSSIER], [NOMBRE], [DURÉE], [SUJET]. Questions 1 à 48 tranchées ; groupe 3 et questions 49 à 51 laissés à Claude Code. Rien recopié ici du contenu personnel.
+- Plan proposé à Max :
+  - étape 0 : le socle (moteur et branchement) ;
+  - étape 1 : navigation et dictée ;
+  - étape 2a : contrôles de la musique ;
+  - étape 2b : lancer la musique ;
+  - étape 3 : visionneuse ;
+  - étape 4 : documents.
+  Un APK par étape.
+- Choix proposés pour les questions laissées à Claude Code (25, 26, 28, 29, 31, 32, 35, 37, 39, 41, 49, 50, 51) : voir le rapport à Max.
+- Question posée à Max : quel micro comprend les commandes, et quand Cap répond « Je ne suis pas une IA… » ?
+
+## 08/11/2026, 18h41 : commandes vocales, ÉTAPE 0 (socle) codée (accord de Max) ; APK c47 installé
+- Sauvegarde avant : tag local `sauvegarde-avant-socle-commandes-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_socle_commandes_2026_11_08`.
+- `commandes_vocales.js` : nouveau moteur `reconnaitre`. L'ancien moteur est gardé tel quel (`sorteEtape2`, `preparerEtape2`, `reconnaitreEtape2`), avec un commentaire daté.
+  - Blocs « Expression … » : la formulation seule suffit. Blocs « Cible de … » : des cibles.
+  - Espaces réservés : [NOMBRE] (0 à 100, en chiffres ou en lettres, « pour cent ») ; [DURÉE] (« 10 secondes », « 2 minutes 40 », rendue en secondes) ; [TITRE], [PRÉNOM], [DOSSIER], [SUJET] (quelques mots ; jamais de simples petits mots).
+  - Hésitations retirées (« euh », mots répétés) ; c'est le dernier chiffre dit qui compte.
+  - « œ » = « oe ». Verbe seul pour la pause et la reprise (MUS-05, MUS-06).
+  - La fenêtre ouverte départage une égalité (lecteur → MUS, visionneuse → VIS).
+  - Statut « incomplet » : un verbe de commande suivi de rien ou de petits mots seulement.
+- Copie sur le téléphone : toujours sans « RETIRER » ni bloc « Cible » ; nouveau garde-fou, une ligne « Cible de … » qui garde une majuscule hors des crochets reste dans le Drive (vrai nom possible).
+- Micro du milieu (`app.js`, `essayerCommande`) : il essaie d'abord les commandes NAV, DIC, MUS, VIS et DOC.
+  - Commande reconnue : aucune tâche créée ; Cap dit « J'ai compris « … », mais je ne sais pas encore le faire. » (les actions arrivent aux étapes 1 à 4).
+  - Phrase incomplète : « Je ne suis pas une IA, dis-moi ce que tu veux. »
+  - Sinon : chemin d'avant (« À trier », choix B). Les autres codes (appel, liste de courses) gardent aussi le chemin d'avant.
+  - Pas pendant une session de fichier vocal. Le clavier et la conversation continue ne changent pas.
+  - Rien n'est envoyé à l'IA.
+- À faire par Max sur le Pixel : Réglages → Réglages du Drive → « Lire les commandes vocales » (pour copier la version à 13692 lignes).
+- Tests : 407/407 (8 nouveaux sur un FAUX tableur FICTIF, dont 13 000 lignes inventées pour la vitesse ; 1 ancien test adapté : « ferme » seul est maintenant « incomplet ») ; panne volontaire (micro sans commandes) vue ; test_scan 78/78. Cache cap-v99.
+- Risque noté : la copie complète est grosse pour la mémoire du navigateur ; si elle ne tient pas, Cap le dit (message clair).
+- APK cap-coque-essai-c47.apk : 99 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Étape 1 : attend le Oui de Max.
+
+## 08/11/2026, 18h55 : commandes vocales, ÉTAPE 1 (navigation et dictée) codée (accord de Max ; étape 0 validée sur le Pixel) ; APK c48 installé
+- Étape 0 validée par Max sur le Pixel. Lecture du tableur : 8512 formulations gardées, 63 codes, 181 RETIRER écartées.
+- Explication donnée à Max pour 8512 au lieu de 13 692 : 13 692 est le numéro de la dernière ligne, pas un nombre de commandes. La ligne 1 est celle des titres. Seules les lignes qui ont un code en colonne E sont gardées. Environ 5 000 lignes n'ont pas encore de code (date et heure, agenda, minuteur, rappel, scanner, ancienne recherche, bloc-notes, fiches personnes, SMS, mails, météo… : catégories écrites mais pas encore codées). S'y ajoutent les 181 « RETIRER », les lignes de noms (bloc « Cible »), quelques lignes vides de Max (31 à 47), et les lignes à l'écriture changée. Le détail exact s'affiche sous le bouton « Lire les commandes vocales » (ligne « Écartées »). DÉDUIT du journal de la commande vocale, non recompté.
+- Sauvegarde avant : tag local `sauvegarde-avant-commandes-navigation-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_commandes_navigation_2026_11_08`.
+- Nouveau `app/commandes_navigation.js`. Chaque action touche le même bouton que le doigt (mêmes écrans, transitions douces, sortie douce du geste) :
+  - NAV-01 Chercher (et NAV-13 mes tâches), NAV-02 Autre, NAV-03 Réglages, NAV-04 scanner ;
+  - NAV-07 accueil, NAV-08 eau seule, NAV-09 Fermer (sortie douce ; « Il n'y a rien à fermer » sinon) ;
+  - NAV-10 / NAV-11 mode sombre / clair (interrupteur lune / soleil ; « déjà » dit) ;
+  - NAV-21 aide, NAV-22 écran Micro ;
+  - NAV-05, 06, 12, 14 à 20, 23 : « … : pas encore prêt. » ;
+  - NAV-24 quitter : réponse franche (Android ne laisse pas une page se fermer ; une sortie par la coque pourra venir plus tard, avec l'accord de Max).
+- `app.js` : DIC-02 (« stop », « arrête »…) = « Dictée arrêtée. » (arrête aussi la conversation continue) ; DIC-01 (« lance la dictée ») = Cap réécoute après 400 ms, sans parler (sinon il s'entendrait). Une action peut maintenant demander de ne pas parler.
+- Tests : 414/414 (7 nouveaux sur FAUX tableur FICTIF ; le test de l'appui long renforcé : il vérifie aussi qu'aucune minuterie de 2 s n'est prévue) ; pannes volontaires (appui long remis, action Autre enlevée) vues par 4 tests ; test_scan 78/78. Cache cap-v100.
+- APK cap-coque-essai-c48.apk : 100 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Étape 2a : attend le Oui de Max.
+
+## 08/11/2026, 19h10 : retour de Max sur l'étape 1 (c48) ; étude en lecture seule de « ferme » et des phrases d'eau (rien codé)
+- Marche sur le Pixel : « passe en mode clair », « ouvre l'agenda » (pas encore prêt), « fais-moi voir mon eau ». Échoue (« Je ne suis pas une IA… ») : « ferme », « je veux que tu fermes ». Peut-être échoués : « remets-moi l'eau », « je ne veux voir que l'eau ».
+- VÉRIFIÉ (tableur relu en lecture seule, lignes 4168 à 4741) : « ferme » (verbe de fermeture) et « je veux que tu fermes » (tournure de besoin) sont bien en NAV-09. Mais NAV-09 a des mots-clés (« ça », « cet écran »…), et le moteur exige un verbe ET un mot-clé quand le code en a. Un verbe seul est donc classé « incomplet », d'où « Je ne suis pas une IA ». C'est une ERREUR de Claude Code à l'étape 0 : Max avait décidé (question 12) que « ferme » seul ferme l'écran en cours.
+- VÉRIFIÉ : « remets-moi » (verbe) et « l'eau » (mot-clé) sont en NAV-08, donc « remets-moi l'eau » écrit tel quel est reconnu. « je ne veux voir que l'eau » n'est pas dans le tableur : il contient « je veux voir » et « que l'eau », mais le « ne » coupe la tournure. DÉDUIT : la phrase est partie dans « À trier » (elle ne commence pas par un verbe de commande).
+- DÉDUIT, non vérifié : le texte exact reçu de la reconnaissance vocale (Cap l'affiche brièvement, « Entendu : « … » », et le note dans le journal des actions du téléphone ; Claude Code n'a pas lu le téléphone de Max). « fais-moi voir mon eau » a marché alors que « mon eau » n'est pas un mot-clé : la reconnaissance a sans doute écrit autre chose (par exemple « l'eau »).
+- Corrections proposées (pas codées) :
+  - A : verbe seul permis pour NAV-09 (comme MUS-05 et MUS-06), mais seulement quand la phrase n'a rien d'autre que le verbe et de petits mots (« ferme », « ferme-le », « je veux que tu fermes ») ; même prudence pour la pause et la reprise.
+  - B : ne pas tenir compte du petit mot devant le mot-clé (« mon eau », « ton eau » = « l'eau »).
+  - C : ne pas tenir compte de « ne » (« je ne veux voir que l'eau » = « je veux voir que l'eau »).
+  - D (option) : liste des 10 dernières phrases entendues, avec la réponse de Cap, dans Réglages du Drive, gardée sur le téléphone seulement, pour les essais.
+
+## 08/11/2026, 19h27 : corrections A, B, C, D codées (accord de Max) ; APK c49 installé
+- Sauvegarde avant : tag local `sauvegarde-avant-corrections-ferme-eau-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_corrections_ferme_eau_2026_11_08`.
+- A : « ferme » seul ferme l'écran en cours (NAV-09 ajouté aux codes « verbe seul », décision de Max, question 12). Le verbe seul ne compte que si la phrase ne contient rien d'autre que lui et de petits mots ; même prudence pour la pause et la reprise (MUS-05, MUS-06). « rappelle-moi de fermer le gaz » reste une tâche. Une variante qui est aussi un mot-clé (« ça ») n'est ni un verbe seul ni un début de commande.
+- B : le petit mot (le, la, mon, ton, ce…) d'un mot-clé est libre : « mon eau » = « l'eau ». Seulement s'il est suivi d'un autre mot (« ouvre notre », variante de « ouvre autre », reste exacte).
+- C : « ne » et « n' » sont ignorés (« je ne veux voir que l'eau »). Une vraie négation (« ne … pas / jamais / point / rien ») n'est jamais une commande.
+- D : « Réglages du Drive » montre les 10 dernières phrases du micro du milieu avec la réponse de Cap. Elles sont gardées sur le téléphone seulement (`cap_phrases_entendues_v1`) ; le code de l'IA, son journal et la synchronisation ne les lisent pas (vérifié par un test).
+- Le test de l'étape 0 qui attendait « incomplet » pour « ferme » est corrigé (ancienne attente gardée en commentaire daté).
+- Tests : 419/419 (5 nouveaux sur FAUX tableur FICTIF) ; quatre pannes volontaires (A, B, C et D cassées en même temps) vues par les 5 tests ; test_scan 78/78. Cache cap-v101. Aucune nouvelle autorisation Google.
+- APK cap-coque-essai-c49.apk : 100 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Étape 2a : attend le Oui de Max.
+
+## 08/11/2026, 19h59 : commandes vocales, ÉTAPE 2a (commander la musique) codée (accord de Max ; corrections A à D validées sur le Pixel) ; APK c50 installé
+- Sauvegarde avant : tag local `sauvegarde-avant-commandes-musique-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_commandes_musique_2026_11_08`.
+- Lu en lecture seule : le lecteur de Cap (`relations_mp3.js`, lecteur de Zencoder `lecteur_mp3/index.html`, sans le modifier) et des extraits du tableur (MUS-05, MUS-15), en plus de la description complète de MUS-01 à MUS-23 dans le journal de la commande vocale.
+- `relations_mp3.js` : `brancher` rend une TÉLÉCOMMANDE (pause, reprise, arrêt, suivant, précédent, début, rejouer, volume, plus fort, moins fort, couper, remettre, titre, avancer / reculer / aller à, arrière-plan, afficher, masquer). Elle passe par les boutons du lecteur de Zencoder quand il est chargé (lecture / pause, début, curseur de volume), sinon par son lecteur audio. Elle est gardée dans `relationsMp3.instance` (avant : rien n'était gardé).
+- Nouveau `commandes_musique.js` : MUS-05 à MUS-17 et MUS-19 à MUS-23 branchés.
+  - « arrête » ou « stop » seuls restent la dictée.
+  - « à fond » / « au maximum » = 100 ; « à zéro » = couper le son ; couper puis remettre rend le volume d'avant.
+  - « masque le player » : déjà caché en arrière-plan = rien d'arrêté (il dit comment arrêter) ; affiché = arrêté (question 24).
+  - Lecteur déjà affiché : rien (question 32). Sans musique : « Aucune musique en cours. »
+- Moteur : décisions de Max ajoutées par Cap, car pas écrites dans le tableur. « tais-toi » et « silence » (phrase entière) = couper le son ; « un autre » (phrase entière), « un autre morceau », « une autre chanson » = morceau suivant.
+  - Verbe seul : « recommence » (début) et « rejoue » seulement (pas « reviens » ni « retourne », trop larges).
+  - « le suivant » / « le précédent » seuls : la fenêtre ou la musique en cours décide ; sinon « J'hésite… ».
+  - La musique en arrière-plan compte comme « lecteur » pour départager.
+- Pas fait (étape 2b) : lancer un morceau (titre, personne, album, hasard), « Choisir ».
+- Limite VÉRIFIÉE dans le code : la voix ne marche que quand la musique est en arrière-plan (la note ronde). Lecteur affiché = micro du milieu caché. DÉDUIT, à vérifier sur le Pixel : la reconnaissance vocale d'Android peut baisser ou couper la musique pendant qu'elle écoute.
+- Tests : 423/423 (4 nouveaux sur FAUX tableur et FAUX Drive FICTIFS) ; pannes volontaires (« tais-toi » retiré, pause qui ne fait rien, « le suivant » seul désactivé, verbe seul non limité) toutes vues ; test_scan 78/78. Cache cap-v102.
+- APK cap-coque-essai-c50.apk : 101 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Aucune nouvelle autorisation Google.
+
+## 08/11/2026, 20h16 : retour de Max sur l'étape 2a (c50) ; PARTIE 1, étude de la musique coupée pendant l'écoute (lecture seule)
+- Constaté par Max sur le Pixel : appui simple sur le micro du milieu = la musique s'arrête environ 1 s, puis reprend ; écoute continue = la musique reste arrêtée tant que le micro écoute.
+- VÉRIFIÉ dans le code : la coque (MainActivity.java, PontMicroAndroid) lance le SpeechRecognizer d'Android (service de reconnaissance de Google) et ne demande elle-même aucun « focus audio ». La musique joue dans la page (lecteur de Zencoder, élément audio de la WebView). Aucune ligne de Cap ne met la musique en pause pendant l'écoute.
+- DÉDUIT (comportement connu d'Android, pas lu dans le code de Google) : le service de reconnaissance prend le focus audio pendant qu'il écoute ; la WebView met alors sa musique en pause, puis la reprend quand le focus revient. En écoute continue, l'écoute se relance sans cesse, donc le focus n'est jamais rendu.
+- Pistes étudiées : une page ne peut pas choisir le type de focus demandé par le service de Google ; jouer la musique dans la coque (lecteur Android natif qui ignore la perte du focus) = gros chantier, et la musique entrerait dans le micro (reconnaissance moins bonne) ; baisser le volume au lieu d'arrêter = même limite ; reprise automatique par Cap après l'écoute = filet de sécurité simple.
+- Solution proposée à Max (non codée) : garder la courte pause de l'appui simple (elle aide la reconnaissance, comme les assistants vocaux) ; ajouter un filet « reprise automatique » si la musique ne repart pas toute seule après l'écoute ; en écoute continue, Cap dit une fois que la musique est en pause pendant la conversation et qu'elle reprendra à l'arrêt. Aucune nouvelle autorisation.
+- Conclusion : la partie 1 ne change pas le plan de l'étape 2b.
+
+## 08/11/2026, 20h23 : commandes vocales, ÉTAPE 2b (lancer la musique) codée (accord de Max) ; APK c51 installé
+- Sauvegarde avant : tag local `sauvegarde-avant-lancer-musique-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_lancer_musique_2026_11_08`.
+- `relations_mp3.js`, télécommande : `lancerVoix` (titre, personne, album, au hasard) et `choisirFichier`. Cap cherche lui-même, par le code et jamais par l'IA, dans la musique du compte Cap.
+  - Personne = dossier « r_Prénom Nom… » de « Relations » qui a de la musique ; sinon « Je ne trouve pas de musique de … dans Cap. »
+  - Titre : même nom, ou tous les mots dits dans le nom ; sinon un album du même nom ; sinon « Je ne trouve pas… ».
+  - Album : premier morceau, puis l'album entier.
+  - Au hasard : seulement si « au hasard » est dit (MUS-04).
+  - « de lui / d'elle » = la dernière personne citée (question 41).
+- Plusieurs réponses : Cap ne devine jamais ; il montre les choix dans la fenêtre « Musique », en très gros, avec de gros numéros (au plus 9) ; un toucher lance.
+- Lecteur affiché = écran Micro couvert : choix de Claude Code (à valider par Max), la musique lancée à la voix part EN ARRIÈRE-PLAN (la note ronde), l'écran Micro reste ; « montre-moi le player » ramène le lecteur.
+- Compte Cap pas connecté ou connexion expirée : la fenêtre « Musique » le dit et montre « Autoriser la lecture du compte Cap » ; rien n'est lancé. Aucune nouvelle autorisation.
+- « Choisis un fichier » (MUS-18) : le lecteur s'affiche et Cap dit de toucher « Choisir ». DÉDUIT : Android n'ouvre le choix des fichiers qu'après un vrai toucher.
+- `commandes_musique.js` : MUS-01 à MUS-04 et MUS-18 branchés. La réponse arrive après la recherche (`suite`, `deciderMicro` et `app.js`).
+- Tests : 427/427 (4 nouveaux sur FAUX tableur et FAUX Drive FICTIFS) ; pannes volontaires (lancement sans arrière-plan, filtre des personnes enlevé, devinette au lieu des choix) vues ; test_scan 78/78. Cache cap-v103.
+- APK cap-coque-essai-c51.apk : 101 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié.
+
+## 08/11/2026, 20h41 : « arrête la musique » corrigé ; reprise automatique de la musique (accord de Max) ; APK c52 installé
+- Sauvegarde avant : tag local `sauvegarde-avant-arret-musique-reprise-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_arret_musique_reprise_2026_11_08`.
+- Défaut signalé par Max sur c50 : « arrête la musique » et « stop le morceau » n'arrêtaient pas la musique.
+  - VÉRIFIÉ (tableur relu en lecture seule, lignes 9778 à 9900 et 10188 à 10215) : dans MUS-07, tous les verbes « arrête », « stop », « stoppe », « coupe », « éteins », « termine », « finis » et leurs variantes sont marqués RETIRER, avec la remarque « garder seulement avec une cible ». Même chose pour « coupe », « éteins », « fais taire » dans MUS-10. Cap ignore toute ligne RETIRER : il ne restait donc à MUS-07 que le mot-clé « la musique », sans verbe d'arrêt. « arrête » était reconnu comme la dictée (DIC-02), qui n'a besoin que du verbe.
+  - DÉDUIT (Claude Code n'a pas lu le téléphone) : Max a entendu « Dictée arrêtée. » et la musique a continué ; à confirmer dans « Dernières phrases entendues ».
+  - Erreur de Claude Code : le faux tableur de l'étape 2a avait une expression « arrête la musique », absente du vrai ; le test passait donc à tort.
+- Correction : ces verbes sont rajoutés par Cap (`commandes_vocales.js`, SUPPLEMENTS) dans une sorte à part, « verbe avec un mot-clé seulement ». Ils n'agissent jamais seuls, même pour un code sans mot-clé, et ne comptent pas comme début de commande. « arrête » ou « stop » seuls restent la dictée ; « coupe » seul reste une tâche. Les lignes RETIRER restent ignorées.
+- Reprise automatique (`app.js`) : si la musique jouait avant l'écoute du micro du milieu et qu'elle est encore en pause 1,5 s après la fin, Cap la relance. Jamais après une pause demandée par Max (`pauseVoulue` dans la télécommande). Écoute continue : Cap prévient une fois au démarrage (« La musique est en pause pendant la conversation, elle reprendra à l'arrêt. ») et la relance à l'arrêt. La courte pause de l'appui simple est gardée. Aucune nouvelle autorisation.
+- Lancement à la voix en arrière-plan (étape 2b) : validé par Max, inchangé.
+- Tests : 430/430 (3 nouveaux, dont un faux tableur FIDÈLE au vrai, qui échoue sans la correction) ; pannes volontaires (verbes ajoutés retirés, reprise coupée) vues par les 3 tests ; test_scan 78/78. Cache cap-v104.
+- APK cap-coque-essai-c52.apk : 101 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié.
+
+## 08/11/2026, 21h03 : étape 2 validée par Max (c52) ; ÉTAPE 3 visionneuse : découpage proposé, sous-étape 3a codée ; APK c53 installé
+- Max valide l'étape 2 (musique) sur le Pixel.
+- Lu en lecture seule : la visionneuse de Cap (`visionneuse_cap.js`, page de Zencoder `visionneuse/`, sans la modifier), l'œil de « Autre » (`relations_compte.js`) et les lignes VIS-02 du tableur (11866 à 11989), en plus de la description de VIS-01 à VIS-08 dans le journal de la commande vocale.
+- Constat VÉRIFIÉ dans le code : la visionneuse s'ouvre en plein écran par-dessus l'écran Micro. Pendant qu'elle est ouverte, le micro du milieu est caché : « suivant », « précédent », « page suivante » et « ferme » ne peuvent pas être dits. Il faudrait un petit micro posé sur la visionneuse ; c'est une modification d'une fenêtre existante, donc une décision de Max.
+- Découpage proposé :
+  - 3a (FAITE ICI) : depuis l'écran Micro, ouvrir la visionneuse ; afficher un PDF ou une image par son nom.
+  - 3b : décision de Max sur le petit micro dans la visionneuse.
+  - 3c : document suivant / précédent, pages d'un PDF, fermer la visionneuse.
+  - 3d : toutes les photos d'une personne, dossier entier, règle des 4 documents.
+- Règle proposée pour plus de 4 documents : les 4 premiers (par nom), Cap dit « 4 sur N » ; « les suivants » (à la voix ou par un gros bouton) montre les 4 d'après.
+- Sauvegarde avant : tag local `sauvegarde-avant-visionneuse-voix-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_visionneuse_voix_2026_11_08`.
+- Nouveau `commandes_visionneuse.js` :
+  - VIS-01 = le bouton de l'œil.
+  - VIS-02 (PDF), VIS-03 (image) : Cap cherche lui-même les noms, par le code et jamais par l'IA, dans « Relations » et « Documents » du compte Cap. Le contenu des documents n'est jamais lu pour cela.
+  - Un seul trouvé = ouvert dans la visionneuse. Plusieurs, ou pas de nom (« affiche le pdf ») = nouvelle fenêtre de choix `#choix-voix` (gros boutons sur l'eau, gros numéros, « Fermer » compris, à la règle dès sa création).
+  - Pas connecté ou expiré : la visionneuse le dit, avec « Autoriser la lecture du compte Cap ».
+- `visionneuse_cap.js` : une image reçoit un titre d'image (« Image N.jpg ») pour que la visionneuse de Zencoder la montre comme une image ; avant, tout était « PDF N.pdf ».
+- Moteur (`commandes_vocales.js`) :
+  - Une expression complète peut avoir sa cible (« affiche le pdf » + nom ou dossier).
+  - « [TITRE] » seul = tout ce qui suit le verbe (« mets-moi bohemian rhapsody » donne le titre entier, plus seulement le dernier mot ; « s'il te plaît » retiré à la fin).
+  - Rien après le verbe : cette possibilité ne compte pas (« mets-moi s'il te plaît » reste « incomplet »).
+- Tests : 434/434 (4 nouveaux sur un faux tableur bâti comme le vrai, avec une ligne RETIRER, et un FAUX Drive) ; pannes volontaires (cible après une expression enlevée, devinette au lieu des choix, image montrée comme PDF) vues ; test_scan 78/78. Cache cap-v105.
+- APK cap-coque-essai-c53.apk : 102 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Aucune nouvelle autorisation Google.
+
+## 08/11/2026, 21h35 : étape 3b (petit micro de la visionneuse) codée ; ÉTUDE du plafond de 4 documents (lecture seule) ; APK c54 installé
+- Rappel : Max appelle « espace de travail » ce que la visionneuse deviendra plus tard ; rien ne change pour l'instant.
+- 3b (accord de Max) : bouton `#micro-visionneuse`, FIXE en haut à droite de la visionneuse, icône seule.
+  - Il est juste sous le « Fermer » de la page de Zencoder (tout en haut à droite, page non modifiée) et sous la note ronde.
+  - Appui simple : une phrase, par le même chemin que le micro du milieu (commandes d'abord, la visionneuse ouverte départage, sinon « À trier »). Pendant l'écoute, le bouton se colore un peu.
+  - Appui long de 2 s : conversation continue, bouton en SURBRILLANCE (fond clair plein, halo) ; un toucher l'arrête.
+  - « Fermer la visionneuse » reste ; pas de geste de retour. Sauvegarde avant : tag `sauvegarde-avant-micro-visionneuse-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_micro_visionneuse_2026_11_08`.
+  - Les commandes de la visionneuse elle-même (suivant, pages, fermer) attendent 3c : pour l'instant Cap répond qu'il ne sait pas encore.
+- ÉTUDE du plafond, VÉRIFIÉ dans le code :
+  - le 4 est une PRUDENCE de Cap (`visionneuse_cap.js`, MAX_DOCUMENTS = 4, « mémoire du téléphone ») ; la visionneuse de Zencoder a sa propre limite de 12 (au-delà, ignorés sans rien dire) ;
+  - chaque document est téléchargé en entier en mémoire avant d'être montré ;
+  - une page de PDF est dessinée à l'échelle min(3, densité de l'écran × 2) et pdf.js garde chaque PDF ouvert ;
+  - les images sont montrées en PLEINE taille : aucune réduction à 2048 pixels dans Cap ni chez Zencoder (recherché, rien trouvé).
+- ÉTUDE, DÉDUIT (calculs, pas mesuré sur le Pixel) : une page A4 à l'échelle 3 pèse environ 18 Mo en mémoire ; une photo de 12 Mpx décodée, environ 48 Mo. 40 photos en grand = près de 2 Go : la page de Cap serait très probablement tuée par Android. 40 PDF = environ 0,7 Go en plus de pdf.js : lent et risqué.
+- Proposition : des VIGNETTES légères pour tous (environ 1 Mo chacune, soit 40 Mo pour 40). Google Drive fournit des vignettes de PDF et d'images (lecture seule, aucune nouvelle autorisation, DÉDUIT), ou Cap réduit lui-même les images. Seul le document touché s'ouvre en grand (quelques-uns au plus), la mémoire des autres est libérée, et le chargement est progressif (les premiers d'abord).
+  - 35 à 40 en vignettes : réaliste. 35 à 40 en grand à la fois : pas réaliste.
+  - Maximum sûr en grand, à mesurer sur le Pixel : environ 6 à 8 PDF ou 4 à 6 photos.
+  - Il faut un « mode vignettes » dans la page de Zencoder (début de l'« espace de travail »).
+  - Sans vignettes : des lots de 8 avec « les suivants ».
+- Tests : 437/437 (3 nouveaux) ; pannes volontaires (micro qui n'écoute pas, appui long sans conversation) vues ; test_scan 78/78. Cache cap-v106.
+- APK cap-coque-essai-c54.apk : 102 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié.
+
+## 08/11/2026, 21h55 : VIGNETTES des documents, faites par Claude Code depuis Cap (accord de Max) ; APK c55 installé
+- Décision de Max : oui pour les vignettes, faites par Claude Code depuis Cap (pas dans la page de Zencoder, qui n'est pas modifiée).
+- Sauvegarde avant : tag local `sauvegarde-avant-vignettes-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_vignettes_2026_11_08`.
+- `visionneuse_cap.js` : plusieurs documents = nouvelle fenêtre `#vignettes-cap`.
+  - Écran de choix sur l'eau, à la règle dès sa création : sans titre ni cadre, « Fermer » compris, transition « rien puis sable ».
+  - Grille de 3 par rangée, au plus 40 vignettes par écran, puis « Suivants ». Aucun nom de fichier montré (« Document N » pour le lecteur d'écran seulement).
+  - Vignettes chargées une à une (les premières d'abord) : Cap télécharge le document, en fait une vignette JPEG de 360 pixels de large (image réduite, ou première page du PDF en petit avec pdf.js), puis relâche l'original.
+  - Toucher une vignette ouvre CE document en grand dans la visionneuse, par-dessus ; « Fermer la visionneuse » ramène aux vignettes. « Suivants » et « Fermer » libèrent la mémoire des vignettes.
+  - Connexion expirée : message et « Autoriser la lecture du compte Cap » (retour direct après Google).
+  - Un seul document : ouvert en grand directement, comme avant.
+- L'ancienne ouverture en grand (4 au plus) est gardée sous le nom `ouvrirEnGrand` ; l'œil de « Autre » passe maintenant par les vignettes.
+- Tests : 440/440 (3 nouveaux, dont une vraie photo FICTIVE de 1200 × 900 réduite à 360 × 270 ; 3 anciens tests pointés sur `ouvrirEnGrand` ou adaptés aux vignettes, commentaires datés) ; pannes volontaires (plus de vignettes, plafond changé, photo pas réduite) vues ; test_scan 78/78. Cache cap-v107.
+- PAS testé ici : la vignette d'un vrai PDF (première page par pdf.js) ; à vérifier sur le Pixel. Pas mesuré : la mémoire réelle avec 40 vignettes sur le Pixel.
+- APK cap-coque-essai-c55.apk : 102 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Aucune nouvelle autorisation.
+
+## 08/11/2026, 22h09 : vignettes validées par Max ; ÉTAPE 3c (visionneuse à la voix) codée ; APK c56 installé
+- Max valide les vignettes (c55) sans test détaillé. Restent non vérifiés : la vignette d'un vrai PDF, la mémoire avec 40 vignettes sur le Pixel.
+- Relu en lecture seule : VIS-04 (12119 à 12165), VIS-06 (12363 à 12420), VIS-08 (13382 à 13534), et la façon dont la page de Zencoder tourne les pages (boutons ‹ ›, `changerPagePdf`) et retire ses documents (`fermer`).
+- Sauvegarde avant : tag local `sauvegarde-avant-visionneuse-3c-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_visionneuse_3c_2026_11_08`.
+- `visionneuse_cap.js` :
+  - `documentVoisin` : document suivant ou précédent de la liste des vignettes ; l'ancien est fermé et sa mémoire libérée ; les bouts de liste sont dits.
+  - Grille seule affichée (rien en grand), règle proposée : « suivant » = les 40 vignettes suivantes s'il y en a, sinon « Touche une vignette pour l'ouvrir. » ; « précédent » = les 40 d'avant.
+  - `page` : pages du PDF ouvert par les boutons ‹ › de Zencoder (page suivante, précédente, première, dernière, numéro ; le dernier chiffre dit compte) ; hors limites dit ; aucun PDF ouvert : « Aucun PDF n'est ouvert. »
+  - `fermerParVoix` : d'abord le document en grand (retour aux vignettes), puis les vignettes.
+- `commandes_visionneuse.js` : VIS-04, VIS-05, VIS-06, VIS-08 branchés. `commandes_navigation.js` : « ferme » seul (NAV-09) ferme d'abord la visionneuse, puis les vignettes, puis la fenêtre de choix. `app.js` : vignettes affichées = la visionneuse départage (« le suivant » vise un document).
+- Moteur : « au », « aux » comptent comme petits mots devant un mot-clé (« reviens au précédent »).
+- Limite VÉRIFIÉE dans le code : l'écran des vignettes n'a PAS de micro (le micro du milieu est dessous, caché) ; à la voix, on commande seulement depuis le petit micro de la visionneuse (document ouvert en grand). Proposition à Max : le même petit micro sur l'écran des vignettes.
+- Tests : 444/444 (4 nouveaux sur un faux tableur bâti comme le vrai, avec une ligne RETIRER, un FAUX Drive et une fausse page de PDF) ; pannes volontaires (document voisin immobile, une seule page tournée, vignettes fermées avant le document) vues ; test_scan 78/78. Cache cap-v108.
+- APK cap-coque-essai-c56.apk : 102 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Aucune nouvelle autorisation.
+
+## 08/11/2026, 22h25 : petit micro sur l'écran des vignettes (accord de Max) ; APK c57 installé
+- Sauvegarde avant : tag local `sauvegarde-avant-micro-vignettes-2026-11-08` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_micro_vignettes_2026_11_08`.
+- `#micro-vignettes` : le même petit micro que dans la visionneuse, même place (en haut à droite), icône seule. Il est FIXE pendant le défilement de la grille.
+  - La grille, « Suivants » et « Fermer » gardent une marge à droite : le micro ne cache jamais une vignette, même en faisant défiler (vérifié par un test à 4 positions de défilement).
+- `app.js` : le code du micro de la visionneuse devient la fonction `brancherPetitMicro`, branchée sur les deux boutons (même contenu, commentaire daté).
+  - Appui simple : une phrase, commandes d'abord, sinon « À trier ». Appui long de 2 s : conversation continue, surbrillance.
+- Sur la grille : « le suivant » / « le précédent » = les 40 vignettes d'après / d'avant ; « ferme » = ferme les vignettes ; une phrase de dictée va dans « À trier ». Après 3 allers-retours, au plus 40 vignettes restent en mémoire (vérifié par un test).
+- Document ouvert depuis la grille : la visionneuse (plein écran, fond opaque) couvre la grille ; son propre petit micro est au même endroit. C'est lui qu'on touche, aucun doublon (vérifié par un test). « Fermer la visionneuse » ramène la grille et son micro.
+- Tests : 447/447 (3 nouveaux, faux tableur avec ligne RETIRER, faux Drive FICTIF) ; pannes volontaires (marge enlevée, micro des vignettes débranché) vues ; test_scan 78/78. Cache cap-v109.
+- Outil de test : 2 fois sur environ 8 passages, le navigateur de test a rendu un résultat vide (raté d'Edge sans fenêtre, pas une erreur de Cap : le passage suivant, sans rien changer, donne 447/447). À surveiller ; rien de corrigé.
+- APK cap-coque-essai-c57.apk : 102 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé ; installé sur le Pixel. Rien n'est publié. Aucune nouvelle autorisation.
+
+## 09/11/2026, 08h29 : ÉTUDE en lecture seule, intégration des maquettes de Zencoder (aucun code, rien touché chez Zencoder)
+- Max valide le rapport c57 et la série 3a, 3b, 3c, sans essai sur le Pixel (il signalera les défauts). Commande vocale EN PAUSE : pas de 3d, pas d'étape 4, aucune nouvelle ligne du tableur.
+- Lu sans rien modifier : Cap_eau_essai (et la copie figée v1 du 06/11), Cap_internet_essai_v1_2026_11_08 et Cap_internet_essai_v2 (journal, index.html), Cap_haiku_interrupteur_essai_v1_2026_11_08, Cap_chercher_essai_v1_2026_11_08, leurs journaux et leurs LISEZ_MOI. Cap_internet_etude/PLAN.txt survolé (source de la conclusion « vraie app Android »). Cap_espace_travail_etude NON lu (consigne de Max).
+- VÉRIFIÉ : l'écran d'eau est DÉJÀ dans Cap depuis le 06/11 (lots c19 à c22, publiés le 06/11). Il est fait par ecran_eau.js, avec la vidéo dans app/eau/galet_sortie.mp4 (même empreinte que celle de Zencoder).
+  - Il s'affiche au démarrage une fois par ouverture (marque en sessionStorage).
+  - Le glissement de bas en haut fait entrer dans Cap. Le geste de haut en bas sur l'accueil ramène à l'eau, avec une descente douce. L'ancien accueil reste en dessous.
+  - Le fond est 'aucun' depuis c20 : la vidéo n'est pas chargée. « Entrer dans Cap » a été retiré en c21, par décision de Max.
+  - La fausse page de Zencoder et son défaut de toucher n'ont pas été repris.
+  - L'eau des maquettes du 08/11 (eau.js) est le même moteur que l'eau v2 du 07/11, déjà adaptée dans Cap (EAU_V2). Seul l'en-tête du fichier change.
+- VÉRIFIÉ, eau invisible dans Internet v1 et v2 :
+  - index.html n'appelle jamais perturberClient (0 appel), alors que Chercher et Haiku l'appellent 2 à 3 fois : l'eau ne réagit jamais au doigt ;
+  - la fausse page couvre tout l'écran (inset 0, au-dessus de l'eau) avec du texte et des blocs ;
+  - l'eau sombre est très peu contrastée par construction (couleurs [34,40,42] vers [16,20,22], opacité 0,55, sur un fond #0a0c0c).
+  - DÉDUIT : sans ondes du doigt, avec une page plein écran par-dessus, l'eau sombre ne se voit presque pas. Baisser le voile de 0,22 à 0,09 ne suffit pas. Rien corrigé.
+- VÉRIFIÉ, Haiku : l'interrupteur est une molette (role switch). Il est gardé dans localStorage sous la clé cap_essai_haiku_fictif (« on » / « off ») et n'est relié à rien. Le LISEZ_MOI du dossier est celui de la maquette de saisie (pas mis à jour).
+- VÉRIFIÉ, Chercher :
+  - c'est le même écran que celui de Cap_eau_essai_v2 du 07/11 : 4 icônes (To-do, Documents, Média, Photo), une barre avec un clavier simulé, « Fermer », et la lumière de bord en plus (Faible/Moyenne/Forte, réaction à une voix FICTIVE) ;
+  - Zencoder a mesuré 39 images par seconde avec la lumière contre 58 sans, sur un rendu logiciel de PC, pas sur le Pixel ;
+  - dans la coque, onRmsChanged est vide (MainActivity.java) : la lumière ne peut pas suivre la voix sans changer l'APK ;
+  - dans Cap aujourd'hui, « Chercher » ouvre encore l'écran des tâches (solution d'attente du 07/11), et NAV-01 et 15 tests visent ouvrir-chercher.
+- VÉRIFIÉ, Internet : la maquette est seulement du HTML (pas de vraie page ni de WebView) : rond déplaçable rangé au bord, Oui/Non, aucun envoi.
+  - La coque existe déjà : une WebView, le pont du micro, ScannerAndroid, CouleursAndroid, et Custom Tabs pour Google.
+  - Il manque une deuxième WebView, le rond natif par-dessus et la capture (PixelCopy).
+  - Envoyer la capture à l'IA demande une décision de Max (règle « rien envoyé à l'IA »).
+- Ordre proposé : 1) Chercher ; 2) interrupteur Haiku visible ; 3) lumière de bord ; 4) Internet (maquette dans la coque, puis vraie navigation). Environ 6 à 7 étapes, Chercher d'abord. Rapport fait à Max, une seule décision demandée. Rien codé, rien publié, aucune nouvelle autorisation, clé Haiku non touchée.
+
+## 09/11/2026, 09h43 : étape 1 de l'intégration de Zencoder, ÉCRAN CHERCHER (accord de Max) ; APK c58 installé
+- Décisions de Max : Photo grisé (3d en pause) ; « Fermer » visible, comme la maquette validée. En attente, non tranché et non codé : Haiku visible, lumière de bord, vidéo du galet, capture d'Internet vers l'IA.
+- Sauvegardes avant le code : tag local `sauvegarde-avant-ecran-chercher-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_ecran_chercher_2026_11_09`. Maquette `Cap_chercher_essai_v1_2026_11_08` lue sans y toucher.
+- Repris de la maquette :
+  - les 4 icônes (mêmes dessins), en 2 × 2, sans texte visible ;
+  - la barre en pilule claire ;
+  - « Fermer » en texte sur l'eau.
+- Adapté : couleurs du mode clair / sombre de Cap ; « Fermer » sans ombre noire (lisible en clair) ; placeholder « Chercher » sans « FICTIF ». NON repris : la lumière de bord (étape 3) et le clavier simulé.
+- index.html : nouvel écran `#ecran-chercher`. L'aria-controls de « Chercher » vise cet écran (ancien noté).
+- accueil_cap.js :
+  - « Chercher » ouvre l'écran Chercher. L'ancienne solution d'attente (Chercher = écran des tâches) est gardée en commentaire, et ne sert que si l'écran manque.
+  - To-do ouvre l'écran des tâches, en une seule transition. Documents touche l'œil (visionneuse et vignettes). Média touche le Lecteur (musique). Photo dit « Photo : pas encore prêt. ».
+  - Barre : à la touche Entrée, le texte part dans la recherche de Cap (écran des tâches, résultats tout de suite) et la barre est vidée. « Fermer » ramène à l'accueil.
+- transition_ecrans.js : « ecran-chercher » ajouté. Un changement demandé pendant un autre se fait dans la même transition (Chercher → To-do sans voir l'accueil entre les deux).
+- geste_retour.js : le geste de haut en bas ferme Chercher, en douceur, par son « Fermer ».
+- commandes_navigation.js :
+  - NAV-01 : ferme d'abord l'écran des tâches s'il est ouvert, puis ouvre Chercher ; dit « Chercher est déjà ouvert. » s'il l'est.
+  - NAV-13 « mes tâches » : touche To-do.
+  - Chercher est ajouté à la liste des écrans que « ferme » et « accueil » savent fermer. Les anciennes lignes sont notées en commentaires datés.
+- style.css : bloc daté. service-worker : cap-v110.
+- Tests :
+  - 8 anciens tests adaptés (Chercher puis To-do), avec commentaires datés ;
+  - 5 nouveaux tests : allure, Photo grisé, rien ne se chevauche même avec l'alerte, chaque icône touche le bon bouton une seule fois, la barre trouve une tâche FICTIVE, geste et animations réduites, NAV-01 et NAV-13 sur un faux tableur avec une ligne RETIRER jamais lue, depuis l'accueil, Autre, Réglages, Micro et l'écran des tâches ;
+  - 452/452 et test_scan 78/78 ;
+  - 4 pannes volontaires (Photo pas grisé, Documents débranché, NAV-01 ancien, transition dans la transition) : toutes vues par les tests, puis fichiers remis.
+- APK cap-coque-essai-c58.apk : 102 fichiers de Cap identiques à app/ (les 21 autres fichiers de l'APK sont les modèles ML Kit de Google), 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 09h43.
+- NON vérifié sur l'ordinateur : l'allure à l'œil (aucune capture faite, seulement des mesures). Rien publié, aucune nouvelle autorisation, rien envoyé à l'IA.
+
+## 09/11/2026, 10h33 : essai de c58 par Max ; série en 4 étapes ; ÉTAPE 1 faite (« mes tâches », « ferme » dans la visionneuse, deux « Fermer » retirés) ; APK c59 installé
+- Retour de Max sur c58 : écran Chercher validé, sauf les points ci-dessous. Série en 4 étapes, un Oui de Max après chaque étape. Étape 1 : code. Étapes 2, 3, 4 : études seules.
+  - Étape 2 : règle du retour vers l'écran d'où l'on vient ; nouveau micro de l'accueil ; micro au milieu et Chercher en haut.
+  - Étape 3 : menu déroulant et propositions directes dans les barres de recherche ; doublons dans « À trier ».
+  - Étape 4 : pouce, croix et choix près du petit micro ; interrupteur « sous-titres » ; message du bas qui traîne ; accès simple à « À trier ».
+- Sauvegardes : tag local `sauvegarde-avant-etape1-retours-c58-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_etape1_retours_c58_2026_11_09`.
+- a) « mes tâches » rangé dans « À trier » :
+  - VÉRIFIÉ sur le Pixel (Cap ESSAI, lecture seule des 10 dernières phrases entendues, rien d'autre lu) : à 10h05, phrase reçue « mes tâches », réponse « Ajoutée dans À trier ».
+  - VÉRIFIÉ dans le vrai tableur (lecture seule, lignes 1084 à 1101, aucun nom recopié) : NAV-13 n'a que six « Écran cible » (« la liste des choses à faire », « ma liste à faire », « ma to-do », « ma to-do liste », « mes tâches », « mes choses à faire »), avec les verbes d'ouverture COMMUN.
+  - Cause : le moteur exige un verbe devant une cible. Dit seul, c'était « rien » (pas une commande), donc « À trier ». Le test du 09/11 disait « ouvre mes tâches », pas « mes tâches » seul : c'est mon erreur de test.
+  - Réparé : NAV-13 rejoint CIBLE_SEULE (la cible seule, phrase entière, ouvre l'écran des tâches). La cible seule compare le texte vraiment trouvé, pour que le petit mot libre marche (« la to-do » pour « ma to-do »).
+  - Phrases proches : marchent maintenant « mes tâches », « ma to-do », « la to-do », « les tâches », « mes choses à faire », « ma liste à faire » ; avant aussi, « ouvre mes tâches » et « montre-moi ma liste à faire ».
+  - Restent hors commande (absentes du tableur) : deux formulations de l'écran des tâches. (09/11/2026, avant publication, décision de Max : les vraies phrases dites par Max sont remplacées ici par des mots neutres.) Au micro, le module des listes vocales les prend pour une liste nommée « tâches » (réponse « Je note… », vu dans les tests). « mes tâches de demain » va toujours dans « À trier ».
+  - Même cas, non changé : les autres « Écran cible » dits seuls (« l'agenda », « mes notes », « les réglages », « mes documents »…) restent « À trier ».
+- b) « ferme » au petit micro de la visionneuse :
+  - VÉRIFIÉ sur le Pixel : aucune phrase « ferme » n'est arrivée à Cap pendant les essais (absente des phrases entendues).
+  - VÉRIFIÉ dans le code : sans texte reçu d'Android, Cap affiche « Je n'ai rien entendu, réessaie. » dans le message du bas, caché sous la visionneuse plein écran.
+  - DÉDUIT : la reconnaissance d'Android n'a rendu aucun texte pour ce mot court (cause exacte inconnue). Quand le texte arrive, « ferme » ferme bien (tests). Pas réparé : la cause n'est pas claire. Lié au point j de l'étape 4 (messages invisibles dans la visionneuse).
+- c) Écran Chercher : « Fermer » caché (code gardé, commentaire daté). Le geste et « ferme » passent par lui.
+- d) Visionneuse : gros « Fermer la visionneuse » du bas caché (gardé pour la voix, le retour du téléphone et le « Fermer » du haut).
+  - VÉRIFIÉ : le « Fermer » de la page de Zencoder (en haut à droite) ne vidait que ses documents.
+  - Il ferme maintenant aussi la visionneuse de Cap (même chemin : mémoire libérée, retour aux vignettes). L'écoute est posée depuis Cap (`brancherFermerHaut`, visionneuse_cap.js) ; page de Zencoder non modifiée. Petit micro inchangé, juste dessous.
+- Tests :
+  - 454/454 : 2 nouveaux (ce que Max a vécu, avec une ligne RETIRER jamais lue ; « Fermer » du haut de la visionneuse) et 5 anciens adaptés (commentaires datés) ;
+  - test_scan 78/78 ;
+  - pannes volontaires vues : NAV-13 retiré, petit mot libre retiré, « Fermer » de Chercher affiché, « Fermer » du haut débranché ;
+  - un raté isolé d'un ancien test (appui long 3b), qui passe au passage suivant sans rien changer.
+- Cache cap-v111. APK cap-coque-essai-c59.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 10h33. Rien publié, aucune nouvelle autorisation, rien envoyé à l'IA, aucune ligne du tableur écrite.
+
+## 09/11/2026, 10h55 : étape 1 validée sur le Pixel (c59) ; ÉTAPE 2 = ÉTUDE seule (retour, micros de l'accueil, petit micro partout), rien codé
+- Max valide l'étape 1 sur le Pixel : « mes tâches », les deux « Fermer » et « ferme » à la voix marchent.
+- Compléments de Max pour l'étape 2 :
+  - le plus et la nouvelle icône restent affichés tant que le micro est actif ;
+  - un petit micro est affiché en haut à droite de TOUS les écrans, tout le temps, côte à côte avec la note de musique (appui simple = une phrase, appui long 2 s = surbrillance et écoute continue) ;
+  - le gros micro de l'accueil reste : il fait comme le petit, et il ouvre en plus le plus et la nouvelle icône.
+- VÉRIFIÉ (code) :
+  - les écrans Autre, Réglages, Micro et Chercher passent par `montrer(null)` pour fermer, donc toujours vers l'accueil (Réglages ouvert depuis Autre revient à l'accueil). L'écran des tâches revient aussi à l'accueil ;
+  - les fenêtres (visionneuse, musique, scanner, choix) s'ouvrent PAR-DESSUS l'écran : les fermer ramène déjà à l'écran d'en dessous ;
+  - Cap ne garde aucun historique des écrans. La coque ne gère pas la touche retour d'Android (aucun onBackPressed, aucun popstate) ;
+  - la note de musique est en haut à droite (12 px, 48 px), posée dans la fenêtre du dessus. Le petit micro de la visionneuse et celui des vignettes sont 60 px plus bas (56 px) ;
+  - le « Fermer » de la page de Zencoder est tout en haut à droite (environ 16 px) ;
+  - l'écran des tâches a son « Fermer » à droite de son titre ;
+  - l'accueil est en colonne : Micro, Chercher, Autre ;
+  - 85 lignes de test visent l'écran Micro (ouvrir-micro, ecran-micro, continu, plus, clavier).
+- Propositions (détail dans le rapport à Max) :
+  - pile des écrans en mémoire seulement (« accueil » et « eau » la vident) ;
+  - micro global (un seul bouton, posé dans la fenêtre du dessus comme la note), le plus à droite ; la note à sa gauche ; « Fermer » de la visionneuse déplacé dessous par une retouche de Cap ;
+  - plus et icône : disparaissent 4 s après la fin de l'écoute, sans toucher ;
+  - micro au milieu et Chercher en haut ;
+  - ordre de code : petit micro partout, puis gros micro et échange des places, puis règle du retour.
+- Question posée à Max : premier toucher du gros micro = écoute tout de suite (complément 4) ou seulement faire apparaître le plus et l'icône (bloc d'avant) ? Rien codé, rien publié.
+
+## 09/11/2026, 11h27 : PETIT MICRO de tous les écrans (accord de Max, étape 1 sur 3 de l'étude 2) ; APK c60 installé
+- Décisions de Max :
+  - un seul petit micro, en haut à droite de tous les écrans, tout le temps, posé dans la fenêtre du dessus ; mêmes règles que celui de la visionneuse ; il remplace les micros de la visionneuse et des vignettes (cachés, code gardé) ;
+  - la note de musique à sa gauche, même taille, même ligne ; tous deux sous l'alerte Google ;
+  - le « Fermer » de la visionneuse juste sous le micro, par une retouche de Cap ; une marge à droite dans l'écran des tâches.
+- Décisions pour l'étape suivante, NON codées : le premier toucher du gros micro n'écoute pas, il fait seulement apparaître le plus et la nouvelle icône (mon conseil refusé). La disparition du plus et de l'icône n'est pas décidée.
+- Sauvegardes : tag local `sauvegarde-avant-petit-micro-partout-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_petit_micro_partout_2026_11_09`.
+- index.html : nouveau `#petit-micro` (même dessin que les autres micros). `#micro-visionneuse` et `#micro-vignettes` cachés, avec commentaires datés.
+- app.js : `brancherPetitMicro(parId('petit-micro'))`, même code que la visionneuse : appui simple = une phrase par le chemin du micro du milieu ; appui long 2 s = conversation, surbrillance.
+- accueil_cap.js : `placerPetitMicro`, appelé à chaque ouverture ou fermeture de fenêtre (même observateur que l'alerte) : le micro va dans la fenêtre ouverte du dessus, sinon sur la page.
+- visionneuse_cap.js : la retouche de la page de Zencoder met son « Fermer » à 76 px du haut, à 12 px du bord (juste sous le micro). Page de Zencoder non modifiée.
+- style.css (bloc daté) :
+  - micro 52 px, fixe, à 12 px du haut et 12 px à droite, au-dessus de l'écran d'eau (z-index 960) ;
+  - note à droite 72 px, en 52 px (avant 48 px, à droite 12 px) ;
+  - les deux descendent sous l'alerte ;
+  - le micro ne monte pas du sable avec une fenêtre de choix ;
+  - marge à droite de 132 px pour le titre de l'écran des tâches. VÉRIFIÉ par panne : elle n'est pas nécessaire à 412 × 900, même avec l'alerte ; gardée par sécurité.
+- Tests :
+  - 459/459 : 5 nouveaux, 5 anciens adaptés (commentaires datés) ;
+  - les nouveaux couvrent : un seul micro, même place et rien dessous sur l'accueil, Autre, Réglages, Micro, Chercher, les tâches et l'eau ; posé dans chacune des fenêtres de Cap, rien dessous ; note à gauche ; alerte ; « Fermer » de la visionneuse juste dessous ; appui simple et appui long avec un faux tableur ;
+  - test_scan 78/78 ;
+  - pannes vues : placement retiré, note pas déplacée, retouche du « Fermer » retirée, animation de choix laissée.
+- Point 4 (« Je n'ai rien entendu » caché sous la visionneuse), proposé à Max, NON codé : une petite bulle de texte sous le petit micro, qui le suit dans la fenêtre du dessus, quelques secondes, pour les messages du micro seulement. Sans pouce ni croix (étape 4).
+- Cache cap-v112. APK cap-coque-essai-c60.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 11h27. Rien publié, aucune nouvelle autorisation, rien envoyé à l'IA.
+
+## 09/11/2026, 11h56 : BULLE et « Sous-titres » ; ÉTAPE 2 du code (gros micro, « + » et nouvelle icône, nouvel ordre, écran Micro retiré) ; APK c61 installé
+- Max n'a pas encore essayé c60 (il signalera les défauts).
+- Sauvegardes : tag local `sauvegarde-avant-bulle-et-gros-micro-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_bulle_et_gros_micro_2026_11_09`.
+- BULLE (décision de Max) :
+  - `#bulle-micro` juste sous le petit micro ; elle le suit dans la fenêtre du dessus ; 4,5 s, puis elle s'efface ; elle ne capte aucun toucher.
+  - Erreurs et échecs du micro : toujours (rien entendu, micro bloqué, réseau, phrase incomplète, hésitation, « je ne sais pas encore le faire », et les réponses qui disent que rien ne s'est fait, repérées par leurs mots : « pas encore prêt », « n'est pas disponible / ouvert », « rien à », « impossible »…).
+  - Confirmations : seulement si « Sous-titres » est allumé.
+  - Dans la visionneuse, elle passe sous le « Fermer » déplacé (128 px du haut). Sous l'alerte Google, elle descend.
+- « Sous-titres » : interrupteur dans Réglages, sous « Eau », même taille et même curseur que clair / sombre. Éteint par défaut, gardé sur le téléphone (`cap_sous_titres_v1`).
+- Gros micro (décisions de Max) :
+  - accueil = Chercher en haut, la rangée « + » / gros micro / nouvelle icône au milieu, Autre en bas ;
+  - premier toucher : n'écoute pas, fait apparaître « + » et l'icône ; deuxième toucher ou deux touchers rapides : une phrase ; le petit micro écoute dès le premier toucher ;
+  - appui long 2 s : surbrillance, écoute continue, « + » et l'icône en même temps ;
+  - l'icône (provisoire : un crayon) ouvre la même fenêtre que l'ancienne icône clavier ;
+  - « + » et l'icône partent quand Max touche l'un d'eux ou quitte l'accueil ; aucune minuterie.
+- Écran Micro, bouton « continu », ancien bouton Micro de l'accueil et icône clavier : cachés, code gardé. « le micro » à la voix (NAV-22) : retour à l'accueil, « + » et l'icône montrés, sans écouter.
+- Fichiers : index.html (« + » et micro déplacés de l'écran Micro vers l'accueil, commentaires datés), app.js, accueil_cap.js, commandes_navigation.js, style.css (blocs datés). Cache cap-v113.
+- Tests :
+  - 453/453 lancés : 8 nouveaux, plusieurs anciens adaptés ;
+  - 14 anciens tests de l'écran Micro et de « continu » marqués « remplacés le 09/11/2026 » : code gardé, plus lancés, d'où 453 au lieu de 462 + 8 ;
+  - test_scan 78/78 ;
+  - pannes vues : bulle (erreur retirée, sous-titres ignorés, bulle qui ne suit pas le micro) ; gros micro (premier toucher qui écoute, « + » / icône qui restent, appui long coupé, NAV-22 sans « + »).
+- APK cap-coque-essai-c61.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 11h56. Rien publié, aucune nouvelle autorisation, rien envoyé à l'IA.
+
+## 09/11/2026, 12h32 : ÉTAPE 3 du code, RÈGLE DU RETOUR (pile des écrans) ; commandes sur l'écran d'eau réparées ; APK c62 installé
+- Accord de Max : fermer (bouton, geste de haut en bas, « ferme ») ramène à l'écran d'où l'on vient. Exceptions acceptées : « accueil » et « eau » à la voix vident la pile ; l'eau n'y entre jamais ; après un retour de Google, on repart de l'accueil ; les fenêtres posées par-dessus ne changent pas. Max n'a pas encore essayé c61.
+- Sauvegardes : tag local `sauvegarde-avant-regle-retour-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_regle_retour_2026_11_09`.
+- accueil_cap.js : pile en mémoire seulement (`noterDepart`, `ouvrirEcran`, `revenir`).
+  - Ouvrir Autre, Réglages, Chercher, Micro (caché) ou les tâches par To-do note l'écran de départ. Les « Fermer » (visibles ou cachés) reviennent à cet écran.
+  - Rouvrir un écran déjà dans la pile la raccourcit.
+  - L'événement « cap-vider-pile » la vide. `pile()` est lisible pour les essais.
+  - Anciennes lignes (`montrer(null)`) gardées en commentaires datés.
+- app.js : le glissement vers le bas de l'écran des tâches passe par son « Fermer » (donc la pile). Avant : `changerVue(false)`, toujours l'accueil.
+- commandes_navigation.js : « accueil » vide la pile (NAV-07, et donc NAV-08 et NAV-22).
+- Défaut vu par Max sur c60 (sur l'écran d'eau, « ouvre Autre » et « ouvre accueil » ne faisaient rien) :
+  - VÉRIFIÉ dans le code : les commandes changeaient bien d'écran, mais SOUS l'écran d'eau, qui reste par-dessus tout. Le petit micro et la reconnaissance marchaient.
+  - Réparé : les commandes qui montrent un écran (NAV-01, 02, 03, 04, 07, 13, 21, 22) font d'abord entrer dans Cap (`entrerDansCap`, même chemin que le glissement vers le haut). « l'eau seule » (NAV-08) n'en sort pas.
+- Tests :
+  - 457/457 : 4 nouveaux, 8 anciens adaptés à la règle (commentaires datés) ;
+  - test_scan 78/78 ;
+  - pannes vues : pile pas raccourcie, « accueil » qui ne vide plus, eau pas quittée, glissement des tâches vers l'accueil, retour toujours vers l'accueil.
+- Cache cap-v114. APK cap-coque-essai-c62.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 12h32. Rien publié, aucune nouvelle autorisation, rien envoyé à l'IA.
+
+## 09/11/2026, 13h00 : MISSION A (allure des fenêtres « + » et crayon) et MISSION B (pouce et croix) ; études « À trier » et doublons ; APK c63 installé
+- Max n'a pas encore essayé c62.
+- MISSION A, lecture seule d'abord :
+  - VÉRIFIÉ : maquettes de Zencoder `Cap_saisie_essai` et sa copie figée `Cap_saisie_essai_v1_2026_11_08` (identiques), avec JOURNAL_SAISIE et LISEZ_MOI. Écrans « Ajouter une tâche » et « Écrire à Cap ».
+  - VÉRIFIÉ : aucune « icône de clavier » dans ces fichiers. « Clavier » y veut dire le clavier du téléphone (champ jamais caché dessous).
+  - La maquette range aussi les phrases derrière un bouton « Phrases » et retire la fermeture au toucher à côté : NON repris (ce sont des changements de fonctionnement, pas d'allure).
+- MISSION A, code : style.css seulement, plus un petit défaut corrigé.
+  - Fenêtres sans cadre ni fond ni voile ; l'écran d'avant s'efface en fondu (`html:has(dialog[open]) .ecran`) ; l'eau de Cap se voit dessous.
+  - Titres lus par le téléphone mais cachés à l'œil ; étiquettes avec halo ; champs « simples » (un trait en bas, plus épais quand le champ a la main, sans cadre bleu) ; boutons et listes déroulantes identiques, arrondis, à 78 % (un peu transparents) ; grandes touches de 56 px gardées.
+  - Toucher à côté ferme comme avant (la fenêtre garde la taille de son contenu). Nouvelle variable `--eau-halo-rgb`.
+  - Défaut trouvé par le test et corrigé : une ancienne règle grossissait le petit micro posé dans « Écrire à Cap » (56 px au lieu de 52).
+  - Captures faites à l'ordinateur (sombre et clair) : `C:\Users\revox\AppData\Local\Temp\claude\c7d2446687dfb69a\c3410bf7-42cf-4488-97eb-e660efa3f1a1\scratchpad\captures_saisie`. Le navigateur d'essai fige les fondus : capture finale faite fondus coupés.
+- OUBLI, corrigé après coup : la sauvegarde d'avant la mission A n'a pas été faite avant le code. Elle a été faite ensuite, exactement sur l'état d'avant (commit 45d5b7d) : tag `sauvegarde-avant-mission-A-saisie-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_mission_A_saisie_2026_11_09` (tirée de ce commit).
+- Mission B : sauvegarde AVANT le code : tag `sauvegarde-avant-mission-B-pouce-croix-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_mission_B_pouce_croix_2026_11_09`.
+- MISSION B, code (`#signe-micro`, app.js `montrerSigne` et `signePourResultat`) :
+  - le signe est à gauche du petit micro (plus à gauche quand la note joue), même ligne ; il suit le micro dans la fenêtre du dessus (visionneuse comprise) et ne capte aucun toucher ;
+  - POUCE vert (il grossit puis disparaît en 1,8 s) : commande faite, phrase rangée, rendez-vous ajouté, réponse donnée, annulation ;
+  - CROIX ROUGE (2,6 s) : rien entendu, micro bloqué, phrase incomplète, hésitation entre deux commandes, « pas encore prêt » et réponses qui disent que rien ne s'est fait, erreur d'enregistrement ;
+  - fenêtre de gros choix ouverte (choix-voix, question de date, choix de l'expéditeur, fenêtres de choix) : aucun signe ;
+  - question ou réflexion de Cap en cours : rien jusqu'à la réponse ;
+  - le signe n'a aucun texte ; rien n'est lu à voix haute, rien envoyé à l'IA ; indépendant de « Sous-titres ».
+- Tests :
+  - 460/460 : 3 nouveaux (allure des fenêtres, pouce et croix, choix, place, visionneuse) ;
+  - test_scan 78/78 ;
+  - pannes vues : écran d'avant pas effacé, boutons opaques, signe malgré les choix, croix « rien entendu » retirée, signe qui ne suit pas le micro.
+- ÉTUDE « À trier » (non codé) :
+  - VÉRIFIÉ : une nouvelle tâche est ajoutée à la FIN de la liste (`TACHES.push`) ; la tuile « À trier » reste devant les autres.
+  - DÉDUIT : la dernière phrase est en bas de « À trier ».
+  - Proposition à Max : une 5e icône « À trier » dans Chercher (un toucher depuis Chercher), qui ouvre la liste la plus récente EN HAUT et surlignée.
+- ÉTUDE doublons (non codé) :
+  - VÉRIFIÉ : Cap ne cherche nulle part si une phrase est déjà dans la liste.
+  - VÉRIFIÉ sur le Pixel (dernières phrases entendues, 09/11 matin) : « acheter du pain » a été dit et rangé deux fois (09h38 et 09h40).
+  - DÉDUIT : les doublons viennent de phrases redites pendant les essais, pas d'un double enregistrement.
+- Cache cap-v116. APK cap-coque-essai-c63.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 13h00. Rien publié, aucune nouvelle autorisation, rien envoyé à l'IA.
+
+## 09/11/2026, 13h43 : MISSION C, 5e icône « À trier » dans Chercher (accord de Max) ; APK c64 installé
+- Sauvegarde AVANT le code (13h37) : tag local `sauvegarde-avant-mission-C-a-trier-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_mission_C_a_trier_2026_11_09`.
+- index.html : 5e icône `#chercher-a-trier` (bac de rangement, classe des 4 autres, nom « À trier » lu par le téléphone).
+- style.css : centrée sous les 4 autres, même taille. Classe `.derniere-ajoutee` : liseré vert à gauche et fond léger.
+- accueil_cap.js : même chemin que To-do (donc « Fermer » revient à Chercher), puis l'événement « cap-ouvrir-a-trier ».
+- app.js :
+  - la liste « À trier » s'ouvre avec la plus récente EN HAUT (ordre d'ajout inversé) SEULEMENT dans cette vue ;
+  - la dernière phrase est marquée tant que la vue est ouverte, et surlignée 2 s comme un résultat de recherche ;
+  - par la tuile « À trier », l'ordre d'avant ne change pas.
+- Rien d'autre ne change : rien renommé, rien envoyé, aucune autorisation.
+- Tests :
+  - 461/461 : 1 nouveau (allure et place de l'icône, rien sous le petit micro, ordre, marque, retour à Chercher, ordre de la tuile inchangé) ;
+  - test_scan 78/78 ;
+  - pannes vues : ordre non inversé, icône débranchée ;
+  - corrigé par le test : la 5e icône était un peu plus large (écart de grille de 5 % au lieu de 6 %).
+- Cache cap-v117. APK cap-coque-essai-c64.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 13h43. Rien publié.
+
+## 09/11/2026, 14h09 : MISSION D, fenêtre de GROS CHOIX quand Cap hésite entre des commandes (accord de Max) ; APK c65 installé
+- Sauvegarde AVANT le code (14h02) : tag local `sauvegarde-avant-mission-D-choix-commandes-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_mission_D_choix_commandes_2026_11_09`.
+- Lu : la fenêtre de choix des documents (`choix-voix`, commandes_visionneuse.js) : cases numérotées, choix au toucher SEULEMENT (pas de numéro à la voix) ; style des fenêtres de choix sur l'eau (choix_sur_eau.js).
+- commandes_vocales.js :
+  - l'hésitation garde ses possibilités complètes (`options`) ;
+  - le message devient « J'hésite entre … : touche ou dis le bon numéro. » (ancien « Redis-le autrement » noté) ;
+  - la fin de `deciderMicro` devient `faireReconnu` (même contenu, exportée) pour faire la commande choisie.
+- index.html : `#choix-commande` (fenetre-choix), liste + « Aucun de ces choix ».
+- app.js :
+  - la fenêtre s'ouvre AVANT le signe (donc ni pouce ni croix) ; une ligne par choix, gros numéro devant ;
+  - toucher une case, ou dire « un », « le deux », « numéro trois », « 2 »… (`lireNombre`, sans IA) : la commande se fait, puis le pouce (ou la croix si elle n'a pas pu se faire) après la fermeture ;
+  - « Aucun de ces choix » (toucher ou « aucun ») ferme sans rien faire ni signe ; une autre phrase ferme la fenêtre et suit son chemin ; un numéro trop grand ne choisit rien ;
+  - le choix est noté dans les phrases entendues (« (choix N) ») et le journal des actions.
+- style.css : nom sur une seule ligne (coupé avec « … »).
+- Tests :
+  - 463/463 : 2 nouveaux, sur faux tableur avec RETIRER ; 1 ancien adapté (l'hésitation porte « options ») ;
+  - test_scan 78/78 ;
+  - pannes vues : réponse au numéro retirée, fenêtre pas ouverte, « Aucun » débranché.
+- ÉTUDE (non codée), la phrase qui a hésité :
+  - VÉRIFIÉ : Cap n'écrit jamais dans le tableur « Commandes vocales » (il le lit seulement).
+  - Proposition : NE PAS la ranger dans « À trier » (ce n'est pas une tâche ; cela ferait des doublons). Plutôt une petite liste « Phrases à apprendre » sur le téléphone (phrase, choix de Max, date ; 50 au plus), affichée dans Réglages du Drive comme les phrases entendues. Max (ou Claude Code avec son accord) ajoute ensuite la bonne ligne dans le tableur.
+  - Coût : une petite étape, aucun droit nouveau. Risque : de vraies phrases restent sur le téléphone (jamais dans le dépôt).
+- Cache cap-v118. APK cap-coque-essai-c65.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 14h09. Rien publié, rien envoyé à l'IA, aucune autorisation nouvelle.
+
+## 09/11/2026, 14h58 : retour de Max sur c62 à c65 ; PARTIE 1 (défauts 1, 3, 4 corrigés ; défaut 2 étudié) ; partie 2 proposée ; études A à D ; APK c66 installé
+- Sauvegarde AVANT le code (14h41) : tag local `sauvegarde-avant-corrections-c65-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_corrections_c65_2026_11_09`.
+- DÉFAUT 1 (eau figée sous les fenêtres « + » et crayon, qui ne repart pas). Commit d170813.
+  - Pas reproduit sur l'ordinateur : l'eau y reste en marche.
+  - Causes trouvées dans le code (DÉDUIT pour le Pixel) :
+    - (a) le clavier du téléphone change la taille de l'écran ; l'eau refaisait sa grille à PLAT (vagues coupées net, fond uni) ;
+    - (b) dans ces deux fenêtres, l'eau ignorait le doigt (règle des fenêtres ordinaires) ;
+    - (c) rien ne relançait l'eau si elle s'était arrêtée.
+  - Corrigé : (a) vagues reportées sur la nouvelle grille ; (b) l'eau suit le doigt dans ces deux fenêtres seulement ; (c) filet : à chaque fermeture de fenêtre (hors plein écran), l'eau d'accueil arrêtée repart.
+- DÉFAUT 3 (« deux » au petit micro dans la fenêtre de choix = « je n'ai rien entendu »). Commit 2c3c4bb.
+  - VÉRIFIÉ (coque, MainActivity) : un mot court arrive souvent en provisoire, puis Android dit « pas trouvé » (ERROR_NO_MATCH, changé en « no-speech »). Cap jetait alors le mot.
+  - Corrigé : le dernier mot provisoire sert de phrase. Dans la fenêtre de choix seulement, les sons proches valent un numéro (« de », « d'eux » → deux ; « hein » → un).
+  - DÉDUIT : même cause probable pour le « ferme » perdu dans la visionneuse (09/11 matin).
+- DÉFAUT 4 (« document suivant » visionneuse fermée). Commit 5b0fa57.
+  - Corrigé : Cap ouvre le document d'après le dernier ouvert (même liste) dans la visionneuse. Sans document ouvert avant, ou au bout de la liste : « Il n'y a pas de document suivant », croix, rien d'ouvert.
+  - VÉRIFIÉ : Cap ne change pas d'écran ; Max était dans Autre parce qu'il en venait.
+  - Musique (proposé, NON codé) : aujourd'hui « Aucune musique en cours. » (VÉRIFIÉ). Proposition : si un morceau a été joué dans la séance, « morceau suivant » joue le suivant de la même liste en arrière-plan ; sinon « Il n'y a pas de morceau suivant : aucune musique n'a été lancée. »
+- DÉFAUT 2 (pas de pouce au premier « ouvre Autre ») : lecture seule, cause pas claire, rien corrigé.
+  - DÉDUIT : le pouce (1,8 s) apparaît pendant le fondu et la montée d'Autre (1,45 s) et pendant la voix « J'ouvre Autre », donc facile à manquer.
+  - Autre piste : une erreur tardive d'Android juste après le résultat. Le code ne montre pas de croix dans ce cas.
+- Tests : 466/466 (3 nouveaux) ; test_scan 78/78. Pannes vues : grille remise à plat, doigt ignoré, pas de relance, mot provisoire jeté, ancien « visionneuse pas ouverte ». Cache cap-v120.
+- APK cap-coque-essai-c66.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 14h58.
+- PARTIE 2 (menu déroulant), PROPOSÉE, rien codé ni renommé.
+  - VÉRIFIÉ : 3 barres de recherche :
+    - Chercher, qui ne propose rien avant Entrée : d'où « pain » sans proposition ;
+    - l'écran des tâches, avec son menu « Tâches, Rendez-vous, Gmail (plus tard), Drive (plus tard), Archives perso (plus tard), Mémoire perso (plus tard) » ;
+    - l'annuaire (« Chercher un contact… »).
+  - Sources lisibles sans nouvelle autorisation : tâches, rendez-vous de l'agenda Cap, annuaire, documents et musique du compte Cap (noms), listes vocales et notes créées par Cap.
+  - Renommages proposés, à valider par Max : voir le rapport.
+- ÉTUDES A à D (lecture seule) : voir le rapport du 09/11/2026 14h58.
+  - Tableur « Liste des chantiers » VÉRIFIÉ : il existe (créé le 09/11, à Max), dans le même dossier que « Commandes vocales ».
+  - Document « Projet espace de travail Cap » lu.
+- Rien publié, rien envoyé à l'IA, aucune autorisation nouvelle.
+
+## 09/11/2026, 15h40 : PARTIE C, écrans dits seuls (accord de Max) ; APK c67 installé
+- Sauvegarde AVANT le code (15h17) : tag local `sauvegarde-avant-ecrans-seuls-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_ecrans_seuls_2026_11_09`.
+- En attente de Max, NON codé : menu déroulant et renommages (partie 2), « morceau suivant » sans lecteur, bouton « phrase à apprendre ».
+- Pour info, à trancher plus tard : voyants des chantiers selon Max = vert à jour, orange en attente de Max, rouge bloqué (différents de ma proposition) ; rien codé.
+- commandes_vocales.js :
+  - toute formulation du bloc « Écran cible » d'une commande NAV- se dit SEULE (phrase entière) ;
+  - les mots-clés seuls (ex. « autre ») restent hors commande ; CIBLE_SEULE inchangé (MUS-12, MUS-13, VIS-04, VIS-05, NAV-13).
+  - Avant : seulement NAV-13. Réponse et signe : ceux de chaque commande (« X : pas encore prêt. » + croix ; écrans prêts : pouce).
+- Tests :
+  - 485/485 : 18 tests, un par écran (réglages, paramètres, scanner, agenda, calendrier, notes, accueil, liste de courses, mes tâches, échéancier, journal de bord, dictionnaire, biographie, archives, mails, contacts, aide, profil), et 1 test « rien de cassé » (avec verbe ; « autre » seul, phrase plus longue et ligne RETIRER dans « À trier ») ;
+  - faux tableur bâti comme le vrai (bloc « Écran cible », verbes COMMUN, ligne RETIRER) ;
+  - panne vue par 17 tests (tous sauf « mes tâches », déjà réglé) ; test_scan 78/78.
+- Cache cap-v121. APK cap-coque-essai-c67.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 15h40. Rien publié.
+- Correction (09/11/2026, 15h25) : l'heure réelle de l'installation de c67 est 15h24 ; le titre et la ligne ci-dessus disent 15h40 par erreur (laissés tels quels).
+
+## 09/11/2026, 16h12 : essais de Max sur c67 ; PARTIE 1 (défauts 1 à 7) ; APK c68 installé
+- Réussi sur le Pixel (Max) : « l'agenda » (pas encore prêt + croix), « les réglages » (ouvre + pouce), Entrée dans Chercher (« pain »), l'eau qui bouge avec le clavier du « + ».
+- Sauvegarde AVANT le code (15h57) : tag local `sauvegarde-avant-defauts-c67-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_defauts_c67_2026_11_09`.
+- Moyens de vérification, en lecture seule :
+  - la page Cap ESSAI du Pixel, par l'outil de débogage (adb forward, ouvert puis refermé) : lu SEULEMENT les 10 dernières phrases entendues ;
+  - le moteur de reconnaissance (l'actuel, puis le nouveau chargé à part, sans rien remplacer ni exécuter) sur la copie du tableur du téléphone ;
+  - le vrai tableur (lignes VIS-04 12119 à 12215, MUS-12 10436 à 10592). Aucun nom recopié.
+- VÉRIFIÉ (phrases reçues par Cap) : « document suivant » (deux fois, rangé dans Numérique › Documents) ; « morceau suivant » (deux fois, À trier) ; une phrase pour la musique, absente du tableur (deux fois, Musique › À classer) ; deux transcriptions déformées par Android d'une phrase de l'écran des tâches. Aucun « deux ». (09/11/2026, avant publication, décision de Max : les vraies phrases dites par Max sont remplacées ici par des mots neutres.)
+- Défaut 1 (« mes notes de cours » = « Ouvrir Notes ») : VÉRIFIÉ, défaut du code. Le tableur a « les notes » (variante) ET « mes notes » (écran) ; avec le petit mot libre, tous deux tombaient sur « mes notes », compté comme verbe ET mot-clé. Corrigé : le verbe ne peut plus être le même bout de phrase que le mot-clé (formulations simples seulement).
+- Défauts 4 et 6 (« morceau suivant », « document suivant ») : VÉRIFIÉ, défaut du code. Le tableur n'a que « LE morceau suivant », « LE document suivant », et le petit mot était obligatoire. Corrigé : le petit mot du début devient facultatif s'il reste au moins deux mots (« le suivant » le garde).
+  - Vérifié sur la copie du tableur du Pixel : « document suivant » → VIS-04 ; « morceau suivant » → MUS-12 ; « suivant » seul : rien ; « mes notes de cours » : rien ; « mes notes », « ma to-do », « l'agenda », « les réglages », « mes tâches », « montre-moi le player » : inchangés.
+  - « mets le rendez-vous suivant » → agenda, déjà avant (verbe « mets » du tableur), pas un recul.
+  - « morceau suivant » avec le lecteur ouvert : la phrase n'était pas comprise (rangée dans À trier ; la bulle et le message étaient cachés sous le lecteur).
+- Défaut 2 (« deux » = « rien entendu ») : VÉRIFIÉ, Android n'a RIEN transmis (aucun « deux » reçu, même en provisoire ; le correctif de c66 ne pouvait donc pas servir). DÉDUIT : un mot seul très court n'est pas transcrit. Corrigé côté Cap : pendant la fenêtre de choix, « rien entendu » devient « Dis « numéro deux », ou touche la case. » ; « le numéro deux » marche (test).
+- Défaut 3 (geste instable sur la fenêtre du « + ») : VÉRIFIÉ dans le code, trois causes :
+  - (a) un geste parti d'un champ ou d'une liste à choisir était ignoré, et ils couvrent presque toute la fenêtre : corrigé (champs d'une ligne et listes acceptés ; texte sur plusieurs lignes et curseurs exclus) ;
+  - (b) fenêtre défilée : le geste fait défiler (voulu) ;
+  - (c) texte tapé : question « garder / jeter » (règle zéro perte, voulu).
+- Défaut 5 (pas de micro dans la fenêtre de choix « lancer un morceau / … ») : VÉRIFIÉ dans le code. Le micro, la bulle, le signe et l'alerte allaient dans la dernière fenêtre ouverte DANS L'ORDRE DE LA PAGE, ici « Musique », cachée sous le choix. Corrigé : ordre d'ouverture. Même défaut possible pour la note de musique (relations_mp3.js), non touché.
+- Défaut 7 (VÉRIFIÉ sur la copie du tableur du Pixel) :
+  - absentes du tableur : trois phrases pour la musique et le lecteur ;
+  - mal transcrite par Android : une phrase de l'écran des tâches (deux variantes de transcription seraient à ajouter au tableur par Max) ; (09/11/2026, avant publication, décision de Max : les vraies phrases dites par Max sont remplacées ici par des mots neutres.)
+  - défauts du code corrigés : « morceau suivant », « document suivant ».
+- Questions de Max :
+  - la barre de recherche à menu (« Tâches »…) n'est pas encore faite (partie 2 A) ;
+  - pouce au premier essai : rien de corrigé, cause pas claire ; proposition : le garder 3 s au lieu de 1,8 s.
+- Tests : 490/490 (5 nouveaux ; 1 ancien adapté : le geste parti d'un champ d'une ligne compte) ; test_scan 78/78 ; 5 pannes vues. Cache cap-v122.
+- APK cap-coque-essai-c68.apk : 102 fichiers de Cap identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 16h12. Rien publié.
+
+## 09/11/2026, 16h22 : PARTIE 2 A (menu de recherche, accord de Max) codée ; B proposé ; C étudié ; APK c69 installé
+- Sauvegarde AVANT le code : tag local `sauvegarde-avant-menu-recherche-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_menu_recherche_2026_11_09`.
+- A, menu renommé (accord de Max), anciens intitulés gardés en commentaire :
+  - choix : Tout (par défaut), Tâches, Rendez-vous, Personnes ;
+  - « (plus tard) » : Notes, Listes, Documents, Musique, Mails, Archives, Biographie ;
+  - les barres disent « Chercher » (avant : « Rechercher… », « Chercher un contact… »).
+- A, recherche :
+  - `trouverPartout` : tâches, rendez-vous (copie sur le téléphone), personnes de l'annuaire. Rien d'envoyé, aucune autorisation nouvelle ;
+  - chaque résultat dit ce qu'il est (« Tâche · », « Rendez-vous · », « Personne · ») ;
+  - Documents, Musique, Notes, Listes ne sont pas encore cherchés : lecture par Internet, pas instantanée.
+- A, barre de Chercher :
+  - même menu (copié au démarrage), propositions DÈS LA PREMIÈRE LETTRE (6 au plus) ;
+  - toucher une tâche : l'écran des tâches, tâche surlignée, « Fermer » revient à Chercher ; un rendez-vous ou une personne : sa fiche ;
+  - Entrée : la recherche complète, comme avant, avec la source choisie.
+- A, NON fait (à décider par Max) : un menu dans la barre de l'annuaire, qui ne cherche que des personnes (« Tout » y ferait sortir de l'annuaire).
+- Tests :
+  - 492/492 (2 nouveaux, FICTIFS : une tâche, un rendez-vous, une personne créée puis retirée) ;
+  - 3 anciens adaptés (menu, source par sa valeur, « Tâches » choisi exprès) ;
+  - pannes vues : propositions débranchées, personnes oubliées ; test_scan 78/78.
+- Cache cap-v123. APK cap-coque-essai-c69.apk : 102 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 16h22.
+- B, « morceau suivant » sans lecteur, PROPOSÉ, NON codé.
+  - VÉRIFIÉ : à l'arrêt, Cap garde en mémoire la liste jouée et la place du morceau (pas effacées par le nettoyage) ; aujourd'hui il répond « Aucune musique en cours. ».
+  - Proposition : si une liste a été jouée depuis l'ouverture de Cap, le morceau d'après se lance EN ARRIÈRE-PLAN (la note apparaît, pouce) ; sinon « Il n'y a pas de morceau suivant : aucune musique n'a été lancée. » (croix). Le lecteur ne s'ouvre pas tout seul.
+- C, ÉTUDE de la vue « phrases à apprendre » (non codé) :
+  - une seule liste sur le téléphone (phrase, commande choisie, date, origine : bouton ou fenêtre d'hésitation) ;
+  - vue dans Réglages : « Phrases à apprendre (N) », une ligne par phrase « … » → commande, avec « Retirer » ; le nombre aussi sur le bouton rond ;
+  - « Copier tout » (presse-papiers du téléphone, rien n'est envoyé) pour que Max colle dans le tableur s'il le veut ;
+  - rien n'est écrit dans le tableur « Commandes vocales » sans un nouveau Oui.
+- Rien publié, rien envoyé à l'IA.
+
+## 09/11/2026 : ordre de Max (machine « phrase à apprendre ») ; B et pouce 3 s faits ; machine EN ATTENTE (message de Max coupé) ; APK c70 installé
+- Sauvegarde AVANT le code (16h51) : tag local `sauvegarde-avant-machine-apprendre-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_machine_apprendre_2026_11_09`.
+- Décisions de Max : B OUI ; pouce 3 s OUI ; menu dans la barre de l'annuaire NON. Machine « phrase à apprendre » : à coder jusqu'au bout.
+- Le message de Max est COUPÉ au point 4 (« Utilise la fenêtre de… ») : la fin du scénario manque. La machine n'est PAS codée ; la fin du message est demandée à Max.
+- B (relations_mp3.js, `suivant`) :
+  - sans musique en cours, si une liste a été jouée depuis l'ouverture de Cap, le morceau d'après se lance EN ARRIÈRE-PLAN (« Je mets le morceau suivant : « … ». ») ;
+  - sinon « Il n'y a pas de morceau suivant : aucune musique n'a été lancée. » (croix) ; au bout : « C'est le dernier morceau de la liste. » (croix). Le lecteur ne s'ouvre pas.
+- Pouce : 3 s (SIGNE_MS et animation ; avant 1,8 s). Les réponses « C'est le dernier / premier / déjà… » donnent la croix (rien n'a été fait).
+- Tests : 493/493 (1 nouveau sur le FAUX Drive FICTIF : rien joué, puis arrêté, puis suivant en arrière-plan, puis bout de liste ; il passe aussi par le morceau FICTIF exprès trop gros, que Cap refuse de charger) ; test_scan 78/78 ; pannes vues (ancien « Aucune musique en cours », pouce à 1,8 s). Cache cap-v124.
+- APK cap-coque-essai-c70.apk : 102 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel. Rien publié.
+
+## 09/11/2026, 17h29 : MACHINE « PHRASE À APPRENDRE » codée (accord de Max, message complet reçu) ; APK c71 installé
+- Sauvegarde AVANT le code (17h11) : tag local `sauvegarde-avant-machine-apprendre-code-2026-11-09` et copie figée `C:\Users\revox\Cap_app_copie_figee_avant_machine_apprendre_code_2026_11_09`.
+- Nouveau `phrases_apprendre.js` : UNE liste sur le téléphone (localStorage `cap_phrases_a_apprendre_v1`, 200 au plus).
+  - Chaque ligne garde la phrase, le code et le nom de la commande (ou « aucune »), la date, l'origine (« bouton » ou « hésitation »).
+  - Doublons : même phrase (pliée) et même commande : « déjà », rien d'ajouté ; autre commande : « conflit », Max choisit laquelle garder.
+  - « Retirer » ; « Copier tout » : une ligne par phrase, colonnes du tableur (Ce que je veux, Commande, Bloc « Expression seule (Cap) », Formulation, Code, Remarque datée).
+  - Aucun appel réseau, rien à l'IA (vérifié par un test du fichier).
+- commandes_vocales.js : `proches` (les commandes les plus proches : mots en commun avec les formulations du tableur, par le code), `familles` (Navigation, Musique, Visionneuse, Documents, Dictée), `codesConnus`. Les lignes RETIRER ne comptent jamais.
+- index.html :
+  - bouton rond `#bouton-apprendre` (livre ouvert, pastille verte avec le nombre) ;
+  - dans la fenêtre de gros choix : une question et un champ pour « Écrire » ;
+  - Réglages : « Phrases à apprendre (N) », liste, « Retirer », « Copier tout ».
+- Place du bouton : à GAUCHE du petit micro (right 72 px, 44 px, même ligne, centré sur le micro), dans la fenêtre du dessus comme le micro. La note de musique passe à right 124 px, le signe à 124 px (184 px si la note est là), la marge de l'écran des tâches à 184 px. Le « Fermer » de la visionneuse reste sous le micro.
+- app.js, la machine (dans la fenêtre de gros choix, numéros, toucher ou voix ; le mot d'une case aussi : « oui », « redire »…) :
+  - bouton → « Reprendre « … » ? » si une phrase a été refusée il y a moins de 2 min (pas une commande, phrase incomplète, « pas encore »), sinon « Redis la phrase… » (écoute d'une phrase après 0,4 s, hors des commandes) ;
+  - « J'ai compris : « … » » (Oui / Redire / Écrire) ;
+  - « quelle commande ? » : les 5 plus proches, « Autres commandes » (familles, puis 6 par page, « Suivantes », « Retour »), « Aucune ne convient » ;
+  - « « … » → commande : c'est bien ça ? » (Oui / Changer) ;
+  - rangée : pouce 3 s, le nombre monte ;
+  - « Annuler » en bas à chaque étape : rien de gardé, l'écoute prévue est annulée.
+- La fenêtre d'hésitation range aussi le choix de Max dans la MÊME liste (origine « hésitation », sans question en plus).
+- Défaut ancien trouvé et corrigé par les tests : le petit micro (et le nouveau bouton) étaient déformés par le style de certaines fenêtres (scanner, fiche de rendez-vous, « Écrire à Cap »). Leur taille est maintenant fixe partout.
+- Tests :
+  - 500/500 : 7 nouveaux ; 2 anciens adaptés (place de la note de musique ; boutons de la fenêtre « + », hors bouton « apprendre ») ;
+  - test_scan 78/78 ;
+  - 7 pannes vues (en 3 passages) : doublon pas vu, aucune commande proposée, bouton qui ne suit pas le micro, « Copier tout » sans effet, hésitation pas rangée, confirmation 2 sautée, « Annuler » qui laisse l'écoute partir.
+- Phrases FICTIVES seulement dans les tests ; les vraies phrases restent sur le téléphone. Cap n'écrit rien dans le tableur, n'envoie rien, aucune autorisation nouvelle, rien à l'IA. Cache cap-v125.
+- APK cap-coque-essai-c71.apk : 103 fichiers de Cap identiques à app/ (+ phrases_apprendre.js), 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 17h29. Rien publié.
+
+## 09/11/2026 : ÉTUDE en lecture seule, un DEUXIÈME tableur « Phrases apprises » créé par Cap (idée de Max) ; rien codé
+- VÉRIFIÉ (code) :
+  - Cap lit « Commandes vocales » avec le COMPTE CAP (drive.readonly, `lireAvecCompteCap`) : recherche par nom exact, export CSV, copie sur le téléphone. Il n'y écrit jamais (aucun appel d'écriture).
+  - Cap crée DÉJÀ son propre tableur avec le compte personnel et le seul droit drive.file (`google_sheets.js` : « Cap – FICTIF – Tâches ») : création à la racine de « Mon Drive » (aucun dossier donné), identifiant gardé sur le téléphone, retrouvé sinon par son nom, recréé s'il est à la corbeille. Il y lit et écrit (API Sheets).
+  - L'identifiant de l'agenda est rangé en information invisible (appProperties) sur ce tableur.
+  - Autorisations actuelles : drive.file et calendar.app.created (compte personnel) ; drive.readonly (compte Cap).
+- Réponses proposées (détail dans le rapport à Max) :
+  - aucune autorisation nouvelle ;
+  - création à la racine (Max peut le déplacer ou le renommer : même identifiant) ;
+  - retrouvé par une marque invisible plutôt que par le nom (un renommage ne le perd pas, même sur un autre téléphone) ;
+  - tampon sur le téléphone vidé après écriture réussie ;
+  - copie locale lue pour le hors connexion ;
+  - « principal gagne » ;
+  - « Copier tout » gardé en secours ;
+  - 3 étapes.
+- Rien codé, rien publié, rien envoyé à l'IA.
+
+## 09/11/2026, 18h06 : PETIT TABLEUR « Phrases apprises » codé en 3 étapes (accord de Max) ; APK c72 installé
+- Sauvegarde avant code : tag `sauvegarde-avant-petit-tableur-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_petit_tableur_2026_11_09`.
+- Étape 1, nouveau fichier `app/tableur_phrases.js` :
+  - Cap crée « Phrases apprises » (onglet « Phrases » ; colonnes Phrase, Code, Commande, Date, Origine, État, Identifiant) à la racine du Drive, avec le droit drive.file déjà accordé. Aucune autorisation nouvelle.
+  - Il le retrouve par une marque invisible (appProperties cap_role = phrases_apprises) : un renommage ou un autre appareil ne le perd pas.
+  - Tampon sur le téléphone (`cap_phrases_tampon_v1`), vidé une opération à la fois, seulement après le « c'est écrit » de Google. Pas de doublon si la réponse de Google se perd.
+  - « Retirer » écrit « retirée le … » dans « État » ; un changement de commande écrit « remplacée le … » ; aucune suppression.
+  - Les phrases déjà sur le téléphone sont reprises une fois.
+  - Chaque phrase de la liste a maintenant un identifiant (phrases_apprendre.js).
+- Étape 2, commandes_vocales.js `lignesMicro` : les phrases apprises (liste du téléphone + copie du petit tableur `cap_phrases_apprises_copie_v1`, relue après chaque envoi réussi) s'ajoutent au micro, même sans réseau, en bloc « Expression seule » (dites en entier).
+  - Ignorées : « Aucune ne convient », retirées, remplacées, retrait en attente, code inconnu du principal.
+  - Le principal gagne : s'il reconnaît NETTEMENT la phrase, la ligne est écrite, marquée « déjà dans le principal », et ignorée.
+  - DÉDUIT, à confirmer par Max : quand le principal HÉSITE, la phrase apprise tranche (sinon un choix fait dans la fenêtre d'hésitation ne servirait jamais). Effet : un choix fait dans la fenêtre d'hésitation est appris tout de suite.
+- Étape 3, Réglages > « Phrases à apprendre » :
+  - bouton « Ouvrir le tableur » (dès que Cap connaît le tableur) ;
+  - phrase qui dit combien de changements attendent.
+  - Coque Android : un lien docs.google.com s'ouvre hors de Cap (appli Sheets, sinon Chrome).
+  - « Copier tout » est gardé.
+- Tests :
+  - 504/504 : 4 nouveaux, avec un faux Google qui refuse toute suppression. Les tests de la fenêtre de gros choix repartent d'une liste apprise vide à chaque phrase.
+  - test_scan 78/78.
+  - 8 casses volontaires, toutes attrapées : tampon vidé trop tôt, état effacé, 2e tableur, doublon, principal qui ne gagne plus, ligne retirée reconnue, bouton jamais montré, « Retirer » qui ne va pas au tableur.
+  - Cache cap-v126.
+- APK cap-coque-essai-c72.apk : 104 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé sur le Pixel à 18h06.
+- Rien publié. Rien à l'IA. Tableur principal jamais touché. Phrases FICTIVES seulement dans les tests.
+
+## 09/11/2026, 18h50 : retours de Max sur c72 (décisions, visionneuse vide, défauts 1 à 6, étude playlist) ; APK c73 installé
+- Sauvegarde avant code : tag `sauvegarde-avant-c73-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_c73_2026_11_09`.
+- Décision de Max : quand le principal hésite, le choix de Max est appris tout de suite (déjà le cas dans c72) ; « le principal gagne » gardé.
+- Partie 1 (décisions de Max) :
+  - « Reprendre « … » ? » : Oui / Redire / Écrire ; « Écrire » ouvre le champ déjà rempli ; une seule confirmation.
+  - Réglages > « Phrases à apprendre » : bouton « Modifier » à côté de « Retirer ». La phrase reçoit la nouvelle commande ; dans « Phrases apprises », l'ancienne ligne est « remplacée le … » et une nouvelle est ajoutée ; rien effacé.
+- Partie 2, visionneuse vide :
+  - aucun texte (« aucun fichier charge » caché par une retouche de Cap ; la page de Zencoder n'est pas modifiée) ;
+  - « Choisir un fichier » en haut à gauche ; le petit livre et le petit micro en haut à droite ; l'eau partout ailleurs ;
+  - aucun PDF dans le compte Cap : la visionneuse vide s'ouvre, sans le message « Aucun PDF… ».
+- Partie 3, causes trouvées (lecture seule du Pixel : phrases entendues, état des fenêtres) :
+  - défauts 4 et 5, Cap muet : la fenêtre des vignettes a la classe des fenêtres de choix. Ouverte, même sous la visionneuse, Cap croyait attendre un choix : ni pouce ni croix. Les phrases étaient bien entendues (une phrase pour le lecteur, absente du tableur, est allée dans « À trier », sans signe visible (09/11/2026, avant publication, décision de Max : vraie phrase remplacée par des mots neutres.). Corrigé : seules les vraies questions (gros choix des commandes, choix de la musique, date, émetteur) suppriment le signe.
+  - défauts 2 et 3 : « accueil » et « eau » ne fermaient pas la visionneuse, les vignettes, la fenêtre « Musique » ni le lecteur, restés par-dessus. Corrigé : ils sont fermés d'abord par leurs propres boutons ; une musique qui joue passe en arrière-plan.
+  - défaut 1 :
+    - « mets la zik » a été rangé avec MUS-01 « Lancer un morceau » (choix fait avec le bouton ; Max peut le corriger avec « Modifier ») ;
+    - Android a aussi déformé la phrase en deux transcriptions différentes, donc « À trier » ; (09/11/2026, avant publication, décision de Max : vraie phrase remplacée par des mots neutres.)
+    - corrigé : toute réponse « … déjà … » donne maintenant la croix ; « afficher le lecteur » déjà affiché dit « Le lecteur est déjà affiché. » au lieu d'un pouce muet.
+  - défaut 6 (mode avion) : le jeton du compte Cap avait expiré, d'où « pas connecté ». Proposé, pas codé : dire « Pas de réseau » quand le téléphone est hors ligne.
+- Écran d'avertissement de la première ouverture : non trouvé avec certitude. Candidats : l'alerte « connexion Google » posée en haut de la visionneuse, « Lecture en cours… » et « compte Cap pas connecté / Autoriser ». Aucun ne retient le micro dans le code ; le silence venait des vignettes (ci-dessus).
+- Partie 4, playlist par défaut : ÉTUDE seulement, rien codé. Le compte des MP3 n'a pas pu être lu : Cap ESSAI était en arrière-plan sur le Pixel, et la lecture du Drive n'aboutit pas.
+- Tests :
+  - 509/509 (5 nouveaux ; un ancien adapté : « Reprendre » a 3 cases) ;
+  - test_scan 78/78 ;
+  - 7 casses volontaires, toutes attrapées ;
+  - cache cap-v127.
+- APK cap-coque-essai-c73.apk : 104 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé à 18h50.
+- Rien publié. Aucune autorisation nouvelle. Tableur principal non touché. Données FICTIVES seulement dans les tests ; les vraies phrases lues sur le Pixel restent hors du dépôt.
+
+## 09/11/2026, 19h20 : bloc c74 (playlist par défaut, réponse par le rang dans tous les choix) ; APK c74 installé
+- Sauvegarde avant code : tag `sauvegarde-avant-c74-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_c74_2026_11_09`.
+- A, lecture seule (Pixel, compte Cap, aucun nom noté) :
+  - 3 MP3, tous jouables, tous dans « Relations », aucun ailleurs : 1 dans le premier dossier, 2 dans le second.
+  - Sur le vrai compte, le premier dossier commence par un « E » SANS accent : l'ordre E puis G est vérifié, mais pas le cas d'un accent.
+  - Le tri des accents (« É » rangé comme « E », avant « G ») est vérifié par un test FICTIF, avec le même tri que Cap.
+  - Coût du message « Pas de réseau » : petit (pas codé).
+- B3, playlist par défaut :
+  - « mets la musique », « mets la zik », « mets la zic » sont compris par le code (phrase entière, commande MUS-19 « Afficher le lecteur »).
+  - Rien ne joue : le lecteur s'affiche avec tous les MP3 jouables de « Relations », dossier par dossier, toujours depuis le premier morceau. La liste est refaite à chaque fois depuis le Drive : rien n'est gardé, un MP3 ajouté entre tout seul.
+  - Une musique joue déjà : le lecteur seulement, rien n'est relancé.
+  - Les phrases apprises avant avec « Lancer un morceau » (sur le Pixel : « mets la musique » et « mets la zik ») passent à « Afficher le lecteur » au démarrage. Les anciennes lignes sont « remplacées le … » dans « Phrases apprises » ; rien n'est effacé.
+- B4, réponse par le rang :
+  - nouveau fichier `numero_choix.js` (sans DOM, sans IA) : « numéro 1 / un », « le premier », « la première », « le deuxième », « la seconde », « le 3e », « 1er », « n° 2 », « d'eux »…
+  - Seulement une phrase faite d'un rang et de petits mots : « la première page » n'est pas un rang.
+  - Fenêtres concernées : gros choix des commandes (dont « Reprendre » et la machine), choix de la musique, fenêtre « Musique », vignettes, date, émetteur du scan, annuaire (sans « Annuler » ni « Fermer »).
+  - Numéro trop grand : « Il n'y a que N choix » et une croix.
+  - Conflits vérifiés sur la copie du vrai tableur (Pixel) : aucun mot de rang n'y est une commande.
+  - Conflit possible signalé à Max : une case dont le PREMIER MOT est un nombre (titre de morceau, nom de commande) : dans la fenêtre de gros choix, le mot de la case est essayé avant le rang.
+- Tests :
+  - 515/515 (6 nouveaux, 1 complété) ;
+  - test_scan 78/78 ;
+  - 8 casses volontaires, toutes attrapées ;
+  - cache cap-v128.
+- APK cap-coque-essai-c74.apk : 105 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé à 19h20.
+- Rien publié.
+
+## 09/11/2026 : bloc c75 (décision de Max : L'ORDRE GAGNE dans les choix) ; APK c75 installé
+- Sauvegarde avant code : tag `sauvegarde-avant-c75-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_c75_2026_11_09`.
+- Fenêtre de gros choix : le rang (« deux », « la deuxième »…) est essayé AVANT le premier mot des cases. Une case qui commence par un nombre se touche, ou se dit en entier.
+- Les autres fenêtres de choix n'essaient que le rang : l'ordre y gagnait déjà.
+- Tests :
+  - 517/517 : 2 nouveaux (gros choix avec une case « Deux … » ; fenêtre « Musique » avec le morceau « Trois FICTIF » en 2e ligne) ;
+  - test_scan 78/78 ;
+  - casse volontaire (rang remis après le mot de la case) : attrapée (3 échecs) ;
+  - cache cap-v129.
+- APK cap-coque-essai-c75.apk vérifié (fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé) et installé. Rien publié.
+
+## 09/11/2026 : ÉTUDE en lecture seule, « liste des commandes » fabriquée par Cap à partir du tableur (idée de Max) ; listes de travail ; rien codé
+- VÉRIFIÉ (code) :
+  - Cap lit « Commandes vocales » avec le compte Cap (drive.readonly), SEULEMENT quand on touche le bouton de lecture dans « Réglages du Drive ».
+  - Il en garde une copie réduite sur le téléphone : code, commande, bloc, formulation ; il écarte les lignes RETIRER, les lignes sans code, et les noms (blocs « Cible » / « nom d'appel »).
+- VÉRIFIÉ (Pixel, lecture seule, nombres seulement) :
+  - dernière lecture le 08/11 à 18h44 ;
+  - 13 674 lignes lues, 8 512 gardées, 181 RETIRER, 281 noms écartés, 4 700 sans code ; 63 codes.
+- Proposé (détail dans le rapport à Max) :
+  - un tableur « Liste des commandes (Cap) » créé par Cap avec le compte personnel (drive.file : aucun droit nouveau), retrouvé par une marque invisible ;
+  - une ligne par formulation gardée, avec la date d'arrivée ; une formulation disparue du principal est marquée « absente du principal depuis le … », jamais effacée ;
+  - mise à jour à l'ouverture de Cap si le tableur principal a changé (date de modification du Drive), plus un bouton.
+  - Coût : moyen, environ 2 séances.
+  - Ranger la liste dans le Drive du COMPTE CAP demanderait un droit nouveau (décision de Max).
+- Rien codé, rien publié.
+
+## 09/11/2026 : bloc c76 (décision de Max : la visionneuse s'ouvre SANS proposition) ; APK c76 installé
+- Sauvegarde avant code : tag `sauvegarde-avant-c76-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_c76_2026_11_09`.
+- Origine des 3 fichiers proposés, VÉRIFIÉ sur le Pixel (lecture seule, aucun nom noté) : 3 vrais PDF du Drive du compte Cap, rangés dans « Documents », dont le nom contient « FICTIF ». Ce n'est ni un mode essai ni une donnée d'exemple du code : l'œil lisait tous les PDF de « Relations » et « Documents » et les proposait en vignettes.
+- Retiré : à l'ouverture par l'œil (et donc par « mets la visionneuse »), plus aucune lecture du Drive ni proposition.
+  - La visionneuse s'ouvre vide ; Max touche « Choisir un fichier ».
+  - Les PDF ne sont ni touchés ni effacés.
+  - L'ancienne lecture est gardée dans le code (relations_compte.js, option `propositionsOeil`, fausse par défaut).
+- Inchangé : les recherches dites à la voix (« trouve le document… ») proposent toujours leurs résultats.
+- Tests :
+  - 518/518 (1 nouveau ; l'ancien test de l'œil garde l'ancienne lecture, avec une remarque datée) ;
+  - test_scan 78/78 ;
+  - casse volontaire (propositions remises par défaut) : attrapée ;
+  - cache cap-v130.
+- APK cap-coque-essai-c76.apk vérifié et installé. Rien publié.
+
+## 09/11/2026 : c76 validé par Max (« c'est tout bon »)
+- En attente des décisions de Max : liste des commandes fabriquée par Cap (Drive, moment de mise à jour, phrases apprises incluses, nom du fichier) ; autres points de la liste B. Rien publié.
+
+## ÉTAT AU 09/11/2026 (soir) : décisions de Max sur la liste des commandes, étude, listes de travail
+### Décisions de Max (09/11/2026)
+- Nouveau tableur de commandes vocales fabriqué par Cap dans le DRIVE DU COMPTE CAP (pas dans le Drive personnel de Max).
+  - Il est vide au départ, avec les mêmes colonnes que « Commandes vocales » (dossier « Cerveau de Cap »), recopiées à l'identique.
+- Le tableur actuel n'est pas modifié : modèle, en lecture seule. On marque et on date, on n'efface rien.
+- Les phrases enregistrées avec le petit bouton (livre) iront dans le NOUVEAU tableur.
+- Une commande dite : Cap cherche dans les DEUX tableurs.
+- Doublon ou doute : aucune règle automatique. Une fenêtre de choix (comme les autres, rang « le premier » compris), Max décide.
+- Autorisation : Max est prêt à la donner, mais rien n'est activé avant sa confirmation dans le chat (droit exact, raison, accès).
+
+### Étude (lecture seule, aucun code, aucune autorisation activée)
+- VÉRIFIÉ (reglages_google.js) : compte Cap = drive.readonly seulement ; compte personnel = drive.file + calendar.app.created.
+- a. Droits :
+  - avec drive.readonly, le compte Cap ne peut RIEN créer ni écrire ;
+  - droit nécessaire : https://www.googleapis.com/auth/drive.file, AJOUTÉ au compte Cap, en plus de drive.readonly. C'est le plus petit droit d'écriture : Cap peut créer des fichiers, et modifier SEULEMENT ceux qu'il a créés lui-même (ou ouverts par Max avec Cap) ; aucun autre fichier du compte Cap ;
+  - le compte personnel n'est pas touché ;
+  - activation : Max touche une fois « Autoriser » (nouvel écran de Google).
+- b. Rangement :
+  - racine du Drive du compte Cap, nom proposé « Commandes vocales (Cap) », retrouvé par une marque invisible (comme « Phrases apprises »). Max peut le déplacer ou le renommer.
+  - NON VÉRIFIÉ : création directe dans un dossier existant que Cap n'a pas créé (probablement refusée avec drive.file).
+- c. Fenêtre de choix :
+  - même phrase dans les deux tableurs avec deux commandes différentes : fenêtre de gros choix (la même que quand Cap hésite), une case par commande, « Aucun de ces choix », rang compris ;
+  - même phrase avec la même commande : question à Max ;
+  - cela REMPLACE la règle d'avant (« le principal gagne », phrase apprise qui tranche) : à confirmer par Max.
+- d. Tableur inaccessible : Cap reconnaît avec les copies gardées sur le téléphone (les deux tableurs). Les nouvelles phrases attendent dans le tampon, jamais perdues. Les commandes déjà comprises ne sont jamais bloquées. Message dans Réglages seulement.
+- e. Colonnes :
+  - recopie de la SEULE ligne des titres (DÉDUIT de colonnes() et des faux tableurs : Commande, Intention, Bloc, Formulation, Code commande, Remarque) ;
+  - aucune ligne du principal recopiée, donc aucun prénom réel ;
+  - lignes écrites par Cap : les phrases de Max seulement, dans son Drive, jamais dans le dépôt ;
+  - tests avec des données FICTIVES seulement.
+- f. Coût : moyen à gros, environ 3 séances (autorisation et création ; lecture des deux et fenêtre de doute ; appli d'essai et essais).
+- g. Décisions restantes : voir le rapport à Max (même commande dans les deux ; retenir ou non le choix fait ; avenir de « Phrases apprises » ; nom et rangement ; remplacement de la règle « le principal gagne »).
+
+### Listes de travail
+- Faites aujourd'hui (VÉRIFIÉ, journal) : c58 à c76, toutes installées sur le Pixel, rien publié ; c75 et c76 validées par Max.
+- Reste (VÉRIFIÉ, journal) :
+  - en attente de Max : Haiku visible, lumière de bord, vidéo du galet, Internet avec capture envoyée à l'IA, voyants des chantiers, menu de l'annuaire, « Pas de réseau », nouveau tableur (ci-dessus) ;
+  - bip (étude et essai sur le Pixel) ;
+  - recherche dans Documents, Musique, Notes, Listes (plus tard).
+
+### Décisions de Max (09/11/2026, suite) sur « Commandes vocales (Cap) »
+- Même phrase et même commande dans les deux tableurs : Cap la fait directement. La fenêtre de choix s'ouvre seulement si les commandes diffèrent.
+- Le choix de Max est retenu, daté, dans le nouveau tableur ; corrigeable avec « Modifier ».
+- « Phrases apprises » : ses lignes sont recopiées dans le nouveau tableur, marquées « reprises le … » ; l'ancien tableur reste intact.
+- Nom « Commandes vocales (Cap) », à la racine du Drive du compte Cap.
+- La fenêtre de choix remplace la règle « le principal gagne ».
+- drive.file pour le compte Cap : oui si nécessaire. Max confirme dans le chat avant l'activation et veut voir le moment.
+
+### Idées de Max en attente (études en lecture seule, une à la fois, après la séance 1, sur message de Max)
+- a. Bouton « étoile » dans la visionneuse : un appui range tout ce qui est ouvert (PDF, images, peut-être MP3) en mosaïque propre, chaque élément redimensionné pour rester lisible.
+- b. Double tap : aujourd'hui, document à la taille de Max → « trop gros » → taille de la page → « trop gros », sans retour à la taille de Max. Voulu : double tap = taille de la page ; le suivant = exactement la taille et la place choisies par Max.
+- c. Chantier en mosaïque : tout chantier fabriqué ou commencé par Cap s'ouvre avec ses documents rangés en mosaïque harmonieuse. Une seule étude pour a et c (même rangement).
+- d. Matières au doigt : chaque matière (eau, slime, gélatine, petites billes, petits cailloux, sable) est un petit fichier à part, choisi dans Réglages, l'eau par défaut. Claude écrit les petits fichiers, Claude Code fabrique la « prise » une fois. Qui fait quoi (Projet_Cap ou dossier séparé sans git) reste à décider avec Max.
+- Rappel : « Pas de réseau » en mode avion, sans décision de Max.
+
+### 09/11/2026 : réponse sur les droits et SÉANCE 1 du tableur « Commandes vocales (Cap) » codée ; APK c77 construit, PAS installé
+- Sauvegarde avant code : tag `sauvegarde-avant-tableur-cap-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_tableur_cap_2026_11_09`.
+- Droits, VÉRIFIÉ (code) : le compte Cap ne pouvait que lire, avec deux verrous :
+  - Google : drive.readonly ;
+  - le code : appeler() refuse tout ce qui n'est pas une lecture.
+  - Toutes les créations de Cap (dossiers « Relations », relations_creation.js) passent par le compte PERSONNEL (drive.file).
+  - DÉDUIT : les dossiers que Max voit dans le Drive de Cap ont été créés par le compte personnel, puis partagés ou rangés par Max. À vérifier (propriétaire) avec la connexion du compte Cap refaite.
+- Codé :
+  - drive.file ajouté au compte Cap (reglages_google.js) ;
+  - écriture LIMITÉE `appelerEcriture` (google_compte_relations.js) : créer un tableur, poser la marque (appProperties seuls), écrire ou ajouter des cases ; tout le reste refusé avant Google ;
+  - nouveau `tableur_cap.js` : crée « Commandes vocales (Cap) » vide, à la racine, avec la SEULE ligne des titres du modèle (lue par le compte Cap). Marque invisible, jamais un 2e. Titres illisibles : rien créé ;
+  - Réglages > « Phrases à apprendre » : une ligne d'état et « Ouvrir « Commandes vocales (Cap) » ».
+- Tests :
+  - 521/521 (3 nouveaux, 1 ancien adapté : les droits du compte Cap) ;
+  - test_scan 78/78 ;
+  - 4 casses volontaires (sans marque, toute suppression permise, lignes du modèle recopiées) : 3 attrapées, plus 1 qui n'ouvrait en fait aucune brèche (le contrôle du corps la bloquait déjà), remplacée par une vraie brèche, attrapée ;
+  - cache cap-v131.
+- APK cap-coque-essai-c77.apk construit et vérifié (fichiers identiques à app/, aucun mot privé). PAS installé : attend la confirmation de Max (moment de l'autorisation). Rien publié.
+
+### 09/11/2026, 21h06 : c77 installé sur le Pixel (confirmation de Max dans le chat)
+- Max fait maintenant l'autorisation drive.file du compte Cap (Autre > Réglages du Drive > « Autoriser la lecture du compte Cap »).
+- À faire ensuite, en lecture seule : comparer les titres du modèle et du nouveau tableur ; vérifier le rangement (racine) et le propriétaire.
+
+### 09/11/2026, vers 21h10 : autorisation drive.file DONNÉE par Max pour le compte Cap
+- Écran de Google : « Compte Cap connecté » (dit par Max). Heure : celle du message de Max, environ 21h10.
+- Relecture des titres, du rangement et du propriétaire : PAS ENCORE FAITE. À 21h10, Cap n'était pas au premier plan sur le Pixel (Family Link et le volet des notifications au-dessus) : la page de Cap, en pause, ne répondait pas.
+
+### 09/11/2026, 21h24 : relecture SANS RIEN MODIFIER (Pixel, Cap ESSAI au premier plan)
+- VÉRIFIÉ : titres identiques. Modèle « Commandes vocales » : Ce que je veux, Commande, Bloc, Formulation, Code commande, Remarque (Claude, datée), plus 2 colonnes SANS titre à la fin (vides, non recopiées : voulu). Nouveau tableur : les 6 mêmes titres, dans le même ordre.
+- VÉRIFIÉ : « Commandes vocales (Cap) » existe, UN seul, créé le 09/11/2026 à 21h07 ; 1 seule ligne (les titres) ; même identifiant que celui gardé par Cap.
+- VÉRIFIÉ : rangé à la RACINE du Drive du compte Cap ; propriétaire : le compte Cap.
+- VÉRIFIÉ : ligne d'état « Tableur « Commandes vocales (Cap) » prêt. » ; bouton « Ouvrir « Commandes vocales (Cap) » » visible.
+- Rien modifié, rien publié.
+
+### 09/11/2026, 21h42 : SÉANCE 2 du tableur « Commandes vocales (Cap) » (les deux tableurs) ; APK c78 installé
+- Sauvegarde avant code : tag `sauvegarde-avant-seance2-tableur-cap-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_seance2_tableur_cap_2026_11_09`.
+- Phrases du petit bouton (et « Modifier », « Retirer », choix de la fenêtre) : vers « Commandes vocales (Cap) ».
+  - Tampon du téléphone `cap_tableur_cap_tampon_v1`, vidé après le « c'est écrit » de Google.
+  - Une ligne par phrase aux colonnes du modèle (retrouvées par leur titre) :
+    - « Ce que je veux » et « Commande » = la commande ;
+    - « Bloc » = « Expression seule (Cap) » ;
+    - « Formulation » = la phrase ; « Code commande » ;
+    - « Remarque » = « Ajoutée par Cap le … (origine) [P-…] ».
+  - « retirée le … », « remplacée le … », « choisie par Max le … » s'AJOUTENT à la remarque ; rien effacé.
+  - « Phrases apprises » n'est plus écrit (intact).
+- Reprise, une seule fois, quand le tableur de Cap est prêt :
+  - chaque ligne de « Phrases apprises » (relue SANS rien y toucher), même identifiant, « Reprise le … de « Phrases apprises » » + état d'origine ;
+  - les phrases du téléphone qui n'y étaient pas.
+- Les deux tableurs (commandes_vocales.js, deciderMicro). Une phrase apprise ne compte que dite en entier.
+  - Faite directement : même commande ; principal muet ; principal qui hésite avec elle parmi ses choix ; phrase « choisie par Max ».
+  - Commandes différentes : fenêtre de gros choix (une case par commande + « Aucun de ces choix », rang compris).
+  - Le choix est retenu (« choisie par Max le … »). Choisir l'autre : l'ancienne « remplacée », la nouvelle ajoutée. « Aucun » : rien retenu.
+  - Remplace « le principal gagne » et « la phrase apprise tranche » (lignesMicro reste dans le code, plus utilisée par le micro).
+- Hors réseau ou sans droit : copies du téléphone (copie du tableur de Cap, liste du téléphone, ancienne copie de « Phrases apprises ») ; les commandes déjà comprises ne sont jamais bloquées ; les changements attendent.
+- Tests :
+  - 525/525 (4 nouveaux, 3 anciens adaptés au nouveau tampon) ;
+  - test_scan 78/78 ;
+  - 8 casses volontaires, toutes attrapées ;
+  - cache cap-v132.
+- APK c78 : 106 fichiers identiques à app/, 0 .py, 2 balises, aucun mot privé. Installé à 21h42. Rien publié. Tableur modèle jamais écrit.
+
+### 09/11/2026 : c78 VALIDÉ par Max (5 essais bons) ; règle confirmée ; PUBLICATION EN PRÉPARATION (rien publié)
+- Règle confirmée par Max : principal qui hésite + phrase apprise parmi ses choix = faite directement, sans fenêtre (corrigeable avec « Modifier »).
+- Préparation, lecture seule :
+  - en ligne aujourd'hui : cap-v74 (07/11) ; en local : cap-v132 ;
+  - 118 enregistrements locaux, 32 fichiers.
+- Contrôles :
+  - mots de mots_prives.txt : 0 ;
+  - adresses mail : 0 ; téléphones : 0 ;
+  - aucun identifiant réel ; noms des MP3 réels absents.
+- À corriger avant publication, décision de Max demandée :
+  - (a) des tests ajoutés le 08/11 utilisent un dossier et un document de santé fictifs (texte rendu neutre le 09/11/2026 avant publication) ;
+  - (b) le journal contient des phrases réellement dites par Max, lues sur le Pixel (transcriptions et phrases absentes du tableur).
+- Rien publié. Aucun tag poussé.
+
+### 09/11/2026 : corrections AVANT publication (décisions de Max a et b), par un nouveau changement ; rien publié
+- a. Tests : un dossier et un document de santé fictifs remplacés par « Factures FICTIF » et « Devis FICTIF » ; un exemple de type de document de santé retiré de la liste d'exemples (scan_lecture.js). Remarques datées. (Texte rendu neutre le 09/11/2026.)
+- b. Journal : les vraies phrases dites par Max (transcriptions d'Android, phrases absentes du tableur) remplacées par des mots neutres, avec une note datée. Gardés dans le code : « mets la musique », « mets la zik », « mets la zic ».
+- Reste, déjà en ligne depuis le 05-06/11 et non touché sans décision de Max : un faux classement d'archives de santé dans les tests (texte rendu neutre le 09/11/2026). Et l'HISTORIQUE local pas encore publié contient les anciennes versions (tests de santé fictifs, vraies phrases dans le journal) : elles partiraient avec un envoi normal.
+- Tests : 525/525 ; test_scan 78/78.
+- 22h10 : sauvegarde avant publication : tag local `sauvegarde-avant-publication-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_publication_2026_11_09`. 121 enregistrements, 33 fichiers. Tests 525/525, test_scan 78/78, contrôles des mots privés : 0. Rien publié : attend le Oui explicite de Max.
+
+### 09/11/2026 : faux classement NEUTRE (décision de Max) et préparation d'un SEUL enregistrement ; rien publié
+- Sauvegarde avant : tag `sauvegarde-avant-classement-neutre-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_classement_neutre_2026_11_09`.
+- Tests (test_cap.py, test_scan.py) : tout le faux contenu de santé remplacé par du faux contenu neutre (maison, devis, syndic, charpenterie, climatisation, photographie ; titres « Me / Maître », qu'emetteur.js traite comme avant). Exemples de l'agenda fictif (google_agenda.js) : un plombier et un garage. Un commentaire de mots_courts.js aussi.
+- Journal : mots de santé du vieux journal (06/11) et de ce soir rendus neutres, avec une note datée.
+- Gardé (fonctionnement du code, pas des documents) : les titres « Dr / Docteur » et les mots d'organismes génériques d'emetteur.js ; la règle de nommage (scan_lecture.js) qui ne met la personne que pour la santé ou la famille.
+- Tests 525/525, test_scan 78/78. 4 casses volontaires sur les tests neutres (même début, titre « Me », accents du nom, chemin du classement) : toutes attrapées.
+- Envoi prévu (décision de Max) : UN SEUL enregistrement avec l'état final, par-dessus l'historique déjà en ligne. L'historique détaillé reste sur l'ordinateur (branche locale de sauvegarde).
+- 22h45 : enregistrement UNIQUE prêt sur la branche locale `publication-2026-11-09` (parent = la dernière version publiée, rien de publié n'est réécrit). Historique détaillé gardé : branche locale `sauvegarde-historique-detaille-2026-11-09` ; tag `sauvegarde-avant-envoi-unique-2026-11-09` + copie figée `C:\Users\revox\Cap_app_copie_figee_avant_envoi_unique_2026_11_09`.
+- Contrôles sur cet enregistrement : mots privés 0 ; adresses et numéros : seulement les faux de test ; contenu de santé : seulement le mot générique d'organisme gardé dans emetteur.js ; vraies phrases 0 ; noms des MP3 réels 0 ; fichiers exclus absents. Test final sur cet arbre exact : 525/525, test_scan 78/78.
+- Rien publié : attend le Oui explicite de Max (git push origin publication-2026-11-09:main, jamais --tags).

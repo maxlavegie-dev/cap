@@ -167,3 +167,13 @@ Le tableur de classement de Max reste la base. Un second tableur, « Cap – Mot
 
 ## Comment lancer les vérifications automatiques
 Dans un terminal ouvert dans le dossier du projet, taper `python app\test_cap.py` (application) puis `python app\test_scan.py` (scanner). Il faut que Microsoft Edge soit installé.
+
+## Règle générale des écrans de choix (décidée par Max le 08/11/2026, valable pour toujours)
+
+Toute fenêtre ou tout écran de choix dans Cap, pour n'importe quelle fonction :
+- pas de titre ni de texte d'aide inutile ;
+- pas de grande fenêtre, de cadre ou de fond autour des choix ;
+- uniquement de gros boutons tous identiques, posés directement sur l'eau, « Fermer » compris (calqué sur eux) ;
+- transition : l'écran d'avant disparaît dans le rien (fondu court), puis les boutons sortent de sous le sable (comme la montée de l'accueil) ; à la fermeture, l'inverse. « Animations réduites » : pas d'animation. Repli si ça saccade : fondu seul, sans flou.
+
+Dans le code : module `app/choix_sur_eau.js` (ouvrir, fermer) et classe `fenetre-choix` sur le `<dialog>` (style.css). Toute nouvelle fenêtre de choix l'utilise dès sa création. Une fenêtre existante qui ne respecte pas la règle est signalée à Max, pas modifiée d'office. Première fenêtre concernée : le choix des dossiers de musique (Lecteur).

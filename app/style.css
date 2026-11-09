@@ -2818,6 +2818,28 @@ html.cap-monte .ecran {
     animation: none;
   }
 }
+/* 08/11/2026 (accord de Max) : descente douce, symétrique de la montée : la date et les boutons s'enfoncent,
+   flous, en fondu, pendant que l'eau seule revient en fondu. Repli si ça saccade : retirer blur(6px). */
+#ecran-eau.eau-revient {
+  animation: eau-revient var(--duree-sortie, 1000ms) ease-out both;
+}
+html.cap-descend .ecran {
+  animation: cap-descend-dans-le-sable var(--duree-sortie, 1000ms) cubic-bezier(0.8, 0, 0.8, 0.3) both;
+}
+@keyframes eau-revient {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cap-descend-dans-le-sable {
+  from { transform: none; opacity: 1; filter: none; }
+  to { transform: translateY(14vh) scale(0.98); opacity: 0; filter: blur(6px) sepia(0.4); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #ecran-eau.eau-revient,
+  html.cap-descend .ecran {
+    animation: none;
+  }
+}
 
 /* Eau derrière l'accueil (06/11/2026, lot c20 ; lot c22 : EXACTEMENT la même eau que l'ouverture,
    l'opacité vient de .couche-eau, sans réglage à part) ; jamais de toucher capté. */
@@ -3056,6 +3078,201 @@ html.sans-eau .bouton-eau {
   white-space: nowrap;
 }
 
+/* 08/11/2026 (règle générale de Max) : écrans de choix SUR L'EAU (choix_sur_eau.js) : pas de grande fenêtre, ni
+   cadre, ni fond ; de gros boutons identiques posés sur l'eau (« Fermer » compris), lisibles en sombre et en clair.
+   L'écran d'avant disparaît dans le rien, puis les boutons sortent de sous le sable (keyframes de la montée de
+   l'accueil) ; à la fermeture, l'inverse. Repli si ça saccade : une copie des keyframes sans blur ni sepia. */
+dialog.fenetre-choix {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  padding: max(28px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--eau-texte);
+  overflow-y: auto;
+}
+dialog.fenetre-choix[open] { display: flex; flex-direction: column; align-items: center; justify-content: safe center; }
+dialog.fenetre-choix::backdrop { background: transparent; }
+dialog.fenetre-choix > * { width: min(100%, 440px); flex: none; }
+dialog.fenetre-choix > [hidden] { display: none; }
+dialog.fenetre-choix p,
+dialog.fenetre-choix h3 { color: var(--eau-texte); }
+dialog.fenetre-choix p:empty { display: none; }
+/* Les gros boutons de choix (calqués sur .choix-grand-affichage), couleur du thème de l'eau. */
+dialog.fenetre-choix .choix-grand-affichage,
+dialog.fenetre-choix .relations-gros-bouton {
+  display: block;
+  width: 100%;
+  max-width: 440px; /* « Fermer » (posé seul) garde la largeur des boutons de dossiers sur un grand écran */
+  min-height: 0;
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 2px solid currentColor;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--eau-texte);
+  font-family: inherit;
+  font-size: clamp(22px, 7vw, 36px);
+  font-weight: 700;
+  line-height: normal;
+  text-align: center;
+}
+dialog.fenetre-choix .choix-grand-affichage:hover,
+dialog.fenetre-choix .choix-grand-affichage:active,
+dialog.fenetre-choix .relations-gros-bouton:active { background: rgba(var(--eau-contraste-rgb), 0.15); }
+/* Ce qui était affiché disparaît dans le rien (fondu court). */
+html.choix-ouvert .ecran,
+dialog.cache-sous-choix,
+dialog.cache-sous-choix::backdrop {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--choix-sortie, 450ms) ease-in;
+}
+/* Puis les boutons sortent de sous le sable (après la disparition). */
+dialog.fenetre-choix.choix-entree > *:not(.choix-fantome):not(.indicateur-musique) {
+  animation: cap-monte-du-sable var(--choix-entree, 1000ms) cubic-bezier(0.2, 0.7, 0.2, 1) var(--choix-sortie, 450ms) both;
+}
+/* 09/11/2026 : le petit micro de tous les écrans ne monte pas du sable et ne disparaît pas avec les boutons d'une fenêtre
+   de choix (comme la note) : sans cela, son animation le décalerait. */
+dialog.fenetre-choix.choix-entree > #petit-micro,
+dialog.fenetre-choix.choix-sortie > #petit-micro,
+dialog.fenetre-choix.choix-entree > #bulle-micro,
+dialog.fenetre-choix.choix-sortie > #bulle-micro,
+dialog.fenetre-choix.choix-entree > #signe-micro,
+dialog.fenetre-choix.choix-sortie > #signe-micro,
+dialog.fenetre-choix.choix-entree > #bouton-apprendre,
+dialog.fenetre-choix.choix-sortie > #bouton-apprendre { animation: none !important; opacity: 1 !important; transition: none !important; } /* 09/11/2026 : + bulle, + signe, + bouton « apprendre » */
+/* Fermeture : les boutons disparaissent dans le rien, puis l'écran d'avant remonte de sous le sable. */
+dialog.fenetre-choix.choix-sortie > *:not(.indicateur-musique) {
+  opacity: 0;
+  transition: opacity var(--choix-sortie, 450ms) ease-in;
+}
+html.choix-retour .ecran,
+dialog.retour-sous-choix {
+  animation: cap-monte-du-sable var(--choix-entree, 1000ms) cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  html.choix-ouvert .ecran,
+  dialog.cache-sous-choix,
+  dialog.cache-sous-choix::backdrop,
+  dialog.fenetre-choix.choix-sortie > *:not(.indicateur-musique),
+  dialog.fenetre-choix > .choix-fantome,
+  #lecteur-mp3-relations.plein-ecran,
+  #lecteur-mp3-relations::backdrop { transition: none; }
+  dialog.fenetre-choix.choix-entree > *:not(.choix-fantome):not(.indicateur-musique),
+  html.choix-retour .ecran,
+  dialog.retour-sous-choix { animation: none; }
+}
+
+/* 08/11/2026 (demande de Max) : changement d'écran dans une fenêtre de choix : copie inerte de l'ancien écran qui
+   disparaît dans le rien (choixSurEau.changer). */
+dialog.fenetre-choix > .choix-fantome {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  padding: max(28px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity var(--choix-sortie, 450ms) ease-in;
+}
+dialog.fenetre-choix > .choix-fantome > * { width: min(100%, 440px); flex: none; }
+dialog.fenetre-choix > .choix-fantome.choix-fantome-part { opacity: 0; }
+/* Liste des morceaux à la règle générale : un gros bouton par morceau (gros numéro + nom), identique aux autres ;
+   pas de titres (« Morceaux », albums) : un espace sépare les listes de lecture. */
+dialog.fenetre-choix .ligne-morceau {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  width: 100%;
+  max-width: 440px;
+  min-height: 0;
+  margin: 0 0 16px;
+  padding: 16px;
+  border: 2px solid currentColor;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--eau-texte);
+  font-family: inherit;
+  font-size: clamp(22px, 7vw, 36px);
+  font-weight: 700;
+  line-height: normal;
+  text-align: left;
+}
+dialog.fenetre-choix .ligne-morceau:active { background: rgba(var(--eau-contraste-rgb), 0.15); }
+dialog.fenetre-choix .numero-morceau { min-width: 1.5em; font-size: 1.4em; line-height: 1; }
+dialog.fenetre-choix .titre-liste-morceaux { display: none; }
+dialog.fenetre-choix .titre-liste-morceaux:not(:first-child) + .ligne-morceau { margin-top: 28px; }
+/* 08/11/2026 (décisions de Max) : le lecteur s'en va en vapeur ; bande du geste de haut en bas (bord droit, hors des
+   curseurs du lecteur de Zencoder, qui s'arrêtent à 10 % du bord) avec une petite poignée ; indicateur discret. */
+#lecteur-mp3-relations.plein-ecran { transition: opacity 450ms ease-in, filter 450ms ease-in, transform 450ms ease-in; }
+#lecteur-mp3-relations::backdrop { transition: opacity 450ms ease-in; }
+#lecteur-mp3-relations.lecteur-vapeur { opacity: 0; filter: blur(8px); transform: scale(1.04); }
+#lecteur-mp3-relations.lecteur-vapeur::backdrop { opacity: 0; }
+html.alerte-google-visible .geste-lecteur { top: calc(var(--hauteur-alerte, 132px) + 72px); }
+.geste-lecteur {
+  position: absolute;
+  top: 12%;
+  top: max(12%, calc(max(12px, env(safe-area-inset-top)) + 72px)); /* 08/11/2026 : toujours sous la note ronde */
+  right: 0;
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 140px);
+  z-index: 2;
+  width: min(40px, 9vw);
+  touch-action: none;
+}
+.geste-lecteur::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  width: 4px;
+  height: 56px;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: rgba(58, 58, 56, 0.28);
+}
+#indicateur-musique {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  z-index: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(var(--eau-contraste-rgb), 0.18);
+  color: var(--eau-texte);
+  animation: none;
+}
+#indicateur-musique[hidden] { display: none; }
+#indicateur-musique:hover,
+#indicateur-musique:active { background: rgba(var(--eau-contraste-rgb), 0.3); }
+#indicateur-musique.indicateur-probleme { background: rgba(181, 101, 29, 0.75); }
+/* 08/11/2026, 11h45 : sur le lecteur ouvert, la note est discrète (45 %), aux couleurs des boutons du lecteur ;
+   pleinement visible en arrière-plan. Sous l'alerte Google quand elle est affichée. */
+#indicateur-musique.indicateur-discret { opacity: 0.45; background: rgba(255, 255, 255, 0.7); color: #3a3a38; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); }
+#lecteur-mp3-relations #indicateur-musique { z-index: 3; }
+html.alerte-google-visible #indicateur-musique { top: calc(var(--hauteur-alerte, 132px) + 8px); }
+#etat-lecteur-mp3 { right: 72px; } /* le message du lecteur ne passe pas sous la note */
+#indicateur-musique svg { width: 24px; height: 24px; }
+
 /* Morceau suivant et connexion qui expire (07/11/2026). */
 .avertissement-musique {
   margin: 12px 0;
@@ -3079,13 +3296,20 @@ html.theme-cap-sombre {
   --eau-texte-sur-contraste: #2b2d2e;
 }
 html.theme-cap-clair {
-  --eau-texte: #2b2d2e;
-  --eau-fond-uni: #EAF1F4;
+  /* 08/11/2026 : texte un peu plus foncé (avant : #2b2d2e) pour rester lisible (8:1) sur l'eau de Zencoder, plus foncée. */
+  --eau-texte: #1a1c1c;
+  /* 08/11/2026 (accord de Max) : fond de la visionneuse et du lecteur de Zencoder (avant : #EAF1F4). */
+  --eau-fond-uni: #d9e4e2;
   --eau-contraste-rgb: 40, 45, 44;
   --eau-texte-sur-contraste: #f4f1ea;
 }
 /* Sur l'accueil et ses écrans : l'eau passe DEVANT (boutons « sous l'eau »), le fond prend le thème. */
 body:not(.vue-complete) .couche-eau-accueil { z-index: 2; }
+/* 08/11/2026 (accord de Max) : l'eau seule de l'ouverture prend le MÊME fond que l'accueil (lune/soleil),
+   au lieu de l'ancien fond pâle qui la rendait grise en mode sombre. */
+body:not(.vue-complete) #ecran-eau { background: var(--eau-fond-uni); }
+/* 08/11/2026 (accord de Max) : mode CLAIR sur l'eau = l'eau du lecteur de Zencoder (60 %, flou 1,2 px) ; mode sombre inchangé. */
+html.theme-cap-clair body:not(.vue-complete) .couche-eau { opacity: 0.6; filter: blur(1.2px); }
 body:not(.vue-complete) {
   background: var(--eau-fond-uni);
   color: var(--eau-texte);
@@ -3187,6 +3411,18 @@ body:not(.vue-complete) #accueil { display: none; }
   text-shadow: none;
 }
 .bouton-autre svg { width: 56%; height: 56%; }
+/* 08/11/2026 (accord de Max) : « Autre » à 5 icônes, symétrique : 2-2-1, Réglages centré en bas ; boutons un peu
+   plus petits pour que tout tienne sans défiler. Notes et Agenda grisés tant qu'ils ne sont pas prêts. */
+#ecran-autre .grille-autre { width: min(80%, 29vh); margin-top: 1vh; row-gap: 2.5vh; }
+/* Alerte Google affichée (elle prend le haut de l'écran) : grille un peu plus petite, « Fermer » reste visible. */
+body:has(#alerte-google:not([hidden])) #ecran-autre .grille-autre { width: min(80%, 24vh); }
+/* Petits écrans (hauteur sous 700 px) : grille encore un peu plus petite. */
+@media (max-height: 700px) { #ecran-autre { gap: 12px; } #ecran-autre .grille-autre { width: min(80%, 25vh); row-gap: 2vh; } }
+/* 08/11/2026 : Réglages n'est plus seul et centré en bas : « Lecteur » est à côté (grille 2-2-2). Ancienne règle :
+#ecran-autre .grille-autre > :last-child { grid-column: 1 / -1; justify-self: center; width: calc((100% - 6%) / 2); } */
+.bouton-autre.bouton-pas-pret { opacity: 0.35; }
+.message-autre { margin: 0; text-align: center; }
+#autoriser-visionneuse { position: absolute; left: 50%; top: 50%; transform: translateX(-50%); z-index: 3; }
 #ecran-autre .scans-en-attente { margin: 0; }
 #theme-cap {
   display: flex;
@@ -3333,3 +3569,748 @@ body.vue-complete #zone-recherche { display: flex; }
     pointer-events: none;
   }
 }
+
+/* Visionneuse (étape B, lot 1, 07/11/2026) : plein écran, comme la musique ; message et bouton posés dessus. */
+#visionneuse-cap.plein-ecran {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  background: #d9e4e2;
+  box-shadow: none;
+}
+#cadre-visionneuse {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+/* L'alerte Google est posée en haut de la fenêtre : la visionneuse descend d'autant (ses boutons
+   « Ajouter un fichier » et « Fermer » sont en haut). */
+#visionneuse-cap:has(#alerte-google:not([hidden])) #cadre-visionneuse {
+  top: var(--hauteur-alerte, 132px);
+  height: calc(100% - var(--hauteur-alerte, 132px));
+}
+#etat-visionneuse {
+  position: absolute;
+  bottom: calc(max(18px, env(safe-area-inset-bottom)) + 76px);
+  left: 12px;
+  right: 12px;
+  z-index: 2;
+  margin: 0;
+  padding: 0.6em 0.9em;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.85);
+  color: #3a3a38;
+  font-size: 1.15rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+#etat-visionneuse[hidden] { display: none; }
+
+/* ===================================================================================================
+   Lot D (08/11/2026, accord de Max) : apparence de l'écran de scan de Zencoder (Cap_eau_essai_v2, lu sans
+   rien y toucher). Fond et eau des autres écrans (vert d'eau en clair, noir en sombre, eau derrière) ;
+   cadre de la caméra arrondi, « Page 1 » centré, petit « Mode rafale » (seul bouton avec un fond),
+   grille 2×2 de boutons au texte seul. Les éléments et leurs fonctions ne changent pas.
+   =================================================================================================== */
+.fenetre-scanner {
+  background: var(--eau-fond-uni);
+  color: var(--eau-texte);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  overflow-y: auto;
+  isolation: isolate;
+}
+.fenetre-scanner[open] { display: flex; }
+.fenetre-scanner::backdrop { background: var(--eau-fond-uni); }
+.fenetre-scanner > * { position: relative; z-index: 1; width: 100%; max-width: 520px; flex: none; }
+.fenetre-scanner > .couche-eau-scanner { position: fixed; inset: 0; z-index: 0; width: 100%; height: 100%; max-width: none; }
+html.theme-cap-clair .fenetre-scanner > .couche-eau-scanner { opacity: 0.6; filter: blur(1.2px); }
+.fenetre-scanner > [hidden] { display: none; }
+.fenetre-scanner h2,
+.fenetre-scanner p,
+.fenetre-scanner h3 { color: var(--eau-texte); }
+.entete-scanner { margin: 0; }
+#scanner-camera { margin: 0 0 4%; }
+#scanner-video {
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  max-height: 46vh; /* 08/11/2026 : 46vh avant le retrait des deux textes */
+  max-height: 46dvh;
+  max-height: 54vh; /* 08/11/2026 (demande de Max) : la place des deux textes retirés va à la caméra */
+  max-height: 54dvh;
+  border-radius: 22px;
+  background: rgba(10, 13, 13, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+#scanner-aide { color: var(--eau-texte); text-align: center; }
+#scanner-compteur {
+  display: block;
+  margin: 0 0 3%;
+  text-align: center;
+  letter-spacing: 0.06em;
+  color: var(--eau-texte);
+}
+/* « Mode rafale » : plus petit, le seul avec un fond (interrupteur : repère actif / inactif). */
+.interrupteur-rafale {
+  width: auto;
+  align-self: center;
+  min-height: 48px;
+  margin: 0 0 4%;
+  padding: 0.5em 1.3em;
+  gap: 10px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(var(--eau-contraste-rgb), 0.86);
+  color: var(--eau-texte-sur-contraste);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  font-size: 0.95rem;
+}
+.interrupteur-rafale input { width: 20px; height: 20px; }
+.interrupteur-rafale:has(input:checked) {
+  background: rgba(var(--eau-contraste-rgb), 0.95);
+  color: var(--eau-texte-sur-contraste);
+  box-shadow: 0 0 0 2px #e0a84d, 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+/* Grille 2×2 : boutons au texte seul (gras), comme chez Zencoder. */
+.grille-actions-scan {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0 0 14px;
+}
+.grille-actions-scan > button,
+.grille-actions-scan > .bouton-fichier {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 64px;
+  margin: 0;
+  padding: 0.8em 0.5em;
+  border: none;
+  border-radius: 20px;
+  background: rgba(var(--eau-contraste-rgb), 0.1);
+  color: var(--eau-texte);
+  box-shadow: none;
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.grille-actions-scan > button:hover,
+.grille-actions-scan > button:active,
+.grille-actions-scan > .bouton-fichier:active { background: rgba(var(--eau-contraste-rgb), 0.2); }
+.grille-actions-scan > [hidden] { display: none; }
+/* « Prendre la photo » : même allure que les 3 autres (avant : fond orange), comme chez Zencoder. */
+.grille-actions-scan > #scanner-capturer { margin: 0; min-height: 64px; background: rgba(var(--eau-contraste-rgb), 0.1); color: var(--eau-texte); border: none; font-size: 1.05rem; }
+.grille-actions-scan > #scanner-capturer:active { background: rgba(var(--eau-contraste-rgb), 0.2); }
+/* Textes et cadres de travail (aperçu, accord, texte lu, nom) : lisibles sur les deux fonds. */
+#scanner-etat { color: var(--eau-texte); }
+#scanner-etat[hidden] { display: none; } /* 08/11/2026 : vide = aucune place prise */
+#scanner-revue { background: rgba(var(--eau-contraste-rgb), 0.12); }
+#scanner-reprendre,
+#scanner-lire,
+#scanner-accord-non {
+  color: var(--eau-texte);
+  border-color: rgba(var(--eau-contraste-rgb), 0.6);
+}
+#scanner-accord,
+#scanner-texte-zone,
+#scanner-nom-zone { border-color: rgba(var(--eau-contraste-rgb), 0.5); background: rgba(var(--eau-contraste-rgb), 0.06); }
+
+/* 08/11/2026 (accord de Max) : geste RETOUR universel (geste_retour.js) : fondu de 450 ms, comme la vapeur du
+   lecteur, puis fermeture. Animations réduites : aucun fondu (le module ferme tout de suite). */
+.geste-retour-sortie {
+  opacity: 0 !important;
+  transition: opacity 450ms ease-out !important;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .geste-retour-sortie { transition: none !important; } }
+
+/* 08/11/2026 (accord de Max, étape 1) : ouvertures DOUCES des écrans (transition_ecrans.js) : l'écran d'avant
+   disparaît dans le rien (450 ms), puis le nouveau sort de sous le sable (1 s, keyframes de la montée de l'accueil).
+   « directe » : l'écran d'avant a déjà fondu (geste de retour), le nouveau monte sans attendre. Animations réduites : rien. */
+.ecran-part { animation: ecran-part 450ms ease-in both; }
+@keyframes ecran-part { from { opacity: 1; } to { opacity: 0; } }
+.ecran-entree { animation: cap-monte-du-sable 1000ms cubic-bezier(0.2, 0.7, 0.2, 1) 450ms both; }
+.ecran-entree-directe { animation: cap-monte-du-sable 1000ms cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+@media (prefers-reduced-motion: reduce) { .ecran-part, .ecran-entree, .ecran-entree-directe { animation: none; } }
+
+/* 08/11/2026 (accord de Max, étape 2) : écran Micro : rangée « + » / micro / clavier au milieu, gros boutons
+   IDENTIQUES posés sur l'eau, sans cadre ni fond (même allure que les boutons de l'accueil). */
+#ecran-micro { justify-content: center; }
+.rangee-micro {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 4vw;
+  width: 100%;
+}
+#ecran-micro .bouton-accueil-principal,
+#ecran-micro #microphone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(15vh, 26vw);
+  height: min(15vh, 26vw);
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 28px;
+  background: none;
+  color: var(--eau-texte);
+  box-shadow: none;
+  text-shadow: none;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+  flex: none;
+}
+#ecran-micro #microphone[aria-pressed="true"],
+#ecran-micro #microphone.live { background: rgba(var(--eau-contraste-rgb), 0.18); }
+/* « Fermer » caché (geste de retour) : jamais affiché, même si une autre règle lui donne un affichage. */
+#fermer-autre[hidden],
+#fermer-micro[hidden] { display: none; }
+
+/* 08/11/2026 (accord de Max, étape 3) : bouton « continu » sous la rangée, identique aux trois autres au repos
+   (sans cadre ni fond). Actif : TRÈS visible (état de l'écran de Zencoder validé par Max : fond clair plein,
+   icône sombre, léger halo), changement lent de 0,9 s ; animations réduites : sans transition. */
+#ecran-micro { gap: 4vh; }
+#ecran-micro #micro-continu { transition: background-color 0.9s ease, box-shadow 0.9s ease, color 0.9s ease; }
+#ecran-micro #micro-continu[aria-pressed="true"] {
+  background: rgba(222, 242, 236, 0.95);
+  color: #16201d;
+  box-shadow: 0 0 calc(1.2vw + 10px) rgba(200, 230, 222, 0.55), 0 2px 10px rgba(0, 0, 0, 0.22);
+}
+@media (prefers-reduced-motion: reduce) { #ecran-micro #micro-continu { transition: none; } }
+
+/* 08/11/2026 (accord de Max) : pendant la conversation continue, le micro de l'accueil porte un léger halo FIXE
+   (pas de clignotement) : le toucher rouvre l'écran Micro, où « continu » l'arrête. Apparition lente (0,9 s). */
+#accueil-boutons #ouvrir-micro { transition: box-shadow 0.9s ease, background-color 0.9s ease; }
+#accueil-boutons #ouvrir-micro.conversation-en-cours {
+  background: rgba(var(--eau-contraste-rgb), 0.12);
+  box-shadow: 0 0 calc(1.2vw + 12px) rgba(200, 230, 222, 0.6);
+}
+@media (prefers-reduced-motion: reduce) { #accueil-boutons #ouvrir-micro { transition: none; } }
+
+/* 08/11/2026 (accord de Max, étape 3b) : petit micro FIXE de la visionneuse, en haut à droite, juste sous le « Fermer »
+   de la page de Zencoder (qui est tout en haut à droite) et sous la note ronde de la musique. Icône seule. Écoute d'une
+   phrase : légère couleur ; conversation continue : SURBRILLANCE (fond clair plein, halo). Animations réduites : sans transition. */
+#micro-visionneuse {
+  position: absolute;
+  top: calc(max(12px, env(safe-area-inset-top)) + 60px);
+  right: 12px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #3a3a38;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.9s ease, box-shadow 0.9s ease;
+}
+#micro-visionneuse svg { width: 28px; height: 28px; pointer-events: none; }
+#micro-visionneuse.en-ecoute { background: rgba(222, 242, 236, 0.95); }
+#micro-visionneuse[aria-pressed="true"] {
+  background: #ffffff;
+  color: #16201d;
+  box-shadow: 0 0 calc(1.2vw + 12px) rgba(120, 200, 180, 0.9), 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+#visionneuse-cap:has(#alerte-google:not([hidden])) #micro-visionneuse { top: calc(var(--hauteur-alerte, 132px) + 60px); }
+@media (prefers-reduced-motion: reduce) { #micro-visionneuse { transition: none; } }
+
+/* 08/11/2026 (accord de Max) : VIGNETTES des documents, posées sur l'eau (écran de choix à la règle), 3 par rangée,
+   sans texte ; pendant le chargement, une forme douce ; une vignette illisible reste touchable (ouverture en grand). */
+.grille-vignettes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+.vignette {
+  display: block;
+  aspect-ratio: 3 / 4;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid currentColor;
+  border-radius: 12px;
+  background: rgba(var(--eau-contraste-rgb), 0.12);
+  color: var(--eau-texte);
+  -webkit-tap-highlight-color: transparent;
+}
+.vignette img { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.vignette.en-chargement { opacity: 0.55; }
+.vignette.vignette-illisible { opacity: 0.4; }
+.vignette:active { background: rgba(var(--eau-contraste-rgb), 0.25); }
+
+/* 08/11/2026 (accord de Max) : le petit micro sur l'écran des vignettes : même allure et même place que celui de la
+   visionneuse (règles reprises par la classe), FIXE (l'écran des vignettes défile, le micro non). Les vignettes, « Suivants »
+   et « Fermer » laissent une marge à droite : le micro ne cache jamais une vignette, même pendant le défilement. */
+#micro-vignettes {
+  position: fixed;
+  top: calc(max(12px, env(safe-area-inset-top)) + 60px);
+  right: 12px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #3a3a38;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.9s ease, box-shadow 0.9s ease;
+}
+#micro-vignettes svg { width: 28px; height: 28px; pointer-events: none; }
+#micro-vignettes.en-ecoute { background: rgba(222, 242, 236, 0.95); }
+#micro-vignettes[aria-pressed="true"] {
+  background: #ffffff;
+  color: #16201d;
+  box-shadow: 0 0 calc(1.2vw + 12px) rgba(120, 200, 180, 0.9), 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+html.alerte-google-visible #micro-vignettes { top: calc(var(--hauteur-alerte, 132px) + 60px); }
+dialog#vignettes-cap { padding-right: 84px; }
+@media (prefers-reduced-motion: reduce) { #micro-vignettes { transition: none; } }
+
+/* 09/11/2026 (accord de Max, étape 1 de l'intégration de Zencoder) : écran « Chercher » repris de la maquette
+   Cap_chercher_essai_v1_2026_11_08 : 4 icônes 2 × 2 (mêmes boutons que « Autre », sans fond), la barre en pilule
+   claire, « Fermer » en texte sur l'eau (comme la maquette validée). Couleurs du mode clair / sombre de Cap.
+   Sans la lumière de bord (étape 3). */
+#ecran-chercher { justify-content: center; }
+#ecran-chercher .grille-chercher { width: min(86%, 34vh); margin-top: 0; row-gap: 3vh; }
+body:has(#alerte-google:not([hidden])) #ecran-chercher .grille-chercher { width: min(86%, 28vh); }
+@media (max-height: 700px) { #ecran-chercher .grille-chercher { width: min(86%, 28vh); row-gap: 2vh; } }
+#ecran-chercher .triangle-lecture { fill: currentColor; stroke: none; }
+#chercher-barre {
+  display: flex;
+  align-items: center;
+  width: min(86%, 46vh);
+  box-sizing: border-box;
+  padding: 0.7em 1.1em;
+  border-radius: 999px;
+  background: rgba(var(--eau-contraste-rgb), 0.72);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+#chercher-champ {
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--eau-texte-sur-contraste);
+  font-size: 1.1rem;
+}
+#chercher-champ::placeholder { color: var(--eau-texte-sur-contraste); opacity: 0.6; }
+.bouton-fermer-chercher {
+  width: min(86%, 46vh);
+  min-height: 56px;
+  margin: 0;
+  padding: 0.8em 1em;
+  border: none;
+  border-radius: 20px;
+  background: none;
+  color: var(--eau-texte);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-shadow: none; /* maquette (sombre seulement) : ombre noire ; dans Cap, clair ET sombre : pas d'ombre (texte foncé en clair) */
+  box-shadow: none;
+}
+
+/* 09/11/2026 (accord de Max) : UN SEUL petit micro, en haut à droite de TOUS les écrans, tout le temps, immobile (même
+   allure que celui de la visionneuse). La note de musique se met à sa GAUCHE, même taille, même ligne. Les deux descendent
+   sous l'alerte Google. L'écran des tâches laisse une marge à droite pour son « Fermer ». */
+#petit-micro {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: 12px;
+  z-index: 960;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #3a3a38;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.9s ease, box-shadow 0.9s ease;
+}
+#petit-micro svg { width: 26px; height: 26px; pointer-events: none; }
+#petit-micro.en-ecoute { background: rgba(222, 242, 236, 0.95); }
+#petit-micro[aria-pressed="true"] {
+  background: #ffffff;
+  color: #16201d;
+  box-shadow: 0 0 calc(1.2vw + 12px) rgba(120, 200, 180, 0.9), 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+html.alerte-google-visible #petit-micro { top: calc(var(--hauteur-alerte, 132px) + 8px); }
+@media (prefers-reduced-motion: reduce) { #petit-micro { transition: none; } }
+/* La note de musique : à gauche du micro (12 + 52 + 8 px), même taille. Avant : right 12px, 48 × 48 px. */
+#indicateur-musique { right: 72px; width: 52px; height: 52px; }
+/* Écran des tâches : marge à droite du titre (micro et note), « Fermer » jamais dessous. */
+.entete-complet { padding-right: 132px; }
+
+/* 09/11/2026 (accord de Max) : bulle de texte juste sous le petit micro (même bord droit), quelques secondes, sans capter
+   aucun toucher. Erreur : liseré orangé. Dans la visionneuse, elle passe sous le « Fermer » (déplacé sous le micro). */
+#bulle-micro {
+  position: fixed;
+  top: calc(max(12px, env(safe-area-inset-top)) + 60px);
+  right: 12px;
+  z-index: 960;
+  max-width: min(72vw, 320px);
+  margin: 0;
+  padding: 0.5em 0.8em;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #2b2d2e;
+  font-size: 0.98rem;
+  line-height: 1.3;
+  text-align: right;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+  animation: bulle-arrive 0.3s ease both;
+}
+#bulle-micro[hidden] { display: none; }
+#bulle-micro.bulle-erreur { border-left: 4px solid #b5651d; }
+@keyframes bulle-arrive { from { opacity: 0; } to { opacity: 1; } }
+html.alerte-google-visible #bulle-micro { top: calc(var(--hauteur-alerte, 132px) + 68px); }
+#visionneuse-cap #bulle-micro { top: 128px; }
+#visionneuse-cap:has(#alerte-google:not([hidden])) #bulle-micro { top: calc(var(--hauteur-alerte, 132px) + 128px); }
+@media (prefers-reduced-motion: reduce) { #bulle-micro { animation: none; } }
+/* Interrupteur « Sous-titres » : même allure que l'interrupteur clair / sombre (curseur à gauche = éteint). */
+#ligne-sous-titres { display: flex; align-items: center; justify-content: center; gap: 5%; width: 100%; margin: 1vh 0; color: var(--eau-texte); font-size: 1.1rem; font-weight: 600; }
+#ecran-reglages #bouton-sous-titres {
+  position: relative;
+  font-size: 1rem; /* même taille de lettre que l'interrupteur clair / sombre : même largeur */
+  width: 3.6em;
+  min-height: 44px; /* comme l'interrupteur clair / sombre (hauteur minimale des boutons) */
+  height: 1.9em;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(var(--eau-contraste-rgb), 0.3);
+  box-shadow: none;
+}
+#bouton-sous-titres .curseur-theme {
+  position: absolute;
+  top: 0.18em;
+  left: 0.18em;
+  width: 1.54em;
+  height: 1.54em;
+  border-radius: 50%;
+  background: rgba(var(--eau-contraste-rgb), 1);
+  transition: left 0.25s ease;
+}
+#bouton-sous-titres[aria-checked="true"] .curseur-theme { left: calc(100% - 1.54em - 0.18em); }
+@media (prefers-reduced-motion: reduce) { #bouton-sous-titres .curseur-theme { transition: none; } }
+
+/* 09/11/2026 (accord de Max, étape 2) : accueil = Chercher en haut, rangée « + » / GROS MICRO / nouvelle icône au milieu,
+   Autre en bas. « + » et l'icône, plus petits, apparaissent au premier toucher (fondu court ; rien si les animations
+   sont réduites). Conversation continue : le gros micro en SURBRILLANCE (comme le petit micro). */
+#accueil-boutons .rangee-micro { gap: 4vw; }
+#accueil-boutons .rangee-micro .outil-micro { width: min(11vh, 20vw); height: min(11vh, 20vw); }
+#accueil-boutons .rangee-micro .outil-micro[hidden] { display: none; }
+#accueil-boutons .outil-apparait { animation: outil-apparait 0.45s ease both; }
+@keyframes outil-apparait { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: none; } }
+#accueil-boutons #microphone { transition: background-color 0.9s ease, box-shadow 0.9s ease, color 0.9s ease; }
+#accueil-boutons #microphone.live {
+  background: rgba(222, 242, 236, 0.95);
+  color: #16201d;
+  box-shadow: 0 0 calc(1.2vw + 12px) rgba(120, 200, 180, 0.9), 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+@media (prefers-reduced-motion: reduce) { #accueil-boutons .outil-apparait { animation: none; } #accueil-boutons #microphone { transition: none; } }
+
+/* ===================================================================================================
+   09/11/2026 (accord de Max, mission A) : ALLURE des deux fenêtres de saisie du gros micro, « + » (#ajout-tache) et
+   le crayon (#clavier, « Écrire à Cap »), reprise de la maquette de Zencoder Cap_saisie_essai_v1_2026_11_08 (lue sans
+   y toucher) : plus de cadre ni de fond ; l'écran d'avant s'efface et l'EAU de Cap se voit dessous ; champs simples
+   sans cadre (un trait fin en bas, halo de lisibilité) ; boutons tous identiques, un peu transparents.
+   SEULEMENT l'allure : mêmes boutons, mêmes champs, même enregistrement ; toucher à côté et le geste ferment comme avant
+   (la fenêtre garde la taille de son contenu). Le double identifiant (#clavier#clavier) passe devant les anciennes
+   règles sans les effacer. Les titres restent lus par le téléphone (cachés à l'œil, comme dans la maquette).
+   =================================================================================================== */
+:root,
+html.theme-cap-sombre { --eau-halo-rgb: 10, 12, 12; }
+html.theme-cap-clair { --eau-halo-rgb: 217, 228, 226; }
+html:has(#clavier[open]) .ecran,
+html:has(#ajout-tache[open]) .ecran { opacity: 0; pointer-events: none; transition: opacity 450ms ease-in; }
+#clavier#clavier,
+#ajout-tache#ajout-tache {
+  inset: 0;
+  margin: auto;
+  box-sizing: border-box;
+  width: min(440px, calc(100% - 32px));
+  max-width: none;
+  max-height: 86vh;
+  max-height: 86dvh;
+  padding: 12px 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--eau-texte);
+  scrollbar-width: none;
+}
+#clavier#clavier::-webkit-scrollbar,
+#ajout-tache#ajout-tache::-webkit-scrollbar { display: none; }
+#clavier#clavier::backdrop,
+#ajout-tache#ajout-tache::backdrop { background: transparent; }
+#clavier#clavier .entete-clavier { position: static; margin: 0; padding: 0; background: transparent; }
+#clavier#clavier #titre-clavier,
+#ajout-tache#ajout-tache #titre-ajout,
+#ajout-tache#ajout-tache #champs-tache > legend {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+#clavier#clavier label,
+#clavier#clavier h3,
+#clavier#clavier p:not(#bulle-micro),
+#clavier#clavier #debut-phrase,
+#ajout-tache#ajout-tache label,
+#ajout-tache#ajout-tache p:not(#bulle-micro),
+#ajout-tache#ajout-tache .etiquette-champ {
+  color: var(--eau-texte);
+  background: transparent;
+  font-weight: 700;
+  text-shadow: 0 0 2px rgba(var(--eau-halo-rgb), 0.9), 0 0 6px rgba(var(--eau-halo-rgb), 0.7);
+}
+#ajout-tache#ajout-tache fieldset { margin: 0; padding: 0; border: 0; }
+/* Champs simples, sans cadre : un trait fin en bas, l'eau visible derrière. */
+#clavier#clavier input[type="text"],
+#ajout-tache#ajout-tache input[type="text"],
+#ajout-tache#ajout-tache textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 12px;
+  padding: 0.5em 0.1em;
+  border: 0;
+  border-bottom: 2px solid rgba(var(--eau-contraste-rgb), 0.6);
+  border-radius: 0;
+  background: transparent;
+  color: var(--eau-texte);
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-shadow: 0 0 2px rgba(var(--eau-halo-rgb), 0.9), 0 0 6px rgba(var(--eau-halo-rgb), 0.7);
+  box-shadow: none;
+}
+#ajout-tache#ajout-tache textarea { resize: none; min-height: 3.4em; }
+/* Boutons (et listes déroulantes) tous identiques, un peu transparents : l'eau se devine au travers. */
+#clavier#clavier button:not(#petit-micro):not(#indicateur-musique):not(#bouton-apprendre),
+#ajout-tache#ajout-tache button:not(#petit-micro):not(#indicateur-musique):not(#bouton-apprendre),
+#ajout-tache#ajout-tache select {
+  width: 100%;
+  min-height: 56px;
+  margin: 6px 0;
+  padding: 0.8em 0.6em;
+  border: 0;
+  border-radius: 22px;
+  background: rgba(var(--eau-contraste-rgb), 0.78);
+  color: var(--eau-texte-sur-contraste);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  -webkit-appearance: none;
+  appearance: none;
+}
+#clavier#clavier button:not(#petit-micro):not(#indicateur-musique):not(#bouton-apprendre):active,
+#ajout-tache#ajout-tache button:not(#petit-micro):not(#indicateur-musique):not(#bouton-apprendre):active,
+#ajout-tache#ajout-tache select:active { background: rgba(var(--eau-contraste-rgb), 1); }
+#clavier#clavier button[aria-checked="true"] { background: rgba(var(--eau-contraste-rgb), 1); box-shadow: 0 0 0 3px rgba(var(--eau-contraste-rgb), 0.5), 0 2px 10px rgba(0, 0, 0, 0.18); }
+#clavier#clavier #enlever-phrase { width: auto; min-height: 56px; padding: 0.4em 0.9em; } /* grandes touches (56 px) gardées */
+@media (prefers-reduced-motion: reduce) {
+  html:has(#clavier[open]) .ecran,
+  html:has(#ajout-tache[open]) .ecran { transition: none; }
+}
+/* 09/11/2026 (mission A) : champ qui a la main : le trait du bas s'épaissit et devient plein (plus de cadre bleu). */
+#clavier#clavier input[type="text"]:focus,
+#clavier#clavier input[type="text"]:focus-visible,
+#ajout-tache#ajout-tache input[type="text"]:focus,
+#ajout-tache#ajout-tache input[type="text"]:focus-visible,
+#ajout-tache#ajout-tache textarea:focus,
+#ajout-tache#ajout-tache textarea:focus-visible { outline: none; border-bottom: 3px solid rgba(var(--eau-contraste-rgb), 1); }
+/* 09/11/2026 (trouvé par le test de la mission A) : une ancienne règle (#clavier button : 56 px au moins) grossissait le petit
+   micro posé dans « Écrire à Cap ». Il garde sa taille (52 px), comme partout. */
+#clavier#clavier #petit-micro { min-width: 0; min-height: 0; line-height: normal; }
+
+/* 09/11/2026 (accord de Max, étape 4) : SIGNE à côté du petit micro, à sa gauche (à la place de la note ; plus à gauche quand
+   la note est là), même ligne, sans capter de toucher. Pouce : il grossit un peu puis disparaît. Croix ROUGE : elle apparaît,
+   reste un instant, puis s'efface. Animations réduites : affiché puis retiré, sans mouvement. */
+#signe-micro {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  right: 72px;
+  z-index: 960;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+#signe-micro[hidden] { display: none; }
+#signe-micro svg { width: 30px; height: 30px; display: none; }
+#signe-micro.signe-pouce-visible .signe-pouce { display: block; color: #1f6e4a; }
+#signe-micro.signe-croix-visible .signe-croix { display: block; color: #c62828; }
+#signe-micro.signe-pouce-visible { animation: signe-pouce 3s ease both; } /* 09/11/2026 : 3 s (accord de Max ; avant : 1.8s) */
+#signe-micro.signe-croix-visible { animation: signe-croix 2.6s ease both; }
+@keyframes signe-pouce { 0% { opacity: 0; transform: scale(0.7); } 25% { opacity: 1; transform: scale(1.18); } 45% { transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; transform: scale(1); } }
+@keyframes signe-croix { 0% { opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+html:has(#indicateur-musique:not([hidden])) #signe-micro { right: 132px; }
+html.alerte-google-visible #signe-micro { top: calc(var(--hauteur-alerte, 132px) + 8px); }
+@media (prefers-reduced-motion: reduce) { #signe-micro.signe-pouce-visible, #signe-micro.signe-croix-visible { animation: none; } }
+
+/* 09/11/2026 (accord de Max, mission C) : 5e icône « À trier » dans Chercher, centrée sous les quatre autres (même allure) ;
+   dans la liste ouverte par elle, la dernière phrase ajoutée reste marquée (en plus de la surbrillance habituelle). */
+#ecran-chercher .grille-chercher > #chercher-a-trier { grid-column: 1 / -1; justify-self: center; width: calc((100% - 6%) / 2); } /* même écart que la grille (6 %) */
+.derniere-ajoutee { box-shadow: inset 4px 0 0 #2c7a5b; background: rgba(44, 122, 91, 0.12); border-radius: 8px; }
+
+/* 09/11/2026 (accord de Max, mission D) : fenêtre de gros choix des commandes : même allure que les autres fenêtres de choix
+   sur l'eau ; chaque choix tient sur UNE ligne (le nom trop long est coupé avec « … »), son gros numéro devant. */
+#choix-commande .ligne-choix-commande .nom-morceau { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+/* 09/11/2026 (accord de Max, partie 2 A) : barre de Chercher avec son menu (« Tout » par défaut) et propositions dès la
+   première lettre : de grosses lignes identiques sous la barre, un peu transparentes (l'eau se devine). */
+#chercher-source {
+  flex: none;
+  max-width: 38%;
+  margin-right: 0.5em;
+  border: 0;
+  background: transparent;
+  color: var(--eau-texte-sur-contraste);
+  font-size: 1rem;
+  font-weight: 700;
+}
+#propositions-chercher { width: min(86%, 46vh); margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+#propositions-chercher[hidden] { display: none; }
+.proposition-chercher {
+  width: 100%;
+  min-height: 52px;
+  padding: 0.6em 0.9em;
+  border: 0;
+  border-radius: 18px;
+  background: rgba(var(--eau-contraste-rgb), 0.78);
+  color: var(--eau-texte-sur-contraste);
+  font-size: 1.05rem;
+  font-weight: 600;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sorte-resultat { font-weight: 700; opacity: 0.75; }
+
+/* 09/11/2026 (accord de Max) : bouton rond « phrase à apprendre », à GAUCHE du petit micro (12 + 52 + 8 px), plus petit
+   (44 px), même ligne (centré sur le micro) ; la note de musique et le signe se décalent à sa gauche. Le nombre des
+   phrases en attente dans une petite pastille. Sous l'alerte Google comme le micro. */
+#bouton-apprendre {
+  position: fixed;
+  top: calc(max(12px, env(safe-area-inset-top)) + 4px);
+  right: 72px;
+  z-index: 960;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #3a3a38;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  touch-action: manipulation;
+}
+#bouton-apprendre svg { width: 24px; height: 24px; pointer-events: none; }
+.compte-apprendre {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 4px;
+  border-radius: 10px;
+  background: #2c7a5b;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  pointer-events: none;
+}
+.compte-apprendre[hidden] { display: none; }
+html.alerte-google-visible #bouton-apprendre { top: calc(var(--hauteur-alerte, 132px) + 12px); }
+/* La note de musique et le signe passent à gauche du bouton (avant : note à 72 px, signe à 72 / 132 px). */
+#indicateur-musique { right: 124px; }
+#signe-micro { right: 124px; }
+html:has(#indicateur-musique:not([hidden])) #signe-micro { right: 184px; }
+.entete-complet { padding-right: 184px; }
+/* La question d'une étape et le champ « Écrire » dans la fenêtre de gros choix. */
+.question-choix-commande { margin: 0 0 16px; font-size: clamp(20px, 6vw, 30px); font-weight: 700; text-align: center; overflow-wrap: anywhere;
+  text-shadow: 0 0 2px rgba(var(--eau-halo-rgb), 0.9), 0 0 6px rgba(var(--eau-halo-rgb), 0.7); }
+#saisie-apprendre { margin: 0 0 16px; padding: 0.5em 0.1em; border: 0; border-bottom: 3px solid rgba(var(--eau-contraste-rgb), 0.8); background: transparent;
+  color: var(--eau-texte); font-size: 1.3rem; font-weight: 600; }
+#saisie-apprendre[hidden] { display: none; }
+/* Réglages : la liste des phrases à apprendre. */
+#liste-phrases-apprendre { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.ligne-phrase-apprendre { display: flex; align-items: center; gap: 8px; color: var(--eau-texte); }
+.texte-phrase-apprendre { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#ecran-reglages .retirer-phrase-apprendre { width: auto; flex: none; min-height: 48px; padding: 0.5em 0.9em; }
+#ecran-reglages .modifier-phrase-apprendre { width: auto; flex: none; min-height: 48px; padding: 0.5em 0.9em; } /* 09/11/2026 */
+/* 09/11/2026 : le bouton « phrase à apprendre » posé dans « Écrire à Cap » garde sa taille (comme le petit micro). */
+#clavier#clavier #bouton-apprendre { min-width: 0; min-height: 0; line-height: normal; }
+/* 09/11/2026 : taille du bouton « phrase à apprendre » FIXE dans toutes les fenêtres (certaines règlent la hauteur de
+   leurs boutons) ; seules ces propriétés sont imposées. */
+#bouton-apprendre { width: 44px !important; height: 44px !important; min-width: 0 !important; min-height: 0 !important; max-width: none !important; padding: 0 !important; margin: 0 !important; }
+/* 09/11/2026 (trouvé par le test du bouton « apprendre ») : le petit micro garde AUSSI sa taille dans toutes les fenêtres
+   (le scanner lui donnait 56 px de haut). */
+#petit-micro { width: 52px !important; height: 52px !important; min-width: 0 !important; min-height: 0 !important; max-width: none !important; padding: 0 !important; margin: 0 !important; }
+/* 09/11/2026 (petit tableur) : « Ouvrir le tableur » (un lien) a l'allure des boutons de Réglages ; l'état du tampon dessous. */
+#ecran-reglages .bouton-lien-apprendre {
+  display: flex; align-items: center; justify-content: center; box-sizing: border-box; width: 100%; min-height: 56px; margin: 8px 0 0;
+  padding: 0.8em 1em; border-radius: 20px; background: rgba(var(--eau-contraste-rgb), 0.72); color: var(--eau-texte-sur-contraste);
+  font-size: 1.1rem; font-weight: 600; text-decoration: none; text-shadow: none; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+#ecran-reglages .bouton-lien-apprendre[hidden] { display: none; }
+#tampon-phrases-apprendre { margin: 8px 0 0; color: var(--eau-texte); }

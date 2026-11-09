@@ -62,8 +62,18 @@ const ecranEau = (() => {
     reflet: Object.freeze({ intensite: 0.5, vitesse: 0.00018, taille: 2.2 }),
     lisereCrete: Object.freeze({ intensite: 0.35, couleur: Object.freeze([214, 230, 226]) })
   });
+  // 08/11/2026 (accord de Max) : en mode CLAIR sur les écrans sur l'eau, doigt qui glisse plus doux (4, comme la
+  // visionneuse et le lecteur de Zencoder) ; mode sombre et écran des tâches : EAU.forceGlisse inchangé.
+  const FORCE_GLISSE_CLAIRE = 4;
+  function forceGlisse(doc) {
+    try {
+      return doc.documentElement.classList.contains('theme-cap-clair') && !doc.body.classList.contains('vue-complete')
+        ? FORCE_GLISSE_CLAIRE : EAU.forceGlisse;
+    } catch (e) { return EAU.forceGlisse; }
+  }
   const AMORTISSEMENT = EAU.amortissement;
   const CELLULES_CIBLE = EAU.cellules;
+  const TRACE_MAX = 64; // 08/11/2026 : touches d'eau au plus par mouvement du doigt (traînée continue)
 
   // ----- Couleurs des bandes du téléphone (lot c21) -----
   // En haut, l'eau est à son plus clair (= le fond) ; en bas, elle est un peu plus « profonde ». La bande
@@ -119,10 +129,29 @@ const ecranEau = (() => {
       toile.width = largeur;
       toile.height = hauteur;
       const echelle = Math.sqrt((largeur * hauteur) / cellulesCible);
-      colonnes = Math.max(20, Math.round(largeur / echelle));
-      lignes = Math.max(20, Math.round(hauteur / echelle));
+      const nouvellesColonnes = Math.max(20, Math.round(largeur / echelle));
+      const nouvellesLignes = Math.max(20, Math.round(hauteur / echelle));
+      // 08/11/2026 (accord de Max, vagues sans remise à zéro) : même taille = on garde les vagues en cours
+      // (reprise après une pause, retour du scan, Cap revenu au premier plan).
+      if (buf1 && nouvellesColonnes === colonnes && nouvellesLignes === lignes) return;
+      // 09/11/2026 (défaut 1 vu par Max : fenêtres « + » et crayon) : quand la taille change (le clavier du téléphone qui
+      // s'ouvre ou se ferme), les vagues en cours sont REPORTÉES sur la nouvelle grille au lieu d'être remises à plat
+      // (avant : eau soudain unie). Avant : buf1 = new Float32Array(...) seulement.
+      const ancien = buf1 ? { b1: buf1, b2: buf2, c: colonnes, l: lignes } : null;
+      colonnes = nouvellesColonnes;
+      lignes = nouvellesLignes;
       buf1 = new Float32Array(colonnes * lignes);
       buf2 = new Float32Array(colonnes * lignes);
+      if (ancien) {
+        for (let y = 0; y < lignes; y++) {
+          const ya = Math.min(ancien.l - 1, Math.floor(y * ancien.l / lignes));
+          for (let x = 0; x < colonnes; x++) {
+            const xa = Math.min(ancien.c - 1, Math.floor(x * ancien.c / colonnes));
+            buf1[y * colonnes + x] = ancien.b1[ya * ancien.c + xa];
+            buf2[y * colonnes + x] = ancien.b2[ya * ancien.c + xa];
+          }
+        }
+      }
       basse.width = colonnes;
       basse.height = lignes;
       image = ctxBasse.createImageData(colonnes, lignes);
@@ -143,6 +172,35 @@ const ecranEau = (() => {
           buf1[y * colonnes + x] += force * (1 - distance / (rayon + 1));
         }
       }
+    }
+
+    // 08/11/2026 (accord de Max) : traînée continue entre deux positions du doigt (plus de pointillés
+    // quand le geste est rapide) : une touche d'eau tous les « rayon » carreaux, 64 au plus par mouvement.
+    function tracer(x0, y0, x1, y1, force, rayon) {
+      if (!buf1) return;
+      const distance = Math.hypot((x1 - x0) * colonnes, (y1 - y0) * lignes);
+      const n = Math.min(TRACE_MAX, Math.max(1, Math.ceil(distance / Math.max(1, rayon))));
+      for (let k = 1; k <= n; k++) perturber(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, force, rayon);
+    }
+
+    // 08/11/2026 (accord de Max) : l'état des vagues passe d'une eau à l'autre (eau seule → accueil, et retour) :
+    // plus de coupure nette. Tailles différentes : chaque carreau prend le plus proche.
+    function exporterEtat() {
+      return buf1 ? { colonnes, lignes, buf1: buf1.slice(), buf2: buf2.slice() } : null;
+    }
+    function importerEtat(etat) {
+      if (!etat || !etat.buf1 || !etat.buf2) return false;
+      dimensionner();
+      if (etat.colonnes === colonnes && etat.lignes === lignes) { buf1.set(etat.buf1); buf2.set(etat.buf2); return true; }
+      for (let y = 0; y < lignes; y++) {
+        const sy = Math.min(etat.lignes - 1, Math.floor(y * etat.lignes / lignes));
+        for (let x = 0; x < colonnes; x++) {
+          const s = sy * etat.colonnes + Math.min(etat.colonnes - 1, Math.floor(x * etat.colonnes / colonnes));
+          buf1[y * colonnes + x] = etat.buf1[s];
+          buf2[y * colonnes + x] = etat.buf2[s];
+        }
+      }
+      return true;
     }
 
     function ondesAmbiantes(temps) {
@@ -269,7 +327,7 @@ const ecranEau = (() => {
       [COULEUR_PEU_PROFOND, COULEUR_PROFOND] = couleurs || couleursDuFond(toile.ownerDocument);
       effets = effetsV2 || null;
     }
-    return { demarrer, arreter, perturber, dimensionner, changerCouleurs, couleurs: () => [COULEUR_PEU_PROFOND, COULEUR_PROFOND],
+    return { demarrer, arreter, perturber, tracer, exporterEtat, importerEtat, dimensionner, changerCouleurs, couleurs: () => [COULEUR_PEU_PROFOND, COULEUR_PROFOND],
       effets: () => effets, pixels: () => (image ? image.data : null), avancer: temps => { etape(); dessiner(temps); },
       active: () => identifiant !== null, touchers: () => touchers,
       reglages: () => ({ cellules: cellulesCible, amortissement: AMORTISSEMENT, delaiOndes: EAU.delaiOndes,
@@ -289,25 +347,42 @@ const ecranEau = (() => {
     const fenetre = doc.defaultView;
     function ignorer(e) {
       const cible = e.target && e.target.closest ? e.target : null;
-      return !cible || cible.closest('#ecran-eau') || cible.closest('dialog[open]');
+      // 08/11/2026 (demande de Max) : l'eau reste jouable derrière les écrans de choix sur l'eau (fenetre-choix) ;
+      // ancienne règle : toute fenêtre ouverte était ignorée (cible.closest('dialog[open]')).
+      // 09/11/2026 (défaut 1) : + les deux fenêtres de saisie posées sur l'eau (« + » et crayon) : l'eau suit le doigt dessous.
+      // Avant : cible.closest('dialog[open]:not(.fenetre-choix)').
+      return !cible || cible.closest('#ecran-eau') || cible.closest('dialog[open]:not(.fenetre-choix):not(#clavier):not(#ajout-tache)');
     }
     function position(e) {
       return [e.clientX / (fenetre.innerWidth || 1), e.clientY / (fenetre.innerHeight || 1)];
     }
+    // 08/11/2026 : dernière position de chaque doigt, pour la traînée continue.
+    const derniers = new Map();
+    function glisser(cle, x, y) {
+      const avant = derniers.get(cle);
+      if (avant) couche.tracer(avant[0], avant[1], x, y, forceGlisse(doc), EAU.rayon);
+      else couche.perturber(x, y, forceGlisse(doc), EAU.rayon);
+      derniers.set(cle, [x, y]);
+    }
     doc.addEventListener('pointerdown', e => {
       if (!couche.active() || ignorer(e)) return;
       couche.perturber(...position(e), EAU.forcePose, EAU.rayon);
+      derniers.set(`p${e.pointerId}`, position(e));
     }, { passive: true, capture: true });
     doc.addEventListener('pointermove', e => {
       if (!couche.active() || !e.buttons || ignorer(e)) return;
-      couche.perturber(...position(e), EAU.forceGlisse, EAU.rayon);
+      glisser(`p${e.pointerId}`, ...position(e));
     }, { passive: true, capture: true });
+    for (const type of ['pointerup', 'pointercancel']) doc.addEventListener(type, e => derniers.delete(`p${e.pointerId}`), { passive: true, capture: true });
+    for (const type of ['touchend', 'touchcancel']) {
+      doc.addEventListener(type, e => { for (const t of e.changedTouches || []) derniers.delete(`t${t.identifier}`); }, { passive: true, capture: true });
+    }
     // Pendant un défilement, le téléphone garde le geste (plus d'événements « pointer ») : on suit le
     // doigt avec les événements « touch », en écoute passive seulement (jamais de preventDefault).
     doc.addEventListener('touchmove', e => {
       if (!couche.active() || ignorer(e)) return;
       for (const t of e.changedTouches || []) {
-        couche.perturber(t.clientX / (fenetre.innerWidth || 1), t.clientY / (fenetre.innerHeight || 1), EAU.forceGlisse, EAU.rayon);
+        glisser(`t${t.identifier}`, t.clientX / (fenetre.innerWidth || 1), t.clientY / (fenetre.innerHeight || 1));
       }
     }, { passive: true, capture: true });
     doc.addEventListener('visibilitychange', () => {
@@ -320,6 +395,8 @@ const ecranEau = (() => {
       changerCouleurs: (couleurs, effetsV2) => couche.changerCouleurs(couleurs, effetsV2),
       couleurs: () => couche.couleurs(),
       effets: () => couche.effets(),
+      exporterEtat: () => couche.exporterEtat(),
+      importerEtat: etat => couche.importerEtat(etat),
       etat: () => ({ active: couche.active(), touchers: couche.touchers(), reglagesEau: couche.reglages() })
     };
   }
@@ -409,14 +486,40 @@ const ecranEau = (() => {
       boutonsVisibles(!videoUtilisable());
     }
 
-    function afficher() {
-      if (typeof options.avantAffichage === 'function') options.avantAffichage();
+    // 08/11/2026 (accord de Max) : descente douce, symétrique de la montée. { descente: true } = retour depuis
+    // l'accueil (geste de haut en bas) : la date et les boutons s'enfoncent, flous, en fondu, pendant que l'eau seule
+    // revient en fondu (même durée que la montée) ; l'eau de l'accueil s'arrête à la FIN (avantAffichage).
+    // Animations réduites, durée 0 ou premier affichage : d'un coup, comme avant.
+    let descente = null;
+    function finDescente() {
+      if (descente !== null) annulerMinuterie(descente);
+      descente = null;
+      racine.classList.remove('eau-revient');
+      doc.documentElement.classList.remove('cap-descend');
+    }
+    function afficher({ descente: douce = false } = {}) {
+      if (descente !== null) return; // déjà en train de descendre
+      const duree = douce && !reduit && racine.hidden ? Math.max(0, Number(reglages.dureeSortieMs) || 0) : 0;
+      if (!duree && typeof options.avantAffichage === 'function') options.avantAffichage();
       if (sortie !== null) { annulerMinuterie(sortie); sortie = null; }
       racine.classList.remove('eau-sort');
       doc.documentElement.classList.remove('cap-monte');
+      if (duree) {
+        racine.style.setProperty('--duree-sortie', `${duree}ms`);
+        doc.documentElement.style.setProperty('--duree-sortie', `${duree}ms`);
+        racine.classList.add('eau-revient');
+        doc.documentElement.classList.add('cap-descend');
+        descente = minuterie(() => {
+          descente = null;
+          finDescente();
+          if (typeof options.avantAffichage === 'function') options.avantAffichage();
+        }, duree);
+      }
       racine.hidden = false;
       doc.documentElement.classList.add('eau-ouverte');
       revenirAuxVagues();
+      // 08/11/2026 : retour à l'eau seule (bouton « Eau ») : elle reprend les vagues de l'accueil.
+      if (typeof options.etatAvantAffichage === 'function') couche.importerEtat(options.etatAvantAffichage());
       couche.demarrer();
     }
 
@@ -435,8 +538,12 @@ const ecranEau = (() => {
     // s'efface (environ 1 s) ; aucun toucher n'est retenu par l'eau pendant ce temps.
     function entrerDansCap() {
       if (sortie !== null || racine.hidden) return;
+      finDescente(); // 08/11/2026 : geste vers le haut pendant la descente = elle s'arrête, Cap remonte
       annulerSecours();
       try { video.pause(); } catch (e) { /* rien */ }
+      // 08/11/2026 (accord de Max) : l'eau de l'accueil reçoit les vagues du geste et démarre DÈS MAINTENANT,
+      // sous l'eau seule qui s'efface : les traces continuent puis s'apaisent, sans remise à zéro.
+      if (typeof options.avantSortie === 'function') options.avantSortie(couche.exporterEtat());
       const duree = reduit ? 0 : Math.max(0, Number(reglages.dureeSortieMs) || 0);
       if (!duree) { finEntree(); return; }
       racine.style.setProperty('--duree-sortie', `${duree}ms`);
@@ -455,14 +562,15 @@ const ecranEau = (() => {
     surface.addEventListener('pointerdown', e => {
       if (pointeur) return;
       const p = position(e);
-      pointeur = { id: e.pointerId, depart: p, t: maintenant() };
+      pointeur = { id: e.pointerId, depart: p, dernier: p, t: maintenant() };
       couche.perturber(p.x, p.y, EAU.forcePose, EAU.rayon);
       try { surface.setPointerCapture(e.pointerId); } catch (erreur) { /* rien */ }
     });
     surface.addEventListener('pointermove', e => {
       if (!pointeur || e.pointerId !== pointeur.id) return;
       const p = position(e);
-      couche.perturber(p.x, p.y, EAU.forceGlisse, EAU.rayon);
+      couche.tracer(pointeur.dernier.x, pointeur.dernier.y, p.x, p.y, forceGlisse(doc), EAU.rayon); // 08/11/2026 : traînée continue
+      pointeur.dernier = p;
     });
     function fin(e) {
       if (!pointeur || e.pointerId !== pointeur.id) return;
@@ -483,8 +591,9 @@ const ecranEau = (() => {
 
     return {
       afficher, entrerDansCap, revenirAuxVagues, demarrerVideo, changerCouleurs: (couleurs, effetsV2) => couche.changerCouleurs(couleurs, effetsV2),
+      etatVagues: () => couche.exporterEtat(), // 08/11/2026 : lecture seule (tests)
       etat: () => ({ visible: !racine.hidden, video: etatVideo, panne: videoEnPanne, boutons: boutons.classList.contains('visible'),
-        animation: couche.active(), entree: sortie !== null, reglagesEau: couche.reglages() })
+        animation: couche.active(), entree: sortie !== null, descente: descente !== null, reglagesEau: couche.reglages() })
     };
   }
 
@@ -498,7 +607,10 @@ const ecranEau = (() => {
     let active = true;
     try { active = !preferences || preferences.getItem(CLE_ACTIVE) !== 'non'; } catch (e) { active = true; }
     const fond = eauAccueil(doc, options);
-    const ecran = monter(racine, { ...options, avantAffichage: () => fond.arreter(), apresEntree: () => { if (active) fond.demarrer(); } });
+    // 08/11/2026 (accord de Max) : les vagues passent d'une eau à l'autre (avantSortie, etatAvantAffichage).
+    const ecran = monter(racine, { ...options, avantAffichage: () => fond.arreter(), apresEntree: () => { if (active) fond.demarrer(); },
+      avantSortie: etat => { if (active) { fond.importerEtat(etat); fond.demarrer(); } },
+      etatAvantAffichage: () => fond.exporterEtat() });
     ecran.fond = fond;
     // Étape A : mode clair / sombre : la même couleur pour l'eau d'ouverture et l'eau de l'accueil.
     const changerCouleursOuverture = ecran.changerCouleurs;
@@ -522,7 +634,7 @@ const ecranEau = (() => {
     if (interrupteur) interrupteur.addEventListener('click', () => ecran.changerEau(!active));
     appliquerActive();
     const allerEau = doc.getElementById('aller-eau');
-    if (allerEau) allerEau.addEventListener('click', () => { if (active) ecran.afficher(); });
+    if (allerEau) allerEau.addEventListener('click', () => { if (active) ecran.afficher({ descente: true }); }); // 08/11/2026 : descente douce
     if (!active) return ecran;
     const stockage = options.stockage !== undefined ? options.stockage : (typeof sessionStorage !== 'undefined' ? sessionStorage : null);
     let dejaVue = false;
@@ -536,7 +648,7 @@ const ecranEau = (() => {
     return ecran;
   }
 
-  return { REGLAGES, EAU, EAU_V2, CLE_VUE, CLE_ACTIVE, creerCouche, eauAccueil, monter, auDemarrage, couleursBandes };
+  return { REGLAGES, EAU, EAU_V2, FORCE_GLISSE_CLAIRE, forceGlisse, CLE_VUE, CLE_ACTIVE, creerCouche, eauAccueil, monter, auDemarrage, couleursBandes };
 })();
 
 // Démarrage réel dans Cap. La page des tests automatiques (window.CAP_TESTS) crée ses propres écrans

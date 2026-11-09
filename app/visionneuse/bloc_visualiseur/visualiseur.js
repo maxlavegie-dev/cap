@@ -28,12 +28,16 @@
   // charge ce script. A ajuster ici si Cap range le dossier "pdfjs"
   // ailleurs (voir LISEZ_MOI.txt).
   var CHEMIN_PDFJS_WORKER = "pdfjs/pdf.worker.min.js";
+  // 07/11/2026 (Claude Code, accord de Max) : pdf.js de Cap, rangé dans app/pdfjs (la visionneuse est dans app/visionneuse).
+  CHEMIN_PDFJS_WORKER = "../pdfjs/pdf.worker.min.js";
   if (window.pdfjsLib) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = CHEMIN_PDFJS_WORKER;
   }
 
   var LIMITE_DOCUMENTS = 12;
   var ZOOM_MIN = 0.5, ZOOM_MAX = 6;
+  // 08/11/2026 (Claude Code, accord de Max) : dézoom jusqu'au quart de la taille d'ouverture (au lieu de la moitié).
+  ZOOM_MIN = 0.25;
   var SEUIL_DOUBLE_APPUI = 320;
 
   var documentsListe = [];
@@ -176,8 +180,12 @@
         doc.echelleDepartPincement = doc.zoomEchelle;
         doc.dernierePositionPincement = centrePointeursDoc(doc);
         doc.departGlissement = null;
+        // 08/11/2026 (Claude Code, accord de Max) : un pincement commence ; ses doigts levés ne comptent pas comme un double appui.
+        doc.pincementRecent = true;
       } else if (nbPointeursDoc(doc) === 1) {
         doc.departGlissement = { x: e.clientX, y: e.clientY, zoomX: doc.zoomX, zoomY: doc.zoomY };
+        // 08/11/2026 (Claude Code, accord de Max) : nouveau geste, l'ancien pincement est fini.
+        doc.pincementRecent = false;
         doc.positionAppuiLong = { x: e.clientX, y: e.clientY };
         annulerAppuiLong();
         doc.minuteurAppuiLong = setTimeout(function () {
@@ -232,6 +240,12 @@
     carte.addEventListener("pointercancel", finPointeur);
 
     carte.addEventListener("pointerup", function (e) {
+      // 08/11/2026 (Claude Code, accord de Max) : fin d'un pincement = pas un double appui (sinon saut à 2,5 ou retour à 1 au lâcher).
+      if (doc.pincementRecent) {
+        if (nbPointeursDoc(doc) === 0) doc.pincementRecent = false;
+        doc.dernierAppuiTemps = 0;
+        return;
+      }
       var maintenant = performance.now();
       if (maintenant - doc.dernierAppuiTemps < SEUIL_DOUBLE_APPUI) {
         if (doc.zoomEchelle > 1.05) {

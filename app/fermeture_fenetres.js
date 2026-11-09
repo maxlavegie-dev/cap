@@ -160,5 +160,17 @@ const fermetureFenetres = (() => {
 
   function aUnBrouillon(cle) { return brouillons.has(cle); }
 
-  return { installer, restaurer, propre, toucheACote, aUnBrouillon };
+  // 08/11/2026 (geste RETOUR, geste_retour.js) : même sortie commune que « toucher à côté ».
+  // Renvoie false si la fenêtre n'est pas connue ici. Texte commencé : « Garder / Jeter » tout de suite (sans fondu).
+  // Sinon : « sortie » fait son fondu puis appelle la fermeture (revérifiée à ce moment-là).
+  function gerer(dialogue, sortie = fin => fin()) {
+    const options = reglages.get(dialogue);
+    if (!options || !dialogue.open) return false;
+    if (dialogue.querySelector(':scope > .question-fermeture') || options.bloque?.()) return true;
+    if (aDuTexte(dialogue)) { poserQuestion(dialogue); return true; }
+    sortie(() => { if (dialogue.open) toucheACote(dialogue); });
+    return true;
+  }
+
+  return { installer, restaurer, propre, toucheACote, aUnBrouillon, gerer };
 })();

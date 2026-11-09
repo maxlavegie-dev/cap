@@ -298,12 +298,16 @@ const scanEcran = (() => {
     async function afficherEtat() {
       try {
         const attente = await file.enAttente();
+        // 08/11/2026 (demande de Max, gagner de la place) : plus de « Tous les scans sont déposés dans 00_A_CLASSER. »
+        // en bas de l'écran de scan quand rien n'attend ; les scans en attente restent annoncés.
         etat.textContent = attente.length
           ? scanDocuments.messageEnAttente(attente.length, raisonHorsLigne())
-          : 'Tous les scans sont déposés dans 00_A_CLASSER.';
+          : '';
+        etat.hidden = !attente.length;
         afficherIndicateur(attente.length);
       } catch (erreur) {
         etat.textContent = erreur.message;
+        etat.hidden = false;
       }
     }
 

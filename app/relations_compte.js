@@ -164,7 +164,9 @@ const relationsCompte = (() => {
     await page.render({ canvasContext: canvas.getContext('2d'), viewport: vue }).promise;
   }
 
-  function brancher(doc, { compte, pdfjs }) {
+  // 09/11/2026 (décision de Max, bloc c76) : + propositionsOeil (false par défaut) : l'œil ouvre la visionneuse VIDE, sans lire
+  // ni proposer les PDF du compte Cap ; Max touche lui-même « Choisir un fichier ». La lecture d'avant est gardée (true).
+  function brancher(doc, { compte, pdfjs, visionneuse = null, stockage = (typeof localStorage !== 'undefined' ? localStorage : null), maintenant = () => Date.now(), propositionsOeil = false }) {
     const el = id => doc.getElementById(id);
     const champ = el('adresse-compte-relations');
     const connecter = el('connecter-compte-relations');
@@ -199,8 +201,68 @@ const relationsCompte = (() => {
     let indexPdf = 0;
     let numero = 1;
 
+    // ----- 08/11/2026 (accord de Max) : l'œil de « Autre » ouvre DIRECTEMENT la visionneuse (PDF du compte Cap) -----
+    const laVisionneuse = () => (typeof visionneuse === 'function' ? visionneuse() : visionneuse);
+    let lectureOeil = 0;
+    async function ouvrirOeil(texteRetour = '') {
+      const v = laVisionneuse();
+      if (!v || typeof v.annoncer !== 'function') return;
+      // 09/11/2026 (bloc c76) : plus aucune proposition : la visionneuse s'ouvre vide (aucune lecture du Drive, aucun message).
+      // Les PDF du compte Cap ne sont ni touchés ni effacés : ils ne sont simplement plus proposés à l'ouverture.
+      if (!propositionsOeil && typeof v.ouvrirVide === 'function') { ++lectureOeil; await v.ouvrirVide(); return; }
+      const numeroOeil = ++lectureOeil;
+      if (!compte.adresse()) {
+        v.annoncer('Identifiant du compte Cap absent : écris-le d’abord dans « Réglages du Drive » (Autre, puis Réglages).');
+        return;
+      }
+      if (!compte.connecte()) {
+        v.annoncer(texteRetour || 'Le compte Cap n’est pas connecté (ou la connexion a expiré, au bout d’environ 1 h). '
+          + 'Touche « Autoriser la lecture du compte Cap » : tu reviendras ici.', { autorisation: true });
+        return;
+      }
+      v.annoncer('Lecture en cours… (recherche des PDF du compte Cap ; rien n’est modifié)', { enLecture: true });
+      try {
+        const r = await compter(compte);
+        if (numeroOeil !== lectureOeil || !v.ouverte()) return; // fermée pendant la lecture : rien ne se rouvre
+        const liste = [...r.pdfs, ...r.documents.pdfs];
+        // 09/11/2026 (décision de Max après c72) : aucun document : la visionneuse vide, SANS message. Avant :
+        // if (!liste.length) { v.annoncer('Aucun PDF dans le compte Cap pour l’instant. Rien n’a été modifié.'); return; }
+        if (!liste.length) { if (typeof v.ouvrirVide === 'function') await v.ouvrirVide(); else v.annoncer('Aucun PDF dans le compte Cap pour l’instant. Rien n’a été modifié.'); return; }
+        await v.ouvrir(liste.map(id => ({ id })));
+      } catch (erreur) {
+        if (numeroOeil !== lectureOeil || !v.ouverte()) return;
+        const expire = /expir|pas connecté/i.test(String(erreur && erreur.message || ''));
+        v.annoncer(expire
+          ? 'La connexion du compte Cap a expiré : touche « Autoriser la lecture du compte Cap », tu reviendras ici.'
+          : `PDF non ouverts : ${raison(erreur)}`, { autorisation: expire });
+      }
+    }
+    const oeil = el('ouvrir-oeil');
+    if (oeil) oeil.addEventListener('click', () => { void ouvrirOeil(); });
+
     // Retour de Google pour le compte Cap : « Réglages du Drive » est rouvert, avec le résultat.
-    if (compte.retourRecent()) {
+    // 08/11/2026 : si « Autoriser » avait été touché DANS la visionneuse, c'est elle qui se rouvre (PDF lus).
+    const retourVisionneuse = compte.retourRecent() && stockage && typeof visionneuseCap !== 'undefined'
+      && visionneuseCap.retourDemande(stockage, maintenant());
+    if (retourVisionneuse) {
+      const apresChargementOeil = () => { void ouvrirOeil(compte.connecte() ? '' : compte.message()); };
+      if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', apresChargementOeil, { once: true });
+      else apresChargementOeil();
+    }
+    // 08/11/2026 (accord de Max) : « Autoriser » touché dans la fenêtre « Musique » : au retour, Autre puis la musique
+    // (le Lecteur, branché par relations_mp3.js) au lieu de « Réglages du Drive ».
+    const retourMusique = !retourVisionneuse && compte.retourRecent() && stockage && typeof visionneuseCap !== 'undefined'
+      && visionneuseCap.retourDemande(stockage, maintenant(), visionneuseCap.CLE_RETOUR_MUSIQUE);
+    if (retourMusique) {
+      const apresChargementMusique = () => {
+        const autre = el('ouvrir-autre');
+        const lecteur = el('ouvrir-lecteur');
+        if (autre && el('ecran-autre') && el('ecran-autre').hidden) autre.click();
+        if (lecteur) lecteur.click();
+      };
+      if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', apresChargementMusique, { once: true });
+      else apresChargementMusique();
+    } else if (!retourVisionneuse && compte.retourRecent()) {
       const apresChargement = () => {
         const ouvrir = el('ouvrir-reglages-drive');
         if (ouvrir && !el('reglages-drive')?.open) ouvrir.click();
@@ -264,6 +326,10 @@ const relationsCompte = (() => {
 
     boutonPdf.addEventListener('click', () => {
       if (!pdfs.length) return;
+      // 07/11/2026 (étape B, lot 1, accord de Max) : les PDF s'ouvrent dans la visionneuse de Zencoder.
+      // L'ancien petit lecteur ci-dessous est DÉSACTIVÉ dans Cap (code gardé, utilisé seulement sans visionneuse).
+      const v = typeof visionneuse === 'function' ? visionneuse() : visionneuse;
+      if (v) { void v.ouvrir(pdfs.map(id => ({ id }))); return; }
       if (!lecteur.open) lecteur.showModal();
       void ouvrirIndex(0);
     });
@@ -283,5 +349,6 @@ const relationsCompte = (() => {
 })();
 
 if (!(typeof window !== 'undefined' && window.CAP_TESTS)) {
-  relationsCompte.brancher(document, { compte: googleCompteRelations, pdfjs: () => relationsCompte.chargerPdfjs(document, window) });
+  relationsCompte.brancher(document, { compte: googleCompteRelations, pdfjs: () => relationsCompte.chargerPdfjs(document, window),
+    visionneuse: () => (typeof visionneuseCap !== 'undefined' ? visionneuseCap.instance : null) });
 }

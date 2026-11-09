@@ -190,6 +190,12 @@ public class MainActivity extends Activity {
                     ouvrirDansChromeSecurise(adresse);
                     return true;
                 }
+                // 09/11/2026 (petit tableur) : « Ouvrir le tableur » (Réglages) ouvre le tableur HORS de Cap
+                // (appli Google Sheets si elle est là, sinon Chrome) : Cap reste ouvert derrière.
+                if ("docs.google.com".equals(adresse.getHost()) && "https".equals(adresse.getScheme())) {
+                    ouvrirHorsDeCap(adresse);
+                    return true;
+                }
                 return false;
             }
         });
@@ -418,6 +424,17 @@ public class MainActivity extends Activity {
     // pas la WebView de la coque) : Google refuse de s'afficher dans une fenêtre embarquée.
     private void ouvrirDansChromeSecurise(Uri adresse) {
         new CustomTabsIntent.Builder().build().launchUrl(this, adresse);
+    }
+
+    // 09/11/2026 : lien vers un tableur Google (docs.google.com seulement, voir plus haut).
+    private void ouvrirHorsDeCap(Uri adresse) {
+        try {
+            Intent vue = new Intent(Intent.ACTION_VIEW, adresse);
+            vue.addCategory(Intent.CATEGORY_BROWSABLE);
+            startActivity(vue);
+        } catch (android.content.ActivityNotFoundException erreur) {
+            ouvrirDansChromeSecurise(adresse);
+        }
     }
 
     // ----- Numérisation, étape 3 (05/11/2026) : scanner de Google + lecture du texte -----

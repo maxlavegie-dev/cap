@@ -186,10 +186,11 @@ const googleAgenda = (() => {
   async function creerEvenementsFictifs(id) {
     const aujourdhui = partsParis(new Date()).date;
     const modeles = [
-      { jours: 1, titre: 'FICTIF – Dentiste', journee: true, description: '14h30 – Cabinet fictif' },
+      // 09/11/2026 (décision de Max, avant publication) : exemples sans rendez-vous de santé (avant : deux rendez-vous de soins).
+      { jours: 1, titre: 'FICTIF – Plombier', journee: true, description: '14h30 – Atelier fictif' },
       { jours: 2, titre: 'FICTIF – Répétition studio', debut: '10:00', fin: '10:30' },
       { jours: 4, titre: 'FICTIF – Rendez-vous éditeur', debut: '16:15', fin: '17:00' },
-      { jours: 6, titre: 'FICTIF – Kiné', debut: '09:05', fin: '09:35' }
+      { jours: 6, titre: 'FICTIF – Garage', debut: '09:05', fin: '09:35' }
     ];
     const url = `${racine}/calendars/${encodeURIComponent(id)}/events`;
     for (const modele of modeles) {

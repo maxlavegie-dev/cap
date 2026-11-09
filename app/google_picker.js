@@ -17,6 +17,8 @@ const googlePicker = (() => {
     mots_cles_courts: 'cap_fichier_mots_cles_courts_v1',
     // Émetteur des scans (06/11/2026) : Dictionnaire général, choisi par Max.
     dictionnaire: 'cap_fichier_dictionnaire_v1',
+    // Commandes vocales (08/11/2026, accord de Max) : tableur « Commandes vocales », choisi par Max.
+    commandes_vocales: 'cap_fichier_commandes_vocales_v1',
     // Journaux de chantier (05/11/2026) : créés par Cap (pas choisis), retenus de la même façon.
     dossier_journaux: 'cap_dossier_journaux_v1',
     journal_numerisation: 'cap_journal_numerisation_v1',
@@ -143,7 +145,8 @@ const googlePicker = (() => {
     architecture: { type: typeDoc, titre: 'Choisis le Doc d’architecture des archives', libelle: 'un Google Doc' },
     tableur_classement: { type: typeTableur, titre: 'Choisis le tableur de classement', libelle: 'un tableur Google Sheets' },
     mots_cles_courts: { type: typeTableur, titre: 'Choisis le tableur « Cap – Mots-clés courts – à valider »', libelle: 'un tableur Google Sheets' },
-    dictionnaire: { type: typeTableur, titre: 'Choisis le tableur « Dictionnaire général »', libelle: 'un tableur Google Sheets' }
+    dictionnaire: { type: typeTableur, titre: 'Choisis le tableur « Dictionnaire général »', libelle: 'un tableur Google Sheets' },
+    commandes_vocales: { type: typeTableur, titre: 'Choisis le tableur « Commandes vocales »', libelle: 'un tableur Google Sheets' }
   });
 
   // Numéro du projet Cap (05/11/2026) : avec le droit drive.file, Google ne rattache un fichier
@@ -215,6 +218,7 @@ const googlePicker = (() => {
     tableur_classement: 'cap_fichier_tableur_classement',
     mots_cles_courts: 'cap_fichier_mots_cles_courts',
     dictionnaire: 'cap_fichier_dictionnaire',
+    commandes_vocales: 'cap_fichier_commandes_vocales',
     dossier_journaux: 'cap_dossier_journaux',
     journal_numerisation: 'cap_journal_numerisation',
     journal_general: 'cap_journal_general'
@@ -225,6 +229,7 @@ const googlePicker = (() => {
     tableur_classement: 'Tableur de classement',
     mots_cles_courts: 'Tableur des mots-clés courts',
     dictionnaire: 'Dictionnaire général',
+    commandes_vocales: 'Commandes vocales',
     dossier_journaux: 'Journaux',
     journal_numerisation: 'Journal Numérisation',
     journal_general: 'Journal Général'
