@@ -23,7 +23,7 @@ const commandesNavigation = (() => {
     const vueComplete = () => doc.body.classList.contains('vue-complete');
     const ecranCap = () => doc.querySelector('.ecran-cap:not([hidden])');
     // 09/11/2026 : + l'écran Chercher (son « Fermer » est visible).
-    const FERMER_ECRAN = { 'ecran-autre': 'fermer-autre', 'ecran-reglages': 'fermer-reglages', 'ecran-micro': 'fermer-micro', 'ecran-chercher': 'fermer-chercher-cap' };
+    const FERMER_ECRAN = { 'ecran-autre': 'fermer-autre', 'ecran-reglages': 'fermer-reglages', 'ecran-micro': 'fermer-micro', 'ecran-chercher': 'fermer-chercher-cap', 'ecran-bureau': 'fermer-bureau' }; // c165 : + Bureau
 
     // 09/11/2026 (défaut vu par Max sur c60) : sur l'ÉCRAN D'EAU, les commandes changeaient d'écran SOUS l'eau (elle reste
     // par-dessus tout) : rien ne se voyait. Maintenant, une commande qui ouvre un écran fait d'abord entrer dans Cap
@@ -44,6 +44,7 @@ const commandesNavigation = (() => {
       const ouverte = id => { const f = el(id); return Boolean(f && f.open); };
       if (ouverte('choix-voix')) toucher('fermer-choix-voix');
       if (ouverte('musique-relations')) toucher('fermer-musique-relations');
+      if (ouverte('chantiers-cap')) toucher('fermer-chantiers'); // 09/11/2026 (chantiers, séance 1)
       const lecteur = typeof relationsMp3 !== 'undefined' ? relationsMp3.instance : null;
       if (ouverte('lecteur-mp3-relations') && lecteur && lecteur.etat && lecteur.etat().actif) lecteur.arrierePlan();
       else if (ouverte('lecteur-mp3-relations')) el('lecteur-mp3-relations').close();
@@ -57,6 +58,9 @@ const commandesNavigation = (() => {
       const e = ecranCap();
       if (e && FERMER_ECRAN[e.id]) toucher(FERMER_ECRAN[e.id]);
       if (vueComplete()) toucher('fermer-chercher');
+      // 12/11/2026 (c167) : la ligne de recherche de l'accueil se ferme aussi (accueil propre, comme l'ancien écran Chercher).
+      const bandeRecherche = el('bande-recherche-accueil');
+      if (bandeRecherche) bandeRecherche.hidden = true;
     }
 
     const actions = {
@@ -66,6 +70,15 @@ const commandesNavigation = (() => {
       'NAV-01': () => {
         const e = ecranCap();
         if (e && e.id === 'ecran-chercher') return 'Chercher est déjà ouvert.';
+        // 12/11/2026 (c167) : la ligne de recherche de l'accueil : déjà ouverte, rien ne bouge ; un écran ouvert se ferme d'abord.
+        const bande = el('bande-recherche-accueil');
+        if (bande) {
+          if (!bande.hidden && !e && !vueComplete()) return 'Chercher est déjà ouvert.';
+          if (vueComplete()) toucher('fermer-chercher');
+          if (e && FERMER_ECRAN[e.id]) toucher(FERMER_ECRAN[e.id]);
+          if (bande.hidden) toucher('ouvrir-chercher');
+          return 'J’ouvre Chercher.';
+        }
         if (vueComplete()) toucher('fermer-chercher');
         if (!el('ecran-chercher') && e && FERMER_ECRAN[e.id]) toucher(FERMER_ECRAN[e.id]);
         toucher('ouvrir-chercher');
@@ -87,6 +100,8 @@ const commandesNavigation = (() => {
         const vi = typeof visionneuseCap !== 'undefined' ? visionneuseCap.instance : null;
         if (vi && vi.fermerParVoix && (vi.ouverte() || vi.vignettesOuvertes())) return vi.fermerParVoix();
         if (el('choix-voix') && el('choix-voix').open) { toucher('fermer-choix-voix'); return 'Je ferme.'; }
+        // 11/11/2026 (c130) : comme le bouton « Fermer » : sur une fiche, retour à la liste ; sur la liste, fermeture.
+        if (el('chantiers-cap') && el('chantiers-cap').open) { const fiche = el('chantiers-cap').classList.contains('fiche-ouverte'); toucher('fermer-chantiers'); return fiche ? 'Je reviens à la liste des chantiers.' : 'Je ferme les chantiers.'; } // 09/11/2026
         const e = ecranCap();
         const fenetre = e || null;
         if (fenetre) {
@@ -95,6 +110,9 @@ const commandesNavigation = (() => {
           return 'Je ferme.';
         }
         if (vueComplete()) { toucher('fermer-chercher'); return 'Je ferme.'; }
+        // 12/11/2026 (décision de Max, c167) : la ligne de recherche de l'accueil se ferme aussi à la voix.
+        const bandeRecherche = el('bande-recherche-accueil');
+        if (bandeRecherche && !bandeRecherche.hidden) { bandeRecherche.hidden = true; return 'Je ferme.'; }
         return 'Il n’y a rien à fermer.';
       },
       'NAV-10': () => theme(true),

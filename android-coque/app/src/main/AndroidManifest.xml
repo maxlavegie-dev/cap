@@ -7,12 +7,21 @@
          Autorisation du téléphone, demandée à Max au premier usage ; pas un droit Google. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- 12/11/2026 (accord écrit de Max, marche M3a) : LIRE les MMS reçus, pour les ranger plus tard par personne.
+         Autorisation du téléphone, demandée à Max seulement quand il touche le bouton (jamais au démarrage) ; pas un droit
+         Google. Lecture seule : Cap n'envoie, n'efface ni ne modifie aucun message (aucune autre permission SMS). -->
+    <uses-permission android:name="android.permission.READ_SMS" />
 
     <application
         android:label="@string/app_name"
         android:icon="@android:drawable/sym_def_app_icon"
         android:usesCleartextTraffic="false"
-        android:allowBackup="true">
+        android:dataExtractionRules="@xml/regles_extraction"
+        android:allowBackup="false">
+        <!-- 12/11/2026 (c157, décision de Max) : sauvegarde Android COUPÉE pour Cap : aucune donnée de Cap (dont la copie des
+             coordonnées du Dictionnaire, c154) ne part dans la sauvegarde Google du téléphone. Tout se reconstruit par
+             « Tout synchroniser ». Un test verrou (test_cap.py) le vérifie.
+             c158 (décision de Max) : + regles_extraction.xml : ni sauvegarde, ni TRANSFERT DIRECT vers un nouveau téléphone. -->
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -50,7 +50,9 @@ const commandesVisionneuse = (() => {
     compte = (typeof googleCompteRelations !== 'undefined' ? googleCompteRelations : null),
     lireArbre = c => relationsCompte.lireArbre(c), sorte = f => relationsCompte.sorte(f),
     visionneuse = () => (typeof visionneuseCap !== 'undefined' ? visionneuseCap.instance : null),
-    transition = (typeof choixSurEau !== 'undefined' ? choixSurEau : null) } = {}) {
+    transition = (typeof choixSurEau !== 'undefined' ? choixSurEau : null),
+    // 11/11/2026 (c146) : le téléphone a-t-il du réseau ? (remplaçable dans les tests)
+    enLigne = () => (typeof navigator === 'undefined' || navigator.onLine !== false) } = {}) {
     if (!commandes) return null;
     const el = id => doc.getElementById(id);
     const fenetre = el('choix-voix');
@@ -87,6 +89,8 @@ const commandesVisionneuse = (() => {
       if (!compte) return { message: 'Le compte Cap n’est pas disponible ici.' };
       const v = visionneuse();
       if (typeof compte.adresse === 'function' && !compte.adresse()) return { message: 'Identifiant du compte Cap absent : écris-le d’abord dans « Réglages du Drive ».' };
+      // 11/11/2026 (accord de Max, c146, ligne 120 ; même idée que c139 à c145) : SANS RÉSEAU, la vraie cause, sans « Autoriser… ».
+      if (!enLigne()) return { message: 'Pas de réseau : je ne peux pas chercher dans le Drive du compte Cap. Reconnecte le téléphone, puis redemande.' };
       if (typeof compte.connecte === 'function' && !compte.connecte()) {
         if (v) v.annoncer('Le compte Cap n’est pas connecté (ou la connexion a expiré, au bout d’environ 1 h). Touche « Autoriser la lecture du compte Cap » : tu reviendras ici.', { autorisation: true });
         return { message: 'Le compte Cap n’est pas connecté (ou la connexion a expiré) : touche « Autoriser la lecture du compte Cap ».' };

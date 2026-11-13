@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Cap - essai eau calme</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #d9e4e2;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  #cadre-exterieur {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #d9e4e2;
+  }
+
+  #cadre-telephone {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  #ecran-telephone {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  #camera-telephone {
+    display: none;
+  }
+
+  @media (min-width: 560px) {
+    #cadre-telephone {
+      width: min(90vw, 90vh * 0.45);
+      height: min(90vh, 90vw * (20 / 9));
+      aspect-ratio: 9 / 20;
+      border: 10px solid #2b2d2e;
+      border-radius: 46px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+      background: #111;
+    }
+
+    #ecran-telephone {
+      inset: 0;
+      border-radius: 36px;
+    }
+
+    #camera-telephone {
+      display: block;
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #3a3c3d;
+      z-index: 5;
+    }
+  }
+
+  #ecran-eau {
+    position: absolute;
+    inset: 0;
+  }
+
+  #video-galet {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #111;
+  }
+
+  #toile-eau {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    filter: blur(1.4px);
+    opacity: 0.55;
+  }
+
+  #toile-galet {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    pointer-events: none;
+  }
+
+  #revenir-eau {
+    position: absolute;
+    left: 50%;
+    bottom: 3%;
+    transform: translateX(-50%);
+    font-size: 3.2vw;
+    color: #6b8e88;
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0.5em 1em;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.8s ease;
+  }
+
+  #revenir-eau.visible {
+    opacity: 0.85;
+    pointer-events: auto;
+  }
+
+  #boutons-fin {
+    position: absolute;
+    left: 50%;
+    bottom: 4%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1em;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 1s ease;
+  }
+
+  #boutons-fin.visible {
+    opacity: 0.9;
+    pointer-events: auto;
+  }
+
+  #boutons-fin button {
+    font-size: 2.8vw;
+    color: #3a3a38;
+    background: rgba(255, 255, 255, 0.55);
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    padding: 0.6em 1.2em;
+  }
+</style>
+</head>
+<body>
+
+  <div id="cadre-exterieur">
+    <div id="cadre-telephone">
+      <div id="camera-telephone"></div>
+      <div id="ecran-telephone">
+        <div id="ecran-eau">
+          <video id="video-galet" src="../../eau/galet_sortie.mp4" muted playsinline preload="auto"></video>
+          <canvas id="toile-eau"></canvas>
+          <canvas id="toile-galet"></canvas>
+        </div>
+
+        <button id="revenir-eau" type="button">Revenir à l'eau (test)</button>
+
+        <div id="boutons-fin">
+          <button id="bouton-revenir-vagues" type="button">Revenir aux vagues</button>
+          <button id="bouton-entrer-cap" type="button">Entrer dans Cap</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var ecranEau = document.getElementById("ecran-eau");
+  var boutonRevenir = document.getElementById("revenir-eau");
+  var ecranTelephone = document.getElementById("ecran-telephone");
+  var toile = document.getElementById("toile-eau");
+  var ctx = toile.getContext("2d", { alpha: false });
+  var toileGalet = document.getElementById("toile-galet");
+  var ctxGalet = toileGalet.getContext("2d");
+  var videoGalet = document.getElementById("video-galet");
+  var boutonsFin = document.getElementById("boutons-fin");
+  var boutonRevenirVagues = document.getElementById("bouton-revenir-vagues");
+  var boutonEntrerCap = document.getElementById("bouton-entrer-cap");
+
+  var animationsReduites = window.matchMedia
+    ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    : false;
+
+  var largeurFenetre = 0;
+  var hauteurFenetre = 0;
+  var colonnes = 0;
+  var lignes = 0;
+  var buf1 = null;
+  var buf2 = null;
+  var toileBasseRes = document.createElement("canvas");
+  var ctxBasseRes = toileBasseRes.getContext("2d");
+  var imageData = null;
+
+  var AMORTISSEMENT = 0.985;
+  var CELLULES_CIBLE = 46000;
+
+  function dimensionner() {
+    largeurFenetre = ecranTelephone.clientWidth;
+    hauteurFenetre = ecranTelephone.clientHeight;
+    toile.width = largeurFenetre;
+    toile.height = hauteurFenetre;
+    toileGalet.width = largeurFenetre;
+    toileGalet.height = hauteurFenetre;
+
+    var echelle = Math.sqrt((largeurFenetre * hauteurFenetre) / CELLULES_CIBLE);
+    colonnes = Math.max(20, Math.round(largeurFenetre / echelle));
+    lignes = Math.max(20, Math.round(hauteurFenetre / echelle));
+
+    buf1 = new Float32Array(colonnes * lignes);
+    buf2 = new Float32Array(colonnes * lignes);
+
+    toileBasseRes.width = colonnes;
+    toileBasseRes.height = lignes;
+    imageData = ctxBasseRes.createImageData(colonnes, lignes);
+
+    var pixels = imageData.data;
+    for (var i = 0; i < colonnes * lignes; i++) {
+      pixels[i * 4 + 3] = 255;
+    }
+  }
+
+  function ajouterPerturbation(bx, by, force, rayon) {
+    bx = Math.round(bx);
+    by = Math.round(by);
+    for (var dy = -rayon; dy <= rayon; dy++) {
+      for (var dx = -rayon; dx <= rayon; dx++) {
+        var x = bx + dx;
+        var y = by + dy;
+        if (x < 1 || x >= colonnes - 1 || y < 1 || y >= lignes - 1) continue;
+        var distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > rayon) continue;
+        var attenuation = 1 - distance / (rayon + 1);
+        var idx = y * colonnes + x;
+        buf1[idx] += force * attenuation;
+      }
+    }
+  }
+
+  var tempsProchaineOndeAmbiante = 0;
+
+  function ondesAmbiantes(tempsActuel) {
+    if (tempsActuel < tempsProchaineOndeAmbiante) return;
+    var delaiBase = animationsReduites ? 3200 : 1800;
+    tempsProchaineOndeAmbiante = tempsActuel + delaiBase + Math.random() * 1600;
+
+    var bx = 2 + Math.random() * (colonnes - 4);
+    var by = 2 + Math.random() * (lignes - 4);
+    var force = (animationsReduites ? 0.5 : 1.0) + Math.random() * 1.0;
+    var rayon = 1 + Math.round(Math.random() * 2);
+    ajouterPerturbation(bx, by, force, rayon);
+  }
+
+  function etapeSimulation() {
+    for (var y = 1; y < lignes - 1; y++) {
+      var ligneBase = y * colonnes;
+      for (var x = 1; x < colonnes - 1; x++) {
+        var idx = ligneBase + x;
+        var valeur = (
+          buf1[idx - 1] +
+          buf1[idx + 1] +
+          buf1[idx - colonnes] +
+          buf1[idx + colonnes]
+        ) / 2 - buf2[idx];
+        buf2[idx] = valeur * AMORTISSEMENT;
+      }
+    }
+    var tampon = buf1;
+    buf1 = buf2;
+    buf2 = tampon;
+  }
+
+  var COULEUR_PEU_PROFOND = [201, 227, 221];
+  var COULEUR_PROFOND = [156, 182, 184];
+
+  function dessiner(tempsActuel) {
+    var pixels = imageData.data;
+    var reflet = Math.sin(tempsActuel * 0.00018) * 0.5 + 0.5;
+
+    for (var y = 0; y < lignes; y++) {
+      var t = y / lignes;
+      var baseR = COULEUR_PEU_PROFOND[0] + (COULEUR_PROFOND[0] - COULEUR_PEU_PROFOND[0]) * t;
+      var baseG = COULEUR_PEU_PROFOND[1] + (COULEUR_PROFOND[1] - COULEUR_PEU_PROFOND[1]) * t;
+      var baseB = COULEUR_PEU_PROFOND[2] + (COULEUR_PROFOND[2] - COULEUR_PEU_PROFOND[2]) * t;
+
+      var ligneBase = y * colonnes;
+      for (var x = 0; x < colonnes; x++) {
+        var idx = ligneBase + x;
+        var gx = 0, gy = 0;
+        if (x > 0 && x < colonnes - 1) gx = buf1[idx + 1] - buf1[idx - 1];
+        if (y > 0 && y < lignes - 1) gy = buf1[idx + colonnes] - buf1[idx - colonnes];
+
+        var caustique = (gx + gy) * 9;
+        if (caustique > 22) caustique = 22;
+        if (caustique < -22) caustique = -22;
+
+        var refletDouceur = (reflet - 0.5) * 5;
+
+        var r = baseR + caustique + refletDouceur;
+        var g = baseG + caustique + refletDouceur;
+        var b = baseB + caustique * 0.9 + refletDouceur;
+
+        var p = idx * 4;
+        pixels[p] = r < 0 ? 0 : (r > 255 ? 255 : r);
+        pixels[p + 1] = g < 0 ? 0 : (g > 255 ? 255 : g);
+        pixels[p + 2] = b < 0 ? 0 : (b > 255 ? 255 : b);
+      }
+    }
+
+    ctxBasseRes.putImageData(imageData, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(toileBasseRes, 0, 0, colonnes, lignes, 0, 0, largeurFenetre, hauteurFenetre);
+  }
+
+  var ZONE_GALET_VIDEO = { xFrac: 0.5, yFrac: 0.5, rayonFrac: 0.16 };
+
+  var etatVideo = "avant";
+
+  function initVideoGalet() {
+    videoGalet.muted = true;
+    videoGalet.volume = 0;
+
+    videoGalet.addEventListener("loadeddata", function () {
+      videoGalet.currentTime = 0;
+      videoGalet.pause();
+    });
+
+    videoGalet.addEventListener("ended", function () {
+      etatVideo = "fin";
+      boutonsFin.classList.add("visible");
+    });
+  }
+
+  function demarrerVideoGalet() {
+    if (etatVideo !== "avant") return;
+    etatVideo = "lecture";
+    videoGalet.currentTime = 0;
+    var p = videoGalet.play();
+    if (p && typeof p.catch === "function") {
+      p.catch(function () {});
+    }
+  }
+
+  function revenirAuxVagues() {
+    videoGalet.pause();
+    videoGalet.currentTime = 0;
+    etatVideo = "avant";
+    boutonsFin.classList.remove("visible");
+  }
+
+  function toucherGaletVideo(xClient, yClient) {
+    if (etatVideo !== "fin") return false;
+    var rect = ecranTelephone.getBoundingClientRect();
+    var xEcran = xClient - rect.left;
+    var yEcran = yClient - rect.top;
+    var cx = ZONE_GALET_VIDEO.xFrac * largeurFenetre;
+    var cy = ZONE_GALET_VIDEO.yFrac * hauteurFenetre;
+    var rayon = ZONE_GALET_VIDEO.rayonFrac * Math.min(largeurFenetre, hauteurFenetre);
+    var distance = Math.sqrt((xEcran - cx) * (xEcran - cx) + (yEcran - cy) * (yEcran - cy));
+    if (distance > rayon) return false;
+
+    var bx = ZONE_GALET_VIDEO.xFrac * colonnes;
+    var by = ZONE_GALET_VIDEO.yFrac * lignes;
+    ajouterPerturbation(bx, by, 5, 4);
+    return true;
+  }
+
+  initVideoGalet();
+  boutonRevenirVagues.addEventListener("click", revenirAuxVagues);
+  boutonEntrerCap.addEventListener("click", function () {
+    // Maquette seulement, rien de relie pour l'instant.
+  });
+
+  // -- Ancien galet dessine par le code : garde ci-dessous, desactive --
+  // -- (on ne l'appelle plus ; conserve pour pouvoir revenir en arriere) --
+
+  var LISTE_GALETS = [
+    {
+      id: "micro1",
+      xFrac: 0.5,
+      yFrac: 0.5,
+      taille: 46,
+      couleurClaire: "#d7dad7",
+      couleurFoncee: "#a7aba9",
+      couleurMicro: "#6e7372"
+    }
+  ];
+
+  var DUREE_CACHEE = 1300;
+  var DUREE_EMERGENCE = 2800;
+  var DUREE_SORTIE = 1200;
+
+  var VITESSE_SORTIE = 1;
+
+  function creerFormeIrreguliere() {
+    var points = [];
+    var nbPoints = 10;
+    for (var i = 0; i < nbPoints; i++) {
+      var angle = (i / nbPoints) * Math.PI * 2;
+      var variation = 0.85 + Math.random() * 0.3;
+      points.push({ angle: angle, rayon: variation });
+    }
+    return points;
+  }
+
+  var galets = LISTE_GALETS.map(function (config) {
+    return {
+      config: config,
+      forme: creerFormeIrreguliere(),
+      etat: "absent",
+      debutPhase: 0
+    };
+  });
+
+  var gouttes = [];
+
+  function declencherGalets(tempsActuel) {
+    for (var i = 0; i < galets.length; i++) {
+      if (galets[i].etat === "absent") {
+        galets[i].etat = "cachee";
+        galets[i].debutPhase = tempsActuel;
+        galets[i].tempsProchainTrouble = tempsActuel;
+      }
+    }
+    afficherRevenir(true);
+  }
+
+  function reinitialiserGalets() {
+    for (var i = 0; i < galets.length; i++) {
+      galets[i].etat = "absent";
+    }
+    gouttes = [];
+    afficherRevenir(false);
+  }
+
+  function afficherRevenir(visible) {
+    if (visible) {
+      boutonRevenir.classList.add("visible");
+    } else {
+      boutonRevenir.classList.remove("visible");
+    }
+  }
+
+  function ajouterGouttes(xEcran, yEcran, rayonEcran) {
+    var nb = 4 + Math.round(Math.random() * 3);
+    for (var i = 0; i < nb; i++) {
+      var angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.8;
+      var vitesse = 0.4 + Math.random() * 0.5;
+      gouttes.push({
+        x: xEcran + (Math.random() - 0.5) * rayonEcran * 0.6,
+        y: yEcran - rayonEcran * 0.3,
+        vx: Math.cos(angle) * vitesse * 0.3,
+        vy: Math.sin(angle) * vitesse - 0.3,
+        age: 0,
+        ageMax: 900 + Math.random() * 500
+      });
+    }
+  }
+
+  function avancerGalets(tempsActuel, dtMs) {
+    for (var i = 0; i < galets.length; i++) {
+      var g = galets[i];
+      if (g.etat === "absent") continue;
+
+      var ecoule = tempsActuel - g.debutPhase;
+      var cx = g.config.xFrac * colonnes;
+      var cy = g.config.yFrac * lignes;
+
+      if (g.etat === "cachee") {
+        if (tempsActuel >= (g.tempsProchainTrouble || 0)) {
+          g.tempsProchainTrouble = tempsActuel + 180 + Math.random() * 160;
+          var decalX = (Math.random() - 0.5) * 3;
+          var decalY = (Math.random() - 0.5) * 3;
+          ajouterPerturbation(cx + decalX, cy + decalY, 0.8 + Math.random() * 0.6, 2);
+        }
+        if (ecoule >= DUREE_CACHEE) {
+          g.etat = "emergence";
+          g.debutPhase = tempsActuel;
+          g.tempsProchainTrouble = tempsActuel;
+        }
+      } else if (g.etat === "emergence") {
+        if (tempsActuel >= (g.tempsProchainTrouble || 0)) {
+          g.tempsProchainTrouble = tempsActuel + 220;
+          var t = Math.min(ecoule / DUREE_EMERGENCE, 1);
+          ajouterPerturbation(cx, cy, 0.6 + t * 1.4, 2 + Math.round(t));
+        }
+        if (ecoule >= DUREE_EMERGENCE) {
+          g.etat = "sortie";
+          g.debutPhase = tempsActuel;
+          ajouterPerturbation(cx, cy, 10, 5);
+
+          var xEcran = g.config.xFrac * largeurFenetre;
+          var yEcran = g.config.yFrac * hauteurFenetre;
+          ajouterGouttes(xEcran, yEcran, g.config.taille);
+        }
+      } else if (g.etat === "sortie") {
+        if (ecoule >= DUREE_SORTIE) {
+          g.etat = "flottaison";
+          g.debutPhase = tempsActuel;
+        }
+      }
+    }
+
+    for (var j = gouttes.length - 1; j >= 0; j--) {
+      var goutte = gouttes[j];
+      goutte.age += dtMs;
+      if (goutte.age >= goutte.ageMax) {
+        gouttes.splice(j, 1);
+        continue;
+      }
+      goutte.vy += 0.0018 * dtMs;
+      goutte.x += goutte.vx * dtMs * 0.06;
+      goutte.y += goutte.vy * dtMs * 0.06;
+    }
+  }
+
+  function dessinerFormeGalet(context, forme, rayon) {
+    context.beginPath();
+    for (var i = 0; i < forme.length; i++) {
+      var p = forme[i];
+      var r = rayon * p.rayon;
+      var x = Math.cos(p.angle) * r;
+      var y = Math.sin(p.angle) * r;
+      if (i === 0) {
+        context.moveTo(x, y);
+      } else {
+        context.lineTo(x, y);
+      }
+    }
+    context.closePath();
+  }
+
+  function dessinerMicro(context, rayon, couleur) {
+    context.strokeStyle = couleur;
+    context.fillStyle = couleur;
+    context.lineWidth = Math.max(1, rayon * 0.05);
+
+    var largeurCorps = rayon * 0.34;
+    var hauteurCorps = rayon * 0.62;
+
+    context.beginPath();
+    context.moveTo(-largeurCorps / 2, -hauteurCorps / 2 + largeurCorps / 2);
+    context.arcTo(-largeurCorps / 2, -hauteurCorps / 2, 0, -hauteurCorps / 2, largeurCorps / 2);
+    context.arcTo(largeurCorps / 2, -hauteurCorps / 2, largeurCorps / 2, -hauteurCorps / 2 + largeurCorps / 2, largeurCorps / 2);
+    context.lineTo(largeurCorps / 2, hauteurCorps / 2 - largeurCorps / 2);
+    context.arcTo(largeurCorps / 2, hauteurCorps / 2, 0, hauteurCorps / 2, largeurCorps / 2);
+    context.arcTo(-largeurCorps / 2, hauteurCorps / 2, -largeurCorps / 2, hauteurCorps / 2 - largeurCorps / 2, largeurCorps / 2);
+    context.closePath();
+    context.fill();
+
+    context.beginPath();
+    context.arc(0, hauteurCorps / 2 - largeurCorps / 2, largeurCorps * 0.75, Math.PI * 0.15, Math.PI * 0.85, false);
+    context.stroke();
+
+    context.beginPath();
+    context.moveTo(0, hauteurCorps / 2 + largeurCorps * 0.45);
+    context.lineTo(0, hauteurCorps / 2 + largeurCorps * 0.9);
+    context.stroke();
+  }
+
+  function dessinerGalet(tempsActuel, g) {
+    var xEcran = g.config.xFrac * largeurFenetre;
+    var yEcran = g.config.yFrac * hauteurFenetre;
+    var rayon = g.config.taille;
+
+    var echelle = 1;
+    var flou = 0;
+    var opacite = 1;
+    var decalageX = 0;
+    var decalageY = 0;
+
+    if (g.etat === "emergence") {
+      var ecoule = tempsActuel - g.debutPhase;
+      var t = Math.min(ecoule / DUREE_EMERGENCE, 1);
+      var tDouce = t * t * (3 - 2 * t);
+      echelle = 0.25 + 0.75 * tDouce;
+      flou = 9 * (1 - tDouce);
+      opacite = 0.25 + 0.75 * tDouce;
+      decalageX = Math.sin(tempsActuel * 0.0045) * 5 * (1 - tDouce);
+      decalageY = Math.sin(tempsActuel * 0.0032 + 1.4) * 3 * (1 - tDouce);
+    } else if (g.etat === "sortie") {
+      var ecouleS = tempsActuel - g.debutPhase;
+      var tS = Math.min(ecouleS / DUREE_SORTIE, 1);
+      var rebond = Math.sin(tS * Math.PI) * 0.06 * (1 - tS);
+      echelle = 1 + rebond;
+      flou = 0;
+      opacite = 1;
+    } else if (g.etat === "flottaison") {
+      var ecouleF = tempsActuel - g.debutPhase;
+      decalageY = Math.sin(ecouleF * 0.0009) * 2.2;
+    }
+
+    ctxGalet.save();
+    ctxGalet.globalAlpha = opacite;
+    ctxGalet.translate(xEcran + decalageX, yEcran + decalageY);
+    ctxGalet.filter = flou > 0.05 ? "blur(" + flou.toFixed(1) + "px)" : "none";
+
+    ctxGalet.shadowColor = "rgba(40, 45, 44, " + (0.22 * opacite).toFixed(2) + ")";
+    ctxGalet.shadowBlur = 16 * echelle;
+    ctxGalet.shadowOffsetY = 7 * echelle;
+
+    var degrade = ctxGalet.createRadialGradient(
+      -rayon * 0.25 * echelle, -rayon * 0.3 * echelle, rayon * 0.1 * echelle,
+      0, 0, rayon * echelle
+    );
+    degrade.addColorStop(0, g.config.couleurClaire);
+    degrade.addColorStop(1, g.config.couleurFoncee);
+
+    ctxGalet.scale(echelle, echelle);
+    dessinerFormeGalet(ctxGalet, g.forme, rayon);
+    ctxGalet.fillStyle = degrade;
+    ctxGalet.fill();
+
+    ctxGalet.shadowColor = "transparent";
+
+    if (opacite > 0.4) {
+      ctxGalet.globalAlpha = opacite * 0.9;
+      dessinerMicro(ctxGalet, rayon, g.config.couleurMicro);
+    }
+
+    ctxGalet.restore();
+  }
+
+  function dessinerGouttes() {
+    for (var i = 0; i < gouttes.length; i++) {
+      var goutte = gouttes[i];
+      var t = goutte.age / goutte.ageMax;
+      var alpha = (1 - t) * 0.8;
+      if (alpha <= 0) continue;
+
+      ctxGalet.save();
+      ctxGalet.globalAlpha = alpha;
+      ctxGalet.fillStyle = "#eef4f2";
+      ctxGalet.beginPath();
+      ctxGalet.arc(goutte.x, goutte.y, 2.2, 0, Math.PI * 2);
+      ctxGalet.fill();
+      ctxGalet.restore();
+    }
+  }
+
+  function dessinerCoucheGalets(tempsActuel) {
+    ctxGalet.clearRect(0, 0, largeurFenetre, hauteurFenetre);
+    for (var i = 0; i < galets.length; i++) {
+      var g = galets[i];
+      if (g.etat === "absent" || g.etat === "cachee") continue;
+      dessinerGalet(tempsActuel, g);
+    }
+    dessinerGouttes();
+  }
+
+  function distancePointeurGalet(xClient, yClient, g) {
+    var rect = ecranTelephone.getBoundingClientRect();
+    var xEcran = xClient - rect.left;
+    var yEcran = yClient - rect.top;
+    var cx = g.config.xFrac * largeurFenetre;
+    var cy = g.config.yFrac * hauteurFenetre;
+    return Math.sqrt((xEcran - cx) * (xEcran - cx) + (yEcran - cy) * (yEcran - cy));
+  }
+
+  function toucherGalet(xClient, yClient) {
+    for (var i = 0; i < galets.length; i++) {
+      var g = galets[i];
+      if (g.etat !== "flottaison") continue;
+      var distance = distancePointeurGalet(xClient, yClient, g);
+      if (distance <= g.config.taille * 1.1) {
+        var cx = g.config.xFrac * colonnes;
+        var cy = g.config.yFrac * lignes;
+        ajouterPerturbation(cx, cy, 5, 4);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  var boucleActive = true;
+  var dernierTemps = 0;
+
+  function boucle(tempsActuel) {
+    if (!boucleActive) return;
+    var dtMs = dernierTemps ? Math.min(tempsActuel - dernierTemps, 50) : 16;
+    dernierTemps = tempsActuel;
+
+    ondesAmbiantes(tempsActuel);
+    etapeSimulation();
+    dessiner(tempsActuel);
+    avancerGalets(tempsActuel, dtMs);
+    dessinerCoucheGalets(tempsActuel);
+    requestAnimationFrame(boucle);
+  }
+
+  var pointeurActif = false;
+  var pointeurId = null;
+  var depart = { x: 0, y: 0, t: 0 };
+  var dernierePosition = { x: 0, y: 0 };
+
+  function versCoordonneesBuffer(clientX, clientY) {
+    var rect = ecranTelephone.getBoundingClientRect();
+    var x = clientX - rect.left;
+    var y = clientY - rect.top;
+    return {
+      bx: (x / largeurFenetre) * colonnes,
+      by: (y / hauteurFenetre) * lignes
+    };
+  }
+
+  function surPointerDown(e) {
+    if (pointeurActif) return;
+
+    if (toucherGaletVideo(e.clientX, e.clientY)) {
+      return;
+    }
+
+    if (toucherGalet(e.clientX, e.clientY)) {
+      return;
+    }
+
+    pointeurActif = true;
+    pointeurId = e.pointerId;
+    var rectDepart = ecranTelephone.getBoundingClientRect();
+    depart.x = e.clientX - rectDepart.left;
+    depart.y = e.clientY - rectDepart.top;
+    depart.t = performance.now();
+    dernierePosition.x = e.clientX;
+    dernierePosition.y = e.clientY;
+
+    var c = versCoordonneesBuffer(e.clientX, e.clientY);
+    ajouterPerturbation(c.bx, c.by, 6, 3);
+
+    toile.setPointerCapture(e.pointerId);
+  }
+
+  function surPointerMove(e) {
+    if (!pointeurActif || e.pointerId !== pointeurId) return;
+
+    var dx = e.clientX - dernierePosition.x;
+    var dy = e.clientY - dernierePosition.y;
+    var vitesse = Math.sqrt(dx * dx + dy * dy);
+
+    var c = versCoordonneesBuffer(e.clientX, e.clientY);
+    var force = Math.min(5 + vitesse * 0.15, 14);
+    ajouterPerturbation(c.bx, c.by, force, 3);
+
+    dernierePosition.x = e.clientX;
+    dernierePosition.y = e.clientY;
+  }
+
+  function surPointerUp(e) {
+    if (!pointeurActif || e.pointerId !== pointeurId) return;
+    pointeurActif = false;
+
+    var rectFin = ecranTelephone.getBoundingClientRect();
+    var finX = e.clientX - rectFin.left;
+    var finY = e.clientY - rectFin.top;
+    var duree = performance.now() - depart.t;
+
+    var distanceVerticale = depart.y - finY;
+    var distanceHorizontale = Math.abs(finX - depart.x);
+
+    var partDuBas = depart.y > hauteurFenetre * 0.72;
+    var arriveeEnHaut = finY < hauteurFenetre * 0.22;
+    var mouvementVertical = distanceVerticale > hauteurFenetre * 0.45;
+    var assezVertical = distanceHorizontale < hauteurFenetre * 0.4;
+    var dureeRaisonnable = duree < 2500;
+
+    if (partDuBas && arriveeEnHaut && mouvementVertical && assezVertical && dureeRaisonnable) {
+      demarrerVideoGalet();
+      // declencherGalets(performance.now()); // ancien galet code, desactive
+    }
+  }
+
+  boutonRevenir.addEventListener("click", function () {
+    reinitialiserGalets();
+  });
+
+  toile.addEventListener("pointerdown", surPointerDown);
+  toile.addEventListener("pointermove", surPointerMove);
+  toile.addEventListener("pointerup", surPointerUp);
+  toile.addEventListener("pointercancel", surPointerUp);
+
+  window.addEventListener("resize", function () {
+    dimensionner();
+  });
+
+  dimensionner();
+  requestAnimationFrame(boucle);
+})();
+</script>
+</body>
+</html>

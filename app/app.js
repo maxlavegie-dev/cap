@@ -135,6 +135,13 @@
       try { personnes = annuaire.correspondances(texte); } catch (erreur) { personnes = []; }
       for (const p of personnes) resultats.push({ sorte: 'Personne', libelle: annuaire.nomAffichage(p), ouvrir: () => { if (typeof ficheContact !== 'undefined') ficheContact.ouvrirFiche(p); }, personne: p });
     }
+    // 12/11/2026 (accord de Max, c151, A2) : les CARTES (carte_cap.js) : aujourd'hui les relations gardées sur le téléphone
+    // (« Relation · Nom ») ; le toucher ouvre la carte. Les sources de la carte s'ajoutent dans carte_cap.js, pas ici.
+    if ((source === 'tout' || source === 'personnes') && typeof carteCap !== 'undefined') {
+      let cartes = [];
+      try { cartes = carteCap.trouver(texte); } catch (erreur) { cartes = []; }
+      for (const e of cartes) resultats.push({ sorte: e.sorte, libelle: e.titre, ouvrir: origine => carteCap.ouvrir(e, origine), carte: e });
+    }
     return resultats;
   }
   const NOMS_SOURCES = { tout: 'partout', taches: 'Tâches', 'rendez-vous': 'Rendez-vous', personnes: 'Personnes' };
@@ -242,11 +249,36 @@
   const chercherChamp = parId('chercher-champ');
   const propositionsChercher = parId('propositions-chercher');
   if (chercherSource && chercherSource.options.length === 0) for (const o of sourceRecherche.options) chercherSource.append(o.cloneNode(true));
-  function proposerDansChercher() {
+  // ----- 11/11/2026 (accord de Max, c135) : « Chantier » dans le menu de la recherche (index.html) et dans les propositions
+  // de Chercher. Le choisir (menu) ou le toucher (proposition) ouvre l'écran des chantiers (chantiers_ecran.js écoute
+  // « cap-ouvrir-chantiers », comme l'icône « Chantiers ») ; le menu revient aussitôt à son choix d'avant (on ne cherche
+  // jamais « dans » les chantiers ici). Proposition : les lettres tapées se trouvent n'importe où dans « Chantier », sans
+  // majuscules ni accents. La recherche elle-même (trouverPartout) n'est pas changée.
+  const SOURCE_CHANTIERS = 'chantiers';
+  const ouvrirLesChantiers = () => document.dispatchEvent(new CustomEvent('cap-ouvrir-chantiers'));
+  const plierMot = x => String(x || '').normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr-FR').trim();
+  const choixAvant = new Map(); // menu → son dernier vrai choix
+  function choixChantiers(menu) {
+    if (!menu || menu.value !== SOURCE_CHANTIERS) { if (menu) choixAvant.set(menu, menu.value); return false; }
+    menu.value = choixAvant.get(menu) || 'tout';
+    ouvrirLesChantiers();
+    return true;
+  }
+  for (const menu of [sourceRecherche, chercherSource]) if (menu) choixAvant.set(menu, menu.value);
+  // 11/11/2026 (c136) : « valider » (touche Entrée) : la MÊME liste, mais jusqu'à 30 résultats, et « Rien trouvé » quand il
+  // n'y a rien ; tout reste dans Chercher. Avant : 6 propositions seulement, Entrée partait vers l'écran des tâches.
+  function proposerDansChercher(valider = false) {
     if (!chercherChamp || !propositionsChercher) return;
     const texte = chercherChamp.value.trim();
     const source = chercherSource ? chercherSource.value : 'tout';
-    const trouves = texte ? trouverPartout(texte, source).slice(0, 6) : [];
+    const maximum = valider === true ? 30 : 6;
+    const tousTrouves = texte ? trouverPartout(texte, source) : [];
+    const trouves = tousTrouves.slice(0, maximum);
+    // c135 : « Chantier » en tête quand les lettres tapées sont dans le mot (6 propositions au plus, comme avant).
+    if (texte && (source === 'tout') && plierMot('Chantier').includes(plierMot(texte))) {
+      trouves.unshift({ sorte: 'Écran', libelle: 'Chantier', ouvrir: ouvrirLesChantiers });
+      trouves.length = Math.min(trouves.length, maximum);
+    }
     propositionsChercher.replaceChildren(...trouves.map(r => {
       const ligne = element('li');
       const bouton = element('button', 'proposition-chercher', r.libelle);
@@ -257,22 +289,30 @@
         propositionsChercher.hidden = true;
         if (r.tache) {
           // Une tâche : l'écran des tâches (même chemin que Entrée, donc « Fermer » revient à Chercher), la tâche surlignée.
-          chercherChamp.value = r.tache.intitule;
-          chercherChamp.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+          // c136 : par « cap-chercher-vers-taches » (accueil_cap.js). Avant : la touche Entrée simulée (keydown Enter).
+          chercherChamp.dispatchEvent(new CustomEvent('cap-chercher-vers-taches', { detail: r.tache.intitule, bubbles: true }));
           ouvrirResultatTache(r.tache);
         } else r.ouvrir(bouton); // un rendez-vous ou une personne : sa fiche, par-dessus Chercher
       });
       ligne.append(bouton);
       return ligne;
     }));
-    propositionsChercher.hidden = trouves.length === 0;
+    if (valider === true && tousTrouves.length > maximum) propositionsChercher.append(element('li', 'proposition-chercher info-chercher', `et ${tousTrouves.length - maximum} autres…`));
+    if (valider === true && texte && !trouves.length) {
+      // Même allure que les propositions (lisible sur l'eau) ; pas un bouton.
+      const message = element('li', 'proposition-chercher info-chercher', `Rien trouvé ${source === 'tout' ? 'nulle part' : `dans ${NOMS_SOURCES[source] || 'cette source'}`}`);
+      message.setAttribute('role', 'status');
+      propositionsChercher.append(message);
+    }
+    propositionsChercher.hidden = propositionsChercher.children.length === 0;
   }
-  if (chercherChamp) chercherChamp.addEventListener('input', proposerDansChercher);
-  if (chercherSource) chercherSource.addEventListener('change', () => { if (sourceRecherche.querySelector(`option[value="${chercherSource.value}"]`)) sourceRecherche.value = chercherSource.value; proposerDansChercher(); });
+  if (chercherChamp) chercherChamp.addEventListener('input', () => proposerDansChercher());
+  if (chercherChamp) chercherChamp.addEventListener('cap-chercher-valider', () => proposerDansChercher(true)); // c136
+  if (chercherSource) chercherSource.addEventListener('change', () => { if (choixChantiers(chercherSource)) return; if (sourceRecherche.querySelector(`option[value="${chercherSource.value}"]`)) sourceRecherche.value = chercherSource.value; proposerDansChercher(); });
 
   saisieRecherche.addEventListener('input', afficherRecherche);
   saisieRecherche.addEventListener('search', afficherRecherche);
-  sourceRecherche.addEventListener('change', afficherRecherche);
+  sourceRecherche.addEventListener('change', () => { if (choixChantiers(sourceRecherche)) return; afficherRecherche(); }); // c135 ; avant : addEventListener('change', afficherRecherche)
   saisieRecherche.addEventListener('keydown', event => {
     if (event.key !== 'Enter') return;
     event.preventDefault();
@@ -803,6 +843,9 @@
     ecran.dataset.vue = vueActuelle.type;
     parId('titre-vue').textContent = titreDeVue();
     parId('retour-tuiles').hidden = vueActuelle.type === 'tuiles';
+    // c173 (décision de Max) : dans une vue ouverte depuis une tuile, pas de « Fermer » : on sort en glissant (vers les tuiles).
+    // Le bouton reste dans la page (caché) : la voix et le glissement depuis les tuiles s'en servent.
+    parId('fermer-chercher').hidden = vueActuelle.type !== 'tuiles' && Boolean(vueActuelle.depuisTuiles);
     for (const bloc of ecran.querySelectorAll('[data-vues]')) {
       bloc.classList.toggle('hors-vue', !bloc.dataset.vues.split(' ').includes(vueActuelle.type));
     }
@@ -825,8 +868,10 @@
     vide.hidden = !vide.textContent;
   }
 
-  function ouvrirVue(type, categorie = '') {
-    vueActuelle = { type, categorie };
+  // 12/11/2026 (accord de Max, c173) : « depuisTuiles » : la vue a été ouverte en touchant une tuile de « Tout voir » : le
+  // glissement vers le bas y RAMÈNE AUX TUILES (avant : il fermait tout, retour à l'accueil) et son « Fermer » est caché.
+  function ouvrirVue(type, categorie = '', { depuisTuiles = false } = {}) {
+    vueActuelle = { type, categorie, depuisTuiles };
     termineesOuvertes = false;
     afficher();
     const ecran = parId('ecran-complet');
@@ -857,23 +902,24 @@
     const noms = listesChoix.categories();
     const autres = [...compte.keys()].filter(nom => !noms.some(item => item.toLocaleLowerCase('fr') === nom.toLocaleLowerCase('fr')));
     const aTrier = compte.get(listesChoix.A_TRIER) || 0;
+    // 12/11/2026 (accord de Max, c172) : noms, ordre et contenu des tuiles fixes : tuiles_config.js (un seul endroit) ; ici,
+    // seulement les CALCULS des compteurs. Avant : les tuiles écrites ici, titre et compteur en dur.
+    const COMPTEURS_TUILES = {
+      actions: () => journalActions.lire().length,
+      'rendez-vous': () => (googleAgenda.lireCache() || []).length,
+      aujourdhui: () => actives.filter(estPourAujourdhui).length + rendezVousDuJour().length,
+      annuaire: () => annuaire.tous().length,
+      'a-trier': () => aTrier,
+      tout: () => actives.length
+    };
+    const depuisConfig = liste => liste.map(t => (t.compteur ? { id: t.id, titre: t.titre, compteur: COMPTEURS_TUILES[t.compteur]() } : { id: t.id, titre: t.titre }));
     tuiles.afficher(parId('tuiles'), {
-      fixes: [
-        { id: 'actions', titre: 'Dernières actions', compteur: journalActions.lire().length },
-        { id: 'rendez-vous', titre: 'Prochains rendez-vous', compteur: (googleAgenda.lireCache() || []).length },
-        { id: 'aujourdhui', titre: 'Aujourd’hui', compteur: actives.filter(estPourAujourdhui).length + rendezVousDuJour().length },
-        { id: 'annuaire', titre: 'Annuaire', compteur: annuaire.tous().length },
-        { id: 'trier', titre: 'Trier', compteur: aTrier }
-      ],
+      fixes: depuisConfig(TUILES_CONFIG.fixes),
       categories: [...noms, ...autres].map(nom => ({
         titre: nom || 'Sans catégorie', categorie: nom, compteur: compte.get(nom) || 0,
         couleur: nom ? listesChoix.couleur(nom) : '', deplacable: nom !== '' && noms.includes(nom) && nom !== listesChoix.A_TRIER
       })),
-      finales: [
-        { id: 'tout', titre: 'Tout', compteur: actives.length },
-        { id: 'ajouter-categorie', titre: '+ Ajouter' },
-        { id: 'modifier-categories', titre: 'Modifier' }
-      ]
+      finales: depuisConfig(TUILES_CONFIG.finales)
     }, {
       surOuvrir: ouvrirTuile,
       surMicro: dicterDansCategorie,
@@ -885,25 +931,19 @@
     });
   }
 
+  // 12/11/2026 (c172) : ce que les tuiles fixes OUVRENT, par le nom donné dans tuiles_config.js (« ouvre ») ; « vue » (ou une
+  // tuile hors du tableau) : la vue du même nom ; une catégorie : sa liste. Avant : une suite de « if » sur l'identifiant.
+  const OUVERTURES_TUILES = {
+    annuaire: () => ficheContact.ouvrirListe(),
+    trier: () => modeTrier.ouvrir(parId('mode-trier'), { surChangement: afficher, gererCategories: fenetresListes.gererCategories }),
+    'ajouter-categorie': () => fenetresListes.gererCategories({ action: 'ajouter' }),
+    'modifier-categories': () => fenetresListes.gererCategories({ action: 'modifier' })
+  };
   function ouvrirTuile(id, categorie) {
-    if (id === 'annuaire') {
-      ficheContact.ouvrirListe();
-      return;
-    }
-    if (id === 'trier') {
-      modeTrier.ouvrir(parId('mode-trier'), { surChangement: afficher, gererCategories: fenetresListes.gererCategories });
-      return;
-    }
-    if (id === 'ajouter-categorie') {
-      fenetresListes.gererCategories({ action: 'ajouter' });
-      return;
-    }
-    if (id === 'modifier-categories') {
-      fenetresListes.gererCategories({ action: 'modifier' });
-      return;
-    }
-    if (categorie !== undefined) ouvrirVue('categorie', categorie);
-    else ouvrirVue(id);
+    const config = [...TUILES_CONFIG.fixes, ...TUILES_CONFIG.finales].find(t => t.id === id);
+    if (config && OUVERTURES_TUILES[config.ouvre]) { OUVERTURES_TUILES[config.ouvre](); return; }
+    if (categorie !== undefined) ouvrirVue('categorie', categorie, { depuisTuiles: true }); // c173
+    else ouvrirVue(id, '', { depuisTuiles: true });
   }
 
   function dicterDansCategorie(categorie, bouton) {
@@ -1880,6 +1920,8 @@
   const PROPOSITIONS_CHOIX = {
     'choix-voix': '#liste-choix-voix button',
     'musique-relations': '#liste-musique-relations button',
+    'chantiers-cap': '#liste-chantiers button', // 09/11/2026 (chantiers, séance 1)
+    'journaux-relations': '#liste-journaux-relations button', // 10/11/2026 (c90) : « numéro 2 » touche la 2e relation
     'vignettes-cap': '#grille-vignettes .vignette',
     'question-date': '#choix-question-date button',
     'scanner-choix-emetteur': '#scanner-choix-emetteur-cases button',
@@ -1892,7 +1934,23 @@
     if (!fenetre || !PROPOSITIONS_CHOIX[fenetre.id]) return false;
     const n = numeroChoix.rang(phrase);
     if (!Number.isInteger(n)) return false;
-    const cases = [...fenetre.querySelectorAll(PROPOSITIONS_CHOIX[fenetre.id])].filter(b => !b.disabled && !b.closest('[hidden]') && b.getClientRects().length > 0);
+    // 11/11/2026 (c132) : la liste des chantiers filtrée par la recherche : le numéro vaut pour la liste COMPLÈTE.
+    // Hors question en cours (mode confirmation), on passe par le choix de la liste complète.
+    if (fenetre.id === 'chantiers-cap' && /\bnum[ée]ro\b|\bnum\b|\bno\b/i.test(phrase) && !fenetre.classList.contains('mode-confirmation') && typeof chantiersEcran !== 'undefined' && chantiersEcran.choisirRang && chantiersEcran.nombreChantiers) {
+      const total = chantiersEcran.nombreChantiers();
+      if (total >= 2) {
+        if (n > total) {
+          const texte = `Il n’y a que ${total} chantiers : dis un numéro de 1 à ${total}.`;
+          noterPhraseEntendue(phrase, texte); annoncer(texte); montrerBulle(texte, { erreur: true }); montrerSigne('croix');
+          return true;
+        }
+        if (chantiersEcran.choisirRang(n)) { noterPhraseEntendue(phrase, `Choix ${n}.`); montrerSigne('pouce'); return true; }
+      }
+    }
+    // 11/11/2026 (c130) : fiche d'un chantier ouverte (écran à part) : la liste est cachée mais la voix y choisit toujours
+    // (« le deuxième ») ; jamais pendant une question (mode confirmation).
+    const listeCachee = fenetre.id === 'chantiers-cap' && fenetre.classList.contains('fiche-ouverte') && !fenetre.classList.contains('mode-confirmation');
+    const cases = [...fenetre.querySelectorAll(PROPOSITIONS_CHOIX[fenetre.id])].filter(b => !b.disabled && !b.closest('[hidden]') && (listeCachee || b.getClientRects().length > 0));
     if (cases.length < 2) return false;
     noterPhraseEntendue(phrase, n <= cases.length ? `Choix ${n}.` : `Il n’y a que ${cases.length} choix.`);
     if (n > cases.length) {
@@ -1955,9 +2013,60 @@
     parId('vide-phrases-entendues').hidden = entendues.length > 0;
   }
 
-  function ajouterDictee(texte, { commandes = false } = {}) {
+  // 11/11/2026 (accord de Max, c107) : témoin du micro dans la fiche d'un chantier (chantiers_ecran.js) : « Entendu … » ou
+  // « Rien entendu ». Fiche fermée : rien. Une panne du témoin ne gêne jamais la dictée.
+  function temoinMicroChantier(texte) {
+    try { if (typeof chantiersEcran !== 'undefined' && typeof chantiersEcran.temoinMicro === 'function') chantiersEcran.temoinMicro(texte); } catch (erreur) { /* rien */ }
+  }
+  // Le témoin est posé AVANT (visible même si la suite échoue) et APRÈS (la phrase a pu ouvrir ou changer la fiche).
+  function ajouterDictee(texte, options = {}) {
+    const intitule = String(texte || '').trim();
+    temoinMicroChantier(intitule);
+    try { return ajouterDicteeSansTemoin(texte, options); } finally { temoinMicroChantier(intitule); }
+  }
+  function ajouterDicteeSansTemoin(texte, { commandes = false } = {}) {
     const intitule = texte.trim();
     afficherTexteEntendu(intitule);
+    // 10/11/2026 (accord de Max, c104) : une note de chantier est ATTENDUE (« ajoute au journal » dit seul) : la phrase va
+    // d'abord là (même « annuler », qui arrête l'attente), avant les fenêtres de confirmation.
+    if (intitule && typeof chantiersEcran !== 'undefined' && typeof chantiersEcran.noteEnAttente === 'function' && chantiersEcran.noteEnAttente()) {
+      const r = chantiersEcran.noteParLaVoix(intitule);
+      if (r && r.message) {
+        noterPhraseEntendue(intitule, r.message);
+        annoncer(r.message);
+        montrerBulle(r.message, { erreur: r.echec });
+        montrerSigne(r.echec ? 'croix' : 'pouce');
+        return;
+      }
+    }
+    // 10/11/2026 (accord de Max, c87) : « oui », « non », « annuler » répondent d'abord à une fenêtre de confirmation
+    // ouverte (confirmations_fenetres.js, phrase entière seulement ; doute : rien n'est fait) ; dits SEULS sans rien à
+    // confirmer, ils ne sont plus rangés dans « À trier ». Avant : ils devenaient une tâche.
+    if (intitule && typeof confirmationsFenetres !== 'undefined') {
+      const r = confirmationsFenetres.repondreVoix(document, intitule);
+      const iaEnAttente = typeof cerveau !== 'undefined' && Boolean((cerveau.propositionEnAttente && cerveau.propositionEnAttente()) || (cerveau.questionEnAttente && cerveau.questionEnAttente()));
+      const message = r ? r.message : (confirmationsFenetres.rienAConfirmer(document, intitule, { iaEnAttente }) ? 'Il n’y a rien à confirmer en ce moment.' : '');
+      if (message) {
+        const echec = !r || r.resultat === 'doute' || r.resultat === 'refus';
+        noterPhraseEntendue(intitule, message);
+        annoncer(message);
+        montrerBulle(message, { erreur: echec });
+        montrerSigne(echec ? 'croix' : 'pouce');
+        return;
+      }
+    }
+    // 10/11/2026 (accord de Max, c95) : « ajoute au journal, … » dans la fiche d'un chantier qui a un dossier (chantiers_ecran.js) :
+    // le texte va dans le champ de note et la question s'affiche (rien n'est écrit sans le Oui) ; sinon la phrase continue.
+    if (intitule && typeof chantiersEcran !== 'undefined' && typeof chantiersEcran.noteParLaVoix === 'function') {
+      const r = chantiersEcran.noteParLaVoix(intitule);
+      if (r && r.message) {
+        noterPhraseEntendue(intitule, r.message);
+        annoncer(r.message);
+        montrerBulle(r.message, { erreur: r.echec });
+        montrerSigne(r.echec ? 'croix' : 'pouce');
+        return;
+      }
+    }
     if (commandes && intitule && essayerCommande(intitule)) return; // 08/11/2026 (étape 0)
     if (commandes && intitule) noterRefusee(intitule); // 09/11/2026 : pas une commande : peut être une phrase à apprendre
     try {
@@ -2208,6 +2317,7 @@
   brancherPetitMicro(parId('micro-visionneuse'));
   brancherPetitMicro(parId('micro-vignettes')); // 08/11/2026
   brancherPetitMicro(parId('petit-micro')); // 09/11/2026 : le petit micro de tous les écrans (mêmes règles)
+  brancherPetitMicro(parId('micro-depart-visionneuse')); // 12/11/2026 (c161) : sous « Oui » et « Non » de « ↺ »
   // 08/11/2026 (accord de Max, étape 1 des commandes vocales) : dictée dite au micro du milieu.
   // DIC-02 « arrête », « stop »… : arrête la dictée (et la conversation continue si elle tourne).
   // DIC-01 « lance la dictée »… : Cap réécoute tout de suite, sans parler (sinon le micro entendrait sa voix).
@@ -2371,6 +2481,7 @@
         if (code === 'no-speech' && garderProvisoire()) return; // 09/11/2026 (défaut 3) : le mot court entendu compte
         resultatRecu = true;
         if (finalRecu) return;
+        if (code !== 'aborted' && !fichiersVocauxControleur.sessionActive()) temoinMicroChantier(''); // c107 : Android n'a rien rendu
         const messages = {
           'not-allowed': 'Le micro est bloqué. Autorise-le pour cette page dans le navigateur.',
           'service-not-allowed': 'Le micro est bloqué. Autorise-le pour cette page dans le navigateur.',
@@ -2411,6 +2522,7 @@
         micro.setAttribute('aria-label', 'Dicter une tâche');
         if (!resultatRecu) garderProvisoire(); // 09/11/2026 (défaut 3)
         if (!resultatRecu) {
+          temoinMicroChantier(''); // c107 : fin d'écoute sans aucune phrase
           // 09/11/2026 (défaut 2) : pendant la fenêtre de gros choix, Cap dit comment répondre (un mot seul comme « deux »
           // n'arrive souvent pas jusqu'à Cap : rien n'est transmis par Android).
           const aide = choixCommandeEnCours && fenetreChoixCommande && fenetreChoixCommande.open
@@ -2452,6 +2564,8 @@
   let minuteurExpiration;
 
   function afficherEtatGoogle() {
+    // 10/11/2026 (c101) : le garde-fou ajouté en c100 (« if (!parId('texte-etat-google')) return; ») est RETIRÉ : il cachait
+    // le vrai défaut (identifiant en double qui vidait cette zone) ; une erreur de ce genre doit se voir.
     const connecte = googleConnexion.connecte();
     const info = synchronisation.informations();
     const nombre = info.nombre;
@@ -2475,12 +2589,20 @@
       || googleConnexion.besoinGeste() || Boolean(googleConnexion.message());
     const apparait = alerte.hidden && visible;
     alerte.hidden = !visible;
+    // 11/11/2026 (accord de Max, c140 ; même idée que c139) : téléphone SANS RÉSEAU : l'alerte dit la vraie cause, « Pas de
+    // réseau », et cache « Redonner l'accès à Google » (sans réseau, il ouvrait la page d'erreur de Chrome). Le réseau
+    // revient : l'alerte redevient comme avant (événements « online » / « offline », plus bas). Avant : toujours
+    // « Google a coupé l'accès » et le bouton.
+    const horsLigne = navigator.onLine === false;
+    parId('redonner-acces-google').hidden = visible && horsLigne;
     if (visible) {
       const attente = nombre === null ? 'Les tâches sont gardées sur ton téléphone ; la file est illisible.'
         : nombre ? `${nombre} tâches attendent : elles sont gardées sur ton téléphone.` : 'Rien n’est perdu.';
-      parId('texte-alerte-google').textContent = [googleConnexion.besoinGeste()
-        ? 'Google demande ton accord pour continuer.' : 'Google a coupé l’accès.', attente,
-      googleConnexion.besoinGeste() ? '' : googleConnexion.message()].filter(Boolean).join(' ');
+      parId('texte-alerte-google').textContent = horsLigne
+        ? ['Pas de réseau : Google ne peut pas être joint pour l’instant.', attente, 'Quand le réseau revient, Cap te le redira s’il faut redonner l’accès.'].join(' ')
+        : [googleConnexion.besoinGeste()
+          ? 'Google demande ton accord pour continuer.' : 'Google a coupé l’accès.', attente,
+        googleConnexion.besoinGeste() ? '' : googleConnexion.message()].filter(Boolean).join(' ');
     }
     if (apparait) {
       try { navigator.vibrate?.(200); } catch (erreur) {}
@@ -2752,6 +2874,7 @@
     parId('etat-commandes-vocales').textContent = 'Commandes vocales (lues avec le compte Cap) : '
       + (copieCommandes ? `${copieCommandes.compte.gardees} formulation(s) gardée(s) sur ce téléphone.` : 'rien de lu pour l’instant.');
     parId('choisir-commandes-vocales').disabled = !cle;
+    if (parId('choisir-chantiers')) parId('choisir-chantiers').disabled = !cle; // 09/11/2026 (chantiers, séance 1)
   }
 
   parId('ouvrir-reglages-drive').addEventListener('click', event => {
@@ -2861,7 +2984,8 @@
     ['choisir-tableur-classement', 'tableur_classement', 'Tableur de classement'],
     ['choisir-mots-courts', 'mots_cles_courts', 'Tableur des mots-clés courts'],
     ['choisir-dictionnaire', 'dictionnaire', 'Dictionnaire général'],
-    ['choisir-commandes-vocales', 'commandes_vocales', 'Tableur « Commandes vocales »']]) {
+    ['choisir-commandes-vocales', 'commandes_vocales', 'Tableur « Commandes vocales »'],
+    ['choisir-chantiers', 'chantiers', 'Tableur « Liste des chantiers »']]) { // 09/11/2026 : + Liste des chantiers
     parId(bouton).addEventListener('click', () => {
       parId('resume-classement').hidden = true;
       void choisirDansGoogle(options => googlePicker.choisirFichier(role, options), async () => {
@@ -3197,7 +3321,11 @@
     if (Math.abs(vertical) <= 60 || Math.abs(vertical) <= Math.abs(touche.clientX - debut.x)) return;
     if (!debut.complete && vertical < 0) changerVue(true);
     // 09/11/2026 (étape 3) : par le « Fermer » des tâches (règle du retour). Avant : changerVue(false).
-    else if (debut.complete && vertical > 0 && debut.enHaut && ecranComplet.scrollTop === 0) { const f = parId('fermer-chercher'); if (f) f.click(); if (!ecranComplet.hidden) changerVue(false); }
+    else if (debut.complete && vertical > 0 && debut.enHaut && ecranComplet.scrollTop === 0) {
+      // c173 : vue ouverte depuis une tuile : retour aux TUILES (avant : toujours « Fermer », donc l'accueil).
+      if (vueActuelle.type !== 'tuiles' && vueActuelle.depuisTuiles) { ouvrirVue('tuiles'); return; }
+      const f = parId('fermer-chercher'); if (f) f.click(); if (!ecranComplet.hidden) changerVue(false);
+    }
   }, { passive: true });
   surface.addEventListener('touchcancel', () => { debutGlissement = null; }, { passive: true });
 
@@ -3246,8 +3374,12 @@
     afficherEtatGoogle();
   }
 
+  // 11/11/2026 (accord de Max, c145, ligne 120 ; même idée que c139 à c144) : SANS RÉSEAU, la page de Google ne s'ouvre pas
+  // (elle montrait la page d'erreur de Chrome) : Cap dit « Pas de réseau ». Avec réseau : comme avant.
+  const PAS_DE_RESEAU_GOOGLE = 'Pas de réseau : la page de Google ne peut pas s’ouvrir. Reconnecte le téléphone, puis touche de nouveau le bouton. Rien n’a été changé.';
   for (const id of ['connexion-google', 'redonner-acces-google']) {
     parId(id).addEventListener('click', () => {
+      if (navigator.onLine === false) { annoncer(PAS_DE_RESEAU_GOOGLE); montrerBulle(PAS_DE_RESEAU_GOOGLE, { erreur: true }); return; } // c145
       try { googleConnexion.seConnecter(); } catch (erreur) { signalerErreur(erreur); }
     });
   }
@@ -3276,7 +3408,10 @@
       afficherCategorieChoisie();
     }
   });
+  // c140 : l'alerte Google suit le réseau (« Pas de réseau » hors ligne, comme avant quand il revient).
+  window.addEventListener('offline', () => afficherEtatGoogle());
   window.addEventListener('online', () => {
+    afficherEtatGoogle(); // c140
     void afficherRendezVous();
     void journalActions.envoyer();
     void journaux.envoyer().catch(() => {});

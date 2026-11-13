@@ -100,15 +100,31 @@ const choixSurEau = (() => {
     fantome.className = 'choix-fantome';
     fantome.setAttribute('aria-hidden', 'true');
     fantome.inert = true;
+    const placesCopies = []; // c171 : [copie, position gauche de l'original]
     for (const enfant of [...fenetre.children]) {
       if (enfant.hidden || enfant.classList.contains('pas-de-fantome') || enfant.classList.contains('choix-fantome')) continue;
+      // 12/11/2026 (c173, défaut de c171 vu par Max) : un élément caché par le style (ex. les compteurs des chantiers quand une
+      // fiche est ouverte) n'a pas de place : sa copie, à largeur 0, apparaissait écrasée à gauche pendant le fondu.
+      if (!enfant.getClientRects().length) continue;
       const copie = enfant.cloneNode(true);
       for (const x of [copie, ...copie.querySelectorAll('[id]')]) x.removeAttribute('id');
+      // 12/11/2026 (c171) : la copie garde la LARGEUR EXACTE de l'original (les carrés des chantiers suivent la largeur : une
+      // copie un peu plus large les grandissait pendant le fondu).
+      const place = enfant.getBoundingClientRect();
+      copie.style.boxSizing = 'border-box';
+      copie.style.width = `${place.width}px`;
+      placesCopies.push([copie, place.left]);
       fantome.appendChild(copie);
     }
     miseAJour();
     fenetre.scrollTop = 0;
     fenetre.appendChild(fantome);
+    // c171 : chaque copie reprend la position GAUCHE exacte de l'original (la fenêtre peut avoir une barre de défilement qui
+    // décale son contenu ; la boîte des copies n'en a pas) : rien ne saute au toucher.
+    for (const [copie, gauche] of placesCopies) {
+      const ecart = gauche - copie.getBoundingClientRect().left;
+      if (Math.abs(ecart) > 0.5) copie.style.transform = `translateX(${ecart}px)`;
+    }
     reapparaitre(fenetre);
     void fantome.offsetWidth;
     fantome.classList.add('choix-fantome-part');

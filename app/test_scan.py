@@ -1170,7 +1170,7 @@ TESTS_JS = r"""
     ]
   };
   // Faux courrier d'un service technique à un collègue (rien de vrai). La date de naissance vient en premier.
-  // 09/11/2026 (décision de Max, avant publication) : avant, un faux courrier médical ; plus aucun contenu de santé, même fictif.
+  // 09/11/2026 (décision de Max, avant publication) : avant, un faux courrier d'un autre domaine ; remplacé par un exemple neutre.
   function courrierFictif(client, { bilan = false } = {}) {
     return ['CENTRE TECHNIQUE FICTIF – Service de CLIMATISATION', `Client : ${client}, né le 03/02/1970`,
       'COMPTE RENDU DE SUIVI EN CLIMATISATION', 'Cher collègue,',
@@ -1616,7 +1616,7 @@ TESTS_JS = r"""
     await terminerPuisVoir(e);
     attendre(!e.id('scanner-choix-emetteur').open, 'fenêtre de choix ouverte');
     egal(e.id('scanner-proposition-nom').textContent, '2026-10-14 Compte rendu suivi - Jean Fictif - Lina Exemplaire.pdf', 'famille = personne, émetteur = Me FICTIF');
-    // Sans le médecin, la famille seule n'est jamais l'émetteur : nom sans émetteur.
+    // Sans « Me Jean Fictif », la famille seule n'est jamais l'émetteur : nom sans émetteur.
     const g2 = monterEmetteur();
     const e2 = await scanGoogle(g2, [{ texte: texte.replace(', revue par le Me Jean Fictif', '') }]);
     await terminerPuisVoir(e2);

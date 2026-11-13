@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Choix des matières (FICTIF)</title>
+<!-- PIÈCE 3 — PAGE DE CHOIX DES MATIÈRES (FICTIF, livraison 11/11/2026). Aucune donnée réelle, aucun appel réseau.
+     Ouverte par le bouton « Matières » des Réglages. Menu déroulant : eau (défaut), slime, sable, feuille blanche.
+     UN seul interrupteur Jour | Nuit pour toutes les matières (Jour par défaut).
+     Chaque matière est la COPIE de sa page d'essai, dans le dossier matieres/, ouverte dans un cadre intérieur (iframe). -->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: sans-serif; background: #ffffff; }
+  body[data-mode="nuit"] { background: #000000; }
+
+  /* Cadre téléphone : SEULEMENT sur un grand écran (ordinateur), pour l'essai. Sur le téléphone : plein écran. */
+  #cadre { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  #cadre-telephone { width: 100%; height: 100%; }
+  #ecran { position: relative; width: 100%; height: 100%; overflow: hidden; display: flex; flex-direction: column;
+    background: #ffffff; }
+  body[data-mode="nuit"] #ecran { background: #000000; }
+  @media (min-width: 560px) {
+    /* === CADRE TÉLÉPHONE (recopié de slime.html, dans une condition « grand écran ») === */
+    #cadre { background: #2b2b2b; }
+    #cadre-telephone { box-sizing: border-box; padding: 12px; background: #000; border-radius: 42px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); width: auto;
+      height: min(calc(100vh - 96px), calc((100vw - 96px) * 2.154)); aspect-ratio: 436 / 939; }
+    #ecran { border-radius: 30px; }
+    /* === FIN CADRE TÉLÉPHONE === */
+  }
+
+  /* Barre du haut : menu des matières + interrupteur Jour | Nuit */
+  #barre { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px;
+    background: #ffffff; color: #111111; border-bottom: 1px solid #111111; }
+  body[data-mode="nuit"] #barre { background: #000000; color: #ffffff; border-bottom-color: #ffffff; }
+  #barre label { font: 700 15px sans-serif; display: flex; align-items: center; gap: 8px; }
+  #choix-matiere { font: 700 15px sans-serif; padding: 8px 10px; border: 2px solid #111111; border-radius: 12px;
+    background: #ffffff; color: #111111; }
+  body[data-mode="nuit"] #choix-matiere { border-color: #ffffff; background: #000000; color: #ffffff; }
+  #interrupteur { display: flex; border: 2px solid #111111; border-radius: 14px; overflow: hidden; background: #ffffff; }
+  body[data-mode="nuit"] #interrupteur { border-color: #ffffff; }
+  #interrupteur button { font: 700 15px sans-serif; padding: 8px 12px; border: 0; background: #ffffff; color: #111111;
+    touch-action: manipulation; cursor: pointer; }
+  #interrupteur button[aria-pressed="true"] { background: #111111; color: #ffffff; }
+  body[data-mode="nuit"] #interrupteur button[aria-pressed="false"] { background: #000000; color: #ffffff; }
+  body[data-mode="nuit"] #interrupteur button[aria-pressed="true"] { background: #ffffff; color: #000000; }
+
+  /* Note quand la matière n'a pas de mode Nuit dans sa page actuelle */
+  #note { flex: none; font: 13px sans-serif; padding: 6px 12px; background: #ffffff; color: #111111; }
+  body[data-mode="nuit"] #note { background: #000000; color: #ffffff; }
+  #note[hidden] { display: none; }
+
+  #matiere { flex: 1; width: 100%; border: 0; display: block; background: transparent; }
+</style>
+</head>
+<body data-mode="jour">
+
+<div id="cadre"><div id="cadre-telephone"><div id="ecran">
+
+  <div id="barre">
+    <label for="choix-matiere">Matière
+      <select id="choix-matiere">
+        <option value="eau" selected>Eau</option>
+        <option value="slime">Slime</option>
+        <option value="sable">Sable</option>
+        <option value="feuille">Feuille blanche</option>
+      </select>
+    </label>
+    <div id="interrupteur">
+      <button id="bouton-jour" type="button" aria-pressed="true">Jour</button>
+      <button id="bouton-nuit" type="button" aria-pressed="false">Nuit</button>
+    </div>
+  </div>
+
+  <div id="note" hidden>Cette matière n'a pas encore de mode Nuit : elle reste comme dans sa page actuelle.</div>
+
+  <iframe id="matiere" title="Matière" src="matieres/eau.html"></iframe>
+
+</div></div></div>
+
+<script>
+(function () {
+  "use strict";
+  // Matières qui savent changer de mode (les autres restent comme dans leur page actuelle).
+  var AVEC_NUIT = { sable: true, feuille: true };
+  var choix = document.getElementById("choix-matiere");
+  var cadre = document.getElementById("matiere");
+  var note = document.getElementById("note");
+  var boutonJour = document.getElementById("bouton-jour");
+  var boutonNuit = document.getElementById("bouton-nuit");
+  var mode = "jour";
+
+  function majNote() { note.hidden = !(mode === "nuit" && !AVEC_NUIT[choix.value]); }
+
+  function ouvrir(nom) {
+    cadre.src = "matieres/" + nom + ".html?mode=" + mode;   // la matière démarre dans le mode actif
+    majNote();
+  }
+
+  function choisirMode(m) {
+    mode = m;
+    document.body.dataset.mode = m;
+    boutonJour.setAttribute("aria-pressed", String(m === "jour"));
+    boutonNuit.setAttribute("aria-pressed", String(m === "nuit"));
+    if (cadre.contentWindow) cadre.contentWindow.postMessage({ matieresMode: m }, "*");   // la matière change sans recharger
+    majNote();
+  }
+
+  choix.addEventListener("change", function () { ouvrir(choix.value); });
+  boutonJour.addEventListener("click", function () { choisirMode("jour"); });
+  boutonNuit.addEventListener("click", function () { choisirMode("nuit"); });
+
+  choix.value = "eau";   // par défaut : l'eau
+  ouvrir("eau");
+  document.body.dataset.choixPret = "oui";
+})();
+</script>
+</body>
+</html>

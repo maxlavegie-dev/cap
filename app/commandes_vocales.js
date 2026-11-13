@@ -144,12 +144,16 @@ const commandesVocales = (() => {
   async function lireAvecCompteCap({
     compte = (typeof googleCompteRelations !== 'undefined' ? googleCompteRelations : null),
     stockage = (typeof localStorage !== 'undefined' ? localStorage : null),
-    maintenant = Date.now()
+    maintenant = Date.now(),
+    // 11/11/2026 (c146) : le téléphone a-t-il du réseau ? (remplaçable dans les tests)
+    enLigne = () => (typeof navigator === 'undefined' || navigator.onLine !== false)
   } = {}) {
     if (!compte) throw new Error('Le compte Cap n’est pas disponible dans cette version.');
     if (typeof compte.adresse === 'function' && !compte.adresse()) {
       throw new Error('Identifiant du compte Cap absent : écris-le d’abord dans « Réglages du Drive ».');
     }
+    // 11/11/2026 (accord de Max, c146, ligne 120) : SANS RÉSEAU, la vraie cause, sans « Autoriser… » ; la copie gardée reste utilisée.
+    if (!enLigne()) throw new Error('Pas de réseau : je ne peux pas relire les commandes vocales. Reconnecte le téléphone, puis « Lire les commandes vocales ». Les commandes déjà gardées restent utilisées.');
     if (typeof compte.connecte === 'function' && !compte.connecte()) {
       throw new Error('Le compte Cap n’est pas connecté (ou la connexion a expiré, au bout d’environ 1 h). Touche « Autoriser la lecture du compte Cap », puis « Lire les commandes vocales ».');
     }
@@ -398,6 +402,14 @@ const commandesVocales = (() => {
     { code: 'MUS-19', commande: 'Afficher le lecteur', bloc: 'Expression seule (Cap)', formulation: 'mets la musique' },
     { code: 'MUS-19', commande: 'Afficher le lecteur', bloc: 'Expression seule (Cap)', formulation: 'mets la zik' },
     { code: 'MUS-19', commande: 'Afficher le lecteur', bloc: 'Expression seule (Cap)', formulation: 'mets la zic' },
+    // 09/11/2026 (accord de Max, chantiers, séance 1) : l'écran « Chantiers » (code de Cap NAV-CH), phrase entière seulement.
+    { code: 'NAV-CH', commande: 'Ouvrir les chantiers', bloc: 'Expression seule (Cap)', formulation: 'ouvre les chantiers' },
+    { code: 'NAV-CH', commande: 'Ouvrir les chantiers', bloc: 'Expression seule (Cap)', formulation: 'ouvre mes chantiers' },
+    { code: 'NAV-CH', commande: 'Ouvrir les chantiers', bloc: 'Expression seule (Cap)', formulation: 'affiche les chantiers' },
+    { code: 'NAV-CH', commande: 'Ouvrir les chantiers', bloc: 'Expression seule (Cap)', formulation: 'montre les chantiers' },
+    { code: 'NAV-CH', commande: 'Ouvrir les chantiers', bloc: 'Expression seule (Cap)', formulation: 'montre-moi les chantiers' },
+    { code: 'NAV-CH', commande: 'Ouvrir les chantiers', bloc: 'Expression seule (Cap)', formulation: 'les chantiers' },
+    { code: 'NAV-CH', commande: 'Ouvrir les chantiers', bloc: 'Expression seule (Cap)', formulation: 'mes chantiers' },
     { code: 'MUS-10', commande: 'Couper le son', bloc: 'Expression seule (Cap)', formulation: 'tais-toi' },
     { code: 'MUS-10', commande: 'Couper le son', bloc: 'Expression seule (Cap)', formulation: 'silence' },
     { code: 'MUS-12', commande: 'Passer au morceau suivant', bloc: 'Expression seule (Cap)', formulation: 'un autre' },

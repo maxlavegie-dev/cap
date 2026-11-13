@@ -90,7 +90,7 @@
     var zoneW = zoneImage.clientWidth || 0;
     var zoneH = zoneImage.clientHeight || 0;
     var centreX = zoneW / 2 + doc.zoomX;
-    var centreY = zoneH / 2 + doc.zoomY;
+    var centreY = zoneH / 2 + doc.zoomY + (doc.decalageDefilement || 0); // c119 : centre de la partie VISIBLE de la mosaique
     doc.carte.style.left = (centreX - largeurAffichee / 2) + "px";
     doc.carte.style.top = (centreY - hauteurAffichee / 2) + "px";
     doc.carte.style.width = largeurAffichee + "px";
@@ -174,6 +174,8 @@
 
     carte.addEventListener("pointerdown", function (e) {
       doc.pointeurs[e.pointerId] = { x: e.clientX, y: e.clientY };
+      // 11/11/2026 (Claude Code, accord de Max, c114) : pour reconnaitre un toucher SIMPLE (court, sans glisser).
+      if (nbPointeursDoc(doc) === 1) { doc.aBouge = false; doc.debutAppui = performance.now(); } else { doc.aBouge = true; }
       if (nbPointeursDoc(doc) === 2) {
         annulerAppuiLong();
         doc.distanceDepartPincement = distancePointeursDoc(doc);
@@ -219,6 +221,8 @@
         doc.dernierePositionPincement = centreActuel;
         appliquerTransformImageDoc(doc);
       } else if (nbPointeursDoc(doc) === 1 && doc.departGlissement) {
+        // 11/11/2026 (c114) : un glissement de plus de quelques pixels n'est pas un toucher simple.
+        if (Math.abs(e.clientX - doc.departGlissement.x) + Math.abs(e.clientY - doc.departGlissement.y) > SEUIL_DEPLACEMENT_APPUI_LONG) doc.aBouge = true;
         doc.zoomX = doc.departGlissement.zoomX + (e.clientX - doc.departGlissement.x);
         doc.zoomY = doc.departGlissement.zoomY + (e.clientY - doc.departGlissement.y);
         appliquerTransformImageDoc(doc);
@@ -257,6 +261,20 @@
         doc.dernierAppuiTemps = 0;
       } else {
         doc.dernierAppuiTemps = maintenant;
+        // 11/11/2026 (Claude Code, accord de Max, c114) : document agrandi depuis la mosaique d'un chantier : un toucher
+        // SIMPLE (court, sans glisser, sans second toucher dans le delai du double appui) le remet a sa place. Le double
+        // appui, le pincement et le glissement gardent EXACTEMENT leur comportement.
+        if (doc.surToucherSimple && !doc.aBouge && maintenant - (doc.debutAppui || 0) < DUREE_APPUI_LONG - 100) {
+          var tempsAppui = maintenant;
+          clearTimeout(doc.minuteurToucherSimple);
+          doc.minuteurToucherSimple = setTimeout(function () {
+            doc.minuteurToucherSimple = null;
+            if (doc.dernierAppuiTemps === tempsAppui && doc.surToucherSimple) {
+              doc.dernierAppuiTemps = 0;
+              doc.surToucherSimple();
+            }
+          }, SEUIL_DOUBLE_APPUI + 30);
+        }
       }
     });
 
@@ -458,6 +476,7 @@
     var idx = documentsListe.indexOf(doc);
     if (idx < 0) return;
     if (doc.minuteurAppuiLong) clearTimeout(doc.minuteurAppuiLong);
+    if (doc.minuteurToucherSimple) clearTimeout(doc.minuteurToucherSimple); // c114
     if (doc.estPdf && doc.pdfDoc) {
       doc.pdfDoc.destroy();
     }
@@ -466,10 +485,268 @@
     }
     doc.carte.remove();
     documentsListe.splice(idx, 1);
-    if (documentsListe.length === 0) {
+    if (documentsListe.length === 0 && !miniatures.length) { // c114 : la mosaique garde la zone visible
       zoneImage.classList.remove("visible");
     }
+    if (doc === docAgrandi) finirAgrandi(); // c114 : retire par la croix : la mosaique revient
   }
+
+  // ==============================================================
+  // 11/11/2026 (Claude Code, accord de Max, c114) : MOSAIQUE D'UN CHANTIER
+  // Cap donne le nombre de documents, puis chaque miniature (petite image JPEG faite par Cap) des qu'elle est prete.
+  // Les miniatures sont rangees en grille dans l'espace partage (cases egales ; au-dela de ce qui tient, la zone
+  // defile). Un toucher sur une miniature : Cap lit le document entier et l'ouvre ICI comme n'importe quel document
+  // (meme zoom, meme deplacement, memes pages de PDF) ; la mosaique se cache dessous. Un toucher simple sur le document
+  // agrandi (ou sa croix) le retire et la mosaique revient, a la meme place. Un seul document entier a la fois.
+  // ==============================================================
+  var miniatures = [];
+  var docAgrandi = null;
+  var surFinAgrandi = null;
+  var defilementMosaique = 0;
+  var LARGEUR_MIN_MINIATURE = 110;
+
+  function placerMosaique() {
+    var n = miniatures.length;
+    if (!n) return;
+    var W = zoneImage.clientWidth || 1;
+    var H = zoneImage.clientHeight || 1;
+    // Le plus grand carre de case qui fait tout tenir ; si les cases deviennent trop petites, largeur minimale et
+    // la zone defile vers le bas.
+    var colonnes = 1, meilleure = 0;
+    for (var c = 1; c <= n; c++) {
+      var t = Math.min(W / c, H / Math.ceil(n / c));
+      if (t > meilleure) { meilleure = t; colonnes = c; }
+    }
+    if (W / colonnes < LARGEUR_MIN_MINIATURE) colonnes = Math.max(1, Math.floor(W / LARGEUR_MIN_MINIATURE));
+    var lignes = Math.ceil(n / colonnes);
+    var cw = W / colonnes;
+    var ch = Math.max(H / lignes, cw);
+    if (lignes * ch > H && H / lignes >= cw * 0.75) ch = H / lignes;
+    var marge = 6;
+    for (var i = 0; i < n; i++) {
+      if (miniatures[i].deplacee) continue; // c121 : une miniature posee par Max garde sa place
+      var s = miniatures[i].carte.style;
+      s.left = ((i % colonnes) * cw + marge) + "px";
+      s.top = (Math.floor(i / colonnes) * ch + marge) + "px";
+      s.width = (cw - 2 * marge) + "px";
+      s.height = (ch - 2 * marge) + "px";
+    }
+  }
+
+  function montrerMosaique(nombre, surToucher) {
+    fermerMosaique();
+    for (var i = 0; i < nombre; i++) {
+      (function (index) {
+        var carte = document.createElement("div");
+        carte.className = "carte-document carte-miniature miniature-en-chargement";
+        carte.setAttribute("role", "button");
+        carte.setAttribute("aria-label", "Document " + (index + 1));
+        var img = document.createElement("img");
+        img.className = "image-miniature";
+        img.alt = "";
+        carte.appendChild(img);
+        carte.addEventListener("click", function () {
+          if (ignorerClic) { ignorerClic = false; return; } // c121 : le lever d'un deplacement n'est pas un toucher
+          if (docAgrandi || typeof surToucher !== "function") return;
+          surToucher(index);
+        });
+        zoneImage.appendChild(carte);
+        var m = { carte: carte, img: img, deplacee: false };
+        miniatures.push(m);
+        brancherDeplacement(m); // c121
+      })(i);
+    }
+    zoneImage.classList.add("visible", "en-mosaique");
+    zoneImage.style.overflowY = "auto"; // beaucoup de miniatures : la zone defile
+    placerMosaique();
+  }
+
+  // ==============================================================
+  // 11/11/2026 (Claude Code, accord de Max, c121, marche 3) : DEPLACER UNE MINIATURE. Appui long (environ 0,5 s) sur une
+  // miniature : elle est saisie (elle se souleve) ; on la glisse ; on la pose en levant le doigt. Elle garde cette place
+  // (le reste de la mosaique ne bouge pas). Un toucher court garde son sens (plein ecran) ; un doigt qui bouge avant la
+  // demi-seconde annule la saisie. Pas pendant qu'un document est agrandi. Rangement en memoire seulement (rien
+  // d'enregistre) ; "comme au depart" le remet en grille.
+  // ==============================================================
+  var DUREE_SAISIE = 500;
+  var ignorerClic = false;
+  var arrangementModifie = false;
+  // 11/11/2026 (c122, defaut vu par Max) : UNE SEULE image active a la fois, et plus de blocage. Avant (c121) : chaque
+  // miniature gardait son propre geste en cours, efface seulement par SON propre lever ; un lever perdu (doigt leve
+  // ailleurs) la bloquait pour toujours ; et la miniature saisie etait DEPLACEE dans la page pendant le geste (pour passer
+  // devant), ce qui peut faire perdre le doigt au telephone. Maintenant : un seul geste pour toute la mosaique ; un nouvel
+  // appui termine l'ancien geste ; le lever est attrape ou qu'il arrive ; la miniature saisie passe devant par son plan
+  // (z-index), sans bouger dans la page ; l'ancienne reste exactement ou elle est.
+  var geste = null;      // { m, id, x, y, left, top, saisie, minuteur }
+  var planMiniatures = 0; // plan de la derniere miniature prise en main
+  function terminerGeste() {
+    var g = geste;
+    if (!g) return;
+    geste = null;
+    clearTimeout(g.minuteur);
+    if (!g.saisie) return;
+    g.m.carte.classList.remove("miniature-saisie");
+    if (parseFloat(g.m.carte.style.left) !== g.left || parseFloat(g.m.carte.style.top) !== g.top) { g.m.deplacee = true; arrangementModifie = true; }
+    ignorerClic = true; // le "click" qui suit ce lever n'ouvre pas le document
+    setTimeout(function () { ignorerClic = false; }, 400);
+  }
+  function brancherDeplacement(m) {
+    var carte = m.carte;
+    carte.addEventListener("pointerdown", function (e) {
+      if (docAgrandi || defilementDeuxDoigts) return; // c160 : deux doigts qui font defiler la mosaique : pas de saisie
+      terminerGeste(); // une seule image active : l'ancien geste (meme perdu) s'arrete, l'image reste ou elle est
+      var g = { m: m, id: e.pointerId, x: e.clientX, y: e.clientY, left: parseFloat(carte.style.left) || 0, top: parseFloat(carte.style.top) || 0, saisie: false, minuteur: null };
+      geste = g;
+      g.minuteur = setTimeout(function () {
+        if (geste !== g || docAgrandi) return;
+        g.saisie = true;
+        carte.classList.add("miniature-saisie");
+        carte.style.zIndex = String(++planMiniatures); // devant les autres, SANS bouger dans la page
+        try { carte.setPointerCapture(g.id); } catch (err) { /* rien */ }
+      }, DUREE_SAISIE);
+    });
+    carte.addEventListener("pointermove", function (e) {
+      var g = geste;
+      if (!g || g.m !== m || e.pointerId !== g.id) return;
+      var dx = e.clientX - g.x, dy = e.clientY - g.y;
+      if (!g.saisie) {
+        if (Math.abs(dx) + Math.abs(dy) > SEUIL_DEPLACEMENT_APPUI_LONG) terminerGeste(); // pas un appui long
+        return;
+      }
+      carte.style.left = (g.left + dx) + "px";
+      carte.style.top = (g.top + dy) + "px";
+    });
+  }
+  // Le lever (ou l'annulation) de CE doigt termine le geste, ou qu'il arrive dans la page.
+  function finDuDoigt(e) { if (geste && e.pointerId === geste.id) terminerGeste(); }
+  document.addEventListener("pointerup", finDuDoigt, true);
+  document.addEventListener("pointercancel", finDuDoigt, true);
+  document.addEventListener("lostpointercapture", function (e) { if (geste && geste.saisie && e.pointerId === geste.id) terminerGeste(); }, true);
+
+  // ==============================================================
+  // 12/11/2026 (Claude Code, accord de Max, c160) : FAIRE DEFILER LA MOSAIQUE A DEUX DOIGTS. Regle de Max : la zone ou
+  // tombent les deux doigts decide. Deux doigts sur la MEME miniature : reserve au zoom de cette case (plus tard) ; ici,
+  // rien ne change. Deux doigts ailleurs (sur l'eau, ou sur deux cases differentes, l'eau n'etant visible qu'entre les
+  // cases quand la mosaique depasse l'ecran) : la mosaique suit les deux doigts, seulement s'il y a de quoi defiler.
+  // Un doigt seul : rien ne change (ondes sur l'eau, toucher, appui long). Pas pendant un document agrandi, ni pendant
+  // qu'une miniature saisie est deplacee. Le lever de ces doigts n'ouvre aucun document.
+  // ==============================================================
+  var doigtsMosaique = {};          // pointerId -> { y, carte }
+  var defilementDeuxDoigts = false;
+  var moyenneDefilement = 0;
+  function doigtsPoses() { var l = []; for (var k in doigtsMosaique) l.push(doigtsMosaique[k]); return l; }
+  function moyenneDoigts() { var l = doigtsPoses(), t = 0; for (var i = 0; i < l.length; i++) t += l[i].y; return l.length ? t / l.length : 0; }
+  zoneImage.addEventListener("pointerdown", function (e) {
+    if (!zoneImage.classList.contains("en-mosaique") || docAgrandi) return;
+    doigtsMosaique[e.pointerId] = { y: e.clientY, carte: (e.target && e.target.closest) ? e.target.closest(".carte-miniature") : null };
+    var l = doigtsPoses();
+    if (l.length < 2 || defilementDeuxDoigts) { moyenneDefilement = moyenneDoigts(); return; }
+    if (geste && geste.saisie) return; // une miniature saisie est en train d'etre deplacee : elle garde la main
+    if (l[0].carte && l[0].carte === l[1].carte) return; // deux doigts sur la meme miniature : zoom de la case (plus tard)
+    defilementDeuxDoigts = true;
+    terminerGeste(); // l'appui long eventuel du premier doigt est annule
+    moyenneDefilement = moyenneDoigts();
+  }, true);
+  document.addEventListener("pointermove", function (e) {
+    var d = doigtsMosaique[e.pointerId];
+    if (!d) return;
+    d.y = e.clientY;
+    if (!defilementDeuxDoigts || docAgrandi || doigtsPoses().length < 2) return;
+    var m = moyenneDoigts();
+    if (zoneImage.scrollHeight > zoneImage.clientHeight) zoneImage.scrollTop -= (m - moyenneDefilement);
+    moyenneDefilement = m;
+  }, true);
+  function finDoigtMosaique(e) {
+    if (!doigtsMosaique[e.pointerId]) return;
+    delete doigtsMosaique[e.pointerId];
+    moyenneDefilement = moyenneDoigts();
+    if (defilementDeuxDoigts) { ignorerClic = true; setTimeout(function () { ignorerClic = false; }, 400); }
+    if (!doigtsPoses().length) defilementDeuxDoigts = false;
+  }
+  document.addEventListener("pointerup", finDoigtMosaique, true);
+  document.addEventListener("pointercancel", finDoigtMosaique, true);
+
+  function remettreMosaiqueCommeAuDepart() {
+    terminerGeste(); // c122
+    planMiniatures = 0;
+    for (var i = 0; i < miniatures.length; i++) {
+      miniatures[i].deplacee = false;
+      miniatures[i].carte.style.zIndex = ""; // c122 : plan d'origine
+      zoneImage.appendChild(miniatures[i].carte); // ordre d'origine
+    }
+    if (docAgrandi) zoneImage.appendChild(docAgrandi.carte); // le document agrandi reste au-dessus
+    arrangementModifie = false;
+    placerMosaique();
+  }
+
+  function remplirMiniature(index, adresse) {
+    var m = miniatures[index];
+    if (!m) return;
+    m.img.src = adresse;
+    m.carte.classList.remove("miniature-en-chargement", "miniature-illisible");
+    if (m.texte) { m.texte.remove(); m.texte = null; } // c117 : la miniature est arrivee ensuite
+  }
+
+  // 11/11/2026 (Claude Code, accord de Max, c117) : la case DIT pourquoi elle n'a pas de miniature (texte donne par Cap,
+  // jamais le nom du fichier) ; elle reste touchable : le document s'ouvre quand meme.
+  function miniatureIllisible(index, texte) {
+    var m = miniatures[index];
+    if (!m) return;
+    m.carte.classList.remove("miniature-en-chargement");
+    m.carte.classList.add("miniature-illisible");
+    if (!m.texte) {
+      m.texte = document.createElement("span");
+      m.texte.className = "texte-miniature";
+      m.carte.appendChild(m.texte);
+    }
+    m.texte.textContent = texte || "Miniature impossible. Touche pour l'ouvrir.";
+  }
+
+  // 11/11/2026 (c120) : "index" = la miniature agrandie : SA case disparait pendant l'agrandi (sinon on la voit en double) ;
+  // elle revient quand le document est remis a sa place. Les autres ne bougent pas.
+  var miniatureAgrandie = -1;
+  function agrandirDepuisMosaique(adresse, titre, surFin, index) {
+    if (docAgrandi) retirerDocument(docAgrandi);
+    terminerGeste(); // c122
+    miniatureAgrandie = typeof index === "number" && miniatures[index] ? index : -1;
+    if (miniatureAgrandie >= 0) miniatures[miniatureAgrandie].carte.style.visibility = "hidden";
+    // 11/11/2026 (Claude Code, accord de Max, c119, marche 2) : la mosaique RESTE VISIBLE derriere le document agrandi,
+    // a sa place (ni cachee, ni defilee) ; seul son defilement est bloque pendant l'agrandi. Le document est pose par-dessus,
+    // au centre de la partie visible. Avant (c114) : miniatures cachees et mosaique remontee en haut.
+    defilementMosaique = zoneImage.scrollTop;
+    zoneImage.classList.add("agrandi-sur-mosaique");
+    zoneImage.style.overflowY = "hidden";
+    ajouterDocumentDepuisAdresse(adresse, titre);
+    docAgrandi = documentsListe[documentsListe.length - 1] || null;
+    if (docAgrandi) docAgrandi.decalageDefilement = defilementMosaique; // applique au chargement de l'image ou de la page
+    if (docAgrandi) docAgrandi.carte.style.zIndex = "100000"; // c122 : toujours devant les miniatures, meme relevees
+    surFinAgrandi = surFin || null;
+    if (docAgrandi) docAgrandi.surToucherSimple = function () { retirerDocument(docAgrandi); };
+    else finirAgrandi();
+  }
+
+  function finirAgrandi() {
+    docAgrandi = null;
+    zoneImage.classList.remove("agrandi-sur-mosaique"); // c119 (avant : "mosaique-cachee", miniatures cachees)
+    if (miniatureAgrandie >= 0 && miniatures[miniatureAgrandie]) miniatures[miniatureAgrandie].carte.style.visibility = ""; // c120
+    miniatureAgrandie = -1;
+    if (miniatures.length) zoneImage.style.overflowY = "auto";
+    zoneImage.scrollTop = defilementMosaique;
+    var rappel = surFinAgrandi;
+    surFinAgrandi = null;
+    if (rappel) { try { rappel(); } catch (e) { /* rien */ } }
+  }
+
+  function fermerMosaique() {
+    if (docAgrandi) retirerDocument(docAgrandi);
+    for (var i = 0; i < miniatures.length; i++) miniatures[i].carte.remove();
+    miniatures = [];
+    zoneImage.classList.remove("en-mosaique", "agrandi-sur-mosaique");
+    zoneImage.style.overflowY = "";
+    if (!documentsListe.length) zoneImage.classList.remove("visible");
+  }
+
+  window.addEventListener("resize", placerMosaique);
 
   function fermerTout() {
     documentsListe.slice().forEach(retirerDocument);
@@ -504,13 +781,26 @@
   // A BRANCHER DANS CAP : ferme TOUS les documents actuellement
   // affiches et vide l'espace partage.
   function fermer() {
+    fermerMosaique(); // c114
     fermerTout();
   }
 
   window.Visualiseur = {
     montrerFichier: montrerFichier,
     montrerPlusieurs: montrerPlusieurs,
-    fermer: fermer
+    fermer: fermer,
+    // 11/11/2026 (Claude Code, accord de Max, c114) : la mosaique d'un chantier.
+    montrerMosaique: montrerMosaique,
+    remplirMiniature: remplirMiniature,
+    miniatureIllisible: miniatureIllisible,
+    agrandirDepuisMosaique: agrandirDepuisMosaique,
+    // 11/11/2026 (Claude Code, accord de Max, c118) : chaque document ouvert reprend sa taille et sa place d'ouverture.
+    remettreCommeAuDepart: function () {
+      for (var i = 0; i < documentsListe.length; i++) reinitialiserZoomDoc(documentsListe[i]);
+      remettreMosaiqueCommeAuDepart(); // c121 : la mosaique aussi, rangement compris
+    },
+    arrangementModifie: function () { return arrangementModifie; }, // c121 : repere en memoire seulement
+    documentAgrandi: function () { return Boolean(docAgrandi); }
   };
 })();
 /* ================================================================

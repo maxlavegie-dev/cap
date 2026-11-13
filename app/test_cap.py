@@ -1,5 +1,6 @@
 import html
 import json
+import os
 import pathlib
 import re
 import struct
@@ -11,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "relations.js", "attente.js", "commandes_vocales.js", "choix_sur_eau.js", "transition_ecrans.js", "relations_creation.js", "visionneuse_cap.js", "relations_compte.js", "relations_mp3.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "phrases_apprendre.js", "tableur_phrases.js", "tableur_cap.js", "numero_choix.js", "app.js", "ecran_eau.js", "accueil_cap.js", "geste_retour.js", "commandes_navigation.js", "commandes_musique.js", "commandes_visionneuse.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "types_fichiers.js", "relations.js", "attente.js", "commandes_vocales.js", "choix_sur_eau.js", "transition_ecrans.js", "relations_creation.js", "visionneuse_cap.js", "numeros.js", "index_relations.js", "coordonnees_relations.js", "memoire_relations.js", "carte_cap.js", "synchro_tout.js", "relations_compte.js", "mms_lecture.js", "mms_rangement.js", "mms_repetition.js", "mms_ecran.js", "relations_mp3.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "phrases_apprendre.js", "tableur_phrases.js", "tableur_cap.js", "numero_choix.js", "regles_voyant.js", "chantiers.js", "chantiers_dossiers.js", "tuiles_config.js", "app.js", "ecran_eau.js", "accueil_cap.js", "geste_retour.js", "commandes_navigation.js", "commandes_musique.js", "commandes_visionneuse.js", "chantiers_ecran.js", "journaux_relations.js", "confirmations_fenetres.js", "matieres_ecran.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -2348,19 +2349,19 @@ TESTS_JS = r"""
     // Fichiers déposés à la main invisibles (comme Cap pourrait les voir avec drive.file) : tout à zéro.
     let r = await module.essaiVisibilite('appcap-fictif');
     attendreEgal(r.dossiers, 4, 'dossiers lus');
-    attendre(r.lignes.every(l => l.mp3 + l.images + l.sousDossiers + l.autres === 0), 'éléments de Cap comptés');
-    attendre(/4 autre\(s\) dossier\(s\) : rien de visible/.test(module.resumerVisibilite(r)) && /Total visible : 0 MP3, 0 image\(s\), 0 sous-dossier\(s\), 0 autre\(s\)\./.test(module.resumerVisibilite(r)), 'résumé à zéro');
+    attendre(r.lignes.every(l => l.musique + l.images + l.sousDossiers + l.autres === 0), 'éléments de Cap comptés'); // 10/11/2026 : musique (avant : mp3)
+    attendre(/4 autre\(s\) dossier\(s\) : rien de visible/.test(module.resumerVisibilite(r)) && /Total visible : 0 morceau\(x\), 0 image\(s\), 0 sous-dossier\(s\), 0 autre\(s\)\./.test(module.resumerVisibilite(r)), 'résumé à zéro');
     // Visibles : nombres justes, y compris dans un sous-dossier et dans « Reçus ».
     drive.mainVisible = true;
     r = await module.essaiVisibilite('appcap-fictif');
-    attendreEgal(r.lignes.map(l => [l.nomDossier, l.mp3, l.images, l.sousDossiers, l.autres]),
+    attendreEgal(r.lignes.map(l => [l.nomDossier, l.musique, l.images, l.sousDossiers, l.autres]),
       [['r_Jean Fictif', 2, 0, 1, 0], ['r_Jeanne Exemple-FICTIF', 1, 0, 0, 0], ['r_Paul Image-FICTIF', 0, 4, 0, 1], ['r_Zoé Rien-FICTIF', 0, 0, 0, 0]], 'nombres par dossier');
     const texte = module.resumerVisibilite(r);
     attendreEgal(texte, ['Essai de visibilité (lecture seule, rien n’est modifié) : 4 dossier(s) « r_ » lus.',
-      'r_Jean Fictif : 2 MP3 · 0 image(s) · 1 sous-dossier(s)', 'r_Jeanne Exemple-FICTIF : 1 MP3 · 0 image(s) · 0 sous-dossier(s)',
-      'r_Paul Image-FICTIF : 0 MP3 · 4 image(s) · 0 sous-dossier(s) · 1 autre(s)', '1 autre(s) dossier(s) : rien de visible à part ce que Cap a créé.',
-      'Total visible : 3 MP3, 4 image(s), 1 sous-dossier(s), 1 autre(s).'].join('\n'), 'résumé');
-    attendre(!/secr|morceau|photo|chanson|note|Album|\.mp3|\.jpg|\.pdf/i.test(texte), 'un nom de fichier est affiché');
+      'r_Jean Fictif : 2 morceau(x) · 0 image(s) · 1 sous-dossier(s)', 'r_Jeanne Exemple-FICTIF : 1 morceau(x) · 0 image(s) · 0 sous-dossier(s)',
+      'r_Paul Image-FICTIF : 0 morceau(x) · 4 image(s) · 0 sous-dossier(s) · 1 autre(s)', '1 autre(s) dossier(s) : rien de visible à part ce que Cap a créé.',
+      'Total visible : 3 morceau(x), 4 image(s), 1 sous-dossier(s), 1 autre(s).'].join('\n'), 'résumé');
+    attendre(!/secr|morceau FICTIF|photo|chanson|note|Album|\.mp3|\.jpg|\.pdf/i.test(texte), 'un nom de fichier est affiché');
     // Lecture seule.
     attendre(c.requetes.slice(avant).every(q => q.methode === 'GET' && q.url.hostname === 'www.googleapis.com' && q.url.pathname === '/drive/v3/files'), 'autre chose qu’une lecture');
     attendreEgal(drive.creations, creations, 'création pendant l’essai');
@@ -2376,13 +2377,13 @@ TESTS_JS = r"""
       montrer: async () => { if (refuser) throw new Error('fenêtre FICTIVE refusée'); montres++; drive.mainVisible = true; return { id: drive.fichiers.find(x => x.name === 'Relations').id, nom: 'Relations' }; } });
     attendre(el('resume-visibilite-relations').hidden, 'zone visible trop tôt');
     el('visibilite-relations').click();
-    await attendreQue(() => /Total visible : 0 MP3/.test(el('resume-visibilite-relations').textContent), `premier essai : ${el('resume-visibilite-relations').textContent}`);
+    await attendreQue(() => /Total visible : 0 morceau\(x\)/.test(el('resume-visibilite-relations').textContent), `premier essai : ${el('resume-visibilite-relations').textContent}`);
     el('montrer-relations').click();
     await attendreQue(() => /OUI : c’est bien le « Relations » créé par Cap/.test(el('resume-visibilite-relations').textContent), `après le sélecteur : ${el('resume-visibilite-relations').textContent}`);
     attendreEgal(montres, 1, 'sélecteur');
     el('visibilite-relations').click();
-    await attendreQue(() => /Total visible : 3 MP3, 4 image/.test(el('resume-visibilite-relations').textContent), `second essai : ${el('resume-visibilite-relations').textContent}`);
-    attendre(!/secr|morceau|photo|chanson|\.mp3|\.jpg/i.test(el('resume-visibilite-relations').textContent), 'nom de fichier affiché');
+    await attendreQue(() => /Total visible : 3 morceau\(x\), 4 image/.test(el('resume-visibilite-relations').textContent), `second essai : ${el('resume-visibilite-relations').textContent}`);
+    attendre(!/secr|morceau FICTIF|photo|chanson|\.mp3|\.jpg/i.test(el('resume-visibilite-relations').textContent), 'nom de fichier affiché');
     refuser = true;
     el('montrer-relations').click();
     await attendreQue(() => /n’a pas pu s’ouvrir/.test(el('resume-visibilite-relations').textContent), 'sélecteur refusé');
@@ -2697,16 +2698,17 @@ TESTS_JS = r"""
     const { m } = connecterCompteFictif(c);
     const module = relationsCompte0();
     const r = await module.compter(m);
-    attendreEgal(r.lignes.map(l => [l.nomDossier, l.mp3, l.images, l.pdf, l.albums, l.sousDossiers, l.autres]),
+    attendreEgal(r.lignes.map(l => [l.nomDossier, l.musique, l.images, l.pdf, l.albums, l.sousDossiers, l.autres]),
       [['r_Jean Fictif', 3, 0, 0, 2, 0, 0], ['r_Marc Pdf-FICTIF', 0, 0, 1, 0, 1, 1], ['r_Paule Image-FICTIF', 0, 4, 1, 0, 0, 0], ['r_Zoé Rien-FICTIF', 0, 0, 0, 0, 0, 0]], 'nombres');
     attendreEgal(r.pdfs.length, 2, 'PDF trouvés');
     const texte = module.resumer(r);
     attendreEgal(texte, ['Compte Cap (lecture seule, rien n’est modifié) : 4 dossier(s) « r_ ».',
-      'r_Jean Fictif : 3 MP3 · 0 image(s) · 0 PDF · 2 album(s)',
-      'r_Marc Pdf-FICTIF : 0 MP3 · 0 image(s) · 1 PDF · 0 album(s) · 1 autre(s) sous-dossier(s) · 1 autre(s) fichier(s)',
-      'r_Paule Image-FICTIF : 0 MP3 · 4 image(s) · 1 PDF · 0 album(s)', 'r_Zoé Rien-FICTIF : 0 MP3 · 0 image(s) · 0 PDF · 0 album(s)',
-      '1 autre(s) élément(s) dans « Relations » (pas des dossiers « r_ »).', 'Total : 3 MP3, 4 image(s), 2 PDF, 2 album(s).'].join('\n'), 'résumé');
-    attendre(!/secr|morceau|photo|lettre|facture|notes|Album FICTIF|Playlist|Divers|\.mp3|\.jpg|\.pdf|\.txt/i.test(texte), 'un nom de fichier est affiché');
+      // 10/11/2026 (séance 3) : « N morceaux (détail) · N vidéo ». Avant : « 3 MP3 · … ».
+      'r_Jean Fictif : 3 morceaux (3 MP3) · 0 vidéo · 0 image(s) · 0 PDF · 2 album(s)',
+      'r_Marc Pdf-FICTIF : 0 morceau · 0 vidéo · 0 image(s) · 1 PDF · 0 album(s) · 1 autre(s) sous-dossier(s) · 1 autre(s) fichier(s)',
+      'r_Paule Image-FICTIF : 0 morceau · 0 vidéo · 4 image(s) · 1 PDF · 0 album(s)', 'r_Zoé Rien-FICTIF : 0 morceau · 0 vidéo · 0 image(s) · 0 PDF · 0 album(s)',
+      '1 autre(s) élément(s) dans « Relations » (pas des dossiers « r_ »).', 'Total : 3 morceaux (3 MP3), 0 vidéo, 4 image(s), 2 PDF, 2 album(s).'].join('\n'), 'résumé');
+    attendre(!/secr|morceau FICTIF|photo|lettre|facture|notes|Album FICTIF|Playlist|Divers|\.mp3|\.jpg|\.pdf|\.txt/i.test(texte), 'un nom de fichier est affiché');
     attendre(c.requetes.some(q => q.url.searchParams.get('pageToken')), 'pages suivantes non lues');
     attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
     attendre(f.autorisations.every(a => a === 'Bearer jeton-compte-cap-fictif'), 'mauvais jeton utilisé');
@@ -2751,7 +2753,7 @@ TESTS_JS = r"""
     const module = relationsCompte0();
     const r = await module.compter(m);
     // Relations inchangé.
-    attendreEgal(module.resumer(r).split('\n').at(-1), 'Total : 3 MP3, 4 image(s), 2 PDF, 2 album(s).', 'Relations');
+    attendreEgal(module.resumer(r).split('\n').at(-1), 'Total : 3 morceaux (3 MP3), 0 vidéo, 4 image(s), 2 PDF, 2 album(s).', 'Relations');
     const d = r.documents;
     attendreEgal(d.lignes.map(l => [l.nomDossier, l.dossiers, l.pdf, l.images, l.autres]),
       [['01 Papiers FICTIF', 5, 2, 1, 1], ['02 Maison FICTIVE', 0, 0, 0, 0], ['03 Vide FICTIF', 0, 0, 0, 0]], 'Documents');
@@ -2781,7 +2783,7 @@ TESTS_JS = r"""
     attendre(/^2 dossiers « Documents »/.test(module.resumerDocuments((await module.compter(m2)).documents)), 'deux Documents');
   });
 
-  await testAsync('Compte Cap (lot 2, écran, FAUX Drive) : le comptage montre « Relations » puis « Documents », et le bouton PDF compte aussi les PDF de « Documents »', async c => {
+  await testAsync('Compte Cap (lot 2, écran, FAUX Drive) : le comptage montre « Relations » puis « Documents », (c148 : plus de bouton « Afficher les PDF dans Cap »)', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     const f = fauxDriveCompteCap(c);
     remplirCompteCapFictif(f);
@@ -2793,12 +2795,11 @@ TESTS_JS = r"""
     el('compter-compte-relations').click();
     await attendreQue(() => /Total « Documents » : 8 dossier\(s\), 3 PDF/.test(el('resume-documents-compte').textContent), `écran : ${el('resume-documents-compte').textContent}`);
     // Deux zones séparées, chacune avec son titre ; « Relations » ne contient plus « Documents ».
-    attendre(/Total : 3 MP3, 4 image\(s\), 2 PDF/.test(el('resume-compte-relations').textContent) && !/Documents/.test(el('resume-compte-relations').textContent), 'zone Relations');
+    attendre(/Total : 3 morceaux \(3 MP3\), 0 vidéo, 4 image\(s\), 2 PDF/.test(el('resume-compte-relations').textContent) && !/Documents/.test(el('resume-compte-relations').textContent), 'zone Relations');
     attendreEgal([el('resume-compte-relations').dataset.titre, el('resume-documents-compte').dataset.titre], ['Relations', 'Documents'], 'titres');
     attendre(!el('resume-documents-compte').hidden && el('resume-documents-compte').classList.contains('bloc-resultat'), 'zone Documents cachée');
     attendre(el('resume-compte-relations').compareDocumentPosition(el('resume-documents-compte')) & Node.DOCUMENT_POSITION_FOLLOWING, 'ordre Relations puis Documents');
-    attendreEgal(el('pdf-compte-relations').textContent, 'Afficher les PDF dans Cap (5)', 'bouton PDF');
-    attendre(!el('pdf-compte-relations').hidden, 'bouton PDF caché');
+    attendreEgal(el('pdf-compte-relations'), null, 'bouton « Afficher les PDF dans Cap » encore là (c148)');
   });
 
   test('Lecteur de PDF : pdf.js chargé à la demande depuis Cap (pdfjs/, jamais Internet), une seule fois, nouvel essai possible après un échec', () => {
@@ -2819,7 +2820,7 @@ TESTS_JS = r"""
     attendre(window.pdfjsLib && /^3\.11\.174$/.test(window.pdfjsLib.version), 'version de pdf.js');
   });
 
-  await testAsync('Compte Cap (FAUX Drive) : écran (identifiant affiché, connexion, comptage, bouton PDF) et PDF dessiné DANS Cap par pdf.js, page suivante, fermer', async c => {
+  await testAsync('Compte Cap (FAUX Drive) : écran (identifiant affiché, connexion, comptage ; c148 : plus de bouton PDF, l’ancien petit lecteur n’est plus ouvert)', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     const f = fauxDriveCompteCap(c);
     remplirCompteCapFictif(f);
@@ -2828,7 +2829,7 @@ TESTS_JS = r"""
     const el = id => ui.parId(id);
     module.brancher(ui.doc, { compte: m, pdfjs: () => module.chargerPdfjs(document, window) });
     attendreEgal(el('adresse-compte-relations').value, COMPTE_CAP_FICTIF, 'identifiant affiché');
-    attendre(el('pdf-compte-relations').hidden, 'bouton PDF trop tôt');
+    attendreEgal(el('pdf-compte-relations'), null, 'bouton PDF encore là (c148)');
     // Retour de Google : « Réglages du Drive » rouvert, puis le compte connecté affiché (et il reste).
     attendre(el('reglages-drive').open, 'Réglages du Drive pas rouverts au retour');
     await attendreQue(() => el('resume-compte-relations').textContent === `Compte Cap connecté : ${COMPTE_CAP_FICTIF}. Touche « Compter ce que Cap voit dans le compte Cap ».`,
@@ -2840,36 +2841,11 @@ TESTS_JS = r"""
     // Rond d'attente : tout de suite « Lecture en cours… », bouton grisé, puis texte d'origine.
     attendre(el('compter-compte-relations').disabled && el('compter-compte-relations').classList.contains('en-lecture')
       && el('compter-compte-relations').textContent === 'Lecture en cours…', 'pas de rond d’attente');
-    await attendreQue(() => /Total : 3 MP3, 4 image\(s\), 2 PDF/.test(el('resume-compte-relations').textContent), `comptage : ${el('resume-compte-relations').textContent}`);
+    await attendreQue(() => /Total : 3 morceaux \(3 MP3\), 0 vidéo, 4 image\(s\), 2 PDF/.test(el('resume-compte-relations').textContent), `comptage : ${el('resume-compte-relations').textContent}`);
     await attendreQue(() => !el('compter-compte-relations').disabled, 'bouton resté grisé');
     attendreEgal([el('compter-compte-relations').textContent, el('compter-compte-relations').classList.contains('en-lecture')], [texteBouton, false], 'bouton pas remis');
-    attendre(!el('pdf-compte-relations').hidden && el('pdf-compte-relations').textContent === 'Afficher les PDF dans Cap (2)', 'bouton PDF');
-    el('pdf-compte-relations').click();
-    await attendreReel(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', `PDF : ${el('page-pdf-relations').textContent}`);
-    attendre(el('pdf-avant-relations').disabled && !el('pdf-apres-relations').disabled, 'boutons du PDF 1');
-    attendre(el('lecteur-pdf-relations').open, 'lecteur fermé');
-    const canvas = el('canvas-pdf-relations');
-    attendre(canvas.width >= 200 && canvas.height === canvas.width, `taille du dessin ${canvas.width} x ${canvas.height}`);
-    const noir = (x, y) => { const p = canvas.getContext('2d').getImageData(Math.floor(canvas.width * x), Math.floor(canvas.height * y), 1, 1).data; return p[3] > 200 && p[0] + p[1] + p[2] < 100; };
-    attendre(noir(0.25, 0.25) && !noir(0.75, 0.75), 'page 1 mal dessinée');
-    attendre(el('pdf-precedente-relations').disabled && !el('pdf-suivante-relations').disabled, 'boutons de page 1');
-    el('pdf-suivante-relations').click();
-    await attendreReel(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 2 sur 2' && noir(0.75, 0.75), 'page 2');
-    attendre(!noir(0.25, 0.25), 'page 2 mal dessinée');
-    // PDF suivant : le 2e PDF s'ouvre à sa page 1.
-    const mediasAvant = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').length;
-    el('pdf-apres-relations').click();
-    await attendreReel(() => el('page-pdf-relations').textContent === 'PDF 2 sur 2 · Page 1 sur 2' && noir(0.25, 0.25), `PDF suivant : ${el('page-pdf-relations').textContent}`);
-    attendre(!el('pdf-avant-relations').disabled && el('pdf-apres-relations').disabled, 'boutons du PDF 2');
-    attendreEgal(c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').length, mediasAvant + 1, 'PDF suivant non lu');
-    const ids = c.requetes.filter(q => q.url.searchParams.get('alt') === 'media').map(q => q.url.pathname);
-    attendre(ids.at(-1) !== ids.at(-2), 'toujours le même PDF');
-    el('pdf-avant-relations').click();
-    await attendreReel(() => el('page-pdf-relations').textContent === 'PDF 1 sur 2 · Page 1 sur 2', 'PDF précédent');
-    el('pdf-fermer-relations').click();
-    attendre(!el('lecteur-pdf-relations').open, 'lecteur pas fermé');
     attendre(c.requetes.every(q => q.methode === 'GET'), 'modification');
-    attendre(c.requetes.some(q => q.url.searchParams.get('alt') === 'media'), 'PDF non lu par le Drive');
+    attendre(!el('lecteur-pdf-relations').open && !c.requetes.some(q => q.url.searchParams.get('alt') === 'media'), 'un PDF lu ou l’ancien lecteur ouvert (c148)');
     // Connexion depuis l'écran : identifiant écrit, page de Google demandée avec ce compte.
     el('adresse-compte-relations').value = 'Autre-Compte-FICTIF@id.gle';
     el('connecter-compte-relations').click();
@@ -2993,6 +2969,61 @@ TESTS_JS = r"""
     attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
   });
 
+  // ----- 10/11/2026 (accord de Max, séance 3) : musique et vidéos reconnues à UN seul endroit (types_fichiers.js), FICTIF -----
+  test('Types de fichiers (10/11/2026, séance 3, FICTIF) : musique = MP3, FLAC, M4A, WAV, OGG, OPUS ; vidéo = MP4, WEBM, MKV (c149) ; MOV, WMA, AAC = autres ; extension d’abord, sinon le type donné par Drive', () => {
+    const vu = (name, mimeType = 'application/octet-stream') => { const r = typesFichiers.analyser({ name, mimeType }); return `${r.sorte}${r.format ? ` ${r.format}` : ''}`; };
+    attendreEgal(['a FICTIF.mp3', 'b FICTIF.FLAC', 'c FICTIF.m4a', 'd FICTIF.wav', 'e FICTIF.ogg', 'f FICTIF.oga', 'g FICTIF.opus'].map(n => vu(n)),
+      ['musique MP3', 'musique FLAC', 'musique M4A', 'musique WAV', 'musique OGG', 'musique OGG', 'musique OPUS'], 'musique par extension');
+    attendreEgal([vu('h FICTIF.mp4'), vu('i FICTIF.WEBM'), vu('j FICTIF.mkv', 'video/x-matroska'), vu('j2 FICTIF.MKV')], ['video MP4', 'video WEBM', 'video MKV', 'video MKV'], 'vidéo par extension (c149 : + MKV)');
+    attendreEgal([vu('k FICTIF.mov', 'video/quicktime'), vu('l FICTIF.wma', 'audio/x-ms-wma'), vu('m FICTIF.aac', 'audio/aac'), vu('n FICTIF.txt', 'text/plain')],
+      ['autres', 'autres', 'autres', 'autres'], 'formats non retenus');
+    attendreEgal([vu('Concert sans extension FICTIF', 'video/x-matroska'), typesFichiers.sansExtensionVideo('Trois FICTIF.mkv')], ['video MKV', 'Trois FICTIF'], 'MKV par le type de Drive, nom sans extension (c149)');
+    attendreEgal([vu('Son sans extension FICTIF', 'audio/flac'), vu('Enregistrement 10.11 FICTIF', 'audio/mp4'), vu('Film FICTIF', 'video/webm'), vu('p FICTIF.pdf'), vu('q FICTIF.jpg')],
+      ['musique FLAC', 'musique M4A', 'video WEBM', 'pdf PDF', 'images JPG'], 'type donné par Drive, PDF, image');
+    attendreEgal(vu('Album FICTIF', 'application/vnd.google-apps.folder'), 'dossier', 'dossier');
+    attendreEgal(['01 Un FICTIF.flac', '02 Deux FICTIF.Opus', 'Trois FICTIF.mkv', 'Quatre FICTIF'].map(typesFichiers.sansExtensionMusique), ['01 Un FICTIF', '02 Deux FICTIF', 'Trois FICTIF.mkv', 'Quatre FICTIF'], 'noms sans extension');
+    // Un seul endroit : plus aucune règle « mp3 » dans les trois fichiers qui s'en servent.
+    for (const [nom, source] of [['relations_compte.js', SOURCE_RELATIONS_COMPTE], ['relations_creation.js', SOURCE_RELATIONS_CREATION], ['relations_mp3.js', SOURCE_RELATIONS_MP3]]) {
+      attendre(!/audio\/mpeg|endsWith\('\.mp3'\)|\\.mp3\$|=== 'mp3'/.test(source), `${nom} décide encore lui-même du MP3`);
+    }
+  });
+
+  await testAsync('Musique et vidéos (10/11/2026, séance 3, FAUX Drive FICTIF) : « Compter » détaille « N morceaux (formats) · N vidéo » par dossier ; la musique propose un dossier avec un FLAC et un dossier avec un MP3 dans un sous-dossier, PAS un dossier avec seulement une vidéo, ni un dossier vide, ni un format non reconnu', async c => {
+    const f = fauxDriveCompteCap(c);
+    const D = 'application/vnd.google-apps.folder';
+    const son = new TextEncoder().encode('son FICTIF');
+    const rel = f.ajouter('Relations', D);
+    const flac = f.ajouter('r_Alba Flac-FICTIF', D, rel.id);
+    f.ajouter('Chanson FICTIVE.flac', 'audio/flac', flac.id, son);
+    f.ajouter('Autre FICTIVE.mp3', 'audio/mpeg', flac.id, son);
+    f.ajouter('Film FICTIF.mp4', 'video/mp4', flac.id, son);
+    const video = f.ajouter('r_Basile Video-FICTIF', D, rel.id);
+    f.ajouter('Vacances FICTIVES.mp4', 'video/mp4', video.id, son);
+    f.ajouter('r_Cyril Vide-FICTIF', D, rel.id);
+    const sous = f.ajouter('r_Dina Sous-FICTIF', D, rel.id);
+    const recus = f.ajouter('Reçus', D, sous.id);
+    f.ajouter('Rangé FICTIF.mp3', 'audio/mpeg', recus.id, son);
+    const inconnu = f.ajouter('r_Emile Mov-FICTIF', D, rel.id); // c149 : un MOV (format non retenu) ; avant : un MKV
+    f.ajouter('Concert FICTIF.mov', 'video/quicktime', inconnu.id, son);
+    const { m } = connecterCompteFictif(c);
+    const r = await relationsCompte0().compter(m);
+    const texte = relationsCompte0().resumer(r);
+    attendreEgal(texte.split('\n').slice(1, 6), [
+      'r_Alba Flac-FICTIF : 2 morceaux (1 FLAC, 1 MP3) · 1 vidéo · 0 image(s) · 0 PDF · 0 album(s)',
+      'r_Basile Video-FICTIF : 0 morceau · 1 vidéo · 0 image(s) · 0 PDF · 0 album(s)',
+      'r_Cyril Vide-FICTIF : 0 morceau · 0 vidéo · 0 image(s) · 0 PDF · 0 album(s)',
+      'r_Dina Sous-FICTIF : 1 morceau (1 MP3) · 0 vidéo · 0 image(s) · 0 PDF · 0 album(s) · 1 autre(s) sous-dossier(s)',
+      'r_Emile Mov-FICTIF : 0 morceau · 0 vidéo · 0 image(s) · 0 PDF · 0 album(s) · 1 autre(s) fichier(s)'], 'détail par dossier');
+    attendreEgal(texte.split('\n').at(-1), 'Total : 3 morceaux (1 FLAC, 2 MP3), 2 vidéos, 0 image(s), 0 PDF, 0 album(s).', 'total');
+    attendre(!/Chanson|Autre FICTIVE|Film|Vacances|Rangé|Concert|\.flac|\.mp4|\.mkv|\.mov/.test(texte), 'un nom de fichier est affiché');
+    const musique = relationsMp30().dossiersAvecMp3(await relationsCompte0().lireArbre(m), relationsCompte0().sorte);
+    attendreEgal(musique.dossiers.map(d => [d.nom, d.musique.total, d.musique.libres.map(x => x.nom)]),
+      // 10/11/2026 (décision de Max, après la séance 4 du lecteur) : un dossier avec seulement une vidéo apparaît aussi.
+      // Avant : seulement Alba et Dina. Le dossier vide et le dossier avec seulement un MOV (avant c149 : un MKV) n'apparaissent toujours pas.
+      [['r_Alba Flac-FICTIF', 2, ['Autre FICTIVE', 'Chanson FICTIVE']], ['r_Basile Video-FICTIF', 0, []], ['r_Dina Sous-FICTIF', 1, ['Rangé FICTIF']]], 'dossiers de musique');
+    attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
+  });
+
   await testAsync('Musique (écran, FAUX Drive) : dossiers en très gros, liste un morceau par ligne (gros numéro + nom), un appui lance le morceau dans le lecteur de Zencoder ; arrêter libère la mémoire', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     const f = fauxDriveCompteCap(c);
@@ -3010,7 +3041,7 @@ TESTS_JS = r"""
     el('musique-compte-relations').click();
     attendre(el('musique-relations').open, 'fenêtre de musique fermée');
     await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.choix-grand-affichage').length === 2, `dossiers : ${el('etat-musique-relations').textContent}`);
-    attendreEgal([...el('liste-musique-relations').querySelectorAll('button')].map(b => b.textContent), ['r_Ana Musique-FICTIF (10 MP3)', 'r_Bob Seul-FICTIF (1 MP3)'], 'boutons des dossiers');
+    attendreEgal([...el('liste-musique-relations').querySelectorAll('button')].map(b => b.textContent), ['r_Ana Musique-FICTIF (10 morceaux)', 'r_Bob Seul-FICTIF (1 morceau)'], 'boutons des dossiers');
     el('liste-musique-relations').querySelector('button').click();
     const lignes = [...el('liste-musique-relations').querySelectorAll('button.ligne-morceau')];
     attendreEgal(lignes.map(b => [b.querySelector('.numero-morceau').textContent, b.querySelector('.nom-morceau').textContent]).slice(0, 2), [['1', 'Un FICTIF'], ['2', 'Trois FICTIF']], 'lignes');
@@ -3313,7 +3344,7 @@ TESTS_JS = r"""
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     brancherAccueil(c, ui);
     const el = id => ui.parId(id);
-    for (const id of ['ouvrir-chercher', 'microphone', 'ouvrir-autre']) /* 09/11/2026 : nouvel ordre, gros micro */ attendre(touchable(ui, el(id)), `${id} pas touchable sur l’accueil`); // 08/11/2026 (étape 2) : le micro de l'accueil est « ouvrir-micro » (avant : « microphone », déplacé dans l'écran Micro)
+    for (const id of ['accueil-todo', 'accueil-media', 'accueil-chantiers', 'ouvrir-chercher', 'microphone', 'accueil-oeil', 'accueil-bureau', 'accueil-agenda', 'accueil-a-trier', 'accueil-scanner', 'accueil-theme', 'accueil-reglages']) /* 12/11/2026 (c163) : toute la grille (avant : loupe, micro, Autre) */ attendre(touchable(ui, el(id)), `${id} pas touchable sur l’accueil`); // 08/11/2026 (étape 2) : le micro de l'accueil est « ouvrir-micro » (avant : « microphone », déplacé dans l'écran Micro)
     attendre(el('ecran-autre').hidden && el('ecran-reglages').hidden, 'écran ouvert au départ');
     // Textes des boutons liés à Google : exactement les mêmes qu'avant l'étape A.
     attendreEgal(['connexion-google', 'redonner-acces-google', 'ouvrir-reglages-drive', 'ouvrir-reglages-ia'].map(id => el(id).textContent.trim()),
@@ -3345,7 +3376,7 @@ TESTS_JS = r"""
     // Avant : « Fermer » de Réglages ramenait directement à l'accueil.
     attendre(el('ecran-reglages').hidden && !el('ecran-autre').hidden, 'Réglages ne revient pas à Autre');
     el('fermer-autre').click();
-    attendre(el('ecran-reglages').hidden && el('ecran-autre').hidden && touchable(ui, el('ouvrir-autre')), 'retour à l’accueil impossible');
+    attendre(el('ecran-reglages').hidden && el('ecran-autre').hidden && touchable(ui, el('accueil-reglages')), 'retour à l’accueil impossible'); // c163 : le rouage remplace Autre sur l'accueil
     el('ouvrir-autre').click();
     el('fermer-autre').click();
     attendre(el('ecran-autre').hidden, '« Fermer » de « Autre »');
@@ -3355,15 +3386,17 @@ TESTS_JS = r"""
     el('ouvrir-chercher').click();
     transitionEcrans.terminer(ui.doc);
     // 09/11/2026 : « Fermer » de Chercher caché (décision de Max) : retiré de la liste des boutons touchables.
-    for (const id of ['chercher-todo', 'chercher-documents', 'chercher-media', 'chercher-photo', 'chercher-champ']) attendre(touchable(ui, el(id)), `${id} pas touchable dans l’écran Chercher`);
-    el('chercher-todo').click();
+    // 12/11/2026 (c167) : la loupe ouvre la LIGNE de recherche sur l'accueil ; To-do, Documents (Bureau), Média sont sur l'accueil ; Photo n'a pas de lien (caché).
+    for (const id of ['accueil-todo', 'accueil-bureau', 'accueil-media', 'chercher-champ', 'chercher-source']) attendre(touchable(ui, el(id)), `${id} pas touchable avec la ligne de recherche`);
+    attendre(el('ecran-chercher').hidden && el('chercher-photo').getClientRects().length === 0, 'écran Chercher ou Photo affichés');
+    el('accueil-todo').click();
     transitionEcrans.terminer(ui.doc); // 08/11/2026 : mesures prises APRÈS la transition douce (transition_ecrans.js)
     attendre(!el('ecran-complet').hidden && !el('zone-recherche').hidden && el('ecran-chercher').hidden, '« Chercher » pas ouvert');
     for (const id of ['saisie-recherche', 'ajouter', 'ouvrir-clavier', 'fermer-chercher']) attendre(touchable(ui, el(id)), `${id} pas touchable dans « Chercher »`);
     el('fermer-chercher').click();
     // 09/11/2026 (règle du retour) : les tâches reviennent à l'écran Chercher, puis l'accueil.
-    attendre(el('ecran-complet').hidden && !el('ecran-chercher').hidden, 'les tâches ne reviennent pas à Chercher');
-    el('fermer-chercher-cap').click();
+    attendre(el('ecran-complet').hidden && !el('bande-recherche-accueil').hidden, 'les tâches ne reviennent pas à Chercher');
+    if (!el('bande-recherche-accueil').hidden) el('ouvrir-chercher').click(); // c167 : la loupe referme la ligne (avant : « Fermer » de Chercher)
     transitionEcrans.terminer(ui.doc);
     attendre(el('ecran-complet').hidden && el('zone-recherche').hidden && touchable(ui, el('ouvrir-chercher')), 'retour depuis « Chercher »');
     // Ancien bouton « Eau » : gardé, caché.
@@ -3518,7 +3551,7 @@ TESTS_JS = r"""
     attendreEgal(ui.cadre.contentWindow.getComputedStyle(el('eau-alerte')).pointerEvents, 'none', 'l’eau de l’alerte capte les touchers');
     attendre(touchable(ui, el('redonner-acces-google')), 'bouton de l’alerte pas touchable');
     // Elle ne cache aucun bouton de l'accueil, ni de « Autre », ni de « Chercher ».
-    for (const id of ['ouvrir-chercher', 'microphone', 'ouvrir-autre']) /* 09/11/2026 : nouvel ordre, gros micro */ attendre(touchable(ui, el(id)), `${id} caché par l’alerte`); // 08/11/2026 (étape 2) : le micro de l'accueil est « ouvrir-micro » (avant : « microphone », déplacé dans l'écran Micro)
+    for (const id of ['accueil-todo', 'accueil-media', 'accueil-chantiers', 'ouvrir-chercher', 'microphone', 'accueil-oeil', 'accueil-bureau', 'accueil-agenda', 'accueil-a-trier', 'accueil-scanner', 'accueil-theme', 'accueil-reglages']) /* 12/11/2026 (c163) : toute la grille */ attendre(touchable(ui, el(id)), `${id} caché par l’alerte`); // 08/11/2026 (étape 2) : le micro de l'accueil est « ouvrir-micro » (avant : « microphone », déplacé dans l'écran Micro)
     el('ouvrir-autre').click();
     await pause();
     transitionEcrans.terminer(ui.doc); // 08/11/2026 : mesures APRÈS la transition douce ; « Fermer » de « Autre » caché (décision de Max)
@@ -3528,8 +3561,8 @@ TESTS_JS = r"""
     await pause();
     transitionEcrans.terminer(ui.doc);
     // 09/11/2026 : l'écran Chercher d'abord (icônes, barre, « Fermer », alerte), puis l'écran des tâches par To-do.
-    for (const id of ['chercher-todo', 'chercher-photo', 'chercher-champ', 'redonner-acces-google']) attendre(touchable(ui, el(id)), `${id} caché dans l’écran Chercher`); // 09/11/2026 : sans « Fermer » (caché)
-    el('chercher-todo').click();
+    for (const id of ['accueil-todo', 'accueil-bureau', 'chercher-champ', 'chercher-source', 'redonner-acces-google']) attendre(touchable(ui, el(id)), `${id} caché avec la ligne de recherche`); // c167 // 09/11/2026 : sans « Fermer » (caché)
+    el('accueil-todo').click();
     await pause();
     transitionEcrans.terminer(ui.doc);
     for (const id of ['fermer-chercher', 'saisie-recherche', 'redonner-acces-google']) attendre(touchable(ui, el(id)), `${id} caché dans « Chercher »`);
@@ -3672,7 +3705,8 @@ TESTS_JS = r"""
     await attendreRejet(() => p2, 'pas pu démarrer');
   });
 
-  await testAsync('Visionneuse (lot 1, écran, FAUX Drive) : « Afficher les PDF dans Cap » ouvre la VISIONNEUSE (l’ancien petit lecteur n’est plus utilisé)', async c => {
+  // 12/11/2026 (c148, décision de Max, ligne 15) : avant, ce test touchait « Afficher les PDF dans Cap » (visionneuse ouverte).
+  await testAsync('Réglages du Drive, c148 (12/11/2026, FAUX Drive FICTIF, ligne 15) : le bouton de secours « Afficher les PDF dans Cap » est RETIRÉ : après le comptage, aucun bouton PDF, rien d’ouvert (ni visionneuse, ni ancien petit lecteur), aucun PDF lu ; l’œil reste le chemin vers la visionneuse', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     const f = fauxDriveCompteCap(c);
     remplirCompteCapFictif(f);
@@ -3681,12 +3715,13 @@ TESTS_JS = r"""
     const ouvertures = [];
     relationsCompte0().brancher(ui.doc, { compte: m, pdfjs: async () => { throw new Error('ancien lecteur utilisé'); }, visionneuse: () => ({ ouvrir: async liste => { ouvertures.push(liste); } }) });
     el('compter-compte-relations').click();
-    await attendreQue(() => !el('pdf-compte-relations').hidden, 'bouton PDF absent');
-    el('pdf-compte-relations').click();
+    await attendreQue(() => /Total : 3 morceaux/.test(el('resume-compte-relations').textContent), `comptage : ${el('resume-compte-relations').textContent}`);
     await pause();
-    attendreEgal(ouvertures.length, 1, 'visionneuse pas appelée');
-    attendreEgal(ouvertures[0].map(x => Object.keys(x)), [['id'], ['id']], 'liste donnée à la visionneuse');
+    attendreEgal(el('pdf-compte-relations'), null, 'bouton « Afficher les PDF dans Cap » encore là');
+    attendre(![...ui.doc.querySelectorAll('button')].some(b => /Afficher les PDF/.test(b.textContent)), 'un bouton « Afficher les PDF » reste');
+    attendreEgal(ouvertures.length, 0, 'visionneuse ouverte sans qu’on le demande');
     attendre(!el('lecteur-pdf-relations').open, 'ancien petit lecteur ouvert');
+    attendre(Boolean(el('ouvrir-oeil')), 'l’œil a disparu');
   });
 
   await testAsync('Visionneuse et musique (lot 1) : eau de l’accueil EN PAUSE pendant la fenêtre plein écran, relancée après ; alerte Google posée dans la visionneuse, qui descend d’autant', async c => {
@@ -4444,6 +4479,158 @@ TESTS_JS = r"""
   });
 
   // ----- 08/11/2026 : retouches d'affichage du lecteur de Zencoder (décisions de Max), dans la VRAIE page du lecteur -----
+  // ----- 10/11/2026 (accord de Max, séance 4 du LECTEUR) : les vidéos dans le même lecteur, exemples FICTIFS -----
+  await testAsync('Lecteur, séance 4 (10/11/2026, vraie page de Zencoder) : une vidéo s’affiche (image au-dessus du titre) avec les mêmes boutons ; une musique joue sans image, sur l’élément audio d’origine ; le volume vaut pour les deux', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const cadre = ui.doc.createElement('iframe');
+    cadre.style.cssText = 'position:fixed;inset:0;width:412px;height:900px;border:0';
+    ui.doc.body.appendChild(cadre);
+    const z = await relationsMp30().chargeurLecteur(cadre)();
+    const d = cadre.contentDocument;
+    const vue = cadre.contentWindow;
+    const joues = [];
+    vue.HTMLMediaElement.prototype.play = function () { joues.push(this.tagName); return Promise.resolve(); }; // pas de vrai son dans le test
+    const image = d.getElementById('image-video');
+    attendre(image && image.tagName === 'VIDEO' && image.hidden && vue.getComputedStyle(image).display === 'none', 'élément vidéo absent ou visible au départ');
+    const audioOrigine = z.audio;
+    attendreEgal(audioOrigine.tagName, 'AUDIO', 'la musique n’est plus sur l’élément audio d’origine');
+    // Vidéo : l'image se montre, « audio » rend l'élément vidéo, les boutons agissent sur lui.
+    z.jouerFichier('blob:FICTIF-video', '1. Film FICTIF', true);
+    attendre(!image.hidden && vue.getComputedStyle(image).display === 'block' && z.audio === image, 'vidéo pas affichée');
+    attendre(image.compareDocumentPosition(d.getElementById('titre-fichier')) & vue.Node.DOCUMENT_POSITION_FOLLOWING, 'image pas au-dessus du titre');
+    const r = image.getBoundingClientRect();
+    attendre(r.width > 200 && r.bottom <= 900, `image mal placée : ${JSON.stringify(r)}`);
+    attendreEgal(d.getElementById('titre-fichier').textContent, '1. Film FICTIF', 'titre');
+    attendreEgal(joues, ['VIDEO'], 'la vidéo ne joue pas sur l’élément vidéo');
+    d.getElementById('bouton-lecture').click(); // même bouton que pour la musique : relance l'élément qui joue (la vidéo)
+    attendreEgal(joues, ['VIDEO', 'VIDEO'], 'bouton lecture sans effet sur la vidéo');
+    // Musique : image cachée, retour sur l'élément audio d'origine ; la vidéo est arrêtée et vidée.
+    z.jouerFichier('blob:FICTIF-son', '2. Chanson FICTIVE', false);
+    attendre(image.hidden && z.audio === audioOrigine && !image.getAttribute('src'), 'musique : image restée ou mauvais élément');
+    attendreEgal(joues.slice(-1), ['AUDIO'], 'la musique ne joue pas sur l’élément audio');
+    // Volume : les deux éléments.
+    const volume = d.getElementById('curseur-volume');
+    volume.value = '30';
+    volume.dispatchEvent(new vue.Event('input'));
+    attendre(Math.abs(image.volume - 0.3) < 0.001 && Math.abs(audioOrigine.volume - 0.3) < 0.001, 'volume pas sur les deux');
+  });
+
+  await testAsync('Lecteur, séance 4 (10/11/2026, FAUX Drive FICTIF) : les vidéos (MP4, WEBM) du dossier sont dans la même liste, marquées « vidéo » ; un fichier trop gros est marqué et refusé avec « trop gros pour être lu ici » sans rien charger ; un MOV n’apparaît pas (c149 : avant, un MKV) ; la musique est lancée sans image, la vidéo avec', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    const D = 'application/vnd.google-apps.folder';
+    const son = new TextEncoder().encode('son FICTIF');
+    const rel = f.ajouter('Relations', D);
+    const dossier = f.ajouter('r_Lina Video-FICTIF', D, rel.id);
+    f.ajouter('Chanson FICTIVE.flac', 'audio/flac', dossier.id, son);
+    f.ajouter('Film FICTIF.mp4', 'video/mp4', dossier.id, son);
+    const recus = f.ajouter('Reçus', D, dossier.id);
+    f.ajouter('Clip FICTIF.webm', 'video/webm', recus.id, son);
+    const gros = f.ajouter('Grand film FICTIF.mp4', 'video/mp4', dossier.id, son);
+    gros.taille = 80 * 1000 * 1000;
+    f.ajouter('Concert FICTIF.mov', 'video/quicktime', dossier.id, son); // c149 : un MOV ; avant : un MKV (maintenant reconnu)
+    const seule = f.ajouter('r_Marc Seulement-video-FICTIF', D, rel.id);
+    f.ajouter('Seul film FICTIF.mp4', 'video/mp4', seule.id, son);
+    const { m } = connecterCompteFictif(c);
+    const el = id => ui.parId(id);
+    const appels = [];
+    const z = { jouerFichier: (adresse, titre, video) => appels.push([titre, Boolean(video)]), arreter() {}, audio: new EventTarget() };
+    const lecteur = async () => z;
+    lecteur.vider = () => {};
+    relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte, stockage: c.localStorage,
+      lecteur, urls: fausseAdresses() });
+    el('musique-compte-relations').click();
+    // 10/11/2026 (décision de Max) : le dossier avec seulement une vidéo est proposé, « (1 vidéo) ». Avant : pas proposé.
+    await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.choix-grand-affichage').length === 2, `dossiers : ${el('etat-musique-relations').textContent}`);
+    attendreEgal([...el('liste-musique-relations').querySelectorAll('button.choix-grand-affichage')].map(b => b.textContent),
+      ['r_Lina Video-FICTIF (1 morceau, 3 vidéos)', 'r_Marc Seulement-video-FICTIF (1 vidéo)'], 'boutons des dossiers');
+    el('liste-musique-relations').querySelector('button.choix-grand-affichage').click();
+    await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.ligne-morceau').length === 4, `liste : ${el('etat-musique-relations').textContent}`);
+    const lignes = [...el('liste-musique-relations').querySelectorAll('button.ligne-morceau')];
+    attendreEgal(lignes.map(b => b.textContent), ['1Chanson FICTIVE', '2Clip FICTIF (vidéo)', '3Film FICTIF (vidéo)', '4Grand film FICTIF (vidéo, trop gros pour être lu ici)'], 'lignes');
+    attendreEgal([...el('liste-musique-relations').querySelectorAll('h3')].map(h => h.textContent), ['Morceaux', 'Vidéos'], 'titres');
+    attendre(!/Concert|Seul film/.test(el('liste-musique-relations').textContent), 'MOV montré, ou vidéo d’un autre dossier');
+    // Musique : sans image ; vidéo : avec image.
+    lignes[0].click();
+    await attendreQue(() => appels.length === 1, 'musique pas lancée');
+    lignes[2].click();
+    await attendreQue(() => appels.length === 2, 'vidéo pas lancée');
+    attendreEgal(appels, [['1. Chanson FICTIVE', false], ['3. Film FICTIF', true]], 'image demandée à tort, ou pas demandée');
+    // Trop gros : message clair à l'écran, rien chargé.
+    const avant = c.requetes.length;
+    lignes[3].click();
+    await attendreQue(() => /trop gros pour être lu ici/.test(el('etat-lecteur-mp3').textContent), 'pas de message « trop gros »');
+    attendre(!el('etat-lecteur-mp3').hidden, 'message caché');
+    attendreEgal(c.requetes.length, avant, 'gros fichier chargé');
+    attendreEgal(appels.length, 2, 'gros fichier donné au lecteur');
+    el('fermer-lecteur-mp3').click();
+  });
+
+  // ----- 12/11/2026 (c149, décision de Max, ligne 73) : MKV reconnu comme vidéo dans le lecteur, FICTIF -----
+  await testAsync('Lecteur, c149 (12/11/2026, FAUX Drive FICTIF, ligne 73) : un MKV (par son extension, ou sans extension avec le type « video/x-matroska » de Drive) est une VIDÉO : compté « vidéo », dans la liste du lecteur avec « (vidéo) », lancé AVEC l’image ; un MOV reste absent ; lecture seule', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    const D = 'application/vnd.google-apps.folder';
+    const son = new TextEncoder().encode('son FICTIF');
+    const rel = f.ajouter('Relations', D);
+    const dossier = f.ajouter('r_Paul Mkv-FICTIF', D, rel.id);
+    f.ajouter('Air FICTIF.mp3', 'audio/mpeg', dossier.id, son);
+    f.ajouter('Concert FICTIF.mkv', 'video/x-matroska', dossier.id, son);
+    f.ajouter('Spectacle FICTIF', 'video/x-matroska', dossier.id, son);
+    f.ajouter('Autre film FICTIF.mov', 'video/quicktime', dossier.id, son);
+    const autre = f.ajouter('r_Quentin Musique-FICTIF', D, rel.id); // 2e dossier : sinon Cap ouvre directement la liste du seul dossier
+    f.ajouter('Chant FICTIF.mp3', 'audio/mpeg', autre.id, son);
+    const { m } = connecterCompteFictif(c);
+    const texte = relationsCompte0().resumer(await relationsCompte0().compter(m));
+    attendre(/r_Paul Mkv-FICTIF : 1 morceau \(1 MP3\) · 2 vidéos/.test(texte), `comptage : ${texte}`);
+    const el = id => ui.parId(id);
+    const appels = [];
+    const z = { jouerFichier: (adresse, titre, video) => appels.push([titre, Boolean(video)]), arreter() {}, audio: new EventTarget() };
+    const lecteur = async () => z;
+    lecteur.vider = () => {};
+    relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte, stockage: c.localStorage,
+      lecteur, urls: fausseAdresses() });
+    el('musique-compte-relations').click();
+    await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.choix-grand-affichage').length === 2, `dossiers : ${el('etat-musique-relations').textContent}`);
+    attendreEgal(el('liste-musique-relations').querySelector('button.choix-grand-affichage').textContent, 'r_Paul Mkv-FICTIF (1 morceau, 2 vidéos)', 'bouton du dossier');
+    el('liste-musique-relations').querySelector('button.choix-grand-affichage').click();
+    await attendreQue(() => el('liste-musique-relations').querySelectorAll('button.ligne-morceau').length === 3, `liste : ${el('etat-musique-relations').textContent}`);
+    const lignes = [...el('liste-musique-relations').querySelectorAll('button.ligne-morceau')];
+    attendreEgal(lignes.map(b => b.textContent), ['1Air FICTIF', '2Concert FICTIF (vidéo)', '3Spectacle FICTIF (vidéo)'], 'lignes (nom du MKV sans « .mkv »)');
+    attendre(!/Autre film/.test(el('liste-musique-relations').textContent), 'MOV montré');
+    lignes[1].click();
+    await attendreQue(() => appels.length === 1, 'MKV pas lancé');
+    attendreEgal(appels, [['2. Concert FICTIF', true]], 'MKV lancé sans image');
+    attendre(c.requetes.every(q => q.methode === 'GET'), 'autre chose qu’une lecture');
+    el('fermer-lecteur-mp3').click();
+  });
+
+  await testAsync('Lecteur (10/11/2026, décision de Max, FAUX Drive FICTIF) : les commandes vocales de MUSIQUE ne prennent que les dossiers qui ont de la musique ; un dossier avec seulement des vidéos n’est jamais lancé à la voix', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const f = fauxDriveCompteCap(c);
+    const D = 'application/vnd.google-apps.folder';
+    const son = new TextEncoder().encode('son FICTIF');
+    const rel = f.ajouter('Relations', D);
+    const nina = f.ajouter('r_Nina Musique-FICTIF', D, rel.id);
+    f.ajouter('Air FICTIF.mp3', 'audio/mpeg', nina.id, son);
+    const oscar = f.ajouter('r_Oscar Films-FICTIF', D, rel.id);
+    f.ajouter('Film FICTIF.mp4', 'video/mp4', oscar.id, son);
+    const { m } = connecterCompteFictif(c);
+    const appels = [];
+    const audio = Object.assign(new EventTarget(), { paused: true, currentTime: 0, duration: 100, volume: 0.8, play() { this.paused = false; }, pause() { this.paused = true; } });
+    const objet = { audio, jouerFichier: (adresse, titre, video) => { appels.push([titre, Boolean(video)]); audio.paused = false; }, arreter: () => { audio.paused = true; } };
+    const tele = relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte, stockage: c.localStorage,
+      lecteur: async () => objet, urls: fausseAdresses(), hasard: () => 0.99 });
+    attendreEgal(await tele.lancerVoix({ prenom: 'Oscar' }), 'Je ne trouve pas de musique de « Oscar » dans Cap.', 'dossier sans musique lancé à la voix');
+    attendreEgal(appels.length, 0, 'quelque chose a été lancé');
+    await tele.lancerVoix({ auHasard: true });
+    await attendreQue(() => appels.length === 1, 'au hasard : rien lancé');
+    attendreEgal(appels[0], ['1. Air FICTIF', false], 'au hasard : une vidéo, ou pas la musique');
+    await tele.lancerPlaylist();
+    await attendreQue(() => appels.length === 2, 'playlist : rien lancé');
+    attendreEgal(appels[1], ['1. Air FICTIF', false], 'playlist : une vidéo');
+  });
+
   await testAsync('Lecteur (08/11/2026, vraie page de Zencoder) : étiquette « FICTIF — essai lecteur » cachée ; lecture et pause dessinées, centrées, sans émoji ni focus qui reste ; « Choisir » au lieu de « Choisir un MP3 » (même bouton) ; fichier de Zencoder inchangé', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     const cadre = ui.doc.createElement('iframe');
@@ -4503,7 +4690,8 @@ TESTS_JS = r"""
     attendre(etiquette && /FICTIF/.test(etiquette.textContent), 'texte de Zencoder effacé');
     attendreEgal(cadre.contentWindow.getComputedStyle(etiquette).display, 'none', 'étiquette encore affichée dans la visionneuse');
     // Le reste de l'écran d'accueil de la visionneuse est toujours là (rien d'autre ne dépendait de l'étiquette).
-    attendre(d.getElementById('bouton-choisir') && d.getElementById('titre-fichier') && cadre.contentWindow.getComputedStyle(d.getElementById('bouton-choisir')).display !== 'none', 'visionneuse abîmée');
+    // 11/11/2026 (c118) : « Choisir un fichier » est caché par Cap (menu du bouton blanc) : il doit seulement exister encore.
+    attendre(d.getElementById('bouton-choisir') && d.getElementById('titre-fichier'), 'visionneuse abîmée');
     visionneuseCap0().retoucherVisionneuse(d);
     attendreEgal(d.querySelectorAll('#retouches-cap').length, 1, 'retouche en double');
     cadre.remove();
@@ -4941,33 +5129,26 @@ TESTS_JS = r"""
     el('fermer-autre').click();
     attendre(el('ecran-autre').classList.contains('ecran-part') && el('accueil-boutons').classList.contains('ecran-entree'), 'Autre → accueil sans transition');
     await finTransition(ui);
-    attendre(el('ecran-reglages').hidden && touchable(ui, el('ouvrir-autre')), 'accueil pas revenu');
+    attendre(el('ecran-reglages').hidden && touchable(ui, el('accueil-reglages')), 'accueil pas revenu'); // c163 : le rouage remplace Autre sur l'accueil
   });
 
-  await testAsync('Ouvertures douces (08/11/2026) : « Chercher » s’ouvre et se ferme en douceur (accueil ↔ « Tout voir » et sa barre de recherche)', async c => {
+  await testAsync('Ouvertures douces (08/11/2026, c167) : la loupe ouvre la LIGNE de recherche tout de suite, sans quitter l’accueil ; To-do : accueil ↔ « Tout voir » en douceur, UNE transition à chaque toucher ; « Fermer » ramène à l’accueil, ligne encore ouverte ; la loupe la referme', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     brancherAccueil(c, ui);
     const el = id => ui.parId(id);
-    // 09/11/2026 : accueil → écran Chercher → (To-do) écran des tâches, chaque fois en douceur, UNE seule transition
-    // à chaque toucher. Avant : « Chercher » ouvrait directement l'écran des tâches.
     el('ouvrir-chercher').click();
-    attendre(!el('ecran-chercher').hidden, 'écran Chercher pas ouvert tout de suite');
-    attendre(el('accueil-boutons').classList.contains('ecran-part') && el('ecran-chercher').classList.contains('ecran-entree'), 'accueil → Chercher sans transition');
-    await finTransition(ui);
-    el('chercher-todo').click();
-    attendre(!el('ecran-complet').hidden && el('ecran-chercher').hidden, 'Chercher pas ouvert tout de suite');
-    attendre(el('ecran-chercher').classList.contains('ecran-part'), 'Chercher ne fond pas');
-    attendre(!el('accueil-boutons').classList.contains('ecran-entree') && !el('accueil-boutons').classList.contains('ecran-part'), 'l’accueil apparaît entre les deux');
+    attendre(!el('bande-recherche-accueil').hidden && el('ecran-chercher').hidden, 'ligne de recherche pas ouverte tout de suite');
+    attendre(!el('accueil-boutons').classList.contains('ecran-part') && !el('accueil-boutons').classList.contains('ecran-entree'), 'l’accueil a bougé en ouvrant la ligne');
+    el('accueil-todo').click();
+    attendre(!el('ecran-complet').hidden, '« Tout voir » pas ouvert tout de suite');
     attendre(el('ecran-complet').classList.contains('ecran-entree') && el('zone-recherche').classList.contains('ecran-entree'), '« Tout voir » ne sort pas du sable');
     await finTransition(ui);
     el('fermer-chercher').click();
-    // 09/11/2026 (règle du retour) : les tâches, ouvertes depuis Chercher, reviennent à Chercher (douceur), puis l'accueil.
-    attendre(el('ecran-complet').hidden && el('ecran-complet').classList.contains('ecran-part') && el('ecran-chercher').classList.contains('ecran-entree'), 'retour de Chercher sans transition');
+    attendre(el('ecran-complet').hidden && el('ecran-complet').classList.contains('ecran-part') && el('accueil-boutons').classList.contains('ecran-entree'), 'retour à l’accueil sans transition');
     await finTransition(ui);
-    el('fermer-chercher-cap').click();
-    attendre(el('accueil-boutons').classList.contains('ecran-entree'), 'Chercher → accueil sans transition');
-    await finTransition(ui);
-    attendre(!affiche(ui, el('ecran-complet')) && touchable(ui, el('ouvrir-chercher')), 'accueil pas revenu');
+    attendre(!affiche(ui, el('ecran-complet')) && !el('bande-recherche-accueil').hidden && touchable(ui, el('chercher-champ')) && touchable(ui, el('ouvrir-chercher')), 'accueil pas revenu, ou ligne refermée');
+    el('ouvrir-chercher').click();
+    attendre(el('bande-recherche-accueil').hidden, 'la loupe ne referme pas la ligne');
   });
 
   await testAsync('Ouvertures douces (08/11/2026) : animations réduites = aucune transition, tout d’un coup', async c => {
@@ -5015,7 +5196,7 @@ TESTS_JS = r"""
     attendre(!el('ecran-autre').classList.contains('ecran-part'), 'second fondu après le geste');
     attendre(el('accueil-boutons').classList.contains('ecran-entree-directe'), 'accueil attend un second fondu');
     await finTransition(ui);
-    attendre(touchable(ui, el('ouvrir-autre')), 'accueil pas revenu');
+    attendre(touchable(ui, el('accueil-reglages')), 'accueil pas revenu'); // c163 : le rouage remplace Autre sur l'accueil
   });
 
   await testAsync('Ouvertures douces (08/11/2026) : le glissement vers les tâches (bas vers haut) passe aussi par la transition douce', async c => {
@@ -5452,11 +5633,11 @@ TESTS_JS = r"""
       // 09/11/2026 : « ouvre chercher » = l'écran Chercher (4 icônes, barre) ; « ferme ça » le referme (sortie douce) ;
       // « mes tâches » = To-do, l'écran des tâches. Avant : « ouvre chercher » ouvrait directement « Tout voir ».
       attendreEgal(dicter('ouvre chercher'), 'J’ouvre Chercher.', 'réponse');
-      attendre(!el('ecran-chercher').hidden && el('ecran-micro').hidden && el('ecran-complet').hidden, 'Chercher pas ouvert proprement');
+      attendre(!el('bande-recherche-accueil').hidden && el('ecran-micro').hidden && el('ecran-complet').hidden, 'Chercher pas ouvert proprement');
       await finTransition(ui);
       attendreEgal(dicter('ouvre chercher'), 'Chercher est déjà ouvert.', 'déjà ouvert');
       attendreEgal(dicter('ferme ça'), 'Je ferme.', 'fermer Chercher');
-      await attendreQue(() => el('ecran-chercher').hidden, 'Chercher pas fermé');
+      await attendreQue(() => el('bande-recherche-accueil').hidden, 'ligne de recherche pas fermée'); // c167
       await finTransition(ui);
       attendreEgal(dicter('ouvre mes tâches'), 'J’ouvre tes tâches.', 'mes tâches');
       attendre(!el('ecran-complet').hidden, 'tâches pas ouvertes');
@@ -5464,15 +5645,18 @@ TESTS_JS = r"""
     });
   });
 
-  await testAsync('Commandes vocales, étape 1 (08/11/2026, FICTIF) : « ferme ça » sur l’écran Micro : même sortie douce que le geste de retour, puis l’accueil ; rien à fermer : dit', async c => {
+  await testAsync('Commandes vocales, étape 1 (08/11/2026, FICTIF, c167) : « ferme ça » sur un écran (Bureau) : même sortie douce que le geste de retour, puis l’accueil ; sur la ligne de recherche : elle se ferme ; rien à fermer : dit', async c => {
     await interfaceCommandes1(c, async ({ ui, el, dicter }) => {
-      // 09/11/2026 : plus d'écran Micro : « ferme ça » sur l'écran Chercher. Avant : écran Micro.
-      el('ouvrir-chercher').click();
+      // 09/11/2026 : plus d'écran Micro ; 12/11/2026 (c167) : plus d'écran Chercher : l'écran Bureau. Avant : écran Chercher, puis Micro.
+      el('accueil-bureau').click();
       await finTransition(ui);
       attendreEgal(dicter('ferme ça'), 'Je ferme.', 'réponse');
-      attendre(el('ecran-chercher').classList.contains('geste-retour-sortie'), 'pas de sortie douce');
-      await attendreQue(() => el('ecran-chercher').hidden, 'écran Chercher pas fermé');
+      attendre(el('ecran-bureau').classList.contains('geste-retour-sortie'), 'pas de sortie douce');
+      await attendreQue(() => el('ecran-bureau').hidden, 'écran Bureau pas fermé');
       await finTransition(ui);
+      el('ouvrir-chercher').click();
+      attendreEgal(dicter('ferme ça'), 'Je ferme.', 'réponse (ligne de recherche)');
+      attendre(el('bande-recherche-accueil').hidden, 'ligne de recherche pas fermée à la voix');
       attendreEgal(dicter('ferme ça'), 'Il n’y a rien à fermer.', 'rien à fermer');
     });
   });
@@ -5948,7 +6132,7 @@ TESTS_JS = r"""
       const hasard = await dire('mets-moi un morceau au hasard');
       attendre(/^Je mets « .* »\.$/.test(hasard), `hasard : ${hasard}`);
       await attendreQue(() => appels.length === 3, 'hasard pas lancé');
-      attendreEgal(await dire('choisis un fichier'), 'Touche « Choisir » dans le lecteur pour prendre un MP3 du téléphone.', 'choisir');
+      attendreEgal(await dire('choisis un fichier'), 'Touche « Choisir » dans le lecteur pour prendre un morceau du téléphone.', 'choisir');
       attendre(el('lecteur-mp3-relations').open, 'lecteur pas affiché pour « Choisir »');
     } finally { debrancherMusiqueTout(); }
   });
@@ -6170,12 +6354,14 @@ TESTS_JS = r"""
       // Avant : const m = el('micro-visionneuse');
       attendre(el('micro-visionneuse').hidden, 'ancien micro de la visionneuse encore affiché');
       const m = el('petit-micro');
-      attendre(m && el('visionneuse-cap').contains(m), 'micro absent de la visionneuse');
+      // 11/11/2026 (c118) : dans la visionneuse, le micro est rangé dans le menu du bouton rond blanc (caché tant qu'on n'y
+      // touche pas). Avant : en haut à droite, fixe.
+      attendre(m && el('menu-visionneuse').contains(m) && !affiche(ui, m), 'micro pas rangé dans le menu fermé');
+      el('bouton-menu-visionneuse').click();
       const r = m.getBoundingClientRect();
-      attendre(r.right >= 412 - 20 && r.top < 160 && r.width >= 48 && r.height >= 48, `micro mal placé : ${JSON.stringify(r)}`);
+      attendre(r.top >= 64 && r.top < 160 && r.width >= 48 && r.height >= 48, `micro mal placé : ${JSON.stringify(r)}`);
       attendreEgal(m.textContent.trim(), '', 'mot affiché sur le micro');
       attendre(m.getAttribute('aria-label') && touchable(ui, m), 'micro sans nom ou pas touchable');
-      attendreEgal(ui.cadre.contentWindow.getComputedStyle(m).position, 'fixed', 'micro qui bouge avec la page'); // 09/11/2026 : fixe (avant : absolute dans la visionneuse)
       // 09/11/2026 (décision de Max) : le gros « Fermer la visionneuse » du bas est CACHÉ (gardé pour la voix, le « Fermer »
       // du haut et le retour du téléphone). Avant : attendre(touchable(ui, el('fermer-visionneuse')), '« Fermer la visionneuse » perdu');
       attendre(el('fermer-visionneuse') && el('fermer-visionneuse').hidden && !affiche(ui, el('fermer-visionneuse')), '« Fermer la visionneuse » du bas encore affiché');
@@ -6624,9 +6810,10 @@ TESTS_JS = r"""
       el('grille-vignettes').querySelector('.vignette').click();
       await attendreQue(() => el('visionneuse-cap').open && v.appels.length >= 1, 'document pas ouvert');
       await pause();
-      const r = petit.getBoundingClientRect();
-      attendre(el('visionneuse-cap').contains(petit) && touchable(ui, petit), 'le petit micro n’est pas celui qu’on touche dans la visionneuse');
-      attendre(Math.abs(avant.top - r.top) < 2 && Math.abs(avant.right - r.right) < 2, 'le petit micro a bougé');
+      // 11/11/2026 (c118) : dans la visionneuse, le micro est dans le menu du bouton blanc (plus à la même place).
+      attendre(el('menu-visionneuse').contains(petit) && avant.width > 0, 'le petit micro n’est pas dans le menu de la visionneuse');
+      el('bouton-menu-visionneuse').click();
+      attendre(touchable(ui, petit), 'le petit micro n’est pas celui qu’on touche dans la visionneuse');
       el('fermer-visionneuse').click();
       await pause();
       attendre(el('vignettes-cap').contains(petit) && touchable(ui, petit), 'petit micro pas revenu sur la grille');
@@ -6636,33 +6823,24 @@ TESTS_JS = r"""
   // ----- 09/11/2026 : écran CHERCHER repris de la maquette de Zencoder (accord de Max), FICTIF -----
   const seCroisent = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
 
-  await testAsync('Écran Chercher (09/11/2026) : 4 icônes 2 × 2 sans texte (To-do, Documents, Média, Photo), barre, « Fermer » VISIBLE ; Photo GRISÉ (le dit, n’ouvre rien) ; pas de lumière de bord ; tout touchable, rien ne se chevauche, même avec l’alerte', async c => {
+  await testAsync('Ligne de recherche (12/11/2026, c167 ; avant : écran Chercher du 09/11/2026) : la loupe ouvre la barre sur l’accueil ; les icônes de l’ancien écran restent (cachées, noms et Photo grisé gardés) ; pas d’étiquette de maquette ni de lumière de bord ; tout touchable, rien ne se chevauche, même avec l’alerte ; la loupe la referme, la barre est vidée à la prochaine ouverture', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     brancherAccueil(c, ui);
     const el = id => ui.parId(id);
     el('ouvrir-chercher').click();
     transitionEcrans.terminer(ui.doc);
-    attendre(!el('ecran-chercher').hidden && el('ecran-complet').hidden && ui.doc.documentElement.classList.contains('ecran-cap-ouvert'), 'écran Chercher pas ouvert (ou écran des tâches ouvert)');
+    attendre(!el('bande-recherche-accueil').hidden && el('ecran-chercher').hidden && el('ecran-complet').hidden && !ui.doc.documentElement.classList.contains('ecran-cap-ouvert'), 'ligne pas ouverte sur l’accueil');
     const icones = ['chercher-todo', 'chercher-documents', 'chercher-media', 'chercher-photo'].map(el);
-    attendre(icones.every(b => b.querySelector('svg') && !b.querySelector('span:not(.visuellement-cache)') && b.closest('.grille-chercher')), 'icônes : pas seules, ou du texte visible');
-    attendreEgal(icones.map(b => b.querySelector('.visuellement-cache').textContent), ['To-do', 'Documents', 'Média', 'Photo (pas encore prêt)'], 'noms lus par le téléphone');
-    const r = icones.map(b => b.getBoundingClientRect());
-    attendre(Math.abs(r[0].top - r[1].top) < 1 && Math.abs(r[2].top - r[3].top) < 1 && r[2].top > r[0].bottom && Math.abs(r[0].width - r[3].width) < 1 && r[0].width >= 80, `pas une grille 2 × 2 de grosses icônes identiques : ${JSON.stringify(r.map(x => [x.left, x.top, x.width]))}`);
-    attendre(el('chercher-photo').classList.contains('bouton-pas-pret') && el('chercher-photo').getAttribute('aria-disabled') === 'true', 'Photo pas grisé');
-    attendreEgal(Number(ui.cadre.contentWindow.getComputedStyle(el('chercher-photo')).opacity), 0.35, 'Photo pas grisé comme Notes et Agenda');
-    attendreEgal(el('fermer-chercher-cap').textContent, 'Fermer', 'texte de « Fermer »');
-    // 09/11/2026 (après l'essai c58) : « Fermer » CACHÉ, le geste suffit. Avant : visible (première décision de Max).
-    attendre(el('fermer-chercher-cap').hidden && !affiche(ui, el('fermer-chercher-cap')), '« Fermer » encore affiché');
+    attendre(icones.every(b => b && b.querySelector('svg') && b.closest('.grille-chercher') && b.closest('.grille-chercher').hidden), 'anciennes icônes effacées, ou visibles');
+    attendreEgal(icones.map(b => b.querySelector('.visuellement-cache').textContent), ['To-do', 'Documents', 'Média', 'Photo (pas encore prêt)'], 'noms gardés');
+    attendre(el('chercher-photo').classList.contains('bouton-pas-pret') && el('chercher-photo').getAttribute('aria-disabled') === 'true', 'Photo plus grisé');
     attendreEgal(el('chercher-champ').getAttribute('placeholder'), 'Chercher', 'texte de la barre');
-    attendre(!/FICTIF/.test(el('ecran-chercher').textContent + el('chercher-champ').getAttribute('placeholder')), 'étiquette de maquette affichée');
-    attendre(!ui.doc.getElementById('lumiere-bord') && !el('ecran-chercher').querySelector('[class*="lumiere"]'), 'lumière de bord reprise (étape 3, pas maintenant)');
-    const tous = [...icones, el('chercher-champ')]; // 09/11/2026 : sans « Fermer » (caché)
+    attendre(!/FICTIF/.test(el('bande-recherche-accueil').textContent + el('chercher-champ').getAttribute('placeholder')), 'étiquette de maquette affichée');
+    attendre(!ui.doc.getElementById('lumiere-bord') && !el('bande-recherche-accueil').querySelector('[class*="lumiere"]'), 'lumière de bord reprise');
+    const tous = [el('chercher-source'), el('chercher-champ'), el('accueil-todo'), el('accueil-media'), el('accueil-chantiers'), el('ouvrir-chercher'), el('microphone'), el('accueil-oeil')];
     for (const b of tous) attendre(touchable(ui, b), `${b.id} pas touchable`);
-    for (let i = 0; i < tous.length; i++) for (let j = i + 1; j < tous.length; j++) attendre(!seCroisent(tous[i].getBoundingClientRect(), tous[j].getBoundingClientRect()), `${tous[i].id} chevauche ${tous[j].id}`);
-    // Photo : le dit, n'ouvre rien.
-    el('chercher-photo').click();
-    attendre(!el('message-chercher').hidden && el('message-chercher').textContent === 'Photo : pas encore prêt.', 'Photo ne dit rien');
-    attendre(!ui.doc.querySelector('dialog[open]') && !el('ecran-chercher').hidden, 'Photo a ouvert quelque chose');
+    const zones = [el('chercher-barre'), el('accueil-todo'), el('accueil-media'), el('accueil-chantiers'), el('ouvrir-chercher'), el('microphone'), el('accueil-oeil')];
+    for (let i = 0; i < zones.length; i++) for (let j = i + 1; j < zones.length; j++) attendre(!seCroisent(zones[i].getBoundingClientRect(), zones[j].getBoundingClientRect()), `${zones[i].id} chevauche ${zones[j].id}`);
     // Alerte Google affichée : tout reste visible et touchable.
     el('texte-alerte-google').textContent = 'Connexion à Google à refaire (FICTIF).';
     el('alerte-google').hidden = false;
@@ -6670,12 +6848,13 @@ TESTS_JS = r"""
     transitionEcrans.terminer(ui.doc);
     for (const b of [...tous, el('redonner-acces-google')]) attendre(touchable(ui, b), `${b.id} caché par l’alerte`);
     el('alerte-google').hidden = true;
-    // « Fermer » : retour à l'accueil, message effacé à la prochaine ouverture.
-    el('fermer-chercher-cap').click();
-    transitionEcrans.terminer(ui.doc);
-    attendre(el('ecran-chercher').hidden && touchable(ui, el('ouvrir-chercher')), 'accueil pas revenu');
+    // La loupe referme ; la barre est vidée à la prochaine ouverture.
+    el('chercher-champ').value = 'texte FICTIF';
     el('ouvrir-chercher').click();
-    attendre(el('message-chercher').hidden, 'ancien message encore là');
+    attendre(el('bande-recherche-accueil').hidden && touchable(ui, el('ouvrir-chercher')), 'ligne pas refermée');
+    el('ouvrir-chercher').click();
+    attendreEgal(el('chercher-champ').value, '', 'ancien texte encore là');
+    el('ouvrir-chercher').click();
   });
 
   await testAsync('Écran Chercher (09/11/2026, FICTIF) : To-do = l’écran des tâches ; Documents = l’œil (visionneuse) ; Média = le Lecteur (musique), une fois chacun, jamais en double ; la barre : Entrée = recherche de Cap dans les tâches, résultats, barre vidée', async c => {
@@ -6695,14 +6874,14 @@ TESTS_JS = r"""
       el('chercher-photo').click();
       attendreEgal(touches, { oeil: 1, lecteur: 1 }, 'Photo a touché quelque chose');
       // To-do : l'écran des tâches, Chercher fermé.
-      el('chercher-todo').click();
+      el('accueil-todo').click();
       transitionEcrans.terminer(ui.doc);
       attendre(!el('ecran-complet').hidden && !el('zone-recherche').hidden && el('ecran-chercher').hidden && !ui.doc.documentElement.classList.contains('ecran-cap-ouvert'), 'To-do : écran des tâches pas ouvert proprement');
       el('fermer-chercher').click();
       transitionEcrans.terminer(ui.doc);
       // 09/11/2026 (règle du retour) : les tâches reviennent à Chercher (avant : à l'accueil), puis Chercher à l'accueil.
-      attendre(el('ecran-complet').hidden && !el('ecran-chercher').hidden, 'les tâches ne reviennent pas à Chercher');
-      el('fermer-chercher-cap').click();
+      attendre(el('ecran-complet').hidden && !el('bande-recherche-accueil').hidden, 'les tâches ne reviennent pas à Chercher');
+      if (!el('bande-recherche-accueil').hidden) el('ouvrir-chercher').click(); // c167 : la loupe referme la ligne (avant : « Fermer » de Chercher)
       transitionEcrans.terminer(ui.doc);
       attendre(el('ecran-complet').hidden && touchable(ui, el('ouvrir-chercher')), 'retour à l’accueil depuis les tâches');
       // La barre : une tâche FICTIVE retrouvée par la recherche de Cap.
@@ -6713,22 +6892,23 @@ TESTS_JS = r"""
       champ.value = 'piles FICTIF';
       champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
       transitionEcrans.terminer(ui.doc);
-      attendre(!el('ecran-complet').hidden && el('ecran-chercher').hidden, 'Entrée : écran des tâches pas ouvert');
-      attendreEgal(el('saisie-recherche').value, 'piles FICTIF', 'texte pas passé à la recherche de Cap');
-      attendre(!el('resultats-recherche').hidden && [...el('resultats-recherche').querySelectorAll('.resultat-recherche')].some(b => b.textContent.includes('Racheter des piles FICTIF chercher')), 'résultat pas montré');
-      attendreEgal(champ.value, '', 'barre de Chercher pas vidée');
+      // 11/11/2026 (décision de Max, c136) : Entrée RESTE dans Chercher, le résultat sous la barre, le texte gardé. Avant :
+      // l'écran des tâches s'ouvrait (Chercher caché), le texte passait à sa recherche et la barre de Chercher était vidée.
+      attendre(el('ecran-complet').hidden && !el('bande-recherche-accueil').hidden, 'Entrée : Chercher a été quitté');
+      attendre(!el('propositions-chercher').hidden && [...el('propositions-chercher').querySelectorAll('.proposition-chercher')].some(b => b.textContent.includes('Racheter des piles FICTIF chercher')), 'résultat pas montré dans Chercher');
+      attendreEgal(champ.value, 'piles FICTIF', 'barre de Chercher vidée');
       // Une autre touche que Entrée : rien ne part.
-      el('fermer-chercher').click();
+      if (!el('bande-recherche-accueil').hidden) el('ouvrir-chercher').click(); // c167 : la loupe referme la ligne (avant : « Fermer » de Chercher)
       el('ouvrir-chercher').click();
       champ.value = 'x';
       champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'a', bubbles: true }));
-      attendre(!el('ecran-chercher').hidden && el('ecran-complet').hidden, 'une lettre a lancé la recherche');
-      el('fermer-chercher-cap').click();
+      attendre(!el('bande-recherche-accueil').hidden && el('ecran-complet').hidden, 'une lettre a lancé la recherche');
+      if (!el('bande-recherche-accueil').hidden) el('ouvrir-chercher').click(); // c167 : la loupe referme la ligne (avant : « Fermer » de Chercher)
       attendreEgal(champ.value, '', '« Fermer » ne vide pas la barre');
     } finally { TACHES.slice(nombre).forEach(x => abandonner(x.id)); }
   });
 
-  await testAsync('Écran Chercher (09/11/2026) : geste de HAUT EN BAS = Chercher se ferme en douceur (son « Fermer ») ; geste sur la barre : rien ; le geste vers l’eau reste pour l’accueil seul ; animations réduites : tout d’un coup', async c => {
+  await testAsync('Ligne de recherche (12/11/2026, c167 ; avant : écran Chercher) : geste de HAUT EN BAS sur l’accueil = la ligne se ferme (pas l’eau) ; geste parti de la barre : rien ; ligne fermée : le geste ramène à l’eau comme avant ; animations réduites : tout d’un coup', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     let retours = 0;
     const { module } = brancherAccueil(c, ui);
@@ -6741,18 +6921,19 @@ TESTS_JS = r"""
     transitionEcrans.terminer(ui.doc);
     // Sur la barre (champ) : jamais de fermeture.
     glisserRetour(ui, temps, el('chercher-champ'), [200, 400, 200, 800]);
-    attendre(!el('ecran-chercher').hidden, 'geste parti de la barre a fermé Chercher');
-    glisserRetour(ui, temps, el('ecran-chercher'), [200, 150, 200, 600]);
-    attendre(el('ecran-chercher').classList.contains('geste-retour-sortie'), 'pas de sortie douce');
-    await attendreQue(() => el('ecran-chercher').hidden, 'Chercher pas fermé par le geste');
-    attendreEgal(retours, 0, 'le geste sur Chercher a ramené à l’eau');
-    transitionEcrans.terminer(ui.doc);
-    attendre(touchable(ui, el('ouvrir-chercher')), 'accueil pas revenu');
-    // Animations réduites : Chercher et To-do d'un coup.
+    attendre(!el('bande-recherche-accueil').hidden, 'geste parti de la barre a fermé la ligne');
+    glisserRetour(ui, temps, el('accueil-boutons'), [200, 150, 200, 600]);
+    attendre(el('bande-recherche-accueil').hidden, 'ligne pas fermée par le geste');
+    attendreEgal(retours, 0, 'le geste sur la ligne a ramené à l’eau');
+    attendre(touchable(ui, el('ouvrir-chercher')), 'accueil pas là');
+    // Ligne fermée : le même geste ramène à l'eau, comme avant.
+    glisserRetour(ui, temps, el('accueil-boutons'), [200, 150, 200, 600]);
+    attendreEgal(retours, 1, 'ligne fermée : le geste ne ramène plus à l’eau');
+    // Animations réduites : la ligne et To-do d'un coup.
     ui.cadre.contentWindow.matchMedia = q => ({ matches: /reduce/.test(q), addEventListener() {}, removeEventListener() {} });
     el('ouvrir-chercher').click();
-    attendre(!ui.doc.querySelector('.ecran-part, .ecran-entree, .ecran-entree-directe') && affiche(ui, el('ecran-chercher')), 'Chercher : transition malgré les animations réduites');
-    el('chercher-todo').click();
+    attendre(!ui.doc.querySelector('.ecran-part, .ecran-entree, .ecran-entree-directe') && affiche(ui, el('chercher-barre')), 'ligne : transition malgré les animations réduites');
+    el('accueil-todo').click();
     attendre(!ui.doc.querySelector('.ecran-part, .ecran-entree, .ecran-entree-directe') && affiche(ui, el('ecran-complet')) && !affiche(ui, el('ecran-chercher')), 'To-do : transition malgré les animations réduites');
   });
 
@@ -6761,6 +6942,7 @@ TESTS_JS = r"""
     ...TABLEUR_FICTIF_1,
     ['Navigation', '', 'Écran cible', 'la loupe fictive', 'NAV-01', 'RETIRER 09/11/2026 : FICTIF, jamais lu']
   ];
+
   await testAsync('Commande vocale NAV-01 / NAV-13 (09/11/2026, faux tableur FICTIF avec RETIRER) : « ouvre chercher » depuis l’accueil, Autre, Réglages, l’écran Micro et l’écran des tâches = l’écran Chercher, un seul écran ouvert ; « mes tâches » = l’écran des tâches ; ligne RETIRER jamais lue', async c => {
     const cle = commandesVocales.CLE_COPIE;
     const avantCopie = localStorage.getItem(cle);
@@ -6780,9 +6962,9 @@ TESTS_JS = r"""
         parlerAuGrosMicro(el('microphone')); // 09/11/2026 : deux touchers
         return el('statut').textContent;
       };
-      const seulChercher = () => ['ecran-autre', 'ecran-reglages', 'ecran-micro'].every(id => el(id).hidden) && !el('ecran-chercher').hidden && el('ecran-complet').hidden;
+      const seulChercher = () => ['ecran-autre', 'ecran-reglages', 'ecran-micro', 'ecran-bureau', 'ecran-chercher'].every(id => el(id).hidden) && !el('bande-recherche-accueil').hidden && el('ecran-complet').hidden && !ui.doc.documentElement.classList.contains('ecran-cap-ouvert'); // c167 : la ligne de l'accueil, seule
       for (const depart of ['', 'ouvrir-autre', 'ouvrir-reglages-cap', 'tâches']) { // 09/11/2026 : sans l'écran Micro (retiré)
-        if (depart === 'tâches') { el('ouvrir-chercher').click(); el('chercher-todo').click(); } else if (depart) el(depart).click();
+        if (depart === 'tâches') { el('ouvrir-chercher').click(); el('accueil-todo').click(); } else if (depart) el(depart).click();
         transitionEcrans.terminer(ui.doc);
         // 09/11/2026 : plus d'écran Micro : la phrase est dite au gros micro (avant : el('ouvrir-micro').click()).
         if (depart && depart !== 'ouvrir-micro') { /* l'écran de départ est remplacé par l'écran Micro, comme au doigt */ }
@@ -6790,12 +6972,12 @@ TESTS_JS = r"""
         attendreEgal(dicter('ouvre chercher'), 'J’ouvre Chercher.', `réponse (départ ${depart || 'accueil'})`);
         transitionEcrans.terminer(ui.doc);
         attendre(seulChercher(), `pas l’écran Chercher seul (départ ${depart || 'accueil'})`);
-        el('fermer-chercher-cap').click();
+        if (!el('bande-recherche-accueil').hidden) el('ouvrir-chercher').click(); // c167 : la loupe referme la ligne (avant : « Fermer » de Chercher)
         transitionEcrans.terminer(ui.doc);
       }
       // Depuis l'écran des tâches, sans passer par l'écran Micro : la commande ferme d'abord les tâches.
       el('ouvrir-chercher').click();
-      el('chercher-todo').click();
+      el('accueil-todo').click();
       transitionEcrans.terminer(ui.doc);
       attendreEgal(commandesVocales.reconnaitre('ouvre chercher', lignes, {}).code, 'NAV-01', 'NAV-01 reconnu');
       el('fermer-chercher').click(); // l'écran Micro s'ouvre depuis l'accueil
@@ -6821,18 +7003,18 @@ TESTS_JS = r"""
     const el = id => ui.parId(id);
     try {
       el('ouvrir-chercher').click();
-      el('chercher-todo').click();
+      el('accueil-todo').click();
       transitionEcrans.terminer(ui.doc);
       attendreEgal(nav.actions['NAV-01'](), 'J’ouvre Chercher.', 'depuis les tâches');
       transitionEcrans.terminer(ui.doc);
-      attendre(el('ecran-complet').hidden && !el('ecran-chercher').hidden && !ui.doc.body.classList.contains('vue-complete'), 'tâches pas fermées, ou Chercher pas ouvert');
+      attendre(el('ecran-complet').hidden && !el('bande-recherche-accueil').hidden && !ui.doc.body.classList.contains('vue-complete'), 'tâches pas fermées, ou Chercher pas ouvert');
       el('ouvrir-autre').click();
       transitionEcrans.terminer(ui.doc);
       attendreEgal(nav.actions['NAV-01'](), 'J’ouvre Chercher.', 'depuis Autre');
-      attendre(el('ecran-autre').hidden && !el('ecran-chercher').hidden, 'Autre pas remplacé par Chercher');
+      attendre(el('ecran-autre').hidden && !el('bande-recherche-accueil').hidden, 'Autre pas remplacé par Chercher');
       attendreEgal(nav.actions['NAV-07'](), 'Retour à l’accueil.', 'accueil');
       transitionEcrans.terminer(ui.doc);
-      attendre(el('ecran-chercher').hidden && touchable(ui, el('ouvrir-chercher')), 'NAV-07 ne ferme pas Chercher');
+      attendre(el('bande-recherche-accueil').hidden && touchable(ui, el('ouvrir-chercher')), 'NAV-07 ne ferme pas la ligne de recherche'); // c167
     } finally {
       for (const code of Object.keys(commandesNavigation.PAS_PRET).concat(['NAV-01', 'NAV-02', 'NAV-03', 'NAV-04', 'NAV-07', 'NAV-08', 'NAV-09', 'NAV-10', 'NAV-11', 'NAV-13', 'NAV-21', 'NAV-22', 'NAV-24'])) commandesVocales.brancherAction(code, undefined);
     }
@@ -6925,6 +7107,7 @@ TESTS_JS = r"""
     await vis.ouvrir([{ id: 'seul' }]);
     attendre(el('visionneuse-cap').open && v.appels.length === 1, 'pas ouvert');
     await pause();
+    el('bouton-menu-visionneuse').click(); // c118 : le micro est dans le menu du bouton blanc
     attendre(touchable(ui, el('petit-micro')), 'petit micro pas touchable'); // 09/11/2026 : le petit micro de tous les écrans
     haut.click();
     attendre(videeParZencoder === 1 && !el('visionneuse-cap').open, '« Fermer » du haut ne ferme pas la visionneuse');
@@ -7000,6 +7183,15 @@ TESTS_JS = r"""
       d.showModal();
       await pause();
       attendre(d.contains(m), `micro pas posé dans « ${id} »`);
+      if (id === 'visionneuse-cap') { // 11/11/2026 (c118) : rangé dans le menu du bouton blanc, touchable une fois ouvert
+        attendre(el('menu-visionneuse').contains(m) && !affiche(ui, m), 'micro pas rangé dans le menu de la visionneuse');
+        el('bouton-menu-visionneuse').click();
+        attendre(touchable(ui, m), 'micro pas touchable dans le menu de la visionneuse');
+        d.close();
+        await pause();
+        attendre(!d.contains(m), `micro resté dans « ${id} » fermée`);
+        continue;
+      }
       attendre(touchable(ui, m), `micro pas touchable dans « ${id} »`);
       const r = m.getBoundingClientRect();
       attendre(Math.round(r.top) === 12 && Math.round(r.right) === 400, `micro qui a bougé dans « ${id} » : ${JSON.stringify(r)}`);
@@ -7060,7 +7252,7 @@ TESTS_JS = r"""
     note.hidden = true;
   });
 
-  await testAsync('Visionneuse (09/11/2026) : le « Fermer » de la page de Zencoder passe JUSTE SOUS le petit micro (même bord droit), par une retouche de Cap', async c => {
+  await testAsync('Visionneuse (09/11/2026, revu par c118) : le « Fermer » de la page de Zencoder est CACHÉ par une retouche de Cap (le « Fermer » est dans le menu du bouton blanc) ; avant : juste sous le petit micro', async c => {
     const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
     brancherAccueil(c, ui);
     // Bouton à la place du vrai (page de Zencoder : tout en haut à droite, 4 % de la largeur).
@@ -7069,12 +7261,11 @@ TESTS_JS = r"""
     b.textContent = 'Fermer';
     b.style.cssText = 'position: absolute; top: 16px; right: 16px; padding: 8px 16px;';
     ui.doc.body.append(b);
-    const m = ui.parId('petit-micro').getBoundingClientRect();
-    attendre(seTouchent(b.getBoundingClientRect(), m), 'le bouton d’essai ne serait pas sous le micro (essai mal fait)');
     visionneuseCap0().retoucherVisionneuse(ui.doc);
-    const r = b.getBoundingClientRect();
-    attendre(!seTouchent(r, m) && r.top >= m.bottom && r.top - m.bottom <= 16 && Math.abs(r.right - m.right) < 1, `« Fermer » pas juste sous le micro : ${JSON.stringify([m, r])}`);
+    attendreEgal(ui.cadre.contentWindow.getComputedStyle(b).display, 'none', '« Fermer » de la page encore affiché');
+    attendreEgal(ui.parId('menu-fermer-visionneuse').textContent, 'Fermer', '« Fermer » absent du menu');
     b.remove();
+    ui.doc.getElementById('retouches-cap').remove();
   });
 
   await testAsync('Petit micro partout (09/11/2026, faux tableur avec RETIRER) : appui simple = une phrase par le même chemin que le micro du milieu (commandes d’abord, sinon « À trier ») ; appui long 2 s = conversation, surbrillance ; un toucher l’arrête', async c => {
@@ -7207,7 +7398,7 @@ TESTS_JS = r"""
       await pause();
       attendre(/rien entendu/.test(bulle()) && fen.contains(el('bulle-micro')) && affiche(ui, el('bulle-micro')), 'bulle pas visible dans la visionneuse');
       const rb = el('bulle-micro').getBoundingClientRect();
-      const rm = el('petit-micro').getBoundingClientRect();
+      const rm = el('bouton-menu-visionneuse').getBoundingClientRect(); // c118 : le bouton blanc (le micro est dans son menu)
       attendre(rb.top >= rm.bottom && rb.top >= 120 && Math.abs(rb.right - rm.right) < 1 && rb.bottom <= 900, `bulle mal placée : ${JSON.stringify([rm, rb])}`);
       attendreEgal(ui.cadre.contentWindow.getComputedStyle(el('bulle-micro')).pointerEvents, 'none', 'la bulle capte le doigt');
       // Rien ne la recouvre : au centre de la bulle, on touche ce qui est dessous (la visionneuse), jamais une autre fenêtre.
@@ -7255,13 +7446,13 @@ TESTS_JS = r"""
   await testAsync('Gros micro (09/11/2026) : accueil = Chercher EN HAUT, gros micro AU MILIEU, Autre EN BAS ; « + » et l’icône cachés au départ ; écran Micro et « continu » jamais montrés ; tout est touchable', async c => {
     await accueilGrosMicro(c, async ({ ui, el, outils }) => {
       const nav = el('accueil-boutons');
-      attendreEgal([...nav.querySelectorAll('button')].filter(b => !b.hidden).map(b => b.id), ['ouvrir-chercher', 'microphone', 'ouvrir-autre'], 'boutons visibles de l’accueil');
-      const r = ['ouvrir-chercher', 'microphone', 'ouvrir-autre'].map(id => el(id).getBoundingClientRect());
-      attendre(r[0].bottom <= r[1].top && r[1].bottom <= r[2].top, 'pas Chercher, micro, Autre de haut en bas');
+      attendreEgal([...nav.querySelectorAll('button')].filter(b => !b.hidden).map(b => b.id), ['accueil-todo', 'accueil-media', 'accueil-chantiers', 'ouvrir-chercher', 'microphone', 'accueil-oeil', 'accueil-bureau', 'accueil-agenda', 'accueil-a-trier', 'accueil-scanner', 'accueil-theme', 'accueil-reglages'], 'boutons visibles de l’accueil (c163 : grille 3 × 4)');
+      const r = ['ouvrir-chercher', 'microphone', 'accueil-reglages'].map(id => el(id).getBoundingClientRect());
+      attendre(r[0].right <= r[1].left && Math.abs((r[0].top + r[0].bottom) - (r[1].top + r[1].bottom)) < 4 && r[1].bottom <= r[2].top, 'pas loupe à gauche du micro, rouage en bas (c163)');
       attendre(Math.abs((r[1].left + r[1].right) / 2 - 206) < 2, 'gros micro pas centré');
       attendre(!outils() && el('micro-ajouter').hidden && el('micro-ecrire').hidden, '« + » ou l’icône visibles au départ');
       attendre(el('ouvrir-micro').hidden && el('micro-continu').hidden && el('ecran-micro').hidden, 'écran Micro ou « continu » encore là');
-      for (const id of ['ouvrir-chercher', 'microphone', 'ouvrir-autre']) attendre(touchable(ui, el(id)), `${id} pas touchable`);
+      for (const id of ['accueil-todo', 'accueil-media', 'accueil-chantiers', 'ouvrir-chercher', 'microphone', 'accueil-oeil', 'accueil-bureau', 'accueil-agenda', 'accueil-a-trier', 'accueil-scanner', 'accueil-theme', 'accueil-reglages']) attendre(touchable(ui, el(id)), `${id} pas touchable`); // c163 : toute la grille
     });
   });
 
@@ -7274,7 +7465,8 @@ TESTS_JS = r"""
       const [rp, rm, ri] = ['micro-ajouter', 'microphone', 'micro-ecrire'].map(id => el(id).getBoundingClientRect());
       attendre(rp.right <= rm.left && rm.right <= ri.left, 'pas « + » à gauche et l’icône à droite');
       const centre = x => x.top + x.height / 2;
-      attendre(Math.abs(centre(rp) - centre(rm)) < 2 && Math.abs(centre(ri) - centre(rm)) < 2, 'pas sur la même rangée');
+      // 12/11/2026 (c163) : « + » et l'icône sont dans la BANDE sous la ligne du micro (même rangée entre eux, sous le micro).
+      attendre(Math.abs(centre(rp) - centre(ri)) < 2 && rp.top >= rm.bottom, 'pas sur la même rangée, sous le micro (c163)');
       attendre(rp.width < rm.width && Math.abs(rp.width - ri.width) < 1, '« + » et l’icône pas identiques et plus petits');
       attendre(Math.abs((rm.left + rm.right) / 2 - 206) < 2, 'le gros micro a bougé');
       for (const id of ['micro-ajouter', 'microphone', 'micro-ecrire']) attendre(touchable(ui, el(id)), `${id} pas touchable`);
@@ -7323,10 +7515,14 @@ TESTS_JS = r"""
       for (const d of ui.doc.querySelectorAll('dialog[open]')) d.close();
       // Quitter l'accueil : Chercher, puis l'eau.
       el('microphone').click();
-      el('ouvrir-chercher').click();
+      el('ouvrir-chercher').click(); // c167 : la ligne de recherche ne quitte pas l'accueil : ils RESTENT (Max : les deux ensemble)
       await pause();
-      attendre(!outils(), 'restés en ouvrant Chercher');
-      el('fermer-chercher-cap').click();
+      attendre(outils() && !el('bande-recherche-accueil').hidden, 'partis en ouvrant la ligne de recherche');
+      el('ouvrir-chercher').click();
+      el('accueil-bureau').click(); // quitter l'accueil : un écran (avant : Chercher)
+      await pause();
+      attendre(!outils(), 'restés en ouvrant Bureau');
+      el('fermer-bureau').click();
       transitionEcrans.terminer(ui.doc);
       attendre(!outils(), 'revenus tout seuls');
     });
@@ -7353,9 +7549,9 @@ TESTS_JS = r"""
       await pause();
       attendre(!m.classList.contains('live'), 'un toucher n’arrête pas la conversation');
       // Écoute lancée par le petit micro, « + » et l'icône partis : un toucher du gros micro l'arrête et les montre.
-      el('ouvrir-chercher').click();
+      el('accueil-bureau').click(); // c167 : quitter l'accueil par un écran (avant : Chercher)
       await pause();
-      el('fermer-chercher-cap').click();
+      el('fermer-bureau').click();
       transitionEcrans.terminer(ui.doc);
       attendre(!outils(), 'pas partis');
       let arrets = 0;
@@ -7412,15 +7608,16 @@ TESTS_JS = r"""
     }
   }
 
-  await testAsync('Retour (09/11/2026) : Chercher → To-do → « Fermer » = Chercher, puis l’accueil ; Autre → Réglages → « Fermer » = Autre, puis l’accueil ; Chercher → Autre (voix) → « Fermer » = Chercher ; rouvrir un écran déjà dans la pile la raccourcit', async c => {
+  await testAsync('Retour (09/11/2026, c167) : ligne de recherche → To-do → « Fermer » = l’accueil, ligne encore ouverte ; Autre → Réglages → « Fermer » = Autre, puis l’accueil ; Autre ouvert (voix) avec la ligne ouverte → « Fermer » = l’accueil, ligne ouverte ; rouvrir un écran déjà dans la pile la raccourcit', async c => {
     await interfaceRetour(c, async ({ el, module, dire, fin, visible }) => {
+      const ligne = () => !el('bande-recherche-accueil').hidden;
       el('ouvrir-chercher').click(); fin();
-      el('chercher-todo').click(); fin();
+      el('accueil-todo').click(); fin();
       attendreEgal(visible(), ['taches'], 'To-do');
       el('fermer-chercher').click(); fin();
-      attendreEgal(visible(), ['ecran-chercher'], 'Fermer des tâches = Chercher');
-      el('fermer-chercher-cap').click(); fin();
-      attendreEgal([visible(), module.pile()], [[], []], 'Chercher = accueil, pile vide');
+      attendreEgal([visible(), ligne()], [[], true], 'Fermer des tâches = accueil, ligne encore ouverte');
+      el('ouvrir-chercher').click(); fin();
+      attendreEgal([visible(), module.pile(), ligne()], [[], [], false], 'loupe : ligne refermée, pile vide');
       el('ouvrir-autre').click(); fin();
       el('ouvrir-reglages-cap').click(); fin();
       attendreEgal(module.pile(), ['accueil', 'ecran-autre'], 'pile Autre → Réglages');
@@ -7431,13 +7628,15 @@ TESTS_JS = r"""
       el('ouvrir-chercher').click(); fin();
       attendreEgal(dire('ouvre l’écran autre'), 'J’ouvre Autre.', 'voix');
       el('fermer-autre').click(); fin();
-      attendreEgal(visible(), ['ecran-chercher'], 'Autre ouvert depuis Chercher = Chercher');
-      // Boucle : Chercher → Autre → Chercher : la pile se raccourcit.
+      attendreEgal([visible(), ligne()], [[], true], 'Autre ouvert avec la ligne = accueil, ligne encore ouverte');
+      // Boucle : Autre → Bureau → Autre : la pile se raccourcit.
       el('ouvrir-autre').click(); fin();
-      el('ouvrir-chercher').click(); fin();
+      el('accueil-bureau').click(); fin();
+      el('ouvrir-autre').click(); fin();
       attendreEgal(module.pile(), ['accueil'], 'pile pas raccourcie');
-      el('fermer-chercher-cap').click(); fin();
+      el('fermer-autre').click(); fin();
       attendreEgal(visible(), [], 'pas revenu à l’accueil');
+      el('ouvrir-chercher').click(); fin();
     });
   });
 
@@ -7455,30 +7654,31 @@ TESTS_JS = r"""
       fin();
       attendreEgal(visible(), ['ecran-autre'], 'voix : pas revenu à Autre');
       el('fermer-autre').click(); fin();
-      // Tâches ouvertes depuis Chercher : le glissement vers le bas revient à Chercher.
+      // Tâches ouvertes avec la ligne de recherche : le glissement vers le bas revient à l'accueil, ligne ouverte (c167).
       el('ouvrir-chercher').click(); fin();
-      el('chercher-todo').click(); fin();
+      el('accueil-todo').click(); fin();
       el('ecran-complet').scrollTop = 0;
       const glisse = (type, y) => { const e = new Event(type, { bubbles: true }); Object.defineProperties(e, { touches: { value: type === 'touchend' ? [] : [{ clientX: 200, clientY: y }] }, changedTouches: { value: [{ clientX: 200, clientY: y }] } }); el('titre-vue').dispatchEvent(e); };
       glisse('touchstart', 300); glisse('touchend', 500);
       fin();
-      attendreEgal(visible(), ['ecran-chercher'], 'glissement des tâches : pas revenu à Chercher');
-      // Fenêtre par-dessus : la fermer laisse Chercher.
+      attendreEgal([visible(), !el('bande-recherche-accueil').hidden], [[], true], 'glissement des tâches : pas revenu à l’accueil, ligne ouverte');
+      // Fenêtre par-dessus : la fermer laisse l'accueil et sa ligne.
       el('aide').showModal(); el('aide').close();
-      attendreEgal(visible(), ['ecran-chercher'], 'la fenêtre a changé l’écran');
-      el('fermer-chercher-cap').click(); fin();
+      attendreEgal([visible(), !el('bande-recherche-accueil').hidden], [[], true], 'la fenêtre a changé l’écran');
+      if (!el('bande-recherche-accueil').hidden) el('ouvrir-chercher').click(); // c167 : la loupe referme la ligne (avant : « Fermer » de Chercher) fin();
     });
   });
 
   await testAsync('Retour (09/11/2026, faux tableur avec RETIRER) : exceptions : « reviens à l’accueil » et « l’eau seule » à la voix VIDENT la pile ; une page rechargée (retour de Google) part de l’accueil, pile vide', async c => {
     await interfaceRetour(c, async ({ el, module, dire, fin, visible }) => {
-      el('ouvrir-chercher').click(); fin();
+      el('ouvrir-chercher').click(); fin(); // c167 : la ligne de recherche ouverte
+      el('accueil-bureau').click(); fin(); // c167 : Bureau remplace l'écran Chercher dans la pile
       el('ouvrir-autre').click(); fin();
       el('ouvrir-reglages-cap').click(); fin();
-      attendreEgal(module.pile(), ['accueil', 'ecran-chercher', 'ecran-autre'], 'pile');
+      attendreEgal(module.pile(), ['accueil', 'ecran-bureau', 'ecran-autre'], 'pile');
       attendreEgal(dire('reviens à l’accueil'), 'Retour à l’accueil.', 'accueil');
-      attendreEgal([visible(), module.pile()], [[], []], '« accueil » : pas l’accueil, ou pile pas vide');
-      el('ouvrir-chercher').click(); fin();
+      attendreEgal([visible(), module.pile(), el('bande-recherche-accueil').hidden], [[], [], true], '« accueil » : pas l’accueil, pile pas vide, ou ligne encore ouverte');
+      el('accueil-bureau').click(); fin();
       el('ouvrir-autre').click(); fin();
       dire('remets-moi l’eau seule');
       attendreEgal([visible(), module.pile()], [[], []], '« eau » : écrans ou pile pas vidés');
@@ -7609,8 +7809,8 @@ TESTS_JS = r"""
       dicter('');
       await pause();
       rs = s.getBoundingClientRect();
-      rm = el('petit-micro').getBoundingClientRect();
-      attendre(el('visionneuse-cap').contains(s) && affiche(ui, s) && rs.right <= rm.left && !seTouchent(rs, rm), 'signe pas visible dans la visionneuse');
+      rm = el('bouton-menu-visionneuse').getBoundingClientRect(); // c118 : le bouton blanc (le micro est dans son menu)
+      attendre(el('visionneuse-cap').contains(s) && affiche(ui, s) && rs.right <= rm.left && !seTouchent(rs, rm), `signe pas visible dans la visionneuse : ${JSON.stringify([rs, rm])}`);
       el('visionneuse-cap').close();
       await pause();
       attendre(s.parentNode === ui.doc.body, 'signe pas revenu sur la page');
@@ -7629,20 +7829,34 @@ TESTS_JS = r"""
       { ...TACHES_FICTIVES[0], id: 'FICTIF-autre', intitule: 'tâche rangée FICTIF', categorie: 'Quotidien', fait: false, abandonnee_le: '', parente: '' },
       { ...TACHES_FICTIVES[0], id: 'FICTIF-at-2', intitule: 'deuxième phrase FICTIF', categorie: 'À trier', fait: false, abandonnee_le: '', parente: '' },
       { ...TACHES_FICTIVES[0], id: 'FICTIF-at-3', intitule: 'dernière phrase FICTIF', categorie: 'À trier', fait: false, abandonnee_le: '', parente: '' });
-    el('ouvrir-chercher').click();
+    el('ouvrir-chercher').click(); // c167 : la ligne de recherche ouverte (Fermer y ramène)
     transitionEcrans.terminer(ui.doc);
-    const icones = ['chercher-todo', 'chercher-documents', 'chercher-media', 'chercher-photo', 'chercher-a-trier'].map(el);
-    attendre(icones.every(b => b.classList.contains('bouton-autre') && b.querySelector('svg') && !b.textContent.replace(b.querySelector('.visuellement-cache').textContent, '').trim()), 'icône pas comme les autres, ou texte visible');
+    // 12/11/2026 (c167) : les icônes de l'ancien écran Chercher sont cachées : leurs noms et leur allure sont vérifiés là-bas ; ici
+    // les icônes de l'ACCUEIL qui les remplacent (To-do, Documents → Bureau, Média, À trier, Chantiers).
+    const anciennes = ['chercher-todo', 'chercher-documents', 'chercher-media', 'chercher-photo', 'chercher-a-trier', 'chercher-chantiers'].map(el);
+    attendre(anciennes.every(b => b.classList.contains('bouton-autre') && b.querySelector('svg') && !b.textContent.replace(b.querySelector('.visuellement-cache').textContent, '').trim()), 'ancienne icône changée');
     attendreEgal(el('chercher-a-trier').querySelector('.visuellement-cache').textContent, 'À trier', 'nom lu par le téléphone');
+    attendreEgal(el('chercher-chantiers').querySelector('.visuellement-cache').textContent, 'Chantiers', 'nom lu par le téléphone (Chantiers)');
+    const icones = ['accueil-todo', 'accueil-bureau', 'accueil-media', 'accueil-a-trier', 'accueil-chantiers'].map(el);
+    attendre(icones.every(b => b.classList.contains('bouton-accueil-principal') && b.querySelector('svg') && !b.textContent.trim()), 'icône de l’accueil pas comme les autres, ou texte visible');
+    attendreEgal([el('accueil-a-trier').getAttribute('aria-label'), el('accueil-chantiers').getAttribute('aria-label')], ['À trier', 'Chantiers'], 'noms lus par le téléphone');
     const r = icones.map(b => b.getBoundingClientRect());
-    attendre(Math.abs(r[4].width - r[0].width) < 1 && r[4].top >= r[2].bottom && Math.abs((r[4].left + r[4].right) / 2 - 206) < 2, `5e icône pas centrée dessous, ou pas la même taille : ${JSON.stringify(r[4])}`);
-    attendreEgal(vue.getComputedStyle(icones[4]).backgroundColor, vue.getComputedStyle(icones[0]).backgroundColor, 'pas la même allure');
+    attendre(r.every(x => Math.abs(x.width - r[0].width) < 1 && Math.abs(x.height - r[0].height) < 1), 'pas la même taille');
+    attendreEgal(vue.getComputedStyle(icones[4]).backgroundColor, vue.getComputedStyle(icones[0]).backgroundColor, 'Chantiers : pas la même allure');
+    // Toucher « Chantiers » demande l'écran « Chantiers » (événement écouté par chantiers_ecran.js) ; Chercher reste dessous.
+    let demandes = 0;
+    const compter = () => { demandes++; };
+    ui.doc.addEventListener('cap-ouvrir-chantiers', compter);
+    el('accueil-chantiers').click();
+    ui.doc.removeEventListener('cap-ouvrir-chantiers', compter);
+    attendre(demandes === 1 && !el('bande-recherche-accueil').hidden, `icône Chantiers : ${demandes} demande(s), ligne de recherche fermée : ${el('bande-recherche-accueil').hidden}`);
+    attendreEgal(vue.getComputedStyle(icones[3]).backgroundColor, vue.getComputedStyle(icones[0]).backgroundColor, 'pas la même allure');
     const tous = [...icones, el('chercher-champ')];
     for (const b of tous) attendre(touchable(ui, b), `${b.id} pas touchable`);
     for (let i = 0; i < tous.length; i++) for (let j = i + 1; j < tous.length; j++) attendre(!seCroisent(tous[i].getBoundingClientRect(), tous[j].getBoundingClientRect()), `${tous[i].id} chevauche ${tous[j].id}`);
     attendreEgal(sousLePetitMicro(ui, ui.doc.body), [], 'un bouton sous le petit micro');
     // Toucher « À trier ».
-    el('chercher-a-trier').click();
+    el('accueil-a-trier').click();
     transitionEcrans.terminer(ui.doc);
     attendre(!el('ecran-complet').hidden && el('ecran-chercher').hidden, 'écran des tâches pas ouvert');
     attendreEgal(el('titre-vue').textContent, 'À trier', 'pas la liste « À trier »');
@@ -7655,9 +7869,9 @@ TESTS_JS = r"""
     // « Fermer » : retour à Chercher (règle du retour).
     el('fermer-chercher').click();
     transitionEcrans.terminer(ui.doc);
-    attendre(el('ecran-complet').hidden && !el('ecran-chercher').hidden, '« Fermer » ne revient pas à Chercher');
+    attendre(el('ecran-complet').hidden && !el('bande-recherche-accueil').hidden, '« Fermer » ne revient pas à l’accueil, ligne ouverte');
     // Par To-do puis la tuile « À trier » : l'ordre d'avant (ordre d'ajout), sans marque.
-    el('chercher-todo').click();
+    el('accueil-todo').click();
     transitionEcrans.terminer(ui.doc);
     const tuile = [...el('tuiles').querySelectorAll('button')].find(b => /^À trier/.test(b.textContent.trim()));
     attendre(tuile, 'tuile « À trier » introuvable');
@@ -8082,7 +8296,7 @@ TESTS_JS = r"""
       attendre(!el('ecran-complet').hidden && el('liste-taches').querySelector('.surbrillance-recherche'), 'tâche pas ouverte ni surlignée');
       el('fermer-chercher').click();
       transitionEcrans.terminer(ui.doc);
-      attendre(!el('ecran-chercher').hidden, '« Fermer » ne revient pas à Chercher');
+      attendre(!el('bande-recherche-accueil').hidden, '« Fermer » ne revient pas à Chercher');
       // Rien tapé : pas de proposition.
       attendreEgal(taper('').length, 0, 'propositions sans texte');
       attendre(el('propositions-chercher').hidden, 'liste vide pas cachée');
@@ -8186,6 +8400,3151 @@ TESTS_JS = r"""
       attendreEgal(signe(), 'pouce', 'signe');
       dicter('ouvre les options fictives');
       attendreEgal(dicter('le premier'), 'J’ouvre Autre.', 'le premier');
+    });
+  });
+
+  // ----- 09/11/2026 (accord de Max, CHANTIERS, séance 1 sur 7) : écran « Chantiers », lecture seule, chantiers FICTIFS -----
+  const TITRES_LISTE_CHANTIERS = ['Nom du chantier', 'Famille', 'Type', 'Voyant', 'Date de retour', 'Date limite', 'Dossier du chantier', 'Étiquettes', 'Note',
+    'Date de création', 'Date d’archivage', 'Statut', 'Dernière action', 'Avant-dernière action', 'Identifiant', 'Chantier parent', 'Priorité', 'Agents nommés',
+    'Prochaine action', 'Date de la prochaine action', 'Prompt', 'Relié échéancier'];
+  const ligneChantier = (nom, famille, type, voyant, statut, id, parent = '') => { const l = TITRES_LISTE_CHANTIERS.map(() => ''); l[0] = nom; l[1] = famille; l[2] = type; l[3] = voyant; l[11] = statut; l[14] = id; l[15] = parent; return l; };
+  const LISTE_CHANTIERS_FICTIVE = [TITRES_LISTE_CHANTIERS,
+    ligneChantier('EXEMPLE FICTIF formulaire', 'Administratif', 'récurrent', 'vert', 'en cours', 'CH-001'),
+    ligneChantier('EXEMPLE FICTIF week-end', 'Projets', 'ponctuel', 'orange', 'en cours', 'CH-002'),
+    ligneChantier('EXEMPLE FICTIF soutien', 'Famille', 'ponctuel', 'rouge', 'en veille', 'CH-003'),
+    ligneChantier('Jardin FICTIF', 'Maison', 'récurrent', 'vert', 'en veille', 'CH-904'),
+    ligneChantier('Haie FICTIVE', 'Maison', 'ponctuel', 'rouge', 'en cours', 'CH-905', 'CH-904'),
+    ligneChantier('Allée FICTIVE', 'Maison', 'ponctuel', 'vert', 'en cours', 'CH-906', 'Jardin FICTIF'),
+    ligneChantier('Papiers FICTIFS', 'Administratif', 'récurrent', 'orange', 'en cours', 'CH-907'),
+    ligneChantier('Bateau FICTIF', 'Projets', 'ponctuel', 'rouge', 'en cours', 'CH-908'),
+    ligneChantier('Album FICTIF', 'Création', 'ponctuel', '', 'en veille', 'CH-909'),
+    ligneChantier('', '', '', '', '', '')];
+  const csvDe = lignes => lignes.map(l => l.map(x => (/[",\n]/.test(String(x)) ? `"${String(x).replace(/"/g, '""')}"` : String(x))).join(',')).join('\n');
+
+  test('Chantiers, séance 1 (09/11/2026, FICTIF) : la Liste est lue par les TITRES de colonnes ; les 3 « EXEMPLE FICTIF » masqués (comptés) ; ordre rouge, orange, vert, sans voyant, puis nom ; chaque sous-chantier juste sous son parent (parent noté par son identifiant ou son nom)', () => {
+    const a = chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE)));
+    attendreEgal([a.chantiers.length, a.exemples, a.manquantes], [6, 3, []], 'lecture');
+    attendre(!a.chantiers.some(c => /EXEMPLE/i.test(c.nom)), 'un exemple montré');
+    const tries = chantiers.trier(a.chantiers);
+    // 10/11/2026 (décision de Max, ligne 53) : « Jardin » (vert) a un sous-chantier rouge (« Haie ») : il remonte avec les
+    // rouges (puis ordre du nom) ; son voyant affiché reste vert. Avant : Bateau, Papiers, Jardin, Haie, Allée, Album.
+    attendreEgal(tries.map(c => [c.nom, c.niveau]), [['Bateau FICTIF', 0], ['Jardin FICTIF', 0], ['Haie FICTIVE', 1], ['Allée FICTIVE', 1], ['Papiers FICTIFS', 0], ['Album FICTIF', 0]], 'ordre et sous-chantiers');
+    attendreEgal(tries.find(c => c.nom === 'Jardin FICTIF').voyant, 'vert', 'voyant affiché du parent changé');
+    // Un cran plus bas aussi : un petit-enfant orange fait passer un parent sans voyant devant un parent vert.
+    const crans = chantiers.trier([
+      { id: 'CH-1', nom: 'A FICTIF', voyant: 'vert', parent: '' },
+      { id: 'CH-2', nom: 'B FICTIF', voyant: '', parent: '' },
+      { id: 'CH-3', nom: 'C FICTIF', voyant: 'vert', parent: 'CH-2' },
+      { id: 'CH-4', nom: 'D FICTIF', voyant: 'orange', parent: 'CH-3' }]);
+    attendreEgal(crans.map(c => [c.nom, c.niveau]), [['B FICTIF', 0], ['C FICTIF', 1], ['D FICTIF', 2], ['A FICTIF', 0]], 'petit-enfant orange');
+    // 10/11/2026 (décision de Max) : dans chaque couleur « en cours », puis sans statut, puis « en veille » ; tous les
+    // « archivé » tout en bas, après toutes les couleurs ; un sous-chantier archivé ne fait pas remonter son parent.
+    const statuts = chantiers.trier([
+      { id: 'S1', nom: 'A FICTIF', voyant: 'orange', statut: 'en veille' },
+      { id: 'S2', nom: 'B FICTIF', voyant: 'orange', statut: '' },
+      { id: 'S3', nom: 'C FICTIF', voyant: 'orange', statut: 'en cours' },
+      { id: 'S4', nom: 'D FICTIF', voyant: 'rouge', statut: 'Archivé' },
+      { id: 'S5', nom: 'E FICTIF', voyant: 'vert', statut: 'en cours' },
+      { id: 'S6', nom: 'F FICTIF', voyant: 'vert', statut: 'En veille' },
+      { id: 'S7', nom: 'G FICTIF', voyant: 'vert', statut: 'en cours' },
+      { id: 'S8', nom: 'H FICTIF', voyant: 'rouge', statut: 'archivé', parent: 'S7' }]);
+    attendreEgal(statuts.map(c => [c.nom, c.niveau]), [['C FICTIF', 0], ['B FICTIF', 0], ['A FICTIF', 0], ['E FICTIF', 0], ['G FICTIF', 0], ['H FICTIF', 1], ['F FICTIF', 0], ['D FICTIF', 0]], 'statuts et archivés');
+    attendreEgal([...new Set(a.chantiers.map(c => c.statut))].sort(), ['en cours', 'en veille'], 'statuts');
+    // Colonnes dans un autre ordre : même résultat.
+    const inverse = commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE)).map(l => l.slice().reverse());
+    attendreEgal(chantiers.trier(chantiers.analyser(inverse).chantiers).map(c => c.nom), tries.map(c => c.nom), 'colonnes déplacées');
+    // Une boucle de parents ne fait rien perdre.
+    const boucle = chantiers.trier([{ id: 'CH-1', nom: 'A FICTIF', voyant: 'vert', parent: 'CH-2' }, { id: 'CH-2', nom: 'B FICTIF', voyant: 'vert', parent: 'CH-1' }]);
+    attendreEgal(boucle.length, 2, 'boucle de parents');
+  });
+
+  await testAsync('Chantiers, séance 1 (09/11/2026, FAUX Google FICTIF) : lecture SEULE (uniquement des lectures GET) ; le tableur choisi au sélecteur passe d’abord, sinon le tableur partagé avec le compte Cap (retrouvé par son nom) ; rien de lisible : message clair ; sans réseau : message ; copie gardée sur le téléphone', async () => {
+    const m = new Map(); const s = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const appels = [];
+    const reponse = corps => ({ json: async () => corps, text: async () => corps });
+    const csv = csvDe(LISTE_CHANTIERS_FICTIVE);
+    const fauxCompte = (nom, connecte = true) => ({ connecte: () => connecte, appeler: async (url, options) => {
+      appels.push([nom, (options && options.method) || 'GET', url]);
+      if (options && (options.method || options.body)) throw new Error('écriture interdite');
+      if (/\/export\?/.test(url)) return reponse(csv);
+      return reponse({ files: [{ id: 'FICTIF_liste_chantiers_0123456789' }] });
+    } });
+    const selecteurVide = { dossierChoisi: () => null, retrouverDepuisDrive: async () => null };
+    // Partagé avec le compte Cap.
+    const c1 = await chantiers.lire({ personnel: fauxCompte('perso'), selecteur: selecteurVide, compteCap: fauxCompte('cap'), stockage: s, enLigne: () => true });
+    attendreEgal([c1.source, c1.chantiers.length, c1.exemples], ['compte_cap', 6, 3], 'compte Cap');
+    attendre(appels.every(([, methode]) => methode === 'GET') && appels.some(([nom, , url]) => nom === 'cap' && String(new URL(url).searchParams.get('q')).includes("name='Liste des chantiers'")), `appels : ${JSON.stringify(appels)}`);
+    attendreEgal(chantiers.copie(s).chantiers.length, 6, 'copie pas gardée');
+    // Choisi au sélecteur : passe avant.
+    appels.length = 0;
+    const c2 = await chantiers.lire({ personnel: fauxCompte('perso'), selecteur: { dossierChoisi: () => ({ id: 'FICTIF_choisi_0123456789' }), retrouverDepuisDrive: async () => null }, compteCap: fauxCompte('cap'), stockage: s, enLigne: () => true });
+    attendre(c2.source === 'selecteur' && appels.every(([nom]) => nom === 'perso'), `sélecteur : ${JSON.stringify(appels)}`);
+    // Rien de lisible, puis sans réseau.
+    // 10/11/2026 (demande de Max) : connexion du compte Cap absente ou expirée : « touche Autoriser la lecture du compte Cap »,
+    // jamais « partage-la ». Sans compte Cap du tout : « partage-la », comme avant.
+    await attendreRejet(() => chantiers.lire({ personnel: fauxCompte('perso', false), selecteur: selecteurVide, compteCap: fauxCompte('cap', false), stockage: s, enLigne: () => true }), 'touche « Autoriser la lecture du compte Cap »');
+    let message = '';
+    try { await chantiers.lire({ personnel: fauxCompte('perso', false), selecteur: selecteurVide, compteCap: fauxCompte('cap', false), stockage: s, enLigne: () => true }); } catch (erreur) { message = erreur.message; }
+    attendre(!/partage/.test(message), `message expiré : ${message}`);
+    await attendreRejet(() => chantiers.lire({ personnel: fauxCompte('perso', false), selecteur: selecteurVide, compteCap: null, stockage: s, enLigne: () => true }), 'partage-la avec le compte Cap');
+    await attendreRejet(() => chantiers.lire({ personnel: fauxCompte('perso'), selecteur: selecteurVide, compteCap: fauxCompte('cap'), stockage: s, enLigne: () => false }), 'Pas de réseau');
+    // Le fichier n'écrit rien : aucune méthode d'écriture.
+    for (const mot of ['POST', 'PUT', 'PATCH', 'DELETE', 'method:', 'appelerEcriture', 'innerHTML']) attendre(!SOURCE_CHANTIERS_TEST.includes(mot) && !SOURCE_CHANTIERS_ECRAN_TEST.includes(mot), `« ${mot} » dans les fichiers des chantiers`);
+  });
+
+  await testAsync('Chantiers, séance 1 (09/11/2026, FICTIF) : « ouvre les chantiers » ouvre l’écran (gros boutons numérotés : nom, voyant, statut ; sous-chantiers en retrait ; « 3 exemples fictifs masqués ») ; « la deuxième » montre sa fiche ; « ferme » ferme ; sans droit : message clair et la dernière copie', async c => {
+    const m = new Map(); const s = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    let echec = null;
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(s),
+      lire: async () => { if (echec) throw new Error(echec); return chantiers.garder(s, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap'); } };
+    await interfaceChoix(c, async ({ ui, el, dicter, signe }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire() });
+      try {
+        attendreEgal(dicter('ouvre les chantiers'), 'J’ouvre les chantiers.', 'réponse');
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 6, 'chantiers pas montrés');
+        attendre(el('chantiers-cap').open, 'écran pas ouvert');
+        const lignes = [...el('liste-chantiers').querySelectorAll('.ligne-chantier')];
+        // 10/11/2026 : « Jardin » remonte (sous-chantier rouge). Avant : Bateau, Papiers, Jardin, Haie, Allée, Album.
+        attendreEgal(lignes.map(b => b.querySelector('.nom-morceau').textContent), ['Bateau FICTIF', 'Jardin FICTIF', 'Haie FICTIVE', 'Allée FICTIVE', 'Papiers FICTIFS', 'Album FICTIF'], 'ordre');
+        attendreEgal(lignes[1].querySelector('.etat-chantier').textContent, 'vert · en veille', 'voyant affiché du parent');
+        attendreEgal(lignes.map(b => b.querySelector('.numero-morceau').textContent), ['1', '2', '3', '4', '5', '6'], 'numéros');
+        // 10/11/2026 (séance 2) : aucune date dans ces lignes : « en cours » est calculé vert ; la Liste dit rouge : les deux.
+        attendreEgal(lignes[0].querySelector('.etat-chantier').textContent, 'calculé vert · écrit rouge · en cours', 'voyant et statut');
+        attendre(lignes[2].classList.contains('niveau-1') && lignes[3].classList.contains('niveau-1') && lignes[0].classList.contains('niveau-0'), 'sous-chantier pas en retrait');
+        attendreEgal(el('note-chantiers').textContent, '3 exemples fictifs masqués.', 'exemples');
+        for (const b of lignes.slice(0, 2)) attendre(touchable(ui, b), 'ligne pas touchable');
+        dicter('la cinquième');
+        attendre(/« Papiers FICTIFS » : famille Administratif · récurrent · en cours/.test(el('fiche-chantier').textContent), `fiche : ${el('fiche-chantier').textContent}`);
+        attendreEgal(signe(), 'pouce', 'signe du choix');
+        // 11/11/2026 (c130, décision de Max) : sur une fiche, « ferme » ramène à la liste ; encore « ferme » : fermé.
+        attendreEgal(dicter('ferme'), 'Je reviens à la liste des chantiers.', 'ferme depuis la fiche');
+        attendre(el('chantiers-cap').open && el('fiche-chantier').hidden && el('liste-chantiers').getClientRects().length > 0, 'pas revenu à la liste');
+        attendreEgal(dicter('ferme'), 'Je ferme les chantiers.', 'ferme');
+        await attendreQue(() => !el('chantiers-cap').open, 'écran pas fermé');
+        // Sans droit : la dernière copie reste montrée, avec un message clair.
+        echec = 'Je ne peux pas encore lire la « Liste des chantiers » : partage-la avec le compte Cap (lecture seule), ou choisis-la avec le sélecteur de Cap dans Chrome.';
+        ecran.ouvrir();
+        await attendreQue(() => /Je ne peux pas encore lire/.test(el('etat-chantiers').textContent), 'message absent');
+        attendre(/Voici la dernière copie/.test(el('etat-chantiers').textContent) && el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 6, 'dernière copie pas montrée');
+        ecran.fermer();
+        await attendreQue(() => !el('chantiers-cap').open, 'écran pas refermé');
+        // 10/11/2026 (demande de Max) : connexion du compte Cap expirée : le message dit le bon bouton.
+        echec = 'Le compte Cap n’est pas connecté (ou la connexion a expiré, au bout d’environ 1 h) : touche « Autoriser la lecture du compte Cap », puis rouvre les chantiers.';
+        // 10/11/2026 (choix de Max) : l'icône « Chantiers » de Chercher (événement « cap-ouvrir-chantiers ») ouvre le même écran.
+        ui.doc.dispatchEvent(new ui.doc.defaultView.CustomEvent('cap-ouvrir-chantiers'));
+        await attendreQue(() => el('chantiers-cap').open && /Autoriser la lecture du compte Cap/.test(el('etat-chantiers').textContent), 'icône : écran pas ouvert ou mauvais message');
+        attendre(!/partage/.test(el('etat-chantiers').textContent), 'message « partage-la » quand la connexion a expiré');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, CHANTIERS, séance 2 sur 7) : voyant calculé, exemples FICTIFS seulement -----
+  const AUJOURDHUI_FICTIF = new Date(2026, 10, 10, 9, 0).getTime(); // 10/11/2026 à 9 h
+  test('Chantiers, séance 2 (10/11/2026, FICTIF) : dates de la Liste lues (formats français, ISO, mois en lettres) ; date impossible ou texte = illisible, jamais devinée', () => {
+    const lue = t => { const r = chantiers.lireDate(t); return r.date ? [r.date.getFullYear(), r.date.getMonth() + 1, r.date.getDate()] : (r.vide ? 'vide' : 'illisible'); };
+    attendreEgal(['10/11/2026', '3/1/2027', '10/11/26', '10-11-2026', '10.11.2026', '2026-11-10', '2026-11-10T08:00:00', '10/11/2026 14:30', '10 novembre 2026', '1er déc. 2026', '3 Févr 2027'].map(lue),
+      [[2026, 11, 10], [2027, 1, 3], [2026, 11, 10], [2026, 11, 10], [2026, 11, 10], [2026, 11, 10], [2026, 11, 10], [2026, 11, 10], [2026, 11, 10], [2026, 12, 1], [2027, 2, 3]], 'dates lues');
+    attendreEgal(['', '  ', '31/02/2026', '13/13/2026', 'bientôt', 'fin du mois', '10 trucs 2026', '2026'].map(lue), ['vide', 'vide', 'illisible', 'illisible', 'illisible', 'illisible', 'illisible', 'illisible'], 'dates illisibles');
+  });
+
+  test('Chantiers, séance 2 (10/11/2026, FICTIF) : règles de Max (regles_voyant.js) : rouge = limite passée ; orange = prochaine action ou retour arrivés, ou limite dans les 7 jours ; en veille : rien sauf limite passée = orange ; archivé : rien ; sinon vert ; date illisible : ne change rien, mais comptée', () => {
+    const cas = (champs, statut = 'en cours') => chantiers.calculer({ nom: 'X FICTIF', statut, dateLimite: '', dateProchaine: '', dateRetour: '', ...champs }, AUJOURDHUI_FICTIF);
+    const couleur = (champs, statut) => cas(champs, statut).couleur;
+    attendreEgal(couleur({ dateLimite: '01/11/2026' }), 'rouge', 'limite passée');
+    attendreEgal(couleur({ dateLimite: '09/11/2026' }), 'rouge', 'limite d’hier');
+    attendreEgal(couleur({ dateLimite: '10/11/2026' }), 'orange', 'limite aujourd’hui (pas encore passée)');
+    attendreEgal(couleur({ dateLimite: '17/11/2026' }), 'orange', 'limite dans 7 jours');
+    attendreEgal(couleur({ dateLimite: '18/11/2026' }), 'vert', 'limite dans 8 jours');
+    attendreEgal(couleur({ dateProchaine: '08/11/2026' }), 'orange', 'prochaine action passée');
+    attendreEgal(couleur({ dateProchaine: '10/11/2026' }), 'orange', 'prochaine action aujourd’hui');
+    attendreEgal(couleur({ dateProchaine: '11/11/2026' }), 'vert', 'prochaine action demain');
+    attendreEgal(couleur({ dateRetour: '10/11/2026' }), 'orange', 'retour aujourd’hui');
+    attendreEgal(couleur({ dateLimite: '01/11/2026', dateProchaine: '08/11/2026' }), 'rouge', 'la plus grave gagne');
+    attendreEgal(couleur({}), 'vert', 'aucune date');
+    attendreEgal(couleur({}, ''), 'vert', 'sans statut');
+    attendreEgal(couleur({ dateProchaine: '08/11/2026' }, 'en veille'), '', 'en veille : pas de calcul');
+    attendreEgal(couleur({ dateLimite: '01/11/2026' }, 'En veille'), 'orange', 'en veille, limite passée : orange');
+    attendreEgal(couleur({ dateLimite: '01/11/2026' }, 'Archivé'), '', 'archivé : aucune couleur');
+    const illisible = cas({ dateLimite: 'fin du mois', dateProchaine: '08/11/2026' });
+    attendreEgal([illisible.couleur, illisible.illisible], ['orange', true], 'date illisible : ne change pas la couleur, mais comptée');
+    attendreEgal(cas({ dateLimite: 'bientôt' }).couleur, 'vert', 'seule date illisible : vert comme sans date');
+    // Les règles sont des réglages : une autre règle (30 jours) change le résultat ; sans règle, tout actif est vert.
+    const regles30 = { ...reglesVoyant, regles: reglesVoyant.regles.map(r => (r.quand === 'dans_les_jours' ? { ...r, jours: 30 } : r)) };
+    attendreEgal(chantiers.calculer({ nom: 'X FICTIF', statut: 'en cours', dateLimite: '05/12/2026' }, AUJOURDHUI_FICTIF, regles30).couleur, 'orange', 'règle à 30 jours');
+    attendreEgal(chantiers.calculer({ nom: 'X FICTIF', statut: 'en cours', dateLimite: '01/11/2026' }, AUJOURDHUI_FICTIF, { ...reglesVoyant, regles: [] }).couleur, 'vert', 'sans règle');
+    for (const mot of ['jours: 7', "statut: 'en veille'", "'archivé'"]) attendre(!SOURCE_CHANTIERS_TEST.includes(mot), `règle écrite dans chantiers.js : ${mot}`);
+  });
+
+  await testAsync('Chantiers, séance 2 (10/11/2026, FICTIF) : l’écran montre « calculé · écrit » quand les couleurs diffèrent, trie sur la plus grave, compte rouges, orange, verts et dates illisibles (sans nom) ; parent remonté par un sous-chantier calculé rouge ; la Liste n’est jamais modifiée', async c => {
+    const m = new Map(); const s = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const avecDates = (nom, voyant, statut, id, parent, limite, prochaine) => { const l = ligneChantier(nom, 'Maison', 'ponctuel', voyant, statut, id, parent); l[5] = limite; l[19] = prochaine; return l; };
+    const lignes = [TITRES_LISTE_CHANTIERS,
+      avecDates('Toit FICTIF', 'vert', 'en cours', 'CH-801', '', '01/11/2026', ''),
+      avecDates('Banque FICTIVE', 'orange', 'en cours', 'CH-802', '', '', '08/11/2026'),
+      avecDates('Vélo FICTIF', '', 'en cours', 'CH-803', '', 'fin du mois', ''),
+      avecDates('Mer FICTIVE', 'vert', 'en veille', 'CH-804', '', '02/11/2026', ''),
+      avecDates('Grenier FICTIF', 'rouge', 'Archivé', 'CH-805', '', '01/10/2026', ''),
+      avecDates('Cour FICTIVE', 'vert', 'en cours', 'CH-806', '', '20/12/2026', ''),
+      avecDates('Portail FICTIF', 'vert', 'en cours', 'CH-807', 'CH-806', '05/11/2026', '')];
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(s),
+      lire: async () => chantiers.garder(s, chantiers.analyser(commandesVocales.lireCsv(csvDe(lignes))), 'compte_cap') };
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), maintenant: () => AUJOURDHUI_FICTIF });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 7, 'chantiers pas montrés');
+        const lignesVues = [...el('liste-chantiers').querySelectorAll('.ligne-chantier')];
+        const vu = lignesVues.map(b => [b.querySelector('.nom-morceau').textContent, b.querySelector('.etat-chantier').textContent, b.dataset.voyant]);
+        attendreEgal(vu, [
+          ['Cour FICTIVE', 'vert · en cours', 'vert'],
+          ['Portail FICTIF', 'calculé rouge · écrit vert · en cours', 'rouge'],
+          ['Toit FICTIF', 'calculé rouge · écrit vert · en cours', 'rouge'],
+          ['Banque FICTIVE', 'orange · en cours', 'orange'],
+          ['Mer FICTIVE', 'calculé orange · écrit vert · en veille', 'orange'],
+          ['Vélo FICTIF', 'calculé vert · rien d’écrit · en cours', 'vert'],
+          ['Grenier FICTIF', 'rouge · Archivé', 'rouge']], 'lignes');
+        attendreEgal(el('compteurs-chantiers').textContent, 'Calculé : 2 rouges · 2 orange · 2 verts · 1 sans couleur calculée (en veille ou archivé). 1 chantier avec une date illisible.', 'compteurs');
+        attendre(!/FICTI/.test(el('compteurs-chantiers').textContent), 'un nom dans les compteurs');
+        dicter('le premier');
+        attendre(/« Cour FICTIVE » : famille Maison · ponctuel · en cours · voyant vert/.test(el('fiche-chantier').textContent), `fiche : ${el('fiche-chantier').textContent}`);
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers (10/11/2026, FICTIF, décision de Max) : avec 47 chantiers, la fiche courte est EN HAUT, au-dessus de la liste, et reste collée en haut : liste défilée jusqu’en bas, « numéro 40 » montre la fiche du 40e, visible en haut de l’écran', async c => {
+    const m = new Map(); const s = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const lignes = [TITRES_LISTE_CHANTIERS];
+    for (let i = 1; i <= 47; i++) lignes.push(ligneChantier(`Chantier ${String(i).padStart(2, '0')} FICTIF`, 'Maison', 'ponctuel', 'vert', 'en cours', `CH-9${String(i).padStart(2, '0')}`));
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(s),
+      lire: async () => chantiers.garder(s, chantiers.analyser(commandesVocales.lireCsv(csvDe(lignes))), 'compte_cap') };
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), maintenant: () => new Date(2026, 10, 10, 9, 0).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 47, 'les 47 chantiers ne sont pas montrés');
+        const fenetre = el('chantiers-cap');
+        const fiche = el('fiche-chantier');
+        attendre(fiche.compareDocumentPosition(el('liste-chantiers')) & Node.DOCUMENT_POSITION_FOLLOWING, 'la fiche n’est pas au-dessus de la liste');
+        fenetre.scrollTop = fenetre.scrollHeight;
+        attendre(fenetre.scrollTop > 1000, `liste pas défilée : ${fenetre.scrollTop}`);
+        dicter('numéro 40');
+        attendreEgal(fiche.hidden, false, 'fiche cachée');
+        attendre(/« Chantier 40 FICTIF »/.test(fiche.textContent), `fiche : ${fiche.textContent}`);
+        const r = fiche.getBoundingClientRect();
+        const haut = ui.cadre.contentWindow.innerHeight;
+        attendre(r.top >= -1 && r.top < 60 && r.bottom <= haut && r.height > 20, `fiche pas visible en haut : ${JSON.stringify(r)} (écran ${haut})`);
+        // Lisible : fond uni, pas transparent, par-dessus les boutons qui passent dessous.
+        attendre(ui.cadre.contentWindow.getComputedStyle(fiche).backgroundColor !== 'rgba(0, 0, 0, 0)', 'fiche sans fond');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, CHANTIERS, séance 3) : dossiers Drive des chantiers, FAUX Drive du compte Cap, FICTIF -----
+  // Faux compte Cap : lectures (deux formes de recherche seulement) et créations ; chaque écriture passe d'abord par le VRAI
+  // contrôle du compte Cap (googleCompteRelations.ecritureAutorisee) : ce qui serait refusé dans Cap est refusé ici.
+  // 10/11/2026 (c88) : + texte des journaux (lu par l'export, complété par l'ajout à la fin), date de création (createdTime),
+  // et service Google Docs coupé (docsCoupe) pour essayer le message.
+  function fauxCompteCapDossiers({ panne = () => false, connecte = true, docsCoupe = false } = {}) {
+    const fichiers = [];
+    const ecritures = [];
+    const textes = new Map();
+    let n = 0;
+    const reponse = corps => ({ json: async () => corps, text: async () => corps });
+    return {
+      fichiers, ecritures,
+      connecte: () => connecte,
+      textes,
+      appeler: async url => {
+        const export_ = /\/drive\/v3\/files\/([^/?]+)\/export$/.exec(new URL(url).pathname);
+        if (export_) return reponse(textes.get(decodeURIComponent(export_[1])) || '\n');
+        const q = new URL(url).searchParams.get('q') || '';
+        let x;
+        let trouves = [];
+        if ((x = /^appProperties has \{ key='([^']+)' and value='([^']+)' \} and mimeType='([^']+)' and trashed=false$/.exec(q))) {
+          trouves = fichiers.filter(f => f.appProperties && f.appProperties[x[1]] === x[2] && f.mimeType === x[3]);
+        } else if ((x = /^'([^']+)' in parents and mimeType='([^']+)' and trashed=false$/.exec(q))) {
+          trouves = fichiers.filter(f => f.parents[0] === x[1] && f.mimeType === x[2]);
+        } else if ((x = /^'([^']+)' in parents and trashed=false$/.exec(q))) { // c96 : tous les types
+          trouves = fichiers.filter(f => f.parents[0] === x[1]);
+        } else throw new Error(`recherche inattendue : ${q}`);
+        return reponse({ files: trouves.map(f => ({ id: f.id, name: f.name, mimeType: f.mimeType, appProperties: f.appProperties, createdTime: f.createdTime })) }); // c96 : + mimeType (comme le vrai Drive)
+      },
+      appelerEcriture: async (url, options = {}) => {
+        const methode = String(options.method || 'GET').toUpperCase();
+        ecritures.push([methode, url, options.body]);
+        if (!googleCompteRelations.ecritureAutorisee(new URL(url), methode, options.body || '')) throw new Error('Écriture non autorisée pour le compte Cap.');
+        if (panne(ecritures.length)) throw new Error('Pas de réseau (FICTIF).');
+        const corps = JSON.parse(options.body);
+        const docs = /^\/v1\/documents\/([^:]+):batchUpdate$/.exec(new URL(url).pathname);
+        if (docs) {
+          if (docsCoupe) { const e = new Error('Le service Google Docs n’est pas activé dans le projet Google de Cap : rien n’a été écrit. L’activer est un réglage chez Google, à décider par Max.'); e.service = true; throw e; }
+          const id = decodeURIComponent(docs[1]);
+          const avant = (textes.get(id) || '\n').replace(/\n$/, '');
+          textes.set(id, `${avant}${corps.requests[0].insertText.text}\n`);
+          return reponse({});
+        }
+        const f = { id: `FICTIF_cree_${String(++n).padStart(4, '0')}_0123456789`, name: corps.name, mimeType: corps.mimeType, parents: corps.parents, appProperties: corps.appProperties || {},
+          createdTime: new Date(Date.UTC(2026, 10, 10, 13, 5 + n)).toISOString() };
+        fichiers.push(f);
+        if (corps.mimeType === 'application/vnd.google-apps.document') textes.set(f.id, '\n');
+        return reponse({ id: f.id, createdTime: f.createdTime });
+      }
+    };
+  }
+
+  test('Chantiers, séance 3 (10/11/2026, FICTIF) : nom de dossier sans caractères interdits ; le compte Cap peut CRÉER un dossier ou un document vide, et rien d’autre (ni effacer, ni renommer, ni déplacer, ni partager, ni envoyer de contenu)', () => {
+    attendreEgal(chantiersDossiers.nomDossier({ id: 'CH-901', nom: 'Toit / garage : devis* "FICTIF"?' }), 'Toit - garage - devis- -FICTIF', 'caractères interdits');
+    attendreEgal(chantiersDossiers.nomDossier({ id: 'CH-902', nom: '  <>|  ' }), 'CH-902', 'nom vide : l’identifiant');
+    attendre(chantiersDossiers.nomDossier({ id: 'CH-903', nom: 'x'.repeat(300) }).length === 120, 'nom trop long');
+    const ok = (url, methode, corps) => googleCompteRelations.ecritureAutorisee(new URL(url), methode, corps === undefined ? '' : JSON.stringify(corps));
+    const D = 'application/vnd.google-apps.folder';
+    const F = 'https://www.googleapis.com/drive/v3/files';
+    attendre(ok(`${F}?fields=id`, 'POST', { name: 'Chantiers', mimeType: D, parents: ['root'], appProperties: { cap_chantiers_racine: '1' } }), 'création d’un dossier refusée');
+    attendre(ok(`${F}?fields=id`, 'POST', { name: 'Journal de bord', mimeType: 'application/vnd.google-apps.document', parents: ['FICTIF_parent_0123456789'] }), 'création d’un document refusée');
+    const refus = [
+      [`${F}/FICTIF_fichier_0123456789`, 'DELETE', undefined, 'suppression'],
+      [`${F}/FICTIF_fichier_0123456789`, 'PATCH', { name: 'autre nom' }, 'renommage'],
+      [`${F}/FICTIF_fichier_0123456789?addParents=x&removeParents=y`, 'PATCH', { appProperties: { a: '1' } }, 'déplacement'],
+      [`${F}/FICTIF_fichier_0123456789/permissions`, 'POST', { role: 'reader', type: 'anyone' }, 'partage'],
+      [`${F}?fields=id&uploadType=media`, 'POST', { name: 'x', mimeType: D, parents: ['root'] }, 'envoi de contenu'],
+      [`${F}?fields=id`, 'POST', { name: 'x', mimeType: D, parents: ['root'], trashed: true }, 'champ en plus'],
+      [`${F}?fields=id`, 'POST', { name: 'x', mimeType: 'application/vnd.google-apps.spreadsheet', parents: ['root'] }, 'autre type'],
+      [`${F}?fields=id`, 'POST', { name: 'x', mimeType: D, parents: ['root', 'FICTIF_autre_0123456789'] }, 'deux parents'],
+      [`${F}?fields=id`, 'POST', { name: ' ', mimeType: D, parents: ['root'] }, 'sans nom'],
+      [`${F}/FICTIF_fichier_0123456789/copy`, 'POST', { name: 'x' }, 'copie']];
+    for (const [url, methode, corps, quoi] of refus) attendre(!ok(url, methode, corps), `accepté à tort : ${quoi}`);
+  });
+
+  await testAsync('Chantiers, séance 3 (10/11/2026, FAUX Drive FICTIF) : « Chantiers », le dossier et un journal vide créés avec leurs marques invisibles ; un chantier qui a déjà son dossier : rien créé ; c102 : plus de limite, un seul chantier par création, verrou, plusieurs pages lues ; panne de réseau au milieu : on reprend sans doublon ; identifiant absent : rien créé', async () => {
+    const D = 'application/vnd.google-apps.folder';
+    const G = 'application/vnd.google-apps.document';
+    const a = { id: 'CH-901', nom: 'Toit / garage FICTIF' };
+    const b = { id: 'CH-902', nom: 'Jardin FICTIF' };
+    // 1. Drive vide : trois créations, dans l'ordre, avec les marques.
+    const f = fauxCompteCapDossiers();
+    const plan = await chantiersDossiers.preparer(f, a);
+    attendreEgal([plan.aCreer.length, 'essaiAtteint' in plan, plan.nom], [5, false, 'Toit - garage FICTIF'], 'plan'); // c102 : plus de limite // c88 : + la ligne datée ; c89 : + « Documents »
+    attendreEgal(f.ecritures.length, 0, 'préparer a écrit quelque chose');
+    const r = await chantiersDossiers.creer(f, a);
+    attendreEgal(r.cree, ['Chantiers', 'Toit - garage FICTIF', 'Journal de bord', 'la ligne datée du journal', 'Documents'], 'créés');
+    const docs = f.fichiers[3];
+    attendreEgal([docs.name, docs.mimeType, docs.parents[0], docs.appProperties.cap_chantier_documents], ['Documents', D, f.fichiers[1].id, 'CH-901'], 'sous-dossier « Documents »');
+    const [racine, dossier, journal] = f.fichiers;
+    attendreEgal([racine.mimeType, racine.parents[0], racine.appProperties.cap_chantiers_racine], [D, 'root', '1'], 'racine');
+    attendreEgal([dossier.mimeType, dossier.parents[0], dossier.appProperties.cap_chantier], [D, racine.id, 'CH-901'], 'dossier');
+    attendreEgal([journal.mimeType, journal.parents[0], journal.appProperties.cap_chantier_journal], [G, dossier.id, 'CH-901'], 'journal');
+    attendre(f.ecritures.every(([m]) => m === 'POST'), 'autre chose qu’une création');
+    // 10/11/2026 (c88) : la ligne datée, avec la date de création du DOSSIER (lue dans le Drive).
+    attendreEgal(f.textes.get(journal.id).trim(), chantiersDossiers.texteLigne('CH-901', dossier.createdTime), 'ligne datée');
+    attendre(/^Dossier créé par Cap le \d\d\/\d\d\/2026 à \d\d h \d\d \(CH-901\)\.$/.test(f.textes.get(journal.id).trim()), `ligne : ${f.textes.get(journal.id)}`);
+    // 2. Déjà là : rien créé, aucune écriture.
+    const avant = f.ecritures.length;
+    attendreEgal((await chantiersDossiers.preparer(f, a)).aCreer, [], 'déjà là : plan non vide');
+    attendreEgal((await chantiersDossiers.creer(f, a)).dejaLa, true, 'déjà là');
+    attendreEgal([f.ecritures.length, f.fichiers.length], [avant, 4], 'doublon créé'); // c89 : 4 éléments (+ « Documents »)
+    // 3. c102 : PLUS DE LIMITE (avant : 3, c89) ; mais chaque appel ne crée QU'UN chantier, celui demandé.
+    attendreEgal(chantiersDossiers.MAX_DOSSIERS_ESSAI, undefined, 'limite encore exportée');
+    await chantiersDossiers.creer(f, b);
+    await chantiersDossiers.creer(f, { id: 'CH-903', nom: 'Grenier FICTIF' });
+    const c4 = { id: 'CH-904', nom: 'Cave FICTIVE' };
+    attendreEgal((await chantiersDossiers.preparer(f, c4)).aCreer.length, 4, 'quatrième : plan');
+    const avantC4 = f.fichiers.filter(x => x.appProperties.cap_chantier).length;
+    attendreEgal((await chantiersDossiers.creer(f, c4)).cree, ['Cave FICTIVE', 'Journal de bord', 'la ligne datée du journal', 'Documents'], 'quatrième refusé');
+    attendreEgal(f.fichiers.filter(x => x.appProperties.cap_chantier).length, avantC4 + 1, 'plus d’un dossier créé par un appel');
+    const c5 = { id: 'CH-905', nom: 'Abri FICTIF' };
+    await chantiersDossiers.creer(f, c5);
+    attendreEgal(f.fichiers.filter(x => x.appProperties.cap_chantier).map(x => x.appProperties.cap_chantier), ['CH-901', 'CH-902', 'CH-903', 'CH-904', 'CH-905'], 'dossiers');
+    // Aucun doublon, même au-delà de l'ancienne limite.
+    const avantDoublon = f.ecritures.length;
+    attendreEgal((await chantiersDossiers.creer(f, c5)).dejaLa, true, 'cinquième recréé');
+    attendreEgal(f.ecritures.length, avantDoublon, 'écriture sur un chantier déjà créé');
+    // Verrou : deux créations en même temps : la deuxième est refusée sans rien créer, la première aboutit.
+    const c6 = { id: 'CH-906', nom: 'Puits FICTIF' };
+    const c7 = { id: 'CH-907', nom: 'Mur FICTIF' };
+    const premiere = chantiersDossiers.creer(f, c6);
+    await attendreRejet(() => chantiersDossiers.creer(f, c7), 'déjà en cours');
+    await premiere;
+    attendre(f.fichiers.some(x => x.appProperties.cap_chantier === 'CH-906'), 'première création perdue');
+    attendre(!f.fichiers.some(x => x.appProperties.cap_chantier === 'CH-907'), 'deuxième création faite malgré le verrou');
+    // Après la fin, une nouvelle création est de nouveau possible (le verrou est rendu, même après une erreur).
+    await attendreRejet(() => chantiersDossiers.creer(f, { id: 'pas-un-id', nom: 'X FICTIF' }), 'identifiant CH-xxx');
+    await chantiersDossiers.creer(f, c7);
+    attendre(f.fichiers.some(x => x.appProperties.cap_chantier === 'CH-907'), 'verrou jamais rendu');
+    // Aucune fonction de création en série n'existe.
+    attendreEgal(Object.keys(chantiersDossiers).filter(k => /tous|serie|plusieurs|lot/i.test(k)), [], 'création en série exposée');
+    // Lecture de plusieurs pages du Drive (plus de 100 dossiers possibles).
+    const pages = [{ files: [{ id: 'P1', name: 'A FICTIF', appProperties: { cap_chantier: 'CH-1' } }], nextPageToken: 'T2' }, { files: [{ id: 'P2', name: 'B FICTIF', appProperties: { cap_chantier: 'CH-2' } }] }];
+    const jetons = [];
+    const fp = { appeler: async url => {
+      const p = new URL(url).searchParams;
+      if (p.get('q').startsWith('appProperties')) return { json: async () => ({ files: [{ id: 'R', name: 'Chantiers' }] }) };
+      jetons.push(p.get('pageToken'));
+      return { json: async () => pages[jetons.length - 1] || { files: [] } };
+    } };
+    const ex = await chantiersDossiers.dossiersExistants(fp);
+    attendreEgal([...ex.keys()], ['CH-1', 'CH-2'], 'deuxième page non lue');
+    attendreEgal(jetons, [null, 'T2'], 'jeton de page');
+    // Journal disparu (FICTIF) : seul le journal (et sa ligne) est recréé, même à la limite (le dossier existe déjà).
+    f.fichiers.splice(f.fichiers.indexOf(journal), 1);
+    attendreEgal((await chantiersDossiers.creer(f, a)).cree, ['Journal de bord', 'la ligne datée du journal'], 'reprise du journal');
+    // 4. Panne de réseau à la deuxième création : la racine reste, on reprend sans la recréer.
+    const g = fauxCompteCapDossiers({ panne: k => k === 2 });
+    await attendreRejet(() => chantiersDossiers.creer(g, a), 'Pas de réseau');
+    attendreEgal(g.fichiers.map(x => x.name), ['Chantiers'], 'après la panne');
+    const reprise = fauxCompteCapDossiers();
+    reprise.fichiers.push(...g.fichiers);
+    attendreEgal((await chantiersDossiers.creer(reprise, a)).cree, ['Toit - garage FICTIF', 'Journal de bord', 'la ligne datée du journal', 'Documents'], 'reprise');
+    attendreEgal(reprise.fichiers.filter(x => x.name === 'Chantiers').length, 1, '« Chantiers » en double');
+    // 5. Sans identifiant CH-xxx : rien.
+    const h = fauxCompteCapDossiers();
+    await attendreRejet(() => chantiersDossiers.creer(h, { id: '', nom: 'Sans identifiant FICTIF' }), 'pas d’identifiant CH-xxx');
+    attendreEgal(h.ecritures.length, 0, 'créé sans identifiant');
+  });
+
+  await testAsync('Chantiers, séance 3 (10/11/2026, FICTIF) : à l’écran, « Créer le dossier de ce chantier » MONTRE d’abord ce qui sera créé (nom du chantier) et attend « Oui, créer » ; « Non » ne crée rien ; compte Cap pas connecté : rien créé', async c => {
+    const m = new Map(); const s = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(s),
+      lire: async () => chantiers.garder(s, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    let connecte = true;
+    const compte = { ...f, connecte: () => connecte };
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: compte, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 9, 0).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 6, 'chantiers pas montrés');
+        attendre(el('dossier-chantier').hidden, 'zone du dossier visible sans chantier choisi');
+        dicter('le premier');
+        attendre(!el('dossier-chantier').hidden && !el('creer-dossier-chantier').hidden && el('oui-dossier-chantier').hidden, 'bouton « Créer le dossier » absent');
+        attendre(touchable(ui, el('creer-dossier-chantier')), 'bouton pas touchable');
+        // Pas connecté : rien.
+        connecte = false;
+        await ecran.demanderCreation();
+        attendre(/pas connecté/.test(el('question-dossier-chantier').textContent) && f.ecritures.length === 0, 'pas connecté : message absent ou écriture');
+        connecte = true;
+        // Montre d'abord, sans rien créer.
+        el('creer-dossier-chantier').click();
+        await attendreQue(() => !el('oui-dossier-chantier').hidden, `question absente : ${el('question-dossier-chantier').textContent}`);
+        attendre(/Je vais créer, dans le Drive du compte Cap : le dossier « Chantiers » \(première fois\), puis le dossier « Bateau FICTIF », puis un « Journal de bord » dans ce dossier, puis la ligne « Dossier créé par Cap le \(date de création du dossier\) \(CH-908\)\. »/.test(el('question-dossier-chantier').textContent), `question : ${el('question-dossier-chantier').textContent}`);
+        attendreEgal([f.ecritures.length, f.fichiers.length], [0, 0], 'créé avant le Oui');
+        // Non : rien.
+        el('non-dossier-chantier').click();
+        attendreEgal([el('question-dossier-chantier').textContent, f.fichiers.length], ['Rien n’a été créé.', 0], 'Non');
+        // Oui : créé.
+        el('creer-dossier-chantier').click();
+        await attendreQue(() => !el('oui-dossier-chantier').hidden, 'question absente (2)');
+        el('oui-dossier-chantier').click();
+        await attendreQue(() => /C’est fait/.test(el('question-dossier-chantier').textContent), `pas créé : ${el('question-dossier-chantier').textContent}`);
+        attendreEgal(f.fichiers.map(x => x.name), ['Chantiers', 'Bateau FICTIF', 'Journal de bord', 'Documents'], 'créés'); // c89 : + « Documents »
+        // Toucher encore : déjà là.
+        dicter('le premier');
+        await ecran.demanderCreation();
+        attendre(/a déjà son dossier/.test(el('question-dossier-chantier').textContent) && f.fichiers.length === 4, 'doublon ou message absent');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c86 (10/11/2026, FICTIF, demande de Max) : sur un PETIT écran, avec 47 chantiers et un nom très long, la confirmation passe en mode confirmation : liste cachée, texte qui défile seul, « Oui, créer » et « Non » collés en bas et toujours visibles ; double toucher sur la fenêtre = « Non » ; « Oui, créer » touché : créé une seule fois', async c => {
+    const m = new Map(); const s = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const lignes = [TITRES_LISTE_CHANTIERS];
+    lignes.push(ligneChantier(`AAA ${'Nom très long FICTIF '.repeat(30).trim()}`, 'Maison', 'ponctuel', 'vert', 'en cours', 'CH-900'));
+    for (let i = 1; i <= 46; i++) lignes.push(ligneChantier(`Chantier ${String(i).padStart(2, '0')} FICTIF`, 'Maison', 'ponctuel', 'vert', 'en cours', `CH-9${String(i).padStart(2, '0')}`));
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(s),
+      lire: async () => chantiers.garder(s, chantiers.analyser(commandesVocales.lireCsv(csvDe(lignes))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      ui.cadre.style.width = '360px';
+      ui.cadre.style.height = '640px';
+      const vue = ui.cadre.contentWindow;
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 9, 0).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 47, 'les 47 chantiers ne sont pas montrés');
+        const fenetre = el('chantiers-cap');
+        dicter('le premier');
+        el('creer-dossier-chantier').click();
+        await attendreQue(() => !el('oui-dossier-chantier').hidden, `question absente : ${el('question-dossier-chantier').textContent}`);
+        attendre(fenetre.classList.contains('mode-confirmation'), 'pas en mode confirmation');
+        for (const id of ['liste-chantiers', 'compteurs-chantiers', 'fermer-chantiers']) attendreEgal(vue.getComputedStyle(el(id)).display, 'none', `${id} encore affiché`);
+        attendre(fenetre.scrollHeight > fenetre.clientHeight + 50, `le texte tient dans l’écran : l’essai ne prouve rien (${fenetre.scrollHeight} / ${fenetre.clientHeight})`);
+        const visible = (b, quoi) => { const r = b.getBoundingClientRect(); attendre(r.top >= 0 && r.bottom <= vue.innerHeight + 0.5 && r.height > 30, `${quoi} hors de l’écran : ${JSON.stringify(r)} (écran ${vue.innerHeight})`); attendre(touchable(ui, b), `${quoi} pas touchable`); };
+        for (const position of [0, 300, 100000]) {
+          fenetre.scrollTop = position;
+          visible(el('oui-dossier-chantier'), `« Oui, créer » (défilement ${position})`);
+          visible(el('non-dossier-chantier'), `« Non » (défilement ${position})`);
+        }
+        attendre(fenetre.scrollTop > 0, 'le texte ne défile pas');
+        attendreEgal(f.ecritures.length, 0, 'créé avant le Oui');
+        // Double toucher sur le texte = « Non ».
+        const toucher = (cible, x, y) => cible.dispatchEvent(new vue.PointerEvent('pointerup', { bubbles: true, clientX: x, clientY: y }));
+        toucher(el('question-dossier-chantier'), 100, 200);
+        toucher(el('question-dossier-chantier'), 104, 203);
+        attendreEgal(el('question-dossier-chantier').textContent, 'Rien n’a été créé.', 'double toucher : pas « Non »');
+        // c130 (décision de Max) : fiche = écran à part : après « Non », on revient à la FICHE (la liste reste cachée tant que
+        // la fiche est ouverte). Avant : la liste réapparaissait sous la fiche.
+        attendre(!fenetre.classList.contains('mode-confirmation') && !el('fiche-chantier').hidden && vue.getComputedStyle(el('creer-dossier-chantier')).display !== 'none', 'mode confirmation resté');
+        attendreEgal([f.ecritures.length, f.fichiers.length], [0, 0], 'double toucher : quelque chose créé');
+        // Oui touché (deux fois de suite, vite) : une seule création, aucun « Non ».
+        el('creer-dossier-chantier').click();
+        await attendreQue(() => !el('oui-dossier-chantier').hidden, 'question absente (2)');
+        el('oui-dossier-chantier').click();
+        toucher(el('oui-dossier-chantier'), 50, 600);
+        toucher(el('oui-dossier-chantier'), 50, 600);
+        await attendreQue(() => /C’est fait/.test(el('question-dossier-chantier').textContent), `pas créé : ${el('question-dossier-chantier').textContent}`);
+        attendreEgal(f.fichiers.filter(x => x.appProperties.cap_chantier === 'CH-900').length, 1, 'dossier créé plus d’une fois');
+        attendre(!fenetre.classList.contains('mode-confirmation'), 'mode confirmation resté après la création');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, c87) : oui / non / annuler à la voix, double toucher, boutons collés en bas, FICTIF -----
+  test('Confirmations, c87 (10/11/2026) : la phrase ENTIÈRE décide ; « oui mais… » = doute ; mots seuls reconnus', () => {
+    const a = confirmationsFenetres.analyser;
+    attendreEgal(['oui', 'Oui.', 'oui créer', 'Oui, crée-le', 'non', 'Annuler', 'annule'].map(a), ['oui', 'oui', 'oui', 'oui', 'non', 'non', 'non'], 'réponses claires');
+    attendreEgal(['oui mais attends', 'oui peut-être', 'non pas ça', 'annuler la tâche FICTIVE'].map(a), ['doute', 'doute', 'doute', 'doute'], 'doutes');
+    attendreEgal(['ouvre les chantiers', 'bonjour', 'ouistiti FICTIF', ''].map(a), [null, null, null, null], 'autres phrases');
+    attendreEgal(['oui', 'OK', 'd’accord', 'Non', 'annuler', 'oui je veux du pain FICTIF', 'ok google FICTIF'].map(confirmationsFenetres.motSeul), [true, true, true, true, true, false, false], 'mots seuls');
+  });
+
+  await testAsync('Confirmations, c87 (10/11/2026, FICTIF) : hors fenêtre, « oui », « d’accord », « non » dits seuls ne sont PAS rangés (« Il n’y a rien à confirmer en ce moment », croix) ; une vraie phrase est rangée comme avant', async c => {
+    await interfaceChoix(c, async ({ el, dicter, signe, nombre }) => {
+      for (const mot of ['oui', 'd’accord', 'non']) {
+        attendreEgal(dicter(mot), 'Il n’y a rien à confirmer en ce moment.', `« ${mot} » hors fenêtre`);
+        attendreEgal(signe(), 'croix', `signe pour « ${mot} »`);
+      }
+      attendreEgal(TACHES.length, nombre, 'un mot seul a été rangé dans « À trier »');
+      dicter('oui je veux du pain FICTIF');
+      attendre(TACHES.length === nombre + 1 && /pain FICTIF/.test(TACHES[TACHES.length - 1].intitule), 'une vraie phrase n’est plus rangée');
+    });
+  });
+
+  await testAsync('Confirmations, c87 (10/11/2026, FICTIF) : fenêtre des chantiers : « non » = Non ; « oui mais… » = doute, rien créé ; « oui » = « Oui, créer » ; pendant la fenêtre, « oui » n’est jamais rangé dans « À trier »', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    await interfaceChoix(c, async ({ el, ui, dicter, signe, nombre }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 9, 0).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 6, 'chantiers pas montrés');
+        dicter('le premier');
+        await ecran.demanderCreation();
+        attendre(!el('oui-dossier-chantier').hidden, 'question absente');
+        attendreEgal(dicter('non'), 'J’ai touché « Non » : rien n’a été fait.', '« non »');
+        attendreEgal([el('question-dossier-chantier').textContent, f.fichiers.length], ['Rien n’a été créé.', 0], '« non » : pas Non');
+        await ecran.demanderCreation();
+        attendreEgal(dicter('oui mais attends'), 'Je ne suis pas sûr de ce que tu as dit : touche « Oui » ou « Non ». Rien n’a été fait.', 'doute');
+        attendreEgal(signe(), 'croix', 'signe du doute');
+        attendre(!el('oui-dossier-chantier').hidden && f.ecritures.length === 0, 'doute : fenêtre fermée ou créé');
+        attendreEgal(dicter('oui'), 'J’ai touché « Oui, créer ».', '« oui »');
+        await attendreQue(() => /C’est fait/.test(el('question-dossier-chantier').textContent), `pas créé : ${el('question-dossier-chantier').textContent}`);
+        attendreEgal(f.fichiers.length, 4, 'créations'); // c89 : + « Documents »
+        attendreEgal(TACHES.length, nombre, 'un « oui » ou un « non » rangé dans « À trier »');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Confirmations, c87 (10/11/2026, FICTIF) : abandon d’une tâche : « annuler » à la voix ferme sans rien faire, « oui mais… » = doute ; boutons collés en bas sur un petit écran avec un très long texte ; double toucher = « Annuler » ; annuaire : « oui » à la voix ne valide JAMAIS (verrou), « non » touche « Non »', async c => {
+    await interfaceChoix(c, async ({ el, ui, dicter }) => {
+      confirmationsFenetres.brancher(ui.doc);
+      ui.cadre.style.width = '360px';
+      ui.cadre.style.height = '640px';
+      const vue = ui.cadre.contentWindow;
+      const conf = el('confirmation');
+      let abandons = 0;
+      el('confirmer-abandon').addEventListener('click', e => { abandons++; e.stopImmediatePropagation(); }, { capture: true });
+      const ouvrirConf = () => { el('intitule-confirmation').textContent = 'Tâche FICTIVE très longue '.repeat(60); if (!conf.open) conf.showModal(); };
+      ouvrirConf();
+      // Boutons collés en bas, visibles en haut et en bas du défilement.
+      attendre(conf.scrollHeight > conf.clientHeight + 50, 'le texte tient : l’essai ne prouve rien');
+      for (const position of [0, 100000]) {
+        conf.scrollTop = position;
+        const r = conf.querySelector('[data-fermer]').getBoundingClientRect();
+        attendre(r.top >= 0 && r.bottom <= vue.innerHeight + 0.5, `« Annuler » hors de l’écran (défilement ${position}) : ${JSON.stringify(r)}`);
+      }
+      attendreEgal(dicter('oui mais attends'), 'Je ne suis pas sûr de ce que tu as dit : touche « Oui » ou « Non ». Rien n’a été fait.', 'doute');
+      attendre(conf.open && abandons === 0, 'doute : fermé ou abandonné');
+      attendreEgal(dicter('annuler'), 'J’ai touché « Annuler » : rien n’a été fait.', '« annuler »');
+      attendre(!conf.open && abandons === 0, '« annuler » : pas fermé, ou abandonné');
+      // « oui » : touche « Abandonner » (la fenêtre dit ce qu'elle va faire).
+      ouvrirConf();
+      attendreEgal(dicter('oui'), 'J’ai touché « Abandonner ».', '« oui »');
+      attendreEgal(abandons, 1, '« oui » n’a pas touché « Abandonner »');
+      if (conf.open) conf.close();
+      // Double toucher sur le texte = « Annuler ».
+      ouvrirConf();
+      const toucher = (cible, x, y) => cible.dispatchEvent(new vue.PointerEvent('pointerup', { bubbles: true, clientX: x, clientY: y }));
+      toucher(el('intitule-confirmation'), 100, 200);
+      toucher(el('intitule-confirmation'), 102, 201);
+      attendre(!conf.open && abandons === 1, 'double toucher : pas fermé, ou abandonné');
+      // Annuaire : « oui » ne valide jamais à la voix ; « non » touche « Non ».
+      const annuaireF = el('commande-annuaire');
+      let oui = 0; let non = 0;
+      const bOui = ui.doc.createElement('button'); bOui.type = 'button'; bOui.textContent = 'Oui'; bOui.addEventListener('click', () => { oui++; });
+      const bNon = ui.doc.createElement('button'); bNon.type = 'button'; bNon.textContent = 'Non'; bNon.addEventListener('click', () => { non++; annuaireF.close(); });
+      const barre = ui.doc.createElement('div'); barre.className = 'commande-annuaire-boutons'; barre.append(bOui, bNon);
+      const texte = ui.doc.createElement('p'); texte.textContent = 'Appeler Personne FICTIVE ?';
+      el('commande-annuaire-corps').replaceChildren(texte, barre);
+      annuaireF.showModal();
+      attendreEgal(dicter('oui'), 'Pour cela, touche « Oui » toi-même : je ne lance jamais un appel ou un message à la voix.', 'annuaire : « oui »');
+      attendre(annuaireF.open && oui === 0, 'annuaire : « oui » a validé');
+      attendreEgal(dicter('non'), 'J’ai touché « Non » : rien n’a été fait.', 'annuaire : « non »');
+      attendre(!annuaireF.open && non === 1 && oui === 0, 'annuaire : « non » sans effet');
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, c88, marche 2) : ligne datée du journal et mise à niveau cumulative, FICTIF -----
+  test('Chantiers, c88 (10/11/2026) : le compte Cap peut seulement AJOUTER du texte à la fin d’un document (une seule demande « insertText » en fin de document) ; rien d’autre dans un document', () => {
+    const ok = (url, corps, methode = 'POST') => googleCompteRelations.ecritureAutorisee(new URL(url), methode, JSON.stringify(corps));
+    const D = 'https://docs.googleapis.com/v1/documents/FICTIF_journal_0123456789:batchUpdate';
+    const ajout = text => ({ requests: [{ insertText: { endOfSegmentLocation: {}, text } }] });
+    attendre(ok(D, ajout('Dossier créé par Cap le 10/11/2026 à 14 h 05 (CH-901).')), 'ajout refusé');
+    for (const n of [2001, 5000, 20000]) attendre(ok(D, ajout('x'.repeat(n))), `c106 : ajout de ${n} caractères refusé`); // c106 : plus de limite de longueur
+    const refus = [
+      [D, { requests: [{ deleteContentRange: { range: { startIndex: 1, endIndex: 5 } } }] }, 'effacement'],
+      [D, { requests: [{ replaceAllText: { containsText: { text: 'a' }, replaceText: 'b' } }] }, 'remplacement'],
+      [D, { requests: [{ insertText: { location: { index: 1 }, text: 'x' } }] }, 'écriture au milieu'],
+      [D, { requests: [{ insertText: { endOfSegmentLocation: { segmentId: 'x' }, text: 'x' } }] }, 'autre partie'],
+      [D, { requests: [ajout('x').requests[0], ajout('y').requests[0]] }, 'deux demandes'],
+      [D, ajout(''), 'texte vide'],
+      [`${D}?fields=x`, ajout('x'), 'paramètre'],
+      [D, { requests: [{ updateTextStyle: {} }] }, 'mise en forme'],
+      ['https://docs.googleapis.com/v1/documents', { title: 'x' }, 'création par Docs']];
+    for (const [url, corps, quoi] of refus) attendre(!ok(url, corps), `accepté à tort : ${quoi}`);
+    attendre(!googleCompteRelations.ecritureAutorisee(new URL(D), 'PATCH', JSON.stringify(ajout('x'))), 'autre méthode acceptée');
+  });
+
+  await testAsync('Chantiers, c88 (10/11/2026, FAUX Drive FICTIF) : mise à niveau cumulative : le plan (lecture seule) liste chaque chantier déjà créé et ce qui lui manque ; appliquée, puis relancée : rien en double ; journal absent : recréé ; panne au milieu : arrêt, reprise sans doublon ; service Google Docs coupé : dossier et journal créés, la raison dite, la ligne écrite plus tard', async () => {
+    const D = 'application/vnd.google-apps.folder';
+    const G = 'application/vnd.google-apps.document';
+    // Un premier chantier « à l'ancienne » (c86 : dossier + journal vide, sans ligne), puis un deuxième créé par c88.
+    const f = fauxCompteCapDossiers();
+    const ancien = { id: 'CH-801', nom: 'Ancien FICTIF' };
+    f.textes.set('FICTIF_vieux_journal_0123456789', '\n');
+    f.fichiers.push({ id: 'FICTIF_racine_0123456789', name: 'Chantiers', mimeType: D, parents: ['root'], appProperties: { cap_chantiers_racine: '1' }, createdTime: '2026-11-10T13:30:00.000Z' },
+      { id: 'FICTIF_vieux_dossier_0123456789', name: 'Ancien FICTIF', mimeType: D, parents: ['FICTIF_racine_0123456789'], appProperties: { cap_chantier: 'CH-801' }, createdTime: '2026-11-10T13:31:00.000Z' },
+      { id: 'FICTIF_vieux_journal_0123456789', name: 'Journal de bord', mimeType: G, parents: ['FICTIF_vieux_dossier_0123456789'], appProperties: { cap_chantier_journal: 'CH-801' }, createdTime: '2026-11-10T13:31:30.000Z' });
+    const nouveau = { id: 'CH-802', nom: 'Nouveau FICTIF' };
+    await chantiersDossiers.creer(f, nouveau);
+    const plan = await chantiersDossiers.planMiseANiveau(f);
+    attendreEgal(plan.map(p => [p.nom, p.changements]), [['Ancien FICTIF', [`ajouter « ${chantiersDossiers.texteLigne('CH-801', '2026-11-10T13:31:00.000Z')} »`, 'créer le sous-dossier « Documents »']]], 'plan'); // c89 : + « Documents »
+    const avant = f.ecritures.length;
+    attendreEgal(f.ecritures.length, avant, 'le plan a écrit');
+    attendreEgal((await chantiersDossiers.appliquerMiseANiveau(f)).faits, ['Ancien FICTIF'], 'mise à niveau');
+    attendreEgal(f.textes.get('FICTIF_vieux_journal_0123456789').trim(), chantiersDossiers.texteLigne('CH-801', '2026-11-10T13:31:00.000Z'), 'ligne de l’ancien');
+    // Relancée : rien à faire, rien écrit.
+    const apres = f.ecritures.length;
+    attendreEgal(await chantiersDossiers.planMiseANiveau(f), [], 'plan après');
+    attendreEgal((await chantiersDossiers.appliquerMiseANiveau(f)).faits, [], 'relancée');
+    attendreEgal(f.ecritures.length, apres, 'relancée : écriture en plus');
+    for (const t of f.textes.values()) attendre((t.match(/Dossier créé par Cap le/g) || []).length <= 1, `ligne en double : ${t}`);
+    // Journal absent : recréé, avec sa ligne.
+    f.fichiers.splice(f.fichiers.findIndex(x => x.id === 'FICTIF_vieux_journal_0123456789'), 1);
+    attendreEgal((await chantiersDossiers.planMiseANiveau(f))[0].changements.length, 2, 'journal absent : 2 changements');
+    await chantiersDossiers.appliquerMiseANiveau(f);
+    attendreEgal(await chantiersDossiers.planMiseANiveau(f), [], 'journal recréé');
+    // Panne à la première écriture : arrêt ; puis reprise sans doublon.
+    const g = fauxCompteCapDossiers({ panne: k => k === 1 });
+    g.fichiers.push(...f.fichiers.filter(x => x.mimeType === D));
+    // Ordre : du plus ancien dossier au plus récent (dates du faux Drive : « Nouveau » d'abord). La panne arrête au premier.
+    await attendreRejet(() => chantiersDossiers.appliquerMiseANiveau(g), 'Arrêt à « Nouveau FICTIF »');
+    const reprise = fauxCompteCapDossiers();
+    reprise.fichiers.push(...g.fichiers);
+    for (const [k, v] of g.textes) reprise.textes.set(k, v);
+    await chantiersDossiers.appliquerMiseANiveau(reprise);
+    attendreEgal(reprise.fichiers.filter(x => x.mimeType === G).length, 2, 'journaux en double après la reprise');
+    attendreEgal(await chantiersDossiers.planMiseANiveau(reprise), [], 'reprise incomplète');
+    // Service Google Docs coupé : dossier et journal créés, raison rendue ; ensuite, seule la ligne est écrite.
+    const h = fauxCompteCapDossiers({ docsCoupe: true });
+    const r = await chantiersDossiers.creer(h, nouveau);
+    attendre(r.cree.join() === 'Chantiers,Nouveau FICTIF,Journal de bord,Documents' && /service Google Docs n’est pas activé/.test(r.ligneErreur), `service coupé : ${JSON.stringify(r)}`);
+    const h2 = fauxCompteCapDossiers();
+    h2.fichiers.push(...h.fichiers);
+    for (const [k, v] of h.textes) h2.textes.set(k, v);
+    attendreEgal((await chantiersDossiers.creer(h2, nouveau)).cree, ['la ligne datée du journal'], 'ligne écrite plus tard');
+  });
+
+  // 12/11/2026 (c147, décision de Max, ligne 92) : avant, ce test touchait « Mettre à niveau les dossiers déjà créés » à l'écran
+  // (liste, Non, Oui, rien à changer). Le bouton est retiré : « Tout synchroniser » fait ce travail (test c98).
+  await testAsync('Chantiers et journaux des relations, c147 (12/11/2026, FICTIF, ligne 92) : les deux boutons « Mettre à niveau » sont RETIRÉS (aucun bouton, aucune fonction d’écran) ; la préparation de la mise à niveau reste (utilisée par « Tout synchroniser ») ; les messages ne renvoient plus au bouton retiré', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const D = 'application/vnd.google-apps.folder';
+    const f = fauxCompteCapDossiers();
+    f.fichiers.push({ id: 'FICTIF_racine_0123456789', name: 'Chantiers', mimeType: D, parents: ['root'], appProperties: { cap_chantiers_racine: '1' }, createdTime: '2026-11-10T13:30:00.000Z' },
+      { id: 'FICTIF_vieux_dossier_0123456789', name: 'Ancien FICTIF', mimeType: D, parents: ['FICTIF_racine_0123456789'], appProperties: { cap_chantier: 'CH-801' }, createdTime: '2026-11-10T13:31:00.000Z' });
+    await interfaceChoix(c, async ({ ui, el }) => {
+      attendreEgal([el('maj-chantiers'), el('maj-journaux-relations')], [null, null], 'un bouton « Mettre à niveau » est encore là');
+      const textes = [...ui.doc.querySelectorAll('button, a')].map(b => b.textContent);
+      attendre(!textes.some(t => /Mettre à niveau/.test(t)), `bouton « Mettre à niveau » restant : ${textes.filter(t => /niveau/.test(t))}`);
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 12, 9, 0).getTime() });
+      try {
+        attendreEgal(typeof ecran.demanderMiseANiveau, 'undefined', 'mise à niveau encore à l’écran des chantiers');
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 6, 'chantiers pas montrés');
+        attendre(!/Mettre à niveau/.test(el('chantiers-cap').textContent), 'texte « Mettre à niveau » dans l’écran des chantiers');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+      const j = journauxRelationsEcran.brancher(ui.doc, { compteCap: f });
+      if (j) attendreEgal(typeof j.demanderMiseANiveau, 'undefined', 'mise à niveau encore dans les journaux des relations');
+    });
+    // La préparation reste (lecture seule) : c'est elle que « Tout synchroniser » montre avant son Oui.
+    const plan = await chantiersDossiers.planMiseANiveau(f);
+    attendreEgal(plan.map(p => p.nom), ['Ancien FICTIF'], 'préparation de la mise à niveau perdue');
+    attendreEgal(f.ecritures.length, 0, 'écrit sans Oui');
+  });
+
+  await testAsync('Chantiers, c89 (10/11/2026, FAUX Drive FICTIF) : marque « dossier » dans la liste pour les chantiers qui en ont un ; « Ouvrir le dossier dans Drive » dans leur fiche (lien hors de Cap), absent sinon ; mise à niveau : « Documents » pour les dossiers déjà créés, liste montrée, puis Oui, relancée sans doublon', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const D = 'application/vnd.google-apps.folder';
+    const G = 'application/vnd.google-apps.document';
+    const f = fauxCompteCapDossiers();
+    // « Bateau FICTIF » (CH-908) a un dossier « à l'ancienne » (c88 : journal avec sa ligne, pas de « Documents »).
+    f.fichiers.push({ id: 'FICTIF_racine_0123456789', name: 'Chantiers', mimeType: D, parents: ['root'], appProperties: { cap_chantiers_racine: '1' }, createdTime: '2026-11-10T13:30:00.000Z' },
+      { id: 'FICTIF_dossier_bateau_0123456789', name: 'Bateau FICTIF', mimeType: D, parents: ['FICTIF_racine_0123456789'], appProperties: { cap_chantier: 'CH-908' }, createdTime: '2026-11-10T13:31:00.000Z' },
+      { id: 'FICTIF_journal_bateau_0123456789', name: 'Journal de bord', mimeType: G, parents: ['FICTIF_dossier_bateau_0123456789'], appProperties: { cap_chantier_journal: 'CH-908' }, createdTime: '2026-11-10T13:31:30.000Z' });
+    f.textes.set('FICTIF_journal_bateau_0123456789', `${chantiersDossiers.texteLigne('CH-908', '2026-11-10T13:31:00.000Z')}\n`);
+    const existants = await chantiersDossiers.dossiersExistants(f);
+    attendreEgal([...existants.keys()], ['CH-908'], 'dossiers existants');
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 9, 0).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 6, 'chantiers pas montrés');
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        const marquee = el('liste-chantiers').querySelector('.marque-dossier').closest('.ligne-chantier');
+        attendreEgal([marquee.querySelector('.nom-morceau').textContent, marquee.querySelector('.marque-dossier').textContent], ['Bateau FICTIF', 'dossier'], 'mauvaise ligne marquée');
+        // Fiche de Bateau : le lien vers le dossier, hors de Cap.
+        dicter('le premier');
+        const lien = el('ouvrir-dossier-chantier');
+        attendre(!lien.hidden && lien.href === 'https://drive.google.com/drive/folders/FICTIF_dossier_bateau_0123456789' && lien.target === '_blank', `lien : ${lien.hidden} ${lien.href}`);
+        attendre(touchable(ui, lien), 'lien pas touchable');
+        // Fiche d'un chantier sans dossier : pas de lien.
+        dicter('le deuxième');
+        attendre(lien.hidden, 'lien montré pour un chantier sans dossier');
+        // Mise à niveau (c147 : par la logique de « Tout synchroniser », le bouton de l'écran est retiré) : « Documents » pour
+        // Bateau, préparé d'abord (rien écrit), puis appliqué, puis rien à changer.
+        const planDoc = await chantiersDossiers.planMiseANiveau(f);
+        const texteDoc = planDoc.map(p => `• « ${p.nom} » : ${p.changements.join(' ; ')}`).join('\n');
+        attendre(/• « Bateau FICTIF » : créer le sous-dossier « Documents »/.test(texteDoc) && !/Dossier créé par Cap le/.test(texteDoc), `liste : ${texteDoc}`);
+        attendreEgal(f.ecritures.length, 0, 'écrit avant le Oui');
+        attendreEgal((await chantiersDossiers.appliquerMiseANiveau(f)).faits, ['Bateau FICTIF'], 'pas fait');
+        attendreEgal(f.fichiers.filter(x => x.appProperties.cap_chantier_documents === 'CH-908').length, 1, '« Documents » pas créé');
+        attendreEgal((await chantiersDossiers.planMiseANiveau(f)).length, 0, 'relance');
+        attendreEgal(f.fichiers.filter(x => x.appProperties.cap_chantier_documents === 'CH-908').length, 1, '« Documents » en double');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, c90) : journaux des relations, FAUX Drive du compte Cap, R_FICTIF / r_FICTIF seulement -----
+  function relationsFictives(f) {
+    const D = 'application/vnd.google-apps.folder';
+    const ajouter = (id, name, parent) => { const x = { id, name, mimeType: D, parents: [parent], appProperties: {}, createdTime: '2026-11-01T10:00:00.000Z' }; f.fichiers.push(x); return x; };
+    ajouter('FICTIF_relations_0123456789', 'Relations', 'root');
+    const alpha = ajouter('FICTIF_rel_alpha_0123456789', 'r_FICTIF Alpha', 'FICTIF_relations_0123456789');
+    const beta = ajouter('FICTIF_rel_beta_0123456789', 'r_FICTIF Beta', 'FICTIF_relations_0123456789');
+    ajouter('FICTIF_rel_gamma_0123456789', 'R_FICTIF Gamma', 'FICTIF_relations_0123456789'); // majuscule : ignoré (décision de Max : pas de correction R_ pour l'instant)
+    ajouter('FICTIF_envoye_0123456789', 'Envoyé', alpha.id);
+    return { alpha: { id: alpha.id, nom: alpha.name }, beta: { id: beta.id, nom: beta.name } };
+  }
+
+  await testAsync('Journaux des relations, c90 (10/11/2026, FAUX Drive FICTIF) : « Journaux des relations » + un journal par personne, relié par une marque invisible, première ligne datée (date du journal) ; le dossier de relation n’est jamais touché ; aucun doublon ; c103 : plus de limite, un seul journal par création, verrou, plusieurs pages lues ; mise à niveau (ligne manquante) relancée sans doublon ; panne puis reprise ; service Docs coupé', async () => {
+    const D = 'application/vnd.google-apps.folder';
+    const G = 'application/vnd.google-apps.document';
+    const f = fauxCompteCapDossiers();
+    const { alpha, beta } = relationsFictives(f);
+    attendreEgal((await journauxRelations.listerRelations(f)).map(r => r.nom), ['r_FICTIF Alpha', 'r_FICTIF Beta'], 'relations lues');
+    const plan = await journauxRelations.preparer(f, alpha);
+    attendreEgal([plan.aCreer.length, 'essaiAtteint' in plan], [3, false], 'plan'); // c103 : plus de limite
+    attendreEgal(f.ecritures.length, 0, 'préparer a écrit');
+    const r = await journauxRelations.creer(f, alpha);
+    attendreEgal(r.cree, ['Journaux des relations', 'Journal – FICTIF Alpha', 'la ligne datée du journal'], 'créés');
+    const racine = f.fichiers.find(x => x.appProperties.cap_relations_journaux === '1');
+    const journal = f.fichiers.find(x => x.appProperties.cap_relation_journal === alpha.id);
+    attendreEgal([racine.mimeType, racine.parents[0], journal.mimeType, journal.parents[0]], [D, 'root', G, racine.id], 'rangement');
+    attendreEgal(f.textes.get(journal.id).trim(), journauxRelations.texteLigne('r_FICTIF Alpha', journal.createdTime), 'ligne datée');
+    attendre(/^Journal ouvert par Cap le \d\d\/\d\d\/2026 à \d\d h \d\d pour le dossier « r_FICTIF Alpha »\.$/.test(f.textes.get(journal.id).trim()), `ligne : ${f.textes.get(journal.id)}`);
+    // Le dossier de relation n'est jamais touché : aucune création dedans, aucune écriture sur lui.
+    const idsRelations = [alpha.id, beta.id, 'FICTIF_rel_gamma_0123456789', 'FICTIF_envoye_0123456789'];
+    attendre(f.ecritures.every(([, url, corps]) => !idsRelations.some(id => url.includes(id) || String(corps).includes(`"parents":["${id}"]`))), `écriture dans un dossier de relation : ${JSON.stringify(f.ecritures)}`);
+    // Déjà là : rien ; essai : un seul journal.
+    const avant = f.ecritures.length;
+    attendreEgal((await journauxRelations.creer(f, alpha)).dejaLa, true, 'déjà là');
+    attendreEgal(f.ecritures.length, avant, 'doublon');
+    // c103 : PLUS DE LIMITE (avant : 2, c91) ; chaque appel ne crée QU'UN journal, celui demandé.
+    attendreEgal(journauxRelations.MAX_JOURNAUX_ESSAI, undefined, 'limite encore exportée');
+    await journauxRelations.creer(f, beta);
+    const nouvelle = (id, nom) => { f.fichiers.push({ id, name: nom, mimeType: D, parents: ['FICTIF_relations_0123456789'], appProperties: {}, createdTime: '2026-11-01T10:00:00.000Z' }); return { id, nom }; };
+    const delta = nouvelle('FICTIF_rel_delta_0123456789', 'r_FICTIF Delta');
+    const epsilon = nouvelle('FICTIF_rel_epsilon_0123456789', 'r_FICTIF Epsilon');
+    const zeta = nouvelle('FICTIF_rel_zeta_0123456789', 'r_FICTIF Zeta');
+    const eta = nouvelle('FICTIF_rel_eta_0123456789', 'r_FICTIF Eta');
+    attendreEgal((await journauxRelations.preparer(f, delta)).aCreer.length, 2, 'troisième : plan');
+    attendreEgal((await journauxRelations.creer(f, delta)).cree, ['Journal – FICTIF Delta', 'la ligne datée du journal'], 'troisième refusé');
+    attendreEgal((await journauxRelations.creer(f, epsilon)).cree.length, 2, 'quatrième refusé');
+    attendreEgal(f.fichiers.filter(x => x.appProperties.cap_relation_journal).map(x => x.appProperties.cap_relation_journal), [alpha.id, beta.id, delta.id, epsilon.id], 'journaux');
+    // Aucun doublon, même au-delà de l'ancienne limite.
+    const avantDoublon = f.ecritures.length;
+    attendreEgal((await journauxRelations.creer(f, epsilon)).dejaLa, true, 'quatrième recréé');
+    attendreEgal(f.ecritures.length, avantDoublon, 'écriture sur un journal déjà créé');
+    // Verrou : deux créations en même temps : la deuxième est refusée sans rien créer, la première aboutit.
+    const premiere = journauxRelations.creer(f, zeta);
+    await attendreRejet(() => journauxRelations.creer(f, eta), 'déjà en cours');
+    await premiere;
+    attendre(f.fichiers.some(x => x.appProperties.cap_relation_journal === zeta.id), 'première création perdue');
+    attendre(!f.fichiers.some(x => x.appProperties.cap_relation_journal === eta.id), 'deuxième création faite malgré le verrou');
+    // Le verrou est rendu, même après une erreur.
+    await attendreRejet(() => journauxRelations.creer(f, null), 'Dossier de relation inconnu');
+    await journauxRelations.creer(f, eta);
+    attendre(f.fichiers.some(x => x.appProperties.cap_relation_journal === eta.id), 'verrou jamais rendu');
+    // Aucune fonction de création en série.
+    attendreEgal(Object.keys(journauxRelations).filter(k => /tous|serie|plusieurs|lot/i.test(k)), [], 'création en série exposée');
+    // Lecture de plusieurs pages du Drive.
+    const pagesJ = [{ files: [{ id: 'J1', name: 'Journal – A FICTIF', appProperties: { cap_relation_journal: 'FICTIF_r1' } }], nextPageToken: 'T2' }, { files: [{ id: 'J2', name: 'Journal – B FICTIF', appProperties: { cap_relation_journal: 'FICTIF_r2' } }] }];
+    const jetonsJ = [];
+    const fpj = { appeler: async url => {
+      const q = new URL(url).searchParams;
+      if (q.get('q').startsWith('appProperties')) return { json: async () => ({ files: [{ id: 'R', name: 'Journaux des relations' }] }) };
+      jetonsJ.push(q.get('pageToken'));
+      return { json: async () => pagesJ[jetonsJ.length - 1] || { files: [] } };
+    } };
+    attendreEgal([...(await journauxRelations.journauxExistants(fpj)).keys()], ['FICTIF_r1', 'FICTIF_r2'], 'deuxième page non lue');
+    attendreEgal(jetonsJ, [null, 'T2'], 'jeton de page');
+    attendreEgal([journauxRelations.adresseJournal('FICTIF_j_0123456789'), journauxRelations.adresseDossier(alpha.id)],
+      ['https://docs.google.com/document/d/FICTIF_j_0123456789/edit', `https://drive.google.com/drive/folders/${alpha.id}`], 'adresses');
+    // Mise à niveau : journal sans sa ligne (FICTIF) → plan, Oui, puis rien.
+    f.textes.set(journal.id, '\n');
+    const p = await journauxRelations.planMiseANiveau(f);
+    attendreEgal(p.map(x => [x.nom, x.changements]), [['Journal – FICTIF Alpha', [`ajouter « ${journauxRelations.texteLigne('r_FICTIF Alpha', journal.createdTime)} »`]]], 'plan de mise à niveau');
+    attendreEgal((await journauxRelations.appliquerMiseANiveau(f)).faits, ['Journal – FICTIF Alpha'], 'mise à niveau');
+    const apres = f.ecritures.length;
+    attendreEgal(await journauxRelations.planMiseANiveau(f), [], 'relance : plan non vide');
+    await journauxRelations.appliquerMiseANiveau(f);
+    attendreEgal(f.ecritures.length, apres, 'relance : écriture en plus');
+    attendreEgal((f.textes.get(journal.id).match(/Journal ouvert par Cap le/g) || []).length, 1, 'ligne en double');
+    // Panne à la deuxième écriture : la racine reste ; reprise sans doublon.
+    const g = fauxCompteCapDossiers({ panne: k => k === 2 });
+    const rg = relationsFictives(g);
+    await attendreRejet(() => journauxRelations.creer(g, rg.alpha), 'Pas de réseau');
+    const reprise = fauxCompteCapDossiers();
+    reprise.fichiers.push(...g.fichiers);
+    attendreEgal((await journauxRelations.creer(reprise, rg.alpha)).cree, ['Journal – FICTIF Alpha', 'la ligne datée du journal'], 'reprise');
+    attendreEgal(reprise.fichiers.filter(x => x.appProperties.cap_relations_journaux).length, 1, '« Journaux des relations » en double');
+    // Service Google Docs coupé : journal créé, raison dite.
+    const h = fauxCompteCapDossiers({ docsCoupe: true });
+    const rh = relationsFictives(h);
+    const rc = await journauxRelations.creer(h, rh.alpha);
+    attendre(rc.cree.length === 2 && /service Google Docs n’est pas activé/.test(rc.ligneErreur), `service coupé : ${JSON.stringify(rc)}`);
+  });
+
+  await testAsync('Journaux des relations, c90 et c91 (10/11/2026, FICTIF) : écran : gros boutons numérotés (r_FICTIF seulement) ; « le premier » montre ce qui sera créé et attend « Oui, créer » (liste cachée) ; « Non » ne crée rien ; « Oui » crée, la marque « journal » apparaît ; c91 : « Ouvrir le journal » et « Ouvrir le dossier dans Drive » seulement pour une personne qui a un journal ; mise à niveau : rien à changer', async c => {
+    const f = fauxCompteCapDossiers();
+    relationsFictives(f);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = journauxRelationsEcran.brancher(ui.doc, { compteCap: f });
+      await ecran.ouvrir();
+      await attendreQue(() => el('liste-journaux-relations').querySelectorAll('.ligne-relation').length === 2, `relations : ${el('etat-journaux-relations').textContent}`);
+      attendre(el('liens-journal-relation').hidden, 'liens visibles à l’ouverture');
+      const lignes = () => [...el('liste-journaux-relations').querySelectorAll('.ligne-relation')];
+      attendreEgal(lignes().map(b => b.textContent), ['1r_FICTIF Alpha', '2r_FICTIF Beta'], 'boutons');
+      for (const b of lignes()) attendre(touchable(ui, b), 'bouton pas touchable');
+      dicter('le premier');
+      await attendreQue(() => !el('oui-journal-relation').hidden, `question absente : ${el('question-journal-relation').textContent}`);
+      attendre(/Je vais créer, dans le Drive du compte Cap : le dossier « Journaux des relations » \(première fois\), puis le journal « Journal – FICTIF Alpha » dans ce dossier, puis la ligne .*Rien dans le dossier « r_FICTIF Alpha » lui-même, rien d’autre\. Je crée \?$/.test(el('question-journal-relation').textContent), `question : ${el('question-journal-relation').textContent}`);
+      const vue = ui.cadre.contentWindow;
+      attendre(el('journaux-relations').classList.contains('mode-confirmation') && vue.getComputedStyle(el('liste-journaux-relations')).display === 'none', 'liste visible pendant la question');
+      attendreEgal(f.ecritures.length, 0, 'créé avant le Oui');
+      el('non-journal-relation').click();
+      attendreEgal([el('question-journal-relation').textContent, f.ecritures.length], ['Rien n’a été créé.', 0], '« Non »');
+      lignes()[0].click();
+      await attendreQue(() => !el('oui-journal-relation').hidden, 'question absente (2)');
+      el('oui-journal-relation').click();
+      await attendreQue(() => /C’est fait/.test(el('question-journal-relation').textContent), `pas créé : ${el('question-journal-relation').textContent}`);
+      await attendreQue(() => lignes()[0].querySelector('.marque-journal'), 'marque « journal » absente');
+      attendre(!lignes()[1].querySelector('.marque-journal'), 'marque sur la mauvaise personne');
+      // c91 : pour Alpha (qui a un journal), deux liens hors de Cap.
+      const liens = el('liens-journal-relation');
+      const journalAlpha = f.fichiers.find(x => x.appProperties.cap_relation_journal === 'FICTIF_rel_alpha_0123456789');
+      attendre(!liens.hidden && el('ouvrir-journal-relation').href === `https://docs.google.com/document/d/${journalAlpha.id}/edit`
+        && el('ouvrir-dossier-relation').href === 'https://drive.google.com/drive/folders/FICTIF_rel_alpha_0123456789'
+        && el('ouvrir-journal-relation').target === '_blank' && el('ouvrir-dossier-relation').target === '_blank', `liens : ${liens.hidden} ${el('ouvrir-journal-relation').href}`);
+      for (const id of ['ouvrir-journal-relation', 'ouvrir-dossier-relation']) attendre(touchable(ui, el(id)), `${id} pas touchable`);
+      lignes()[0].click();
+      await attendreQue(() => /a déjà son journal : rien à créer/.test(el('question-journal-relation').textContent), 'retouché : message absent');
+      attendre(!liens.hidden, 'liens cachés pour une personne qui a un journal');
+      // Beta (pas de journal) : pas de liens ; la question (limite 2 : permis).
+      lignes()[1].click();
+      attendre(liens.hidden && !el('ouvrir-journal-relation').getAttribute('href'), 'liens montrés pour une personne sans journal');
+      await attendreQue(() => !el('oui-journal-relation').hidden, `question Beta absente : ${el('question-journal-relation').textContent}`);
+      el('non-journal-relation').click();
+      attendreEgal((await journauxRelations.planMiseANiveau(f)).length, 0, 'mise à niveau'); // c147 : bouton retiré, logique de « Tout synchroniser »
+      attendreEgal(f.fichiers.filter(x => x.appProperties.cap_relation_journal).length, 1, 'journaux');
+      ecran.fermer();
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, c92) : note de Max à la fin du journal d'un chantier, FICTIF -----
+  function chantierFictifAvecJournal(f, id = 'CH-908', nom = 'Bateau FICTIF', texteJournal = 'Dossier créé par Cap le 10/11/2026 à 14 h 31 (CH-908).\n') {
+    const D = 'application/vnd.google-apps.folder';
+    const G = 'application/vnd.google-apps.document';
+    f.fichiers.push({ id: 'FICTIF_racine_0123456789', name: 'Chantiers', mimeType: D, parents: ['root'], appProperties: { cap_chantiers_racine: '1' }, createdTime: '2026-11-10T13:30:00.000Z' },
+      { id: `FICTIF_dossier_${id}_0123456789`, name: nom, mimeType: D, parents: ['FICTIF_racine_0123456789'], appProperties: { cap_chantier: id }, createdTime: '2026-11-10T13:31:00.000Z' },
+      { id: `FICTIF_journal_${id}_0123456789`, name: 'Journal de bord', mimeType: G, parents: [`FICTIF_dossier_${id}_0123456789`], appProperties: { cap_chantier_journal: id }, createdTime: '2026-11-10T13:31:30.000Z' },
+      { id: `FICTIF_documents_${id}_0123456789`, name: 'Documents', mimeType: D, parents: [`FICTIF_dossier_${id}_0123456789`], appProperties: { cap_chantier_documents: id }, createdTime: '2026-11-10T13:31:40.000Z' });
+    f.textes.set(`FICTIF_journal_${id}_0123456789`, texteJournal);
+    return `FICTIF_journal_${id}_0123456789`;
+  }
+
+  await testAsync('Chantiers, c92 (10/11/2026, FAUX Drive FICTIF) : la note est préparée (date et texte), puis AJOUTÉE à la fin du journal, rien d’autre ; ce qui était déjà dans le journal reste ; note vide ou trop longue, chantier sans dossier ou sans journal : rien n’est écrit', async () => {
+    const f = fauxCompteCapDossiers();
+    const idJournal = chantierFictifAvecJournal(f);
+    const quand = new Date(2026, 10, 10, 19, 20).getTime();
+    const ligne = chantiersDossiers.texteNote('  Note   FICTIVE\nsur deux lignes  ', quand);
+    attendreEgal(ligne, '10/11/2026 à 19 h 20 — Note FICTIVE sur deux lignes', 'ligne préparée');
+    await chantiersDossiers.ajouterNote(f, { id: 'CH-908', nom: 'Bateau FICTIF' }, ligne);
+    attendreEgal(f.textes.get(idJournal), 'Dossier créé par Cap le 10/11/2026 à 14 h 31 (CH-908).\n10/11/2026 à 19 h 20 — Note FICTIVE sur deux lignes\n', 'journal après la note');
+    attendreEgal(f.ecritures.length, 1, 'une seule écriture');
+    const corps = JSON.parse(f.ecritures[0][2]);
+    attendre(/:batchUpdate$/.test(f.ecritures[0][1]) && Object.keys(corps.requests[0]).join() === 'insertText' && corps.requests[0].insertText.endOfSegmentLocation, `pas un ajout à la fin : ${f.ecritures[0][2]}`);
+    for (const [texte, motif] of [['', 'Écris d’abord ta note'], ['   ', 'Écris d’abord ta note']]) { // c106 : plus de « trop longue »
+      let message = '';
+      try { chantiersDossiers.texteNote(texte, quand); } catch (e) { message = e.message; }
+      attendre(message.includes(motif), `note « ${texte.slice(0, 5)} » : ${message}`);
+    }
+    const g = fauxCompteCapDossiers();
+    await attendreRejet(() => chantiersDossiers.ajouterNote(g, { id: 'CH-908', nom: 'Bateau FICTIF' }, ligne), 'pas encore de dossier');
+    chantierFictifAvecJournal(g);
+    g.fichiers.splice(g.fichiers.findIndex(x => x.appProperties.cap_chantier_journal), 1);
+    await attendreRejet(() => chantiersDossiers.ajouterNote(g, { id: 'CH-908', nom: 'Bateau FICTIF' }, ligne), 'pas de journal');
+    attendreEgal(g.ecritures.length, 0, 'écrit sans dossier ou sans journal');
+  });
+
+  await testAsync('Chantiers, c92 (10/11/2026, FICTIF) : écran : « Ajouter une note au journal » seulement pour un chantier qui a un dossier ; la ligne EXACTE (date et texte) est montrée, « Oui, ajouter » / « Non » ; « Non » n’écrit rien et garde le texte ; « Oui » ajoute et vide le champ ; « oui » à la voix marche aussi ; mise à niveau : rien à changer', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    const idJournal = chantierFictifAvecJournal(f);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 19, 20).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le deuxième'); // un chantier sans dossier
+        attendre(el('zone-note-chantier').hidden, 'zone de note pour un chantier sans dossier');
+        dicter('le premier'); // Bateau FICTIF, qui a un dossier
+        // c94 : le bloc du haut (fiche, prompt, liens, note) défile lui-même (c93) : on fait défiler jusqu'au bouton, comme le doigt.
+        // c97 : le champ n'est plus ouvert d'office : « Note » l'ouvre.
+        attendre(el('zone-note-chantier').hidden && !el('actions-chantier').hidden, 'champ ouvert d’office, ou actions absentes');
+        el('ouvrir-note-chantier').click();
+        el('ajouter-note-chantier').scrollIntoView({ block: 'nearest' });
+        attendre(!el('zone-note-chantier').hidden && touchable(ui, el('ajouter-note-chantier')), 'zone de note absente');
+        // Champ vide : message, rien.
+        el('ajouter-note-chantier').click();
+        attendre(/Écris d’abord ta note/.test(el('question-dossier-chantier').textContent) && f.ecritures.length === 0, 'note vide acceptée');
+        // Ligne exacte montrée ; « Non » : rien, texte gardé.
+        el('note-chantier').value = 'Appeler le garage FICTIF';
+        el('ajouter-note-chantier').click();
+        attendreEgal(el('question-dossier-chantier').textContent, 'Je vais ajouter, à la fin du journal de « Bateau FICTIF » : « 10/11/2026 à 19 h 20 — Appeler le garage FICTIF ». Rien d’autre n’est modifié ni effacé. J’ajoute ?', 'question');
+        attendre(el('chantiers-cap').classList.contains('mode-confirmation') && el('oui-dossier-chantier').textContent === 'Oui, ajouter', 'pas en mode confirmation');
+        attendre(ui.cadre.contentWindow.getComputedStyle(el('zone-note-chantier')).display === 'none', 'champ visible pendant la question');
+        el('non-dossier-chantier').click();
+        attendreEgal([el('question-dossier-chantier').textContent, f.ecritures.length, el('note-chantier').value], ['Rien n’a été ajouté.', 0, 'Appeler le garage FICTIF'], '« Non »');
+        attendreEgal(el('oui-dossier-chantier').textContent, 'Oui, créer', 'bouton pas remis');
+        // « Oui » (à la voix) : ajouté, champ vidé.
+        el('ajouter-note-chantier').click();
+        attendreEgal(dicter('oui'), 'J’ai touché « Oui, ajouter ».', '« oui » à la voix');
+        await attendreQue(() => /C’est fait : ta note est à la fin du journal du chantier\./.test(el('question-dossier-chantier').textContent), `pas ajouté : ${el('question-dossier-chantier').textContent}`);
+        attendre(f.textes.get(idJournal).endsWith('\n10/11/2026 à 19 h 20 — Appeler le garage FICTIF\n') && el('note-chantier').value === '', `journal : ${f.textes.get(idJournal)}`);
+        attendreEgal(f.ecritures.length, 1, 'écritures');
+        // Mise à niveau : rien à changer.
+        attendreEgal((await chantiersDossiers.planMiseANiveau(f)).length, 0, 'mise à niveau'); // c147 : bouton retiré
+        attendreEgal(f.ecritures.length, 1, 'mise à niveau : écriture');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, c93) : lire les dernières lignes du journal d'un chantier, FICTIF -----
+  const JOURNAL_FICTIF_7 = ['Dossier créé par Cap le 10/11/2026 à 14 h 31 (CH-908).', '', '10/11/2026 à 15 h 00 — Note FICTIVE 1', '10/11/2026 à 15 h 05 — Note FICTIVE 2',
+    '10/11/2026 à 15 h 10 — Note FICTIVE 3', '10/11/2026 à 15 h 15 — Note FICTIVE 4', '10/11/2026 à 15 h 20 — Note FICTIVE 5', '10/11/2026 à 15 h 25 — Note FICTIVE 6'].join('\n') + '\n';
+
+  await testAsync('Chantiers, c93 (10/11/2026, FAUX Drive FICTIF) : les 5 dernières lignes non vides du journal, en LECTURE seule ; journal vide : aucune ligne ; sans dossier ou sans journal : message ; rien n’est écrit', async () => {
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f, 'CH-908', 'Bateau FICTIF', JOURNAL_FICTIF_7);
+    attendreEgal(await chantiersDossiers.lireDernieresLignes(f, { id: 'CH-908' }, 5),
+      ['10/11/2026 à 15 h 05 — Note FICTIVE 2', '10/11/2026 à 15 h 10 — Note FICTIVE 3', '10/11/2026 à 15 h 15 — Note FICTIVE 4', '10/11/2026 à 15 h 20 — Note FICTIVE 5', '10/11/2026 à 15 h 25 — Note FICTIVE 6'], 'dernières lignes');
+    const g = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(g, 'CH-908', 'Bateau FICTIF', '\n');
+    attendreEgal(await chantiersDossiers.lireDernieresLignes(g, { id: 'CH-908' }), [], 'journal vide');
+    await attendreRejet(() => chantiersDossiers.lireDernieresLignes(fauxCompteCapDossiers(), { id: 'CH-908' }), 'pas encore de dossier');
+    g.fichiers.splice(g.fichiers.findIndex(x => x.appProperties.cap_chantier_journal), 1);
+    await attendreRejet(() => chantiersDossiers.lireDernieresLignes(g, { id: 'CH-908' }), 'pas de journal');
+    attendreEgal(f.ecritures.length + g.ecritures.length, 0, 'une lecture a écrit');
+  });
+
+  await testAsync('Chantiers, c93 (10/11/2026, FICTIF) : écran : « Lire le journal » seulement pour un chantier qui a un dossier ; il affiche les 5 dernières lignes dans la fiche, visibles et sans rien écrire ; un autre chantier efface l’affichage ; mise à niveau : rien à changer', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f, 'CH-908', 'Bateau FICTIF', JOURNAL_FICTIF_7);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 19, 20).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le deuxième'); // sans dossier
+        attendre(el('lire-journal-chantier').hidden && el('resultat-chantier').hidden, '« Lire le journal » pour un chantier sans dossier');
+        dicter('le premier'); // Bateau FICTIF, avec dossier
+        const bouton = el('lire-journal-chantier');
+        attendre(!bouton.hidden, '« Lire le journal » absent');
+        bouton.scrollIntoView({ block: 'nearest' });
+        attendre(touchable(ui, bouton), '« Lire le journal » pas touchable');
+        bouton.click();
+        await attendreQue(() => el('resultat-chantier').querySelectorAll('.journal-ligne').length === 5, `lignes : ${el('resultat-chantier').textContent}`);
+        attendreEgal([...el('resultat-chantier').querySelectorAll('.journal-ligne')].map(p => p.textContent).at(-1), '10/11/2026 à 15 h 25 — Note FICTIVE 6', 'dernière ligne');
+        attendreEgal(el('resultat-chantier').querySelector('.journal-titre').textContent, 'Dernières lignes du journal (5) :', 'titre');
+        const r = el('resultat-chantier').getBoundingClientRect();
+        attendre(r.top >= 0 && r.top < ui.cadre.contentWindow.innerHeight, `lignes hors de l’écran : ${JSON.stringify(r)}`);
+        attendreEgal(f.ecritures.length, 0, 'la lecture a écrit');
+        dicter('le deuxième');
+        attendre(el('resultat-chantier').hidden && !el('resultat-chantier').textContent, 'lignes d’un autre chantier restées affichées');
+        attendreEgal((await chantiersDossiers.planMiseANiveau(f)).length, 0, 'mise à niveau'); // c147 : bouton retiré
+        attendreEgal(f.ecritures.length, 0, 'mise à niveau : écriture');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, c94) : le « Prompt » des chantiers, lu dans la Liste (lecture seule), FICTIF -----
+  const PROMPT_LONG_FICTIF = Array.from({ length: 60 }, (_, i) => `Ligne ${i + 1} du prompt FICTIF pour le chantier de démonstration.`).join('\n');
+  const listeAvecPrompts = () => {
+    const l = LISTE_CHANTIERS_FICTIVE.map(x => x.slice());
+    const iPrompt = TITRES_LISTE_CHANTIERS.indexOf('Prompt');
+    l.find(x => x[0] === 'Bateau FICTIF')[iPrompt] = PROMPT_LONG_FICTIF;
+    l.find(x => x[0] === 'Jardin FICTIF')[iPrompt] = 'Prompt court FICTIF.';
+    return l;
+  };
+
+  test('Chantiers, c94 (10/11/2026, FICTIF) : la colonne « Prompt » est retrouvée par son TITRE (même déplacée) ; texte gardé avec ses retours à la ligne ; vide : rien', () => {
+    const lignes = listeAvecPrompts();
+    const a = chantiers.analyser(commandesVocales.lireCsv(csvDe(lignes)));
+    const prompt = nom => a.chantiers.find(c => c.nom === nom).prompt;
+    attendreEgal([prompt('Bateau FICTIF'), prompt('Jardin FICTIF'), prompt('Papiers FICTIFS')], [PROMPT_LONG_FICTIF, 'Prompt court FICTIF.', ''], 'prompts lus');
+    const inverse = commandesVocales.lireCsv(csvDe(lignes)).map(l => l.slice().reverse());
+    attendreEgal(chantiers.analyser(inverse).chantiers.find(c => c.nom === 'Bateau FICTIF').prompt, PROMPT_LONG_FICTIF, 'colonne déplacée');
+    attendre(!SOURCE_CHANTIERS_TEST.includes('cerveau') && !SOURCE_CHANTIERS_ECRAN_TEST.includes('cerveau'), 'le prompt part vers l’IA');
+  });
+
+  await testAsync('Chantiers, c94 (10/11/2026, FICTIF) : fiche : « Prompt : … » (texte long : zone qui défile, rien hors de l’écran) ou « Pas encore de prompt. » ; compteur sans nom « 2 chantiers ont un prompt. » ; rien écrit ; mise à niveau : rien à changer', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const lignes = listeAvecPrompts();
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(lignes))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 9, 0).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 6, 'chantiers pas montrés');
+        attendreEgal(el('compteur-prompts').textContent, '2 chantiers ont un prompt.', 'compteur');
+        attendre(!/FICTI/.test(el('compteur-prompts').textContent), 'un nom dans le compteur');
+        dicter('le premier'); // Bateau FICTIF : prompt long
+        const zone = el('prompt-chantier');
+        attendre(!zone.hidden && zone.textContent === `Prompt : ${PROMPT_LONG_FICTIF}`, `prompt : ${zone.textContent.slice(0, 80)}`);
+        const vue = ui.cadre.contentWindow;
+        const r = zone.getBoundingClientRect();
+        attendre(zone.scrollHeight > zone.clientHeight + 50 && vue.getComputedStyle(zone).overflowY === 'auto', 'le prompt long ne défile pas');
+        attendre(r.top >= 0 && r.bottom <= vue.innerHeight && r.height <= vue.innerHeight * 0.31, `prompt hors de l’écran ou trop haut : ${JSON.stringify(r)}`);
+        zone.scrollTop = zone.scrollHeight;
+        attendre(zone.scrollTop > 0, 'la zone ne défile pas');
+        attendre(el('fermer-chantiers').getBoundingClientRect().height > 0, '« Fermer » disparu');
+        dicter('le cinquième'); // Papiers FICTIFS : pas de prompt
+        attendreEgal(zone.textContent, 'Pas encore de prompt.', 'sans prompt');
+        attendreEgal(f.ecritures.length, 0, 'écrit quelque chose');
+        attendreEgal((await chantiersDossiers.planMiseANiveau(f)).length, 0, 'mise à niveau'); // c147 : bouton retiré
+        attendreEgal(f.ecritures.length, 0, 'mise à niveau : écriture');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c95 (10/11/2026, FICTIF) : « ajoute au journal, … » dans la fiche d’un chantier qui a un dossier : texte dans le champ, ligne datée exacte, « Non » garde le texte (modifiable au clavier), « oui » écrit le texte corrigé ; chantier sans dossier ou écran fermé : la phrase suit son chemin (rangée, rien de perdu)', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    const idJournal = chantierFictifAvecJournal(f);
+    await interfaceChoix(c, async ({ ui, el, dicter, signe, nombre }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 20, 30).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le premier'); // Bateau FICTIF, avec dossier
+        const question = 'Je vais ajouter, à la fin du journal de « Bateau FICTIF » : « 10/11/2026 à 20 h 30 — appeler le garage FICTIF ». Rien d’autre n’est modifié ni effacé. J’ajoute ?';
+        attendreEgal(dicter('Ajoute au journal, appeler le garage FICTIF'), question, 'question après la dictée');
+        attendreEgal(signe(), 'pouce', 'signe');
+        attendre(el('chantiers-cap').classList.contains('mode-confirmation') && el('note-chantier').value === 'appeler le garage FICTIF', 'texte pas dans le champ, ou pas de question');
+        attendreEgal(f.ecritures.length, 0, 'écrit avant le Oui');
+        // « Non » : rien, le texte reste ; corrigé au clavier, puis « oui ».
+        attendreEgal(dicter('non'), 'J’ai touché « Non » : rien n’a été fait.', '« non »');
+        attendreEgal([el('question-dossier-chantier').textContent, el('note-chantier').value, f.ecritures.length], ['Rien n’a été ajouté.', 'appeler le garage FICTIF', 0], 'après « Non »');
+        el('note-chantier').value = 'appeler le garage FICTIF demain';
+        el('ajouter-note-chantier').click();
+        attendreEgal(dicter('oui'), 'J’ai touché « Oui, ajouter ».', '« oui »');
+        await attendreQue(() => /C’est fait : ta note est à la fin du journal du chantier\./.test(el('question-dossier-chantier').textContent), `pas ajouté : ${el('question-dossier-chantier').textContent}`);
+        attendre(f.textes.get(idJournal).endsWith('\n10/11/2026 à 20 h 30 — appeler le garage FICTIF demain\n'), `journal : ${f.textes.get(idJournal)}`);
+        // Autres formes dites par Android : « virgule », deux-points.
+        attendre(/« 10\/11\/2026 à 20 h 30 — idée FICTIVE »/.test(dicter('ajoute au journal virgule idée FICTIVE')), 'forme « virgule »');
+        dicter('non');
+        attendre(/« 10\/11\/2026 à 20 h 30 — autre idée FICTIVE »/.test(dicter('Ajouter au journal : autre idée FICTIVE')), 'forme « : »');
+        dicter('non');
+        attendreEgal(TACHES.length, nombre, 'une phrase de note rangée dans « À trier »');
+        // Chantier sans dossier : la phrase suit son chemin (rangée comme d'habitude, rien de perdu).
+        dicter('le deuxième');
+        dicter('ajoute au journal, note FICTIVE sans dossier');
+        attendre(TACHES.length === nombre + 1 && /note FICTIVE sans dossier/.test(TACHES[TACHES.length - 1].intitule), 'chantier sans dossier : phrase perdue');
+        // Écran fermé : pareil.
+        ecran.fermer();
+        await attendreQue(() => !el('chantiers-cap').open, 'écran pas fermé');
+        dicter('ajoute au journal, note FICTIVE écran fermé');
+        attendre(TACHES.length === nombre + 2 && /écran fermé/.test(TACHES[TACHES.length - 1].intitule), 'écran fermé : phrase perdue');
+        attendreEgal(f.ecritures.length, 1, 'écritures');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c104 (10/11/2026, FICTIF) : dictée en deux temps : « ajoute au journal » dit seul : « Je t’écoute : dis ta note. » ; la phrase suivante (30 s) va dans le champ, puis la question ; rien sans le Oui ; « annuler » arrête l’attente ; après 30 s, fiche changée ou écran fermé : la phrase suit son chemin (rien de perdu)', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    const idJournal = chantierFictifAvecJournal(f);
+    // Un deuxième chantier AVEC dossier (FICTIF), pour vérifier que l'attente ne passe pas d'un chantier à l'autre.
+    f.fichiers.push({ id: 'FICTIF_dossier_CH-905_0123456789', name: 'Haie FICTIVE', mimeType: 'application/vnd.google-apps.folder', parents: ['FICTIF_racine_0123456789'], appProperties: { cap_chantier: 'CH-905' }, createdTime: '2026-11-10T13:32:00.000Z' });
+    let horloge = new Date(2026, 10, 10, 20, 30).getTime();
+    await interfaceChoix(c, async ({ ui, el, dicter, signe, nombre }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => horloge });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 2, 'marques « dossier » absentes');
+        dicter('le premier'); // Bateau FICTIF, avec dossier
+        // 1. Premier temps, puis la note : champ rempli, question, rien écrit avant le Oui.
+        attendreEgal(dicter('ajoute au journal'), 'Je t’écoute : dis ta note.', 'premier temps');
+        attendreEgal(signe(), 'pouce', 'signe');
+        attendre(!el('chantiers-cap').classList.contains('mode-confirmation') && ecran.noteEnAttente(), 'pas en attente');
+        horloge += 29000;
+        const question = 'Je vais ajouter, à la fin du journal de « Bateau FICTIF » : « 10/11/2026 à 20 h 30 — rappeler le couvreur FICTIF ». Rien d’autre n’est modifié ni effacé. J’ajoute ?';
+        attendreEgal(dicter('rappeler le couvreur FICTIF'), question, 'deuxième temps');
+        attendre(el('chantiers-cap').classList.contains('mode-confirmation') && el('note-chantier').value === 'rappeler le couvreur FICTIF', 'pas dans le champ');
+        attendre(!ecran.noteEnAttente(), 'attente pas finie');
+        attendreEgal(f.ecritures.length, 0, 'écrit avant le Oui');
+        attendreEgal(dicter('oui'), 'J’ai touché « Oui, ajouter ».', '« oui »');
+        await attendreQue(() => /C’est fait : ta note est à la fin du journal du chantier\./.test(el('question-dossier-chantier').textContent), `pas ajouté : ${el('question-dossier-chantier').textContent}`);
+        attendre(f.textes.get(idJournal).endsWith('\n10/11/2026 à 20 h 30 — rappeler le couvreur FICTIF\n'), `journal : ${f.textes.get(idJournal)}`);
+        attendreEgal(f.ecritures.length, 1, 'une écriture');
+        // 2. « Non » après le deuxième temps : rien écrit, le texte reste.
+        dicter('ajoute au journal.');
+        dicter('idée FICTIVE à garder');
+        attendreEgal(dicter('non'), 'J’ai touché « Non » : rien n’a été fait.', '« non »');
+        attendreEgal([el('note-chantier').value, f.ecritures.length], ['idée FICTIVE à garder', 1], 'après « Non »');
+        // 3. « annuler » arrête l'attente ; la phrase suivante suit son chemin (rangée, rien de perdu).
+        const avant = TACHES.length;
+        attendreEgal(dicter('ajoute au journal'), 'Je t’écoute : dis ta note.', 'premier temps 2');
+        attendreEgal(dicter('Annuler'), 'D’accord, je n’attends plus ta note. Rien n’a été ajouté.', '« annuler »');
+        attendre(!ecran.noteEnAttente() && !el('chantiers-cap').classList.contains('mode-confirmation'), 'attente pas arrêtée');
+        dicter('phrase FICTIVE après annuler');
+        attendre(TACHES.length === avant + 1 && /après annuler/.test(TACHES[TACHES.length - 1].intitule), 'phrase après « annuler » perdue');
+        // 4. Plus de 30 secondes : l'attente tombe, la phrase suit son chemin.
+        dicter('le premier');
+        attendreEgal(dicter('ajoute au journal'), 'Je t’écoute : dis ta note.', 'premier temps 3');
+        horloge += 31000;
+        dicter('phrase FICTIVE trop tard');
+        attendre(TACHES.length === avant + 2 && /trop tard/.test(TACHES[TACHES.length - 1].intitule), 'phrase trop tard perdue');
+        attendre(!el('chantiers-cap').classList.contains('mode-confirmation'), 'question après 30 s');
+        // 5. Fiche changée AU DOIGT vers un autre chantier qui a AUSSI un dossier : l'attente tombe.
+        dicter('le premier');
+        dicter('ajoute au journal');
+        attendre(ecran.noteEnAttente(), 'pas en attente avant le changement de fiche');
+        const haie = [...el('liste-chantiers').querySelectorAll('.ligne-chantier')].find(b => /Haie FICTIVE/.test(b.textContent));
+        attendre(haie && haie.querySelector('.marque-dossier') && !/Bateau/.test(haie.textContent), 'ligne Haie introuvable');
+        haie.click();
+        attendre(!ecran.noteEnAttente() && !el('chantiers-cap').classList.contains('mode-confirmation'), 'attente gardée sur un autre chantier');
+        // 6. Écran fermé : l'attente tombe, la phrase est rangée.
+        dicter('le premier');
+        dicter('ajoute au journal');
+        ecran.fermer();
+        await attendreQue(() => !el('chantiers-cap').open, 'écran pas fermé');
+        dicter('phrase FICTIVE écran fermé c104');
+        attendre(/écran fermé c104/.test(TACHES[TACHES.length - 1].intitule), 'écran fermé : phrase perdue');
+        attendreEgal(f.ecritures.length, 1, 'écritures en trop');
+        attendre(TACHES.length >= nombre, 'tâches perdues');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c107 (11/11/2026, FICTIF) : témoin du micro dans la fiche : « Entendu à … : « phrase » » pour chaque phrase reçue (même un mot provisoire gardé), « Rien entendu » quand Android ne rend rien (l’attente de la note continue, rien écrit) ; caché pendant une question, effacé au changement de fiche et à la fermeture ; micro arrêté : rien', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    let horloge = new Date(2026, 10, 11, 8, 10, 0).getTime();
+    await interfaceChoix(c, async ({ ui, el, dicter, nombre }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => horloge });
+      // Une écoute qui ne rend aucune phrase finale (comme Android quand il n'a rien reconnu).
+      const ecouter = deroule => { Object.assign(ui.dictee, { disponible: () => true, enCours: () => false, arreter() {}, demarrer: deroule }); el('petit-micro').click(); transitionEcrans.terminer(ui.doc); return el('statut').textContent; };
+      const temoin = () => (el('temoin-micro-chantier').hidden ? '' : el('temoin-micro-chantier').textContent);
+      const visible = () => ui.cadre.contentWindow.getComputedStyle(el('temoin-micro-chantier')).display !== 'none';
+      try {
+        // Écran fermé : aucun témoin.
+        dicter('phrase FICTIVE avant l’écran c107');
+        attendreEgal(temoin(), '', 'témoin écran fermé');
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le premier');
+        attendreEgal(temoin(), 'Entendu à 08:10:00 : « le premier »', 'témoin du choix');
+        attendre(visible(), 'témoin pas visible');
+        horloge += 2000;
+        attendreEgal(dicter('ajoute au journal'), 'Je t’écoute : dis ta note.', 'premier temps');
+        attendreEgal(temoin(), 'Entendu à 08:10:02 : « ajoute au journal »', 'témoin premier temps');
+        // Android ne rend rien (« no-speech ») : « Rien entendu », l'attente continue, rien écrit, champ vide.
+        horloge += 5000;
+        ecouter(r => { r.surErreur('no-speech'); if (r.surFin) r.surFin(); });
+        attendreEgal(temoin(), 'Rien entendu (08:10:07)', 'témoin no-speech');
+        attendre(ecran.noteEnAttente() && el('note-chantier').value === '' && f.ecritures.length === 0, 'attente perdue ou écrit');
+        // c108 : la fiche ne reste plus sur « Je t'écoute » : elle dit de retoucher le micro.
+        attendreEgal(el('question-dossier-chantier').textContent, 'Je n’ai rien entendu : retouche le micro et redis ta note.', 'c108 : message de la fiche');
+        // Fin d'écoute sans aucun résultat : « Rien entendu ».
+        horloge += 3000;
+        ecouter(r => { if (r.surFin) r.surFin(); });
+        attendreEgal(temoin(), 'Rien entendu (08:10:10)', 'témoin fin sans résultat');
+        // Micro arrêté par Max (« aborted ») : le témoin ne change pas.
+        horloge += 1000;
+        ecouter(r => { r.surErreur('aborted'); });
+        attendreEgal(temoin(), 'Rien entendu (08:10:10)', 'témoin changé par « aborted »');
+        // Mot provisoire gardé (Android le donne pendant l'écoute puis « no-speech ») : il compte comme entendu.
+        horloge += 2000;
+        const dit = ecouter(r => { r.surProvisoire('note FICTIVE courte'); r.surErreur('no-speech'); if (r.surFin) r.surFin(); });
+        attendreEgal(temoin(), 'Entendu à 08:10:13 : « note FICTIVE courte »', 'témoin du provisoire');
+        attendre(/Je vais ajouter/.test(dit) && el('note-chantier').value === 'note FICTIVE courte', `note pas dans le champ : ${dit}`);
+        // Pendant la question : témoin caché (mode confirmation) ; « Non » : il revient, rien écrit.
+        attendre(el('chantiers-cap').classList.contains('mode-confirmation') && !visible(), 'témoin visible pendant la question');
+        dicter('non');
+        attendre(visible() && f.ecritures.length === 0, 'témoin pas revenu, ou écrit');
+        attendreEgal(temoin(), 'Entendu à 08:10:13 : « non »', 'témoin du « non »');
+        // Autre fiche : témoin effacé ; écran fermé : effacé, et une dictée écran fermé ne le remplit pas.
+        dicter('le deuxième');
+        attendreEgal(temoin(), 'Entendu à 08:10:13 : « le deuxième »', 'témoin après changement de fiche par la voix');
+        const premier = el('liste-chantiers').querySelector('.ligne-chantier');
+        premier.click();
+        attendreEgal(temoin(), '', 'témoin gardé sur une autre fiche');
+        ecran.fermer();
+        await attendreQue(() => !el('chantiers-cap').open, 'écran pas fermé');
+        dicter('phrase FICTIVE écran fermé c107');
+        attendreEgal(temoin(), '', 'témoin écran fermé');
+        attendreEgal(f.ecritures.length, 0, 'écritures');
+        attendre(TACHES.length >= nombre, 'tâches perdues');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c108 (11/11/2026, FICTIF) : note attendue et Android ne rend rien : la fiche dit « Je n’ai rien entendu : retouche le micro et redis ta note. » (plus « Je t’écoute ») ; l’attente continue : la phrase suivante va dans le champ ; sans attente ou micro arrêté : fiche inchangée ; après 30 s : fin d’attente dite', async c => {
+    const RIEN = 'Je n’ai rien entendu : retouche le micro et redis ta note.';
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    let horloge = new Date(2026, 10, 11, 9, 0, 0).getTime();
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => horloge });
+      const ecouter = deroule => { Object.assign(ui.dictee, { disponible: () => true, enCours: () => false, arreter() {}, demarrer: deroule }); el('petit-micro').click(); transitionEcrans.terminer(ui.doc); };
+      const message = () => (el('question-dossier-chantier').hidden ? '' : el('question-dossier-chantier').textContent);
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le premier');
+        // Sans attente : « Rien entendu » ne touche pas la fiche.
+        const avant = message();
+        ecouter(r => { r.surErreur('no-speech'); if (r.surFin) r.surFin(); });
+        attendreEgal(message(), avant, 'fiche changée sans attente');
+        // Attente, puis fin d'écoute sans phrase : le nouveau message.
+        attendreEgal(dicter('ajoute au journal'), 'Je t’écoute : dis ta note.', 'premier temps');
+        attendreEgal(message(), 'Je t’écoute : dis ta note.', 'fiche premier temps');
+        horloge += 4000;
+        ecouter(r => { if (r.surFin) r.surFin(); });
+        attendreEgal(message(), RIEN, 'fin sans phrase');
+        attendre(ecran.noteEnAttente() && f.ecritures.length === 0, 'attente perdue ou écrit');
+        // Micro arrêté par Max (« aborted ») : rien ne change.
+        ecouter(r => { r.surErreur('aborted'); });
+        attendreEgal(message(), RIEN, 'changé par « aborted »');
+        // L'attente continue : la phrase suivante va dans le champ, puis la question ; rien écrit sans le Oui.
+        horloge += 10000;
+        const q = dicter('rappeler le couvreur FICTIF c108');
+        attendre(/Je vais ajouter/.test(q) && el('note-chantier').value === 'rappeler le couvreur FICTIF c108', `pas dans le champ : ${q}`);
+        attendreEgal(dicter('non'), 'J’ai touché « Non » : rien n’a été fait.', '« non »');
+        attendreEgal(f.ecritures.length, 0, 'écrit');
+        // Après 30 s : « Rien entendu » laisse la place au message de fin d'attente (pas de faux espoir).
+        dicter('ajoute au journal');
+        horloge += 31000;
+        ecouter(r => { r.surErreur('no-speech'); if (r.surFin) r.surFin(); });
+        attendreEgal(message(), 'J’ai attendu 30 secondes : je n’attends plus ta note. Redis « ajoute au journal ». Rien n’a été ajouté.', 'après 30 s');
+        attendre(!ecran.noteEnAttente(), 'attente pas finie');
+        attendreEgal(el('temoin-micro-chantier').textContent, 'Rien entendu (09:00:45)', 'témoin c107 gardé');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c105 (10/11/2026, FICTIF) : fiche qui ne trompe pas : pas relu : pas de « Créer le dossier », « Je ne sais pas encore… » ; copie du téléphone (numéros CH-xxx seulement) : boutons dès le démarrage, sans lien Drive ; relu : copie gardée, fiche mise à jour ; fin de l’attente de la note dite dans la fiche', async c => {
+    const INCONNU = 'Je ne sais pas encore si ce chantier a un dossier : touche « Tout synchroniser ».';
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers({ connecte: false });
+    chantierFictifAvecJournal(f);
+    let connecte = false;
+    f.connecte = () => connecte;
+    const memoire = new Map(); const stockage = { getItem: k => (memoire.has(k) ? memoire.get(k) : null), setItem: (k, v) => memoire.set(k, String(v)) };
+    let horloge = new Date(2026, 10, 10, 21, 0).getTime();
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      // 1. Rien sur le téléphone, compte Cap pas connecté : aucune proposition de création.
+      let ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => horloge, stockage });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length > 0, 'chantiers pas montrés');
+        dicter('le premier'); // Bateau FICTIF (a un dossier dans le Drive, mais Cap ne l'a pas relu)
+        attendre(el('creer-dossier-chantier').hidden, '« Créer le dossier » proposé sans relecture');
+        attendreEgal(el('question-dossier-chantier').textContent, INCONNU, 'message');
+        attendreEgal(await ecran.demanderCreation(), INCONNU, 'création demandée quand même');
+        attendreEgal([f.ecritures.length, ecran.dossiersRelus()], [0, false], 'écrit ou relu');
+        // 2. Le compte Cap se connecte et la liste est relue : la fiche se met à jour, la copie ne garde QUE les numéros.
+        connecte = true;
+        ecran.afficher(fausseSource.copie());
+        await attendreQue(() => ecran.dossiersRelus(), 'pas relu');
+        await attendreQue(() => !el('actions-chantier').hidden, 'boutons pas montrés après relecture');
+        attendre(el('creer-dossier-chantier').hidden && el('question-dossier-chantier').textContent !== INCONNU, 'fiche pas mise à jour');
+        attendreEgal(memoire.get('cap_chantiers_avec_dossier'), '["CH-908"]', 'copie gardée');
+        // Chantier sans dossier, relu : « Créer le dossier » revient.
+        dicter('le deuxième');
+        attendre(!el('creer-dossier-chantier').hidden && el('question-dossier-chantier').hidden, '« Créer le dossier » absent après relecture');
+        // 3. Fin de l'attente de la note (30 s) : la fiche le dit ; la phrase suivante suit son chemin.
+        dicter('le premier');
+        attendreEgal(dicter('ajoute au journal'), 'Je t’écoute : dis ta note.', 'premier temps');
+        horloge += 31000;
+        attendre(!ecran.noteEnAttente(), 'attente pas finie');
+        attendreEgal(el('question-dossier-chantier').textContent, 'J’ai attendu 30 secondes : je n’attends plus ta note. Redis « ajoute au journal ». Rien n’a été ajouté.', 'fin d’attente pas dite');
+        attendreEgal(f.ecritures.length, 0, 'écrit');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+      // 4. Redémarrage de Cap, compte Cap pas connecté : la copie du téléphone suffit pour les boutons ; pas de lien Drive.
+      connecte = false;
+      ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => horloge, stockage });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque absente au démarrage');
+        dicter('le premier');
+        attendre(!el('actions-chantier').hidden && el('creer-dossier-chantier').hidden, 'boutons pas montrés depuis la copie');
+        attendre(el('ouvrir-dossier-chantier').hidden, 'lien Drive sans adresse');
+        dicter('le deuxième');
+        attendre(el('creer-dossier-chantier').hidden && el('question-dossier-chantier').textContent === INCONNU, 'chantier hors copie : création proposée');
+        // Copie abîmée ou étrangère : ignorée (rien d'autre que des numéros CH-xxx n'est cru).
+        memoire.set('cap_chantiers_avec_dossier', '["CH-908", "pas un numéro", {"nom": "x"}]');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+      ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => horloge, stockage });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'copie filtrée : marque absente');
+        memoire.set('cap_chantiers_avec_dossier', '{pas du json');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+      ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => horloge, stockage });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length > 0, 'chantiers pas montrés (copie illisible)');
+        attendreEgal(el('liste-chantiers').querySelectorAll('.marque-dossier').length, 0, 'copie illisible crue');
+        attendreEgal(f.ecritures.length, 0, 'écritures');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); ecran.fermer && ecran.fermer(); }
+    });
+  });
+
+  // ----- 11/11/2026 (décision de Max, c106) : plus de limite de longueur des notes, FICTIF -----
+  const noteFictive = n => { let t = ''; let i = 0; while (t.length < n) t += `mot${i++} FICTIF `; return t.slice(0, n - 1).replace(/\s$/, 'x') + 'Z'; };
+
+  await testAsync('Chantiers, c106 (11/11/2026, FAUX Drive FICTIF) : notes de 528, 2 000 et 5 000 caractères : préparées et ajoutées EN ENTIER, à la fin du journal, une écriture chacune ; note vide refusée avec un message clair', async () => {
+    const f = fauxCompteCapDossiers();
+    const idJournal = chantierFictifAvecJournal(f);
+    const quand = new Date(2026, 10, 11, 9, 5).getTime();
+    for (const n of [528, 2000, 5000]) {
+      const texte = noteFictive(n);
+      attendreEgal(texte.length, n, `longueur du texte FICTIF ${n}`);
+      const ligne = chantiersDossiers.texteNote(texte, quand);
+      attendreEgal(ligne, `11/11/2026 à 09 h 05 — ${texte}`, `ligne ${n}`);
+      const avant = f.ecritures.length;
+      await chantiersDossiers.ajouterNote(f, { id: 'CH-908', nom: 'Bateau FICTIF' }, ligne);
+      attendreEgal(f.ecritures.length, avant + 1, `une écriture pour ${n}`);
+      attendre(f.textes.get(idJournal).endsWith(`\n${ligne}\n`), `note de ${n} coupée ou absente`);
+    }
+    attendre(f.textes.get(idJournal).startsWith('Dossier créé par Cap le 10/11/2026 à 14 h 31 (CH-908).\n'), 'début du journal changé');
+    attendreEgal(chantiersDossiers.NOTE_MAX, undefined, 'limite encore exportée');
+    await attendreRejet(() => chantiersDossiers.ajouterNote(f, { id: 'CH-908', nom: 'Bateau FICTIF' }, '   '), 'Ta note est vide');
+  });
+
+  await testAsync('Chantiers, c106 (11/11/2026, FICTIF) : écran : une note de 5 000 caractères est MONTRÉE EN ENTIER avant « Oui, ajouter » / « Non » ; la fenêtre défile, les boutons restent touchables, rien ne déborde sur le côté ; « Oui » écrit la note entière ; champ sans longueur maximale', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    const idJournal = chantierFictifAvecJournal(f);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 11, 9, 5).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le premier');
+        attendre(!el('note-chantier').hasAttribute('maxlength'), 'maxlength encore là');
+        // Une note de 5 000 caractères, dont un « mot » de 600 lettres sans espace (il ne doit pas élargir l'écran).
+        const texte = `${noteFictive(4400)} ${'L'.repeat(599)}`;
+        attendreEgal(texte.length, 5000, 'longueur');
+        el('ouvrir-note-chantier').click();
+        el('note-chantier').value = texte;
+        el('ajouter-note-chantier').click();
+        const q = el('question-dossier-chantier');
+        attendre(el('chantiers-cap').classList.contains('mode-confirmation') && !el('oui-dossier-chantier').hidden, `pas de question : ${q.textContent.slice(0, 120)}`);
+        attendre(q.textContent.includes(`« 11/11/2026 à 09 h 05 — ${texte} »`), 'note pas montrée en entier');
+        const fen = el('chantiers-cap');
+        attendre(fen.scrollHeight > fen.clientHeight, 'la fenêtre ne défile pas pour une note longue');
+        attendre(fen.scrollWidth <= fen.clientWidth + 1, `débordement sur le côté : ${fen.scrollWidth} > ${fen.clientWidth}`);
+        attendre(touchable(ui, el('oui-dossier-chantier')) && touchable(ui, el('non-dossier-chantier')), 'boutons pas touchables en haut');
+        fen.scrollTop = fen.scrollHeight;
+        attendre(touchable(ui, el('oui-dossier-chantier')), '« Oui » pas touchable en bas');
+        const finTexte = q.getBoundingClientRect().bottom;
+        attendre(finTexte <= fen.getBoundingClientRect().bottom + 1, 'fin de la note pas atteignable en défilant');
+        attendreEgal(f.ecritures.length, 0, 'écrit avant le Oui');
+        el('oui-dossier-chantier').click();
+        await attendreQue(() => /C’est fait : ta note est à la fin du journal du chantier\./.test(q.textContent), `pas ajouté : ${q.textContent.slice(0, 120)}`);
+        attendre(f.textes.get(idJournal).endsWith(`\n11/11/2026 à 09 h 05 — ${texte}\n`), 'note coupée dans le journal');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, c96) : voir les documents d'un chantier (noms seulement, lecture seule), FICTIF -----
+  function documentsFictifs(f, nombre, id = 'CH-908') {
+    const parent = `FICTIF_documents_${id}_0123456789`;
+    for (let i = nombre; i >= 1; i--) f.fichiers.push({ id: `FICTIF_doc_${i}_0123456789`, name: `Document FICTIF ${String(i).padStart(2, '0')} avec un nom assez long pour l’écran.pdf`, mimeType: 'application/pdf', parents: [parent], appProperties: {} });
+  }
+
+  await testAsync('Chantiers, c96 (10/11/2026, FAUX Drive FICTIF) : le contenu du sous-dossier « Documents » : nombre exact et 10 noms (ordre des noms) ; vide : 0 ; sous-dossier absent : renvoi à « Mettre à niveau » ; sans dossier : message ; rien n’est écrit', async () => {
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    documentsFictifs(f, 60);
+    f.fichiers.push({ id: 'FICTIF_sous_0123456789', name: 'Factures FICTIVES', mimeType: 'application/vnd.google-apps.folder', parents: ['FICTIF_documents_CH-908_0123456789'], appProperties: {} });
+    const r = await chantiersDossiers.listerDocuments(f, { id: 'CH-908' }, 10);
+    attendreEgal(r.total, 61, 'nombre');
+    attendreEgal(r.noms.length, 10, '10 noms');
+    attendreEgal(r.noms[0], 'Document FICTIF 01 avec un nom assez long pour l’écran.pdf', 'premier nom');
+    attendre(r.noms.every((n, i) => i === 0 || n.localeCompare(r.noms[i - 1], 'fr', { numeric: true }) >= 0), 'pas dans l’ordre des noms');
+    const tous = await chantiersDossiers.listerDocuments(f, { id: 'CH-908' }, 100);
+    attendre(tous.noms.includes('Factures FICTIVES (dossier)'), 'sous-dossier pas marqué');
+    const g = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(g);
+    attendreEgal((await chantiersDossiers.listerDocuments(g, { id: 'CH-908' })).total, 0, 'vide');
+    g.fichiers.splice(g.fichiers.findIndex(x => x.appProperties.cap_chantier_documents), 1);
+    await attendreRejet(() => chantiersDossiers.listerDocuments(g, { id: 'CH-908' }), 'touche le bouton « Tout synchroniser »'); // c147
+    await attendreRejet(() => chantiersDossiers.listerDocuments(fauxCompteCapDossiers(), { id: 'CH-908' }), 'pas encore de dossier');
+    attendreEgal(f.ecritures.length + g.ecritures.length, 0, 'une lecture a écrit');
+  });
+
+  await testAsync('Chantiers, c96 (10/11/2026, FICTIF) : écran : « Voir les documents » seulement pour un chantier qui a un dossier ; 60 fichiers : « 60 fichiers », 10 noms, « et 50 autres » dans une zone qui défile, rien hors de l’écran ; un autre chantier efface l’affichage ; vide : « Aucun document pour l’instant » ; mise à niveau : rien à changer', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    documentsFictifs(f, 60);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 9, 0).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le deuxième'); // sans dossier
+        attendre(el('voir-documents-chantier').hidden && el('resultat-chantier').hidden, '« Voir les documents » pour un chantier sans dossier');
+        dicter('le premier');
+        const bouton = el('voir-documents-chantier');
+        bouton.scrollIntoView({ block: 'nearest' });
+        attendre(!bouton.hidden && touchable(ui, bouton), '« Voir les documents » absent ou pas touchable');
+        bouton.click();
+        const zone = el('resultat-chantier');
+        await attendreQue(() => zone.querySelectorAll('.documents-nom').length === 40, `documents : ${zone.textContent.slice(0, 100)}`); // c109 : 40 cases (avant : 10 noms)
+        attendreEgal([zone.querySelector('.documents-titre').textContent, zone.querySelector('.documents-reste').textContent], ['Documents du chantier : 60 fichiers.', 'et 20 autres.'], 'titre et reste');
+        const vue = ui.cadre.contentWindow;
+        const r = zone.getBoundingClientRect();
+        attendre(zone.scrollHeight > zone.clientHeight && vue.getComputedStyle(zone).overflowY === 'auto' && r.height <= vue.innerHeight * 0.31, `zone pas limitée : ${JSON.stringify(r)}`);
+        attendre(r.top >= 0 && r.bottom <= vue.innerHeight, `zone hors de l’écran : ${JSON.stringify(r)}`);
+        attendreEgal(f.ecritures.length, 0, 'la lecture a écrit');
+        dicter('le deuxième');
+        attendre(zone.hidden && !zone.textContent, 'documents d’un autre chantier restés affichés');
+        // Vide.
+        f.fichiers.splice(0, f.fichiers.length, ...f.fichiers.filter(x => !/^FICTIF_doc_/.test(x.id)));
+        dicter('le premier');
+        el('voir-documents-chantier').click();
+        await attendreQue(() => zone.textContent === 'Aucun document pour l’instant.', `vide : ${zone.textContent}`);
+        attendreEgal((await chantiersDossiers.planMiseANiveau(f)).length, 0, 'mise à niveau'); // c147 : bouton retiré
+        attendreEgal(f.ecritures.length, 0, 'mise à niveau : écriture');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c109 (11/11/2026, FAUX Drive FICTIF) : séance 4, marche 1 : mosaïque des documents : une case par fichier (type en gros : PDF, Image, Musique, Vidéo, Dossier, Autre ; nom entier), ordre des noms, 2 colonnes égales sur le Pixel, rien qui déborde, cases pas touchables (rien ouvert), AUCUN contenu lu, rien écrit', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    const parent = 'FICTIF_documents_CH-908_0123456789';
+    const ajout = (id, name, mimeType) => f.fichiers.push({ id: `FICTIF_${id}_0123456789`, name, mimeType, parents: [parent], appProperties: {} });
+    ajout('a', 'Devis FICTIF.pdf', 'application/pdf');
+    ajout('b', 'Photo FICTIVE du mur.jpg', 'image/jpeg');
+    ajout('c', 'Chanson FICTIVE.flac', 'audio/flac');
+    ajout('d', 'Video FICTIVE.mp4', 'video/mp4');
+    ajout('e', 'Plans FICTIFS', 'application/vnd.google-apps.folder');
+    ajout('f', 'Tableau FICTIF.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    ajout('g', 'Nom FICTIF tres long ' + 'sansespace'.repeat(12) + '.pdf', 'application/pdf');
+    // Toute lecture de CONTENU (alt=media, export) est interdite dans cette marche.
+    const appelerAvant = f.appeler;
+    const contenus = [];
+    f.appeler = (adresse, ...reste) => { if (/alt=media|\/export/.test(String(adresse))) contenus.push(adresse); return appelerAvant.call(f, adresse, ...reste); };
+    // Le fond : liste du faux Drive (sortes décidées par types_fichiers.js).
+    const r = await chantiersDossiers.listerDocuments(f, { id: 'CH-908' }, 40);
+    attendreEgal(Object.fromEntries(r.fichiers.map(x => [x.nom, x.sorte]))['Chanson FICTIVE.flac'], 'musique', 'musique');
+    attendreEgal(Object.fromEntries(r.fichiers.map(x => [x.nom, x.sorte]))['Plans FICTIFS'], 'dossier', 'dossier');
+    attendreEgal(Object.fromEntries(r.fichiers.map(x => [x.nom, x.sorte]))['Tableau FICTIF.xlsx'], 'autres', 'autre');
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 11, 9, 0).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le premier');
+        el('voir-documents-chantier').click();
+        const zone = el('resultat-chantier');
+        await attendreQue(() => zone.querySelectorAll('.document-case').length === 7, `mosaïque : ${zone.textContent.slice(0, 120)}`);
+        const cases = [...zone.querySelectorAll('.document-case')];
+        attendreEgal(cases.map(x => [x.querySelector('.document-sorte').textContent, x.querySelector('.documents-nom').textContent]), [
+          ['Musique', 'Chanson FICTIVE.flac'], ['PDF', 'Devis FICTIF.pdf'], ['PDF', r.fichiers.find(x => /tres long/.test(x.nom)).nom],
+          ['Image', 'Photo FICTIVE du mur.jpg'], ['Dossier', 'Plans FICTIFS'], ['Autre', 'Tableau FICTIF.xlsx'], ['Vidéo', 'Video FICTIVE.mp4']], 'cases');
+        attendreEgal(zone.querySelector('.documents-titre').textContent, 'Documents du chantier : 7 fichiers.', 'titre');
+        attendre(!zone.querySelector('.documents-reste'), '« autres » en trop');
+        // Mise en page : 2 colonnes égales sur le Pixel (412 px), rien ne dépasse la zone sur le côté.
+        const vue = ui.cadre.contentWindow;
+        const rz = zone.getBoundingClientRect();
+        const r0 = cases[0].getBoundingClientRect(), r1 = cases[1].getBoundingClientRect(), r2 = cases[2].getBoundingClientRect();
+        attendre(Math.abs(r0.top - r1.top) < 1 && r2.top > r0.top && Math.abs(r0.width - r1.width) < 1, `pas 2 colonnes égales : ${JSON.stringify([r0, r1, r2])}`);
+        attendre(cases.every(x => { const b = x.getBoundingClientRect(); return b.left >= rz.left - 0.5 && b.right <= rz.right + 0.5; }), 'une case déborde sur le côté');
+        attendre(zone.scrollWidth <= zone.clientWidth + 1, 'défilement de côté');
+        // Rien n'est ouvert : aucune case n'est un bouton ni un lien ; aucun contenu lu ; rien écrit.
+        // c110 : seules les cases PDF et Image se touchent (3 ici) ; aucun lien.
+        attendreEgal([...zone.querySelectorAll('button.document-case .document-sorte')].map(x => x.textContent), ['PDF', 'PDF', 'Image'], 'cases touchables');
+        attendre(!zone.querySelector('a'), 'un lien dans la mosaïque');
+        attendreEgal([contenus.length, f.ecritures.length], [0, 0], 'contenu lu ou écrit');
+        attendre(vue.getComputedStyle(zone).overflowY === 'auto', 'zone ne défile pas');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); f.appeler = appelerAvant; }
+    });
+  });
+
+  await testAsync('Chantiers, c110 (11/11/2026, FAUX Drive FICTIF) : séance 4, marche 2 : toucher une case PDF ou Image ouvre CE fichier dans la vraie visionneuse de Cap (une seule lecture alt=media par le compte Cap, GET) ; « Fermer » ramène à la fiche ; autres cases inertes ; AUCUN appel à l’IA ni autre requête pendant l’ouverture ; rien écrit, rien sur le disque, aucun nom donné à la visionneuse', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    const parent = 'FICTIF_documents_CH-908_0123456789';
+    const ajout = (id, name, mimeType) => f.fichiers.push({ id, name, mimeType, parents: [parent], appProperties: {} });
+    ajout('FICTIF_pdf_0123456789', 'Devis FICTIF.pdf', 'application/pdf');
+    ajout('FICTIF_img_0123456789', 'Photo FICTIVE du mur.jpg', 'image/jpeg');
+    ajout('FICTIF_mp3_0123456789', 'Chanson FICTIVE.mp3', 'audio/mpeg');
+    ajout('FICTIF_dos_0123456789', 'Plans FICTIFS', 'application/vnd.google-apps.folder');
+    // Le compte Cap : la lecture du contenu (alt=media) rend un faux contenu ; tout le reste passe par le faux Drive.
+    const appelerAvant = f.appeler;
+    const lectures = [];
+    f.appeler = (adresse, options = {}, ...reste) => {
+      if (/alt=media/.test(String(adresse))) { lectures.push([String(adresse), String(options.method || 'GET')]); return Promise.resolve({ ok: true, blob: async () => new Blob(['%PDF FICTIF']) }); }
+      return appelerAvant.call(f, adresse, options, ...reste);
+    };
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    ui.cadre.contentWindow.matchMedia = q => ({ matches: /reduce/.test(q), addEventListener() {}, removeEventListener() {} }); // c113 : animations réduites (positions finales mesurables)
+    const titres = [];
+    // c114 : la fausse page note la mosaïque (nombre, miniatures, agrandi) ; la vraie page est essayée dans un test à part.
+    const page = { mosaique: null, miniatures: [], illisibles: [], agrandis: [], fermee: 0 };
+    const adressesV = fausseAdresses();
+    const v = visionneuseCap.brancher(ui.doc, { compte: f, urls: adressesV, pdfjs: null, vignette: async () => new Blob(['miniature FICTIVE']),
+      visionneuse: async () => ({ montrerFichier: (adresse, titre) => titres.push([adresse, titre]), fermer() { page.fermee++; },
+        montrerMosaique: (n, toucher) => { page.mosaique = { n, toucher }; page.miniatures = []; },
+        remplirMiniature: (i, adresse) => page.miniatures.push([i, adresse]), miniatureIllisible: i => page.illisibles.push(i),
+        agrandirDepuisMosaique: (adresse, titre, fin, index) => page.agrandis.push({ adresse, titre, fin, index }) }) }); // c120 : + index
+    attendre(v, 'visionneuse pas branchée');
+    // Espions : AUCUNE requête réseau (fetch, XMLHttpRequest, sendBeacon) dans les deux fenêtres, aucun appel à l'IA.
+    const requetes = [];
+    const fenetres = [window, ui.cadre.contentWindow];
+    const remis = [];
+    for (const w of fenetres) {
+      const fetchAvant = w.fetch; w.fetch = (...a) => { requetes.push(['fetch', String(a[0])]); return fetchAvant.apply(w, a); }; remis.push(() => { w.fetch = fetchAvant; });
+      const ouvrirAvant = w.XMLHttpRequest.prototype.open; w.XMLHttpRequest.prototype.open = function (...a) { requetes.push(['xhr', String(a[1])]); return ouvrirAvant.apply(this, a); }; remis.push(() => { w.XMLHttpRequest.prototype.open = ouvrirAvant; });
+      if (w.navigator.sendBeacon) { const b = w.navigator.sendBeacon; w.navigator.sendBeacon = (...a) => { requetes.push(['beacon', String(a[0])]); return false; }; remis.push(() => { w.navigator.sendBeacon = b; }); }
+    }
+    const appelsIa = [];
+    for (const [nom, objet] of [['cerveau', typeof cerveau !== 'undefined' ? cerveau : null], ['cerveauClaude', typeof cerveauClaude !== 'undefined' ? cerveauClaude : null]]) {
+      if (!objet) continue;
+      for (const cle of Object.keys(objet)) if (typeof objet[cle] === 'function') { const avant = objet[cle]; objet[cle] = function (...a) { appelsIa.push(`${nom}.${cle}`); return avant.apply(this, a); }; remis.push(() => { objet[cle] = avant; }); }
+    }
+    const disqueAvant = JSON.stringify(Object.keys(localStorage).sort());
+    const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 11, 9, 30).getTime(), visionneuse: () => v });
+    try {
+      const el = id => ui.parId(id);
+      ecran.ouvrir();
+      await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+      [...el('liste-chantiers').querySelectorAll('.ligne-chantier')].find(b => b.querySelector('.marque-dossier')).click();
+      el('voir-documents-chantier').click();
+      const zone = el('resultat-chantier');
+      await attendreQue(() => zone.querySelectorAll('.document-case').length === 4, `mosaïque : ${zone.textContent.slice(0, 120)}`);
+      const boutons = [...zone.querySelectorAll('button.document-case')];
+      attendreEgal(boutons.map(b => b.querySelector('.documents-nom').textContent), ['Devis FICTIF.pdf', 'Photo FICTIVE du mur.jpg'], 'cases touchables');
+      attendre(boutons.every(b => { b.scrollIntoView({ block: 'nearest' }); return touchable(ui, b); }), 'case pas touchable'); // c111 : la zone défile (bouton « Ouvrir le chantier » au-dessus)
+      // Cases inertes : un toucher n'ouvre rien.
+      [...zone.querySelectorAll('div.document-case')].forEach(d => d.click());
+      await pause();
+      attendreEgal([lectures.length, el('visionneuse-cap').open], [0, false], 'une case inerte a ouvert quelque chose');
+      // Toucher le PDF : la visionneuse s'ouvre avec CE fichier, sans son nom.
+      requetes.length = 0; appelsIa.length = 0;
+      boutons[0].click();
+      await attendreQue(() => titres.length === 1, 'PDF pas montré');
+      attendreEgal(lectures, [['https://www.googleapis.com/drive/v3/files/FICTIF_pdf_0123456789?alt=media', 'GET']], 'lecture du PDF');
+      attendreEgal(titres[0][1], 'PDF 1.pdf', 'nom donné à la visionneuse');
+      attendre(/^blob:|^fausse/.test(titres[0][0]) || !/^https?:/.test(titres[0][0]), `adresse pas locale : ${titres[0][0]}`);
+      attendre(el('visionneuse-cap').open, 'visionneuse pas ouverte');
+      // « Fermer » : retour à la fiche, toujours ouverte, mosaïque toujours là.
+      el('fermer-visionneuse').click();
+      await attendreQue(() => !el('visionneuse-cap').open, 'visionneuse pas fermée');
+      attendre(el('chantiers-cap').open && zone.querySelectorAll('.document-case').length === 4, 'fiche perdue après « Fermer »');
+      // Toucher l'image.
+      boutons[1].click();
+      await attendreQue(() => titres.length === 2, 'image pas montrée');
+      attendreEgal([lectures[1][0], titres[1][1]], ['https://www.googleapis.com/drive/v3/files/FICTIF_img_0123456789?alt=media', 'Image 1.jpg'], 'image');
+      el('fermer-visionneuse').click();
+      await attendreQue(() => !el('visionneuse-cap').open, 'visionneuse pas fermée (image)');
+      // c114 (demande de Max) : « Ouvrir le chantier » ouvre DIRECTEMENT la vraie visionneuse (aucun écran de miniatures à
+      // part), avec les 2 documents en mosaïque ; le nom du chantier en haut à gauche ; un toucher sur une miniature : CE
+      // document entier est lu et donné à la visionneuse (comme tout document) ; remis à sa place : sa mémoire est relâchée.
+      const ouvrirTout = zone.querySelector('button.documents-ouvrir-chantier');
+      attendre(ouvrirTout && ouvrirTout.textContent === 'Ouvrir le chantier' && touchable(ui, ouvrirTout), '« Ouvrir le chantier » absent ou pas touchable');
+      ouvrirTout.click();
+      await attendreQue(() => el('visionneuse-cap').open && page.mosaique && page.miniatures.length === 2, `visionneuse du chantier pas ouverte : ${JSON.stringify(page.mosaique && page.mosaique.n)}`);
+      attendre(!el('vignettes-cap').open, 'écran de miniatures intermédiaire ouvert');
+      attendreEgal(page.mosaique.n, 2, 'nombre de documents dans la mosaïque');
+      attendreEgal(lectures.slice(2).map(x => x[0]).sort(), ['https://www.googleapis.com/drive/v3/files/FICTIF_img_0123456789?alt=media', 'https://www.googleapis.com/drive/v3/files/FICTIF_pdf_0123456789?alt=media'], 'lectures des miniatures');
+      attendreEgal([el('titre-visionneuse').hidden, el('titre-visionneuse').textContent], [false, 'Bateau FICTIF'], 'nom du chantier');
+      const rtit = el('titre-visionneuse').getBoundingClientRect();
+      attendre(rtit.top < 40 && rtit.left < 40 && rtit.height > 0, `nom du chantier pas en haut à gauche : ${JSON.stringify(rtit)}`);
+      attendreEgal(ui.cadre.contentWindow.getComputedStyle(el('titre-visionneuse')).pointerEvents, 'none', 'le nom gêne les gestes');
+      // Toucher la miniature 1 (le PDF) : lecture du document entier, donné à la visionneuse sans son nom.
+      page.mosaique.toucher(0);
+      await attendreQue(() => page.agrandis.length === 1, 'document pas agrandi');
+      attendreEgal([lectures.length, lectures[4][0], page.agrandis[0].titre, page.agrandis[0].index], [5, 'https://www.googleapis.com/drive/v3/files/FICTIF_pdf_0123456789?alt=media', 'PDF 1.pdf', 0], 'document entier (et sa case, c120)');
+      const liberees = adressesV.liberees.length;
+      page.agrandis[0].fin(); // remis à sa place
+      attendre(adressesV.liberees.length === liberees + 1 && adressesV.liberees.includes(page.agrandis[0].adresse), 'mémoire du document pas relâchée');
+      page.mosaique.toucher(1);
+      await attendreQue(() => page.agrandis.length === 2 && page.agrandis[1].titre === 'Image 2.jpg', 'image pas agrandie');
+      // Fermer : la visionneuse se ferme, le nom disparaît, toutes les miniatures sont relâchées ; la fiche est là.
+      el('fermer-visionneuse').click();
+      await attendreQue(() => !el('visionneuse-cap').open, 'visionneuse pas fermée');
+      attendre(el('titre-visionneuse').hidden && page.miniatures.every(([, a]) => adressesV.liberees.includes(a)), 'nom resté ou miniatures pas relâchées');
+      attendre(el('chantiers-cap').open && zone.querySelectorAll('.document-case').length === 4, 'fiche perdue après la visionneuse');
+      // Ouverte ensuite sans chantier (la voix, l'œil) : comme avant (vignettes), pas de nom.
+      await v.ouvrir([{ id: 'FICTIF_pdf_0123456789', sorte: 'pdf' }, { id: 'FICTIF_img_0123456789', sorte: 'image' }]);
+      attendre(el('vignettes-cap').open && el('titre-visionneuse').hidden, 'hors chantier : pas comme avant');
+      el('fermer-vignettes').click();
+      await attendreQue(() => !el('vignettes-cap').open, 'vignettes pas fermées (2)');
+      await new Promise(r => setTimeout(r, 500));
+      // Pendant les deux ouvertures : aucune requête réseau directe, aucun appel à l'IA, rien écrit, rien de nouveau sur le disque.
+      attendreEgal(requetes, [], 'requête réseau pendant l’ouverture');
+      attendreEgal(appelsIa, [], 'appel à l’IA pendant l’ouverture');
+      attendreEgal(f.ecritures.length, 0, 'écriture');
+      attendreEgal(JSON.stringify(Object.keys(localStorage).sort()), disqueAvant, 'quelque chose gardé sur le téléphone');
+      // Le code de l'écran ne parle jamais à l'IA.
+      const source = SOURCE_CHANTIERS_ECRAN_TEST;
+      for (const mot of ['cerveau', 'anthropic', 'traiterDemande', 'journalIa', 'XMLHttpRequest', 'sendBeacon']) attendre(!source.includes(mot), `chantiers_ecran.js contient « ${mot} »`);
+      // c111 : chantier sans PDF ni image : rien n'est ouvert, la fiche le dit.
+      f.fichiers.splice(0, f.fichiers.length, ...f.fichiers.filter(x => !/^FICTIF_(pdf|img)_/.test(x.id)));
+      requetes.length = 0; appelsIa.length = 0;
+      attendreEgal(await chantiersEcran.ouvrirChantier({ id: 'CH-908', nom: 'Bateau FICTIF' }), '', 'autre chantier : rien'); // fiche d'un autre objet : rien ouvert
+      el('voir-documents-chantier').click();
+      await attendreQue(() => zone.querySelectorAll('.document-case').length === 2, 'mosaïque après retrait');
+      attendre(!zone.querySelector('button.documents-ouvrir-chantier'), '« Ouvrir le chantier » sans PDF ni image');
+      attendreEgal([requetes.length, appelsIa.length, el('vignettes-cap').open], [0, 0, false], 'chantier sans PDF ni image');
+    } finally {
+      remis.reverse().forEach(r => r());
+      f.appeler = appelerAvant;
+      ecran.debrancher();
+    }
+  });
+
+  await testAsync('Visionneuse, c114 (11/11/2026, VRAIE page de Zencoder, documents FICTIFS) : mosaïque d’un chantier (7 miniatures, images et PDF mélangés, en grille, cases égales, rien hors de la zone ; 25 : la zone défile) ; toucher une miniature = le document s’ouvre comme tout document : PINCER zoome et dézoome, GLISSER le déplace, double appui = 2,5 ; un toucher simple le remet à sa place (mosaïque revenue, rappel fait) ; la croix aussi ; fermer vide tout', async () => {
+    const cadre = document.createElement('iframe');
+    cadre.style.cssText = 'position:fixed;left:0;top:0;width:412px;height:800px;border:0';
+    document.body.appendChild(cadre);
+    try {
+      cadre.src = '/visionneuse/index.html';
+      await attendreReel(() => cadre.contentWindow && cadre.contentWindow.Visualiseur && cadre.contentDocument.readyState === 'complete', 'visionneuse pas chargée');
+      const W = cadre.contentWindow, d = cadre.contentDocument, V = W.Visualiseur;
+      attendre(typeof V.montrerMosaique === 'function' && typeof V.agrandirDepuisMosaique === 'function', 'mosaïque absente de la visionneuse');
+      // Miniatures FICTIVES : petites images de couleurs différentes (comme celles que Cap fabrique).
+      const image = (l, h, couleur) => { const t = document.createElement('canvas'); t.width = l; t.height = h; const c = t.getContext('2d'); c.fillStyle = couleur; c.fillRect(0, 0, l, h); return t.toDataURL('image/png'); };
+      const touches = [];
+      V.montrerMosaique(7, i => touches.push(i));
+      const sortes = ['pdf', 'image', 'pdf', 'image', 'image', 'pdf', 'image'];
+      sortes.forEach((s, i) => V.remplirMiniature(i, s === 'pdf' ? image(210, 297, '#335') : image(400, 300, '#a53')));
+      const zone = d.getElementById('zone-image');
+      const cases = [...d.querySelectorAll('.carte-miniature')];
+      await attendreReel(() => cases.length === 7 && cases.every(c => c.querySelector('img').complete), 'miniatures pas montrées');
+      const rz = zone.getBoundingClientRect();
+      const rc = cases.map(c => c.getBoundingClientRect());
+      attendre(rc.every(r => r.left >= rz.left - 0.5 && r.right <= rz.right + 0.5 && r.top >= rz.top - 0.5 && r.bottom <= rz.bottom + 0.5), 'une miniature sort de la zone');
+      attendre(rc.every(r => Math.abs(r.width - rc[0].width) < 1 && Math.abs(r.height - rc[0].height) < 1 && r.width >= 100), `cases pas égales ou trop petites : ${rc[0].width}`);
+      attendre(new Set(rc.map(r => Math.round(r.top))).size >= 2 && new Set(rc.map(r => Math.round(r.left))).size >= 2, 'pas en grille');
+      for (let a = 0; a < 7; a++) for (let b = a + 1; b < 7; b++) attendre(rc[a].right <= rc[b].left + 0.5 || rc[b].right <= rc[a].left + 0.5 || rc[a].bottom <= rc[b].top + 0.5 || rc[b].bottom <= rc[a].top + 0.5, 'deux miniatures se chevauchent');
+      cases[3].click();
+      attendreEgal(touches, [3], 'toucher d’une miniature');
+      // Le document entier (FICTIF) s'ouvre comme n'importe quel document.
+      let finies = 0;
+      V.agrandirDepuisMosaique(image(400, 300, '#111'), 'Image 4.jpg', () => { finies++; });
+      const carte = () => d.querySelector('.carte-document:not(.carte-miniature)');
+      await attendreReel(() => carte() && parseFloat(carte().style.width) > 0, 'document agrandi pas montré');
+      // c119 (marche 2) : la mosaïque reste VISIBLE derrière le document agrandi (avant c119 : cachée).
+      attendre(V.documentAgrandi() && zone.classList.contains('agrandi-sur-mosaique') && W.getComputedStyle(cases[0]).visibility === 'visible', 'mosaïque pas visible derrière le document');
+      cases[0].click();
+      attendreEgal(touches, [3], 'une miniature a réagi pendant l’agrandi');
+      const c = carte();
+      const largeur = () => parseFloat(c.style.width);
+      const centre = () => parseFloat(c.style.left) + largeur() / 2;
+      const depart = largeur();
+      const proche = (a, b) => Math.abs(a - b) < 1;
+      const pointeur = (type, id, x, y) => c.dispatchEvent(new W.PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: id === 1 }));
+      const pincer = fin => { pointeur('pointerdown', 1, 106, 400); pointeur('pointerdown', 2, 306, 400); pointeur('pointermove', 1, 206 - fin / 2, 400); pointeur('pointermove', 2, 206 + fin / 2, 400); pointeur('pointerup', 1, 206 - fin / 2, 400); pointeur('pointerup', 2, 206 + fin / 2, 400); };
+      await attendreReel(() => W.performance.now() > 1000, 'horloge de la visionneuse trop jeune');
+      // ZOOM : pincer ×2 ; DÉZOOM : pincer ×0,5 ; le document reste ouvert (un pincement n'est pas un toucher simple).
+      pincer(400);
+      attendre(proche(largeur(), depart * 2), `pas de zoom : ${largeur()} au lieu de ${depart * 2}`);
+      await new Promise(r => setTimeout(r, 450));
+      attendre(V.documentAgrandi() && finies === 0, 'le pincement a remis le document à sa place');
+      pincer(100);
+      attendre(proche(largeur(), depart), `pas de dézoom : ${largeur()} au lieu de ${depart}`);
+      // DÉPLACEMENT : glisser d'un doigt de 60 px vers la droite (zoomé pour pouvoir bouger), le document suit.
+      pincer(400);
+      const avant = centre();
+      pointeur('pointerdown', 1, 200, 400); pointeur('pointermove', 1, 230, 400); pointeur('pointermove', 1, 260, 400); pointeur('pointerup', 1, 260, 400);
+      attendre(proche(centre(), avant + 60), `pas de déplacement : ${centre()} au lieu de ${avant + 60}`);
+      await new Promise(r => setTimeout(r, 450));
+      attendre(V.documentAgrandi() && finies === 0, 'le glissement a remis le document à sa place');
+      // Double appui : retour à la taille d'ouverture (même règle que partout) ; il ne remet PAS à sa place.
+      const tape = () => { pointeur('pointerdown', 1, 206, 400); pointeur('pointerup', 1, 206, 400); };
+      tape(); tape();
+      attendre(proche(largeur(), depart), `double appui : ${largeur()}`);
+      await new Promise(r => setTimeout(r, 450));
+      attendre(V.documentAgrandi() && finies === 0, 'le double appui a remis le document à sa place');
+      // Toucher SIMPLE : remis à sa place après le délai du double appui ; la mosaïque revient ; rappel fait (mémoire).
+      tape();
+      attendre(V.documentAgrandi(), 'remis à sa place trop tôt (le double appui n’aurait plus marché)');
+      await attendreReel(() => !V.documentAgrandi(), 'toucher simple sans effet');
+      attendre(!carte() && !zone.classList.contains('agrandi-sur-mosaique') && W.getComputedStyle(cases[0]).visibility === 'visible' && finies === 1, 'mosaïque pas revenue ou rappel absent');
+      // Un PDF FICTIF s'ouvre aussi (pages), puis la croix le retire : mosaïque revenue.
+      cases[0].click();
+      const pdf = 'data:application/pdf;base64,' + btoa('%PDF-1.1\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 280]>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF');
+      V.agrandirDepuisMosaique(pdf, 'PDF 1.pdf', () => { finies++; });
+      await attendreReel(() => carte() && carte().querySelector('canvas'), 'PDF agrandi pas montré');
+      carte().querySelector('.bouton-retirer-document').click();
+      attendre(!V.documentAgrandi() && !carte() && finies === 2 && !zone.classList.contains('agrandi-sur-mosaique'), 'la croix ne remet pas à sa place');
+      // 25 miniatures : largeur minimale gardée, la zone défile.
+      V.montrerMosaique(25, () => {});
+      const r25 = [...d.querySelectorAll('.carte-miniature')].map(x => x.getBoundingClientRect());
+      attendre(r25.length === 25 && r25.every(r => r.width >= 100) && zone.scrollHeight > zone.clientHeight && W.getComputedStyle(zone).overflowY === 'auto', `25 miniatures : ${r25.length}, ${r25[0] && r25[0].width}, défile ${zone.scrollHeight > zone.clientHeight}`);
+      // Fermer : tout est vidé.
+      V.fermer();
+      attendre(!d.querySelector('.carte-document') && !zone.classList.contains('en-mosaique'), 'fermer ne vide pas la mosaïque');
+    } finally {
+      cadre.remove();
+    }
+  });
+
+  await testAsync('Visionneuse, c117 (11/11/2026, FAUSSES images FICTIVES lourdes) : miniatures d’un chantier : JPEG de 4000 × 3000 et PNG de 2400 × 1800 réduits à la taille de la miniature ; image illisible : case qui le DIT (numéro, jamais le nom) ; miniature trop longue : la file continue, la case le dit ; au retour d’un document sans miniature, nouvel essai sans relire ; aucune case vide sans explication', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const el = id => ui.parId(id);
+    const toBlob = (l, h, type, couleur) => { const t = document.createElement('canvas'); t.width = l; t.height = h; const x = t.getContext('2d'); x.fillStyle = couleur; x.fillRect(0, 0, l, h); x.fillStyle = '#fff'; x.fillRect(0, 0, l / 2, h / 3); return new Promise(ok => t.toBlob(ok, type, 0.92)); };
+    const contenus = {
+      FICTIF_A: await toBlob(4000, 3000, 'image/jpeg', '#a53'),
+      FICTIF_B: await toBlob(2400, 1800, 'image/png', '#335'),
+      FICTIF_C: new Blob(['ceci n’est pas une image FICTIVE'], { type: 'image/jpeg' }),
+      FICTIF_D: await toBlob(800, 600, 'image/jpeg', '#353'),
+      FICTIF_E: await toBlob(600, 800, 'image/jpeg', '#553')
+    };
+    attendre(contenus.FICTIF_A.size > 20000 && contenus.FICTIF_B.size > 20000, `images FICTIVES pas lourdes : ${contenus.FICTIF_A.size} ${contenus.FICTIF_B.size}`);
+    const lectures = [];
+    const compte = { appeler: async adresse => { const id = /files\/(FICTIF_[A-E])/.exec(adresse)[1]; lectures.push(id); return { ok: true, blob: async () => contenus[id] }; }, connecte: () => true };
+    // La vraie fabrication des miniatures, sauf pour D dont la fabrication « ne finit jamais » LA PREMIÈRE FOIS (file bloquée avant c117).
+    let dBloque = true;
+    const vraie = (sorte, contenu) => visionneuseCap.fabriquerVignette(ui.doc, sorte, contenu, null);
+    const page = { mosaique: null, miniatures: {}, textes: {}, agrandis: [] };
+    // Minuteurs tenus par le test (le temps simulé des tests irait plus vite que le vrai décodage des images).
+    const minuteurs = [];
+    const v = visionneuseCap.brancher(ui.doc, { compte, urls: URL, pdfjs: null, delaiMiniatureMs: 1500,
+      minuteur: f => { minuteurs.push(f); return minuteurs.length; }, annulerMinuteur: id => { minuteurs[id - 1] = null; },
+      vignette: (sorte, contenu) => (contenu === contenus.FICTIF_D && dBloque ? new Promise(() => {}) : vraie(sorte, contenu)),
+      visionneuse: async () => ({ montrerFichier() {}, fermer() {}, montrerMosaique: (n, t) => { page.mosaique = { n, t }; },
+        remplirMiniature: (i, a) => { page.miniatures[i] = a; delete page.textes[i]; }, miniatureIllisible: (i, texte) => { page.textes[i] = texte; },
+        agrandirDepuisMosaique: (a, titre, fin) => page.agrandis.push({ a, titre, fin }) }) });
+    const ids = ['FICTIF_A', 'FICTIF_B', 'FICTIF_C', 'FICTIF_D', 'FICTIF_E'];
+    const ouverture = v.ouvrir(ids.map(id => ({ id, sorte: 'image' })), { titre: 'Chantier FICTIF' }); // pas attendu : la file attend D
+    // A, B, C traités ; D bloqué (sa fabrication ne finit pas) : la file attend son temps maximal…
+    await attendreReel(() => Object.keys(page.miniatures).length + Object.keys(page.textes).length === 3, `trois premières cases pas traitées : ${JSON.stringify(page)}`);
+    await new Promise(r => setTimeout(r, 300));
+    attendre(!page.textes[3] && !page.miniatures[4], 'D ou E traité trop tôt');
+    // … qui arrive : la case D le dit et la file CONTINUE avec E.
+    minuteurs.filter(Boolean).forEach(f => f());
+    await attendreReel(() => Object.keys(page.miniatures).length + Object.keys(page.textes).length === 5, `cases pas toutes traitées : ${JSON.stringify(page)}`);
+    await ouverture;
+    attendreEgal(Object.keys(page.miniatures).sort(), ['0', '1', '4'], `miniatures faites ${JSON.stringify(page.textes)}`);
+    attendreEgal(page.textes[2], 'Miniature impossible pour le document 3 : image illisible pour une miniature. Touche pour l’ouvrir.', 'image illisible');
+    attendreEgal(page.textes[3], 'Miniature impossible pour le document 4 : trop longue à préparer. Touche pour l’ouvrir.', 'miniature trop longue');
+    attendre(Object.values(page.textes).every(t => !/FICTIF_|\.jpg|\.png/i.test(t)), 'un nom de fichier dans le texte');
+    // Les miniatures faites sont petites (largeur 360), même pour la photo de 4000 × 3000.
+    const taille = async adresse => { const i = new Image(); i.src = adresse; await i.decode(); return [i.naturalWidth, i.naturalHeight]; };
+    attendreEgal(await taille(page.miniatures[0]), [360, 270], 'miniature du JPEG lourd');
+    attendreEgal(await taille(page.miniatures[1]), [360, 270], 'miniature du PNG lourd');
+    const h = await taille(page.miniatures[4]);
+    attendre(h[0] === 360 && Math.abs(h[1] - 480) <= 1, `miniature d’une photo en hauteur : ${h}`);
+    // Le document 4 est ouvert en grand puis remis à sa place : nouvel essai, SANS relire le fichier, et la miniature arrive.
+    dBloque = false;
+    const lus = lectures.length;
+    page.mosaique.t(3);
+    await attendreReel(() => page.agrandis.length === 1, 'document 4 pas ouvert');
+    attendreEgal(lectures.length, lus + 1, 'lecture pour l’ouvrir en grand');
+    page.agrandis[0].fin();
+    await attendreReel(() => page.miniatures[3], 'miniature du document 4 pas refaite au retour');
+    attendreEgal([lectures.length, page.textes[3]], [lus + 1, undefined], 'relu au retour, ou texte resté');
+    el('fermer-visionneuse').click();
+    await attendreReel(() => !el('visionneuse-cap').open, 'visionneuse pas fermée');
+  });
+
+  await testAsync('Visionneuse, c117 (11/11/2026, VRAIE page de Zencoder, FICTIF) : une case sans miniature affiche son texte (lisible, dans la case), reste touchable ; si la miniature arrive ensuite, le texte disparaît', async () => {
+    const cadre = document.createElement('iframe');
+    cadre.style.cssText = 'position:fixed;left:0;top:0;width:412px;height:800px;border:0';
+    document.body.appendChild(cadre);
+    try {
+      cadre.src = '/visionneuse/index.html';
+      await attendreReel(() => cadre.contentWindow && cadre.contentWindow.Visualiseur && cadre.contentDocument.readyState === 'complete', 'visionneuse pas chargée');
+      const V = cadre.contentWindow.Visualiseur, d = cadre.contentDocument;
+      const touches = [];
+      V.montrerMosaique(2, i => touches.push(i));
+      V.miniatureIllisible(1, 'Miniature impossible pour le document 2 : trop longue à préparer. Touche pour l’ouvrir.');
+      const caseVide = d.querySelectorAll('.carte-miniature')[1];
+      attendreEgal(caseVide.querySelector('.texte-miniature').textContent, 'Miniature impossible pour le document 2 : trop longue à préparer. Touche pour l’ouvrir.', 'texte de la case');
+      caseVide.click();
+      attendreEgal(touches, [1], 'case sans miniature pas touchable');
+      const t = document.createElement('canvas'); t.width = 40; t.height = 30;
+      V.remplirMiniature(1, t.toDataURL('image/png'));
+      attendre(!caseVide.querySelector('.texte-miniature') && !caseVide.classList.contains('miniature-illisible'), 'texte resté après la miniature');
+      V.fermer();
+    } finally { cadre.remove(); }
+  });
+
+  await testAsync('Visionneuse, c118 (11/11/2026, FICTIF) : marche 1 : barre vide en haut (nom du chantier à gauche, bouton rond blanc sans texte à droite, même niveau) ; menu en ligne juste dessous (synchronisation, livre, micro, Fermer, Ajouter un fichier, ↺) ; il se referme seul après 4 s sans toucher, un toucher relance l’attente, un choix le referme ; ↺ remet les documents comme au départ ; Fermer ferme ; Ajouter un fichier montre le fichier choisi ; rien ne chevauche le nom', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui); // range le micro, le livre et la synchronisation dans le menu (visionneuse seulement)
+    const el = id => ui.parId(id);
+    const vue = ui.cadre.contentWindow;
+    const appels = { departs: 0, ajouts: [], fermee: 0 };
+    const compte = { appeler: async () => ({ ok: true, blob: async () => new Blob(['contenu FICTIF']) }), connecte: () => true };
+    const faussePage = { montrerFichier() {}, fermer() { appels.fermee++; }, montrerMosaique() {}, remplirMiniature() {}, miniatureIllisible() {}, agrandirDepuisMosaique() {},
+      montrerPlusieurs: liste => appels.ajouts.push(...liste.map(x => x.titre)), remettreCommeAuDepart: () => { appels.departs++; } };
+    const v = visionneuseCap.brancher(ui.doc, { compte, visionneuse: async () => faussePage, urls: fausseAdresses(), pdfjs: null, vignette: async () => new Blob(['miniature FICTIVE']) });
+    const attente = ms => new Promise(r => setTimeout(r, ms));
+    await v.ouvrir([{ id: 'FICTIF_1_0123456789', sorte: 'image' }], { titre: 'Chantier FICTIF au nom assez long pour la barre' });
+    await pause();
+    // Barre : nom à gauche, bouton rond blanc à droite, même niveau ; bouton sans texte.
+    const bouton = el('bouton-menu-visionneuse'), titre = el('titre-visionneuse'), menu = el('menu-visionneuse');
+    const rb = bouton.getBoundingClientRect(), rt = titre.getBoundingClientRect(), rbarre = el('barre-visionneuse').getBoundingClientRect();
+    attendre(!titre.hidden && rt.left < 40 && rt.right <= rb.left && Math.abs((rt.top + rt.bottom) / 2 - (rb.top + rb.bottom) / 2) < 3, `nom et bouton pas sur la même ligne : ${JSON.stringify([rt, rb])}`);
+    attendre(rb.right >= 412 - 20 && rb.width >= 44 && Math.abs(rb.width - rb.height) < 1 && rbarre.bottom <= 64.5 && rt.bottom <= 64.5, `bouton ou barre mal placés : ${JSON.stringify([rb, rbarre])}`);
+    attendreEgal([bouton.textContent.trim(), vue.getComputedStyle(bouton).backgroundColor, vue.getComputedStyle(bouton).borderTopLeftRadius], ['', 'rgb(255, 255, 255)', '50%'], 'bouton rond blanc sans texte');
+    attendre(touchable(ui, bouton) && menu.hidden, 'bouton pas touchable, ou menu ouvert d’avance');
+    // Menu fermé : rien de ces boutons n'est visible.
+    attendre(!affiche(ui, el('petit-micro')) && !affiche(ui, el('menu-ajouter-visionneuse')), 'boutons visibles menu fermé');
+    // Ouvert : en ligne, juste sous la barre, dans l'ordre ; tous touchables ; rien sur le nom.
+    bouton.click();
+    attendre(!menu.hidden, 'menu pas ouvert');
+    const ordre = ['bouton-synchro', 'bouton-apprendre', 'petit-micro', 'menu-fermer-visionneuse', 'menu-ajouter-visionneuse', 'menu-depart-visionneuse'];
+    const rects = ordre.map(id => el(id).getBoundingClientRect());
+    attendre(ordre.every(id => touchable(ui, el(id))), `bouton du menu pas touchable : ${ordre.filter(id => !touchable(ui, el(id)))}`);
+    attendre(rects.every(r => r.top >= 64 - 0.5 && r.bottom <= 200), `menu pas juste sous la barre : ${JSON.stringify(rects.map(r => [r.top, r.bottom]))}`);
+    attendre(rects.every((r, i) => i === 0 || r.left >= rects[i - 1].right - 0.5 || r.top >= rects[i - 1].bottom - 0.5), 'menu pas dans l’ordre');
+    attendre(rects.every(r => !seTouchent(r, rt)), 'un bouton du menu chevauche le nom');
+    attendreEgal([el('menu-fermer-visionneuse').textContent, el('menu-ajouter-visionneuse').textContent, el('menu-depart-visionneuse').textContent], ['Fermer', 'Ajouter un fichier', '↺'], 'textes du menu');
+    // Sans toucher : fermé après 4 s ; un toucher dans le menu relance l'attente.
+    await attente(3000);
+    attendre(!menu.hidden, 'menu fermé trop tôt');
+    el('menu-visionneuse').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+    await attente(3000);
+    attendre(!menu.hidden, 'un toucher ne relance pas l’attente');
+    await attente(1300);
+    attendre(menu.hidden && bouton.getAttribute('aria-expanded') === 'false', 'menu pas refermé seul après 4 s sans toucher');
+    // ↺ : comme au départ, et le menu se referme.
+    bouton.click();
+    el('menu-depart-visionneuse').click();
+    await attente(20);
+    // c123 : « ↺ » demande d'abord ; rien n'est remis avant « Oui ».
+    attendreEgal([appels.departs, menu.hidden, el('confirmer-depart-visionneuse').hidden], [0, true, false], '↺ : demande');
+    el('oui-depart-visionneuse').click();
+    attendreEgal([appels.departs, el('confirmer-depart-visionneuse').hidden], [1, true], '↺ : Oui');
+    // Ajouter un fichier : le fichier choisi (FICTIF) est montré dans la visionneuse.
+    bouton.click();
+    const choix = new DataTransfer();
+    choix.items.add(new File(['image FICTIVE'], 'image FICTIVE.png', { type: 'image/png' }));
+    const entree = el('fichier-visionneuse');
+    entree.files = choix.files;
+    entree.dispatchEvent(new Event('change'));
+    await attendreQue(() => appels.ajouts.length === 1, 'fichier pas montré');
+    attendreEgal(appels.ajouts, ['image FICTIVE.png'], 'fichier montré');
+    // Fermer : la visionneuse se ferme, le menu aussi ; le micro repart de la visionneuse.
+    bouton.click();
+    el('menu-fermer-visionneuse').click();
+    await attendreQue(() => !el('visionneuse-cap').open, 'visionneuse pas fermée');
+    attendre(menu.hidden && !el('visionneuse-cap').contains(el('petit-micro')), 'menu resté ouvert ou micro resté dans la visionneuse');
+  });
+
+  await testAsync('Visionneuse, c118 (11/11/2026, VRAIE page de Zencoder, FICTIF) : avec la retouche de Cap, la mosaïque et les documents commencent SOUS la barre (64 px) ; « Fermer », « Ajouter un fichier » et « Choisir un fichier » de la page sont cachés (ils sont dans le menu de Cap) ; ↺ remet un document zoomé et déplacé comme au départ', async () => {
+    const cadre = document.createElement('iframe');
+    cadre.style.cssText = 'position:fixed;left:0;top:0;width:412px;height:800px;border:0';
+    document.body.appendChild(cadre);
+    try {
+      cadre.src = '/visionneuse/index.html';
+      await attendreReel(() => cadre.contentWindow && cadre.contentWindow.Visualiseur && cadre.contentDocument.readyState === 'complete', 'visionneuse pas chargée');
+      const W = cadre.contentWindow, d = cadre.contentDocument, V = W.Visualiseur;
+      visionneuseCap0().retoucherVisionneuse(d);
+      for (const id of ['bouton-fermer', 'bouton-ajouter', 'bouton-choisir']) attendreEgal(W.getComputedStyle(d.getElementById(id)).display, 'none', `${id} encore affiché`);
+      const image = (l, h) => { const t = document.createElement('canvas'); t.width = l; t.height = h; t.getContext('2d').fillRect(0, 0, l, h); return t.toDataURL('image/png'); };
+      V.montrerMosaique(9, () => {});
+      for (let i = 0; i < 9; i++) V.remplirMiniature(i, image(40, 30));
+      const cases = [...d.querySelectorAll('.carte-miniature')];
+      attendre(cases.length === 9 && cases.every(x => x.getBoundingClientRect().top >= 64), `une miniature sous la barre : ${cases.map(x => Math.round(x.getBoundingClientRect().top))}`);
+      V.fermer();
+      V.montrerFichier(image(400, 300), 'image FICTIVE.png');
+      await attendreReel(() => d.querySelector('.carte-document') && parseFloat(d.querySelector('.carte-document').style.width) > 0, 'document pas montré');
+      const carte = d.querySelector('.carte-document');
+      attendre(carte.getBoundingClientRect().top >= 64, 'document sous la barre');
+      const depart = [carte.style.left, carte.style.top, carte.style.width];
+      const pointeur = (type, id, x, y) => carte.dispatchEvent(new W.PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: id === 1 }));
+      await attendreReel(() => W.performance.now() > 1000, 'horloge de la visionneuse trop jeune');
+      pointeur('pointerdown', 1, 106, 400); pointeur('pointerdown', 2, 306, 400); pointeur('pointermove', 1, 6, 400); pointeur('pointermove', 2, 406, 400); pointeur('pointerup', 1, 6, 400); pointeur('pointerup', 2, 406, 400);
+      const apresPince = carte.style.width;
+      pointeur('pointerdown', 1, 200, 400); pointeur('pointermove', 1, 260, 450); pointeur('pointerup', 1, 260, 450);
+      attendre(carte.style.width !== depart[2] && carte.style.left !== depart[0], `document ni zoomé ni déplacé (essai mal fait) : ${JSON.stringify(depart)} -> ${JSON.stringify([carte.style.left, carte.style.top, carte.style.width])} pincé ${apresPince} ; même carte ${carte === d.querySelector('.carte-document')} ; cartes ${d.querySelectorAll('.carte-document').length}`);
+      V.remettreCommeAuDepart();
+      attendreEgal([carte.style.left, carte.style.top, carte.style.width], depart, '↺ ne remet pas comme au départ');
+      V.fermer();
+    } finally { cadre.remove(); }
+  });
+
+  await testAsync('Visionneuse, c119 (11/11/2026, VRAIE page de Zencoder, FICTIF) : marche 2 : la mosaïque reste VISIBLE et IMMOBILE derrière le document agrandi (même défilée) ; le document est posé par-dessus, au centre de la partie visible ; rétréci, on voit les miniatures dessous ; au retour, rien n’a bougé', async () => {
+    const cadre = document.createElement('iframe');
+    cadre.style.cssText = 'position:fixed;left:0;top:0;width:412px;height:800px;border:0';
+    document.body.appendChild(cadre);
+    try {
+      cadre.src = '/visionneuse/index.html';
+      await attendreReel(() => cadre.contentWindow && cadre.contentWindow.Visualiseur && cadre.contentDocument.readyState === 'complete', 'visionneuse pas chargée');
+      const W = cadre.contentWindow, d = cadre.contentDocument, V = W.Visualiseur;
+      visionneuseCap0().retoucherVisionneuse(d);
+      const image = (l, h, couleur) => { const t = document.createElement('canvas'); t.width = l; t.height = h; const x = t.getContext('2d'); x.fillStyle = couleur; x.fillRect(0, 0, l, h); return t.toDataURL('image/png'); };
+      V.montrerMosaique(25, () => {});
+      for (let i = 0; i < 25; i++) V.remplirMiniature(i, image(40, 30, '#357'));
+      const zone = d.getElementById('zone-image');
+      const cases = [...d.querySelectorAll('.carte-miniature')];
+      zone.scrollTop = 200; // Max a fait défiler la mosaïque
+      await attendreReel(() => zone.scrollTop === 200, 'défilement impossible (essai mal fait)');
+      const avant = cases.map(x => { const r = x.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; });
+      V.agrandirDepuisMosaique(image(400, 300, '#a53'), 'Image 8.jpg', () => {}, 7);
+      const carte = () => d.querySelector('.carte-document:not(.carte-miniature)');
+      await attendreReel(() => carte() && parseFloat(carte().style.width) > 50, 'document agrandi pas montré');
+      // c120 : SA case (la 8e) disparaît ; les autres restent visibles, à la même place ; la mosaïque n'a pas défilé.
+      attendreEgal(W.getComputedStyle(cases[7]).visibility, 'hidden', 'la miniature agrandie se voit en double');
+      attendre(cases.every((x, i) => i === 7 || W.getComputedStyle(x).visibility === 'visible'), 'miniatures cachées pendant l’agrandi');
+      attendreEgal(zone.scrollTop, 200, 'mosaïque remontée');
+      attendreEgal(cases.map(x => { const r = x.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; }), avant, 'miniatures déplacées');
+      // Le document est par-dessus, au centre de la partie visible de la zone.
+      const rc = carte().getBoundingClientRect(), rz = zone.getBoundingClientRect();
+      attendre(Math.abs((rc.top + rc.bottom) / 2 - (rz.top + rz.bottom) / 2) < 2, `document pas au centre de la partie visible : ${JSON.stringify([rc, rz])}`);
+      const auCentre = d.elementFromPoint((rc.left + rc.right) / 2, (rc.top + rc.bottom) / 2);
+      attendre(auCentre && carte().contains(auCentre), 'le document n’est pas par-dessus');
+      // Rétréci (pincement à moitié) : les miniatures se voient de nouveau à l'endroit qu'il couvrait.
+      const c = carte();
+      const pointeur = (type, id, x, y) => c.dispatchEvent(new W.PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: id === 1 }));
+      await attendreReel(() => W.performance.now() > 1000, 'horloge de la visionneuse trop jeune');
+      pointeur('pointerdown', 1, 106, 400); pointeur('pointerdown', 2, 306, 400); pointeur('pointermove', 1, 156, 400); pointeur('pointermove', 2, 256, 400); pointeur('pointerup', 1, 156, 400); pointeur('pointerup', 2, 256, 400);
+      const rp = c.getBoundingClientRect();
+      attendre(rp.width < rc.width * 0.6, `document pas rétréci : ${rp.width}`);
+      // Une miniature que le document couvrait avant, et plus maintenant : c'est elle qu'on touche à cet endroit.
+      const dedans = (r, x, y) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+      const liberee = cases.find((x, i) => i !== 7 && (() => { const r = x.getBoundingClientRect(); const cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2; return dedans(rc, cx, cy) && !dedans(rp, cx, cy); })());
+      attendre(liberee, 'aucune miniature dégagée par le rétrécissement (essai mal fait)');
+      const rl = liberee.getBoundingClientRect();
+      const aCote = d.elementFromPoint((rl.left + rl.right) / 2, (rl.top + rl.bottom) / 2);
+      attendre(aCote && liberee.contains(aCote), `miniature pas visible à côté du document rétréci : ${aCote && aCote.className}`);
+      // Retour à sa place : rien n'a bougé dans la mosaïque.
+      V.agrandirDepuisMosaique(image(300, 400, '#353'), 'Image 9.jpg', () => {}, 8); // un autre : remplace le premier (un seul entier)
+      await attendreReel(() => d.querySelectorAll('.carte-document:not(.carte-miniature)').length === 1, 'deux documents entiers');
+      attendreEgal([W.getComputedStyle(cases[7]).visibility, W.getComputedStyle(cases[8]).visibility], ['visible', 'hidden'], 'c120 : la case du premier pas revenue, ou celle du second visible');
+      d.querySelector('.carte-document:not(.carte-miniature) .bouton-retirer-document').click();
+      attendre(!V.documentAgrandi() && zone.scrollTop === 200 && !zone.classList.contains('agrandi-sur-mosaique'), 'retour : défilement perdu ou mosaïque pas revenue');
+      attendreEgal(cases.map(x => { const r = x.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top)]; }), avant, 'miniatures déplacées après le retour');
+      attendre(cases.every(x => W.getComputedStyle(x).visibility === 'visible'), 'c120 : une case pas revenue au retour');
+      V.fermer();
+    } finally { cadre.remove(); }
+  });
+
+  await testAsync('Visionneuse, c160 (12/11/2026, VRAIE page de Zencoder, FICTIF) : DEUX doigts qui ne sont pas sur la même miniature (sur l’eau, ou sur deux cases) font défiler la mosaïque, seulement s’il y a de quoi ; un doigt seul ne la fait pas défiler ; deux doigts sur la MÊME miniature : rien (réservé au zoom) ; pas de saisie ni d’ouverture d’un document pendant ou après ; mosaïque courte : rien ne bouge', async c => {
+    const cadre = document.createElement('iframe');
+    cadre.style.cssText = 'position:fixed;left:0;top:0;width:412px;height:800px;border:0';
+    document.body.appendChild(cadre);
+    try {
+      cadre.src = '/visionneuse/index.html';
+      await attendreReel(() => cadre.contentWindow && cadre.contentWindow.Visualiseur && cadre.contentDocument.readyState === 'complete', 'visionneuse pas chargée');
+      const W = cadre.contentWindow, d = cadre.contentDocument, V = W.Visualiseur;
+      visionneuseCap0().retoucherVisionneuse(d);
+      const touches = [];
+      const zone = d.getElementById('zone-image');
+      const ev = (cible, type, id, x, y) => cible.dispatchEvent(new W.PointerEvent(type, { pointerId: id, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: id === 1 }));
+      const attente = ms => new Promise(r => setTimeout(r, ms));
+      V.montrerMosaique(30, i => touches.push(i));
+      const cases = [...d.querySelectorAll('.carte-miniature')];
+      attendre(zone.scrollHeight > zone.clientHeight + 200, `mosaïque pas assez longue pour l’essai : ${zone.scrollHeight} / ${zone.clientHeight}`);
+      const centre = x => { const r = x.getBoundingClientRect(); return [(r.left + r.right) / 2, (r.top + r.bottom) / 2]; };
+      // 1. Un doigt seul (sur une case) qui glisse : pas de défilement.
+      let [x0, y0] = centre(cases[4]);
+      ev(cases[4], 'pointerdown', 1, x0, y0); ev(d, 'pointermove', 1, x0, y0 - 150); ev(d, 'pointerup', 1, x0, y0 - 150);
+      attendreEgal(zone.scrollTop, 0, 'un doigt seul a fait défiler');
+      await attente(450);
+      // 2. Deux doigts sur deux cases différentes qui remontent de 200 : la mosaïque descend de 200 ; ni saisie, ni ouverture.
+      const [xa, ya] = centre(cases[3]); const [xb, yb] = centre(cases[5]);
+      ev(cases[3], 'pointerdown', 1, xa, ya); ev(cases[5], 'pointerdown', 2, xb, yb);
+      for (let k = 1; k <= 4; k++) { ev(d, 'pointermove', 1, xa, ya - 50 * k); ev(d, 'pointermove', 2, xb, yb - 50 * k); }
+      await attente(600); // plus que l'appui long : aucune saisie
+      attendre(Math.abs(zone.scrollTop - 200) <= 1, `défilement à deux doigts : ${zone.scrollTop}`);
+      attendre(!d.querySelector('.miniature-saisie'), 'une miniature saisie pendant le défilement');
+      ev(d, 'pointerup', 1, xa, ya - 200); ev(d, 'pointerup', 2, xb, yb - 200);
+      cases[3].click(); // le « click » qui suit le lever
+      attendreEgal(touches, [], 'un document ouvert après le défilement');
+      await attente(450);
+      // 3. Deux doigts sur l'eau (entre les cases : la marge du bas de la zone) qui descendent : la mosaïque remonte.
+      const avant = zone.scrollTop;
+      ev(zone, 'pointerdown', 1, 100, 700); ev(zone, 'pointerdown', 2, 300, 700);
+      ev(d, 'pointermove', 1, 100, 780); ev(d, 'pointermove', 2, 300, 780);
+      ev(d, 'pointerup', 1, 100, 780); ev(d, 'pointerup', 2, 300, 780);
+      attendre(Math.abs(zone.scrollTop - (avant - 80)) <= 1, `deux doigts sur l’eau : ${avant} → ${zone.scrollTop}`);
+      await attente(450);
+      // 4. Deux doigts sur la MÊME miniature : pas de défilement (réservé au zoom).
+      const fixe = zone.scrollTop;
+      const [xc, yc] = centre(cases[6]);
+      ev(cases[6], 'pointerdown', 1, xc - 20, yc); ev(cases[6], 'pointerdown', 2, xc + 20, yc);
+      ev(d, 'pointermove', 1, xc - 20, yc - 100); ev(d, 'pointermove', 2, xc + 20, yc - 100);
+      ev(d, 'pointerup', 1, xc - 20, yc - 100); ev(d, 'pointerup', 2, xc + 20, yc - 100);
+      attendreEgal(zone.scrollTop, fixe, 'deux doigts sur la même miniature ont fait défiler');
+      await attente(450);
+      // 5. Un toucher simple ouvre toujours le document.
+      cases[0].scrollIntoView(); const [xt, yt] = centre(cases[0]);
+      ev(cases[0], 'pointerdown', 1, xt, yt); ev(d, 'pointerup', 1, xt, yt); cases[0].click();
+      attendreEgal(touches, [0], 'le toucher simple n’ouvre plus le document');
+      // 6. Mosaïque courte (rien à défiler) : deux doigts ne bougent rien.
+      V.montrerMosaique(1, () => {}); // une seule case : elle tient dans l'écran
+      const z2 = d.getElementById('zone-image');
+      z2.scrollTop = 0;
+      attendre(z2.scrollHeight <= z2.clientHeight, `mosaïque pas courte : ${z2.scrollHeight} / ${z2.clientHeight}`);
+      ev(z2, 'pointerdown', 1, 100, 700); ev(z2, 'pointerdown', 2, 300, 700);
+      ev(d, 'pointermove', 1, 100, 500); ev(d, 'pointermove', 2, 300, 500);
+      ev(d, 'pointerup', 1, 100, 500); ev(d, 'pointerup', 2, 300, 500);
+      attendreEgal(z2.scrollTop, 0, 'mosaïque courte : elle a bougé');
+      V.fermer();
+    } finally { cadre.remove(); }
+  });
+
+  await testAsync('Visionneuse, c121 (11/11/2026, VRAIE page de Zencoder, FICTIF) : marche 3 : appui long (0,5 s) sur une miniature = saisie ; glisser = elle suit le doigt ; lever = posée là, sans ouvrir le document ; les autres ne bougent pas ; toucher court = plein écran (inchangé) ; doigt qui bouge avant 0,5 s = rien ; pas de saisie pendant un agrandi ; « comme au départ » remet la grille ; rien d’enregistré', async () => {
+    const cadre = document.createElement('iframe');
+    cadre.style.cssText = 'position:fixed;left:0;top:0;width:412px;height:800px;border:0';
+    document.body.appendChild(cadre);
+    const disqueAvant = JSON.stringify(Object.keys(localStorage).sort());
+    try {
+      cadre.src = '/visionneuse/index.html';
+      await attendreReel(() => cadre.contentWindow && cadre.contentWindow.Visualiseur && cadre.contentDocument.readyState === 'complete', 'visionneuse pas chargée');
+      const W = cadre.contentWindow, d = cadre.contentDocument, V = W.Visualiseur;
+      visionneuseCap0().retoucherVisionneuse(d);
+      const image = (l, h) => { const t = document.createElement('canvas'); t.width = l; t.height = h; t.getContext('2d').fillRect(0, 0, l, h); return t.toDataURL('image/png'); };
+      const touches = [];
+      V.montrerMosaique(6, i => touches.push(i));
+      for (let i = 0; i < 6; i++) V.remplirMiniature(i, image(40, 30));
+      const cases = [...d.querySelectorAll('.carte-miniature')];
+      const place = x => [Math.round(parseFloat(x.style.left)), Math.round(parseFloat(x.style.top))];
+      const grille = cases.map(place);
+      const ev = (cible, type, x, y) => cible.dispatchEvent(new W.PointerEvent(type, { pointerId: 7, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: true }));
+      const attente = ms => new Promise(r => setTimeout(r, ms));
+      attendreEgal(V.arrangementModifie(), false, 'repère au départ');
+      // 1. Appui long, glisser de (+80, +60), lever : posée là ; aucun document ouvert ; les autres n'ont pas bougé.
+      const c2 = cases[2];
+      ev(c2, 'pointerdown', 100, 300);
+      await attente(600);
+      attendre(c2.classList.contains('miniature-saisie'), 'miniature pas saisie après 0,5 s');
+      ev(c2, 'pointermove', 140, 330); ev(c2, 'pointermove', 180, 360); ev(c2, 'pointerup', 180, 360);
+      c2.click(); // le « click » que le téléphone envoie après le lever
+      attendreEgal(place(c2), [grille[2][0] + 80, grille[2][1] + 60], 'miniature pas posée là où le doigt l’a laissée');
+      attendre(!c2.classList.contains('miniature-saisie'), 'miniature restée soulevée');
+      attendreEgal(touches, [], 'le déplacement a ouvert le document');
+      attendreEgal(cases.map((x, i) => i === 2 ? null : place(x)), grille.map((g, i) => i === 2 ? null : g), 'une autre miniature a bougé');
+      attendreEgal(V.arrangementModifie(), true, 'repère « arrangement modifié »');
+      // 2. Toucher court sur une miniature (même celle déplacée) : plein écran comme avant.
+      await attente(450);
+      c2.click();
+      cases[0].click();
+      attendreEgal(touches, [2, 0], 'toucher court ne passe plus en plein écran');
+      // 3. Doigt qui bouge avant 0,5 s : pas de saisie, rien ne bouge.
+      ev(cases[3], 'pointerdown', 50, 500); ev(cases[3], 'pointermove', 90, 500);
+      await attente(600);
+      ev(cases[3], 'pointermove', 140, 520); ev(cases[3], 'pointerup', 140, 520);
+      attendre(!cases[3].classList.contains('miniature-saisie') && place(cases[3])[0] === grille[3][0] && place(cases[3])[1] === grille[3][1], 'saisie malgré un doigt qui bougeait');
+      // 4. Pendant un agrandi : pas de saisie.
+      V.agrandirDepuisMosaique(image(400, 300), 'Image 1.jpg', () => {}, 0);
+      await attendreReel(() => V.documentAgrandi(), 'pas d’agrandi');
+      ev(cases[4], 'pointerdown', 60, 600);
+      await attente(600);
+      ev(cases[4], 'pointermove', 160, 650); ev(cases[4], 'pointerup', 160, 650);
+      attendre(!cases[4].classList.contains('miniature-saisie') && place(cases[4])[0] === grille[4][0], 'saisie pendant un agrandi');
+      d.querySelector('.carte-document:not(.carte-miniature) .bouton-retirer-document').click();
+      // 5. Un redimensionnement de la fenêtre ne défait pas le rangement ; « comme au départ » remet la grille.
+      W.dispatchEvent(new W.Event('resize'));
+      attendreEgal(place(c2), [grille[2][0] + 80, grille[2][1] + 60], 'rangement perdu au redimensionnement');
+      V.remettreCommeAuDepart();
+      attendreEgal(cases.map(place), grille, '« comme au départ » ne remet pas la grille');
+      attendreEgal(V.arrangementModifie(), false, 'repère pas remis à faux');
+      attendreEgal([...d.querySelectorAll('.carte-miniature')].indexOf(c2), 2, 'ordre d’origine pas remis');
+      // Rien d'enregistré.
+      attendreEgal(JSON.stringify(Object.keys(localStorage).sort()), disqueAvant, 'quelque chose enregistré sur le téléphone');
+      V.fermer();
+    } finally { cadre.remove(); }
+  });
+
+  await testAsync('Visionneuse, c122 (11/11/2026, VRAIE page de Zencoder, FICTIF) : défaut vu par Max : poser une miniature sur une autre, saisir celle du dessous, la bouger, puis en saisir une troisième : TOUTES bougent, sans blocage ; aucune miniature déplacée dans la page pendant un geste ; un lever perdu ne bloque plus rien ; une seule image active à la fois ; celle qu’on saisit passe devant, l’ancienne reste exactement où elle est ; le document agrandi reste au-dessus ; ↺ remet tout', async () => {
+    const cadre = document.createElement('iframe');
+    cadre.style.cssText = 'position:fixed;left:0;top:0;width:412px;height:800px;border:0';
+    document.body.appendChild(cadre);
+    try {
+      cadre.src = '/visionneuse/index.html';
+      await attendreReel(() => cadre.contentWindow && cadre.contentWindow.Visualiseur && cadre.contentDocument.readyState === 'complete', 'visionneuse pas chargée');
+      const W = cadre.contentWindow, d = cadre.contentDocument, V = W.Visualiseur;
+      visionneuseCap0().retoucherVisionneuse(d);
+      const image = (l, h) => { const t = document.createElement('canvas'); t.width = l; t.height = h; t.getContext('2d').fillRect(0, 0, l, h); return t.toDataURL('image/png'); };
+      const touches = [];
+      V.montrerMosaique(6, i => touches.push(i));
+      for (let i = 0; i < 6; i++) V.remplirMiniature(i, image(40, 30));
+      const zone = d.getElementById('zone-image');
+      const cases = [...d.querySelectorAll('.carte-miniature')];
+      const place = x => [Math.round(parseFloat(x.style.left)), Math.round(parseFloat(x.style.top))];
+      const grille = cases.map(place);
+      const centre = x => { const r = x.getBoundingClientRect(); return [Math.round((r.left + r.right) / 2), Math.round((r.top + r.bottom) / 2)]; };
+      const attente = ms => new Promise(r => setTimeout(r, ms));
+      let id = 20;
+      // Comme le téléphone : l'appui va à ce qui est SOUS le doigt ; les déplacements et le lever suivent l'élément touché.
+      const sous = (x, y) => d.elementFromPoint(x, y);
+      const ev = (cible, type, pid, x, y) => cible.dispatchEvent(new W.PointerEvent(type, { pointerId: pid, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: true }));
+      // Aucune miniature ne doit être déplacée dans la page PENDANT un geste (le téléphone peut alors perdre le doigt).
+      const changements = [];
+      new W.MutationObserver(l => l.forEach(m => { if (m.type === 'childList') changements.push(m); })).observe(zone, { childList: true });
+      async function glisser([x, y], dx, dy) {
+        const pid = ++id;
+        const cible = sous(x, y);
+        const pendant = changements.length;
+        ev(cible, 'pointerdown', pid, x, y);
+        await attente(600);
+        ev(cible, 'pointermove', pid, x + dx / 2, y + dy / 2); ev(cible, 'pointermove', pid, x + dx, y + dy);
+        attendreEgal(changements.length, pendant, 'une miniature déplacée dans la page pendant le geste');
+        ev(cible, 'pointerup', pid, x + dx, y + dy);
+        return cible.closest('.carte-miniature');
+      }
+      // 1. Poser A (case 0) sur B (case 1).
+      const A = cases[0], B = cases[1], C = cases[4];
+      const ecart = grille[1][0] - grille[0][0];
+      await glisser(centre(A), ecart, 0);
+      attendreEgal(place(A), [grille[1][0], grille[1][1]], 'A pas posée sur B');
+      attendre(sous(...centre(B)).closest('.carte-miniature') === A, 'A n’est pas devant B (essai mal fait)');
+      // 2. Saisir B par sa partie encore visible (A la recouvre presque) : B passe devant et suit le doigt.
+      const rB = B.getBoundingClientRect();
+      const visibleB = [Math.round(rB.left + 4), Math.round(rB.top + 4)];
+      // (A est posée exactement sur B : on décale d'abord A un peu, comme Max, pour laisser voir un coin de B)
+      await glisser(centre(A), 40, 40);
+      attendre(sous(...visibleB).closest('.carte-miniature') === B, 'coin de B pas visible (essai mal fait)');
+      await attente(450);
+      const avantB = place(B);
+      const prise = await glisser(visibleB, 0, 120);
+      attendre(prise === B, 'ce n’est pas B qu’on a saisie');
+      attendreEgal(place(B), [avantB[0], avantB[1] + 120], 'B saisie mais immobile (défaut vu par Max)');
+      attendre(sous(...centre(B)).closest('.carte-miniature') === B, 'B ne passe pas devant');
+      const placeA = place(A);
+      // 3. Saisir une troisième (C) : elle bouge aussi ; A et B restent exactement où elles sont.
+      await attente(450);
+      await glisser(centre(C), -60, -30);
+      attendreEgal(place(C), [grille[4][0] - 60, grille[4][1] - 30], 'C bloquée');
+      attendreEgal([place(A), place(B)], [placeA, [avantB[0], avantB[1] + 120]], 'une ancienne image a bougé');
+      // 4. Un lever PERDU (le doigt se lève ailleurs) ne bloque plus l'image : on peut la ressaisir.
+      await attente(450);
+      const D = cases[5];
+      const pid = ++id;
+      const [dx0, dy0] = centre(D);
+      ev(D, 'pointerdown', pid, dx0, dy0);
+      await attente(600);
+      ev(D, 'pointermove', pid, dx0 + 30, dy0);
+      ev(zone, 'pointerup', pid, dx0 + 30, dy0); // le lever arrive à la zone, pas à l'image
+      await attente(450);
+      const avantD = place(D);
+      await glisser(centre(D), 0, -50);
+      attendreEgal(place(D), [avantD[0], avantD[1] - 50], 'image bloquée après un lever perdu');
+      // 5. Toucher court : plein écran (inchangé) ; le document agrandi reste au-dessus des miniatures relevées.
+      await attente(450);
+      B.click();
+      attendreEgal(touches, [1], 'toucher court ne passe plus en plein écran');
+      V.agrandirDepuisMosaique(image(400, 300), 'Image 2.jpg', () => {}, 1);
+      const doc = () => d.querySelector('.carte-document:not(.carte-miniature)');
+      await attendreReel(() => doc() && parseFloat(doc().style.width) > 50, 'document pas agrandi');
+      const rd = doc().getBoundingClientRect();
+      const auCentre = sous((rd.left + rd.right) / 2, (rd.top + rd.bottom) / 2);
+      attendre(auCentre && doc().contains(auCentre), 'une miniature passe devant le document agrandi');
+      doc().querySelector('.bouton-retirer-document').click();
+      // 6. ↺ : tout comme au départ.
+      V.remettreCommeAuDepart();
+      attendreEgal(cases.map(place), grille, '↺ ne remet pas la grille');
+      attendre(cases.every(x => !x.style.zIndex) && [...d.querySelectorAll('.carte-miniature')].every((x, i) => x === cases[i]), '↺ ne remet pas l’ordre');
+      V.fermer();
+    } finally { cadre.remove(); }
+  });
+
+  await testAsync('Visionneuse, c123 (11/11/2026, FICTIF, vraie page de Zencoder) : « ↺ » demande « Tout remettre comme au départ ? » ; « Non » ne change RIEN (rangement intact : places, plans, ordre) ; un double toucher hors des boutons = « Non » ; fermer la visionneuse pendant la question : rien remis ; seul « Oui » remet la grille', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const cadre = el('cadre-visionneuse');
+    const v = visionneuseCap.brancher(ui.doc, { compte: { appeler: async () => ({ ok: true, blob: async () => new Blob(['FICTIF']) }), connecte: () => true },
+      visionneuse: visionneuseCap.chargeur(cadre), urls: fausseAdresses(), pdfjs: null, vignette: async () => new Blob(['miniature FICTIVE']) });
+    const chargee = () => { try { return cadre.contentWindow && cadre.contentWindow.Visualiseur && cadre.contentDocument.getElementById('zone-image') && /visionneuse\/index\.html/.test(cadre.contentWindow.location.href); } catch (e) { return false; } };
+    await v.ouvrirVide();
+    await attendreReel(chargee, 'page pas chargée');
+    const W = cadre.contentWindow, d = cadre.contentDocument, V = W.Visualiseur;
+    const image = (l, h) => { const t = document.createElement('canvas'); t.width = l; t.height = h; t.getContext('2d').fillRect(0, 0, l, h); return t.toDataURL('image/png'); };
+    V.montrerMosaique(4, () => {});
+    for (let i = 0; i < 4; i++) V.remplirMiniature(i, image(40, 30));
+    const cases = [...d.querySelectorAll('.carte-miniature')];
+    const etat = () => JSON.stringify(cases.map(x => [x.style.left, x.style.top, x.style.zIndex]).concat([[...d.querySelectorAll('.carte-miniature')].map(x => cases.indexOf(x))]));
+    const grille = etat();
+    // Max range : la case 2 est saisie (appui long) et posée ailleurs.
+    const ev = (type, x, y) => cases[2].dispatchEvent(new W.PointerEvent(type, { pointerId: 41, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: true }));
+    ev('pointerdown', 100, 300);
+    await new Promise(r => setTimeout(r, 600));
+    ev('pointermove', 150, 360); ev('pointerup', 150, 360);
+    const range = etat();
+    attendre(range !== grille && V.arrangementModifie(), 'rangement pas fait (essai mal fait)');
+    const bouton = el('bouton-menu-visionneuse'), demande = el('confirmer-depart-visionneuse');
+    const ouvrirDemande = () => { bouton.click(); el('menu-depart-visionneuse').click(); };
+    // 1. « ↺ » : la question, rien encore changé ; les boutons se touchent ; la demande arrête les touchers dessous.
+    ouvrirDemande();
+    attendre(!demande.hidden && el('question-depart-visionneuse').textContent === 'Tout remettre comme au départ ?', 'pas de question');
+    attendre(touchable(ui, el('oui-depart-visionneuse')) && touchable(ui, el('non-depart-visionneuse')), 'Oui ou Non pas touchable');
+    const rq = demande.getBoundingClientRect();
+    attendre(rq.top <= 0.5 && rq.bottom >= 899 && ui.doc.elementFromPoint(20, 450) === demande, 'la question n’arrête pas les touchers dessous');
+    attendreEgal(etat(), range, 'changé avant la réponse');
+    // 2. « Non » : RIEN ne change.
+    el('non-depart-visionneuse').click();
+    attendre(demande.hidden, 'question restée après « Non »');
+    attendreEgal(etat(), range, '« Non » a touché au rangement');
+    attendreEgal(V.arrangementModifie(), true, '« Non » a effacé le repère');
+    // 3. Double toucher hors des boutons = « Non ».
+    ouvrirDemande();
+    const tap = () => demande.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 30, clientY: 800 }));
+    tap(); tap();
+    attendre(demande.hidden, 'double toucher ne vaut pas « Non »');
+    attendreEgal(etat(), range, 'le double toucher a touché au rangement');
+    // 4. Visionneuse fermée pendant la question : aucune remise à zéro demandée (la fermeture vide la page, comme toujours).
+    let remises = 0;
+    const remettreAvant = V.remettreCommeAuDepart;
+    V.remettreCommeAuDepart = (...a) => { remises++; return remettreAvant(...a); };
+    ouvrirDemande();
+    el('fermer-visionneuse').click();
+    await attendreQue(() => !el('visionneuse-cap').open, 'visionneuse pas fermée');
+    attendre(demande.hidden, 'question restée après la fermeture');
+    attendreEgal(remises, 0, 'la fermeture a remis à zéro');
+    attendreEgal(JSON.stringify(cases.map(x => [x.style.left, x.style.top, x.style.zIndex])), JSON.stringify(JSON.parse(range).slice(0, 4)), 'places changées à la fermeture');
+    // 5. Seul « Oui » remet la grille (page rouverte, nouvelle mosaïque, nouveau rangement).
+    await v.ouvrirVide();
+    await attendreReel(chargee, 'page pas rechargée');
+    const V2 = cadre.contentWindow.Visualiseur, d2 = cadre.contentDocument, W2 = cadre.contentWindow;
+    V2.montrerMosaique(3, () => {});
+    const c2 = [...d2.querySelectorAll('.carte-miniature')];
+    const g2 = c2.map(x => [x.style.left, x.style.top]);
+    const ev2 = (type, x, y) => c2[1].dispatchEvent(new W2.PointerEvent(type, { pointerId: 42, clientX: x, clientY: y, bubbles: true, pointerType: 'touch', isPrimary: true }));
+    ev2('pointerdown', 100, 300);
+    await new Promise(r => setTimeout(r, 600));
+    ev2('pointermove', 180, 300); ev2('pointerup', 180, 300);
+    attendre(JSON.stringify(c2.map(x => [x.style.left, x.style.top])) !== JSON.stringify(g2), 'rangement 2 pas fait');
+    ouvrirDemande();
+    el('oui-depart-visionneuse').click();
+    // La grille est recalculée à la taille actuelle de l'écran : on compare avec une grille toute fraîche.
+    const apresOui = JSON.stringify(c2.map(x => [x.style.left, x.style.top]));
+    attendreEgal(V2.arrangementModifie(), false, '« Oui » : repère pas remis');
+    W2.dispatchEvent(new W2.Event('resize'));
+    attendreEgal(JSON.stringify(c2.map(x => [x.style.left, x.style.top])), apresOui, '« Oui » ne remet pas la grille');
+    attendre(c2[1].style.left === c2[0].style.left || c2[1].style.top === c2[0].style.top, 'la case déplacée n’est pas revenue dans la grille');
+    el('fermer-visionneuse').click();
+  });
+
+  await testAsync('Visionneuse, c124 (11/11/2026, FICTIF, vraie page de Zencoder) : petit journal du chantier sous la barre : 5 dernières lignes (lecture seule), « Le journal est vide. », erreur dite ; la mosaïque commence SOUS le journal ; caché hors chantier et à la fermeture ; aucune écriture', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const cadre = el('cadre-visionneuse');
+    const v = visionneuseCap.brancher(ui.doc, { compte: { appeler: async () => ({ ok: true, blob: async () => new Blob(['FICTIF']) }), connecte: () => true },
+      visionneuse: visionneuseCap.chargeur(cadre), urls: fausseAdresses(), pdfjs: null, vignette: async () => new Blob(['miniature FICTIVE']) });
+    const lignes = ['11/11/2026 à 09 h 00 — note FICTIVE 1', '11/11/2026 à 09 h 10 — note FICTIVE 2', '11/11/2026 à 09 h 20 — note FICTIVE 3', '11/11/2026 à 09 h 30 — note FICTIVE 4', '11/11/2026 à 09 h 40 — note FICTIVE 5'];
+    let lectures = 0;
+    const liste = [0, 1, 2, 3].map(i => ({ id: `FICTIF_${i}_0123456789`, sorte: 'image' }));
+    const ouverture = v.ouvrir(liste, { titre: 'Chantier FICTIF', lireJournal: async () => { lectures++; return lignes; } });
+    const j = el('journal-visionneuse');
+    await attendreReel(() => !j.hidden && j.querySelectorAll('p').length === 5 && cadre.contentDocument && cadre.contentDocument.querySelectorAll('.carte-miniature').length === 4, 'journal ou mosaïque pas montrés');
+    await ouverture;
+    attendreEgal([...j.querySelectorAll('p')].map(p => p.textContent), lignes, 'lignes du journal');
+    attendreEgal(lectures, 1, 'lectures du journal');
+    const rj = j.getBoundingClientRect(), rt = el('titre-visionneuse').getBoundingClientRect();
+    attendre(rj.top >= rt.bottom - 0.5 && rj.top >= 63.5 && rj.left >= 0 && rj.right <= 412, `journal pas sous la barre : ${JSON.stringify([rt, rj])}`);
+    // La mosaïque commence sous le journal (aucune miniature cachée dessous).
+    await attendreReel(() => [...cadre.contentDocument.querySelectorAll('.carte-miniature')].every(x => x.getBoundingClientRect().top >= rj.bottom - 0.5), `une miniature sous le journal : ${[...cadre.contentDocument.querySelectorAll('.carte-miniature')].map(x => Math.round(x.getBoundingClientRect().top))} / ${Math.round(rj.bottom)}`);
+    // Le menu du rond blanc passe devant le journal.
+    el('bouton-menu-visionneuse').click();
+    const rm = el('menu-fermer-visionneuse').getBoundingClientRect();
+    attendre(touchable(ui, el('menu-fermer-visionneuse')), `menu caché par le journal : ${JSON.stringify(rm)}`);
+    el('bouton-menu-visionneuse').click();
+    // Fermeture : journal caché.
+    el('fermer-visionneuse').click();
+    await attendreQue(() => !el('visionneuse-cap').open, 'visionneuse pas fermée');
+    attendre(j.hidden, 'journal resté après la fermeture');
+    // Journal vide, puis erreur de lecture : dits clairement.
+    const o2 = v.ouvrir(liste, { titre: 'Chantier FICTIF', lireJournal: async () => [] });
+    await attendreReel(() => !j.hidden && j.textContent === 'Le journal est vide.', `journal vide pas dit : ${j.textContent}`);
+    await o2;
+    el('fermer-visionneuse').click();
+    await attendreQue(() => !el('visionneuse-cap').open, 'visionneuse pas fermée (2)');
+    const o3 = v.ouvrir(liste, { titre: 'Chantier FICTIF', lireJournal: async () => { throw new Error('Le compte Cap n’est pas connecté.'); } });
+    await attendreReel(() => !j.hidden && j.textContent === 'Journal : Le compte Cap n’est pas connecté.', `erreur pas dite : ${j.textContent}`);
+    await o3;
+    el('fermer-visionneuse').click();
+    await attendreQue(() => !el('visionneuse-cap').open, 'visionneuse pas fermée (3)');
+    // Hors chantier (vide, voix, œil) : pas de journal.
+    await v.ouvrirVide();
+    attendre(j.hidden, 'journal hors chantier');
+    el('fermer-visionneuse').click();
+  });
+
+  await testAsync('Visionneuse, c125 (11/11/2026, FICTIF) : dicter une note DEPUIS la visionneuse du chantier : la même question que dans la fiche s’affiche dans la visionneuse ; « Non » : rien écrit ; double toucher = « Non » ; « Oui, ajouter » : une seule écriture, à la fin du journal, « C’est fait » affiché, petit journal relu ; en deux temps (« Je t’écoute ») aussi ; « oui » à la voix marche ; rien sans le Oui', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    const idJournal = chantierFictifAvecJournal(f);
+    const horloge = new Date(2026, 10, 11, 16, 0).getTime();
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const page = { montrerFichier() {}, fermer() {}, montrerMosaique() {}, remplirMiniature() {}, miniatureIllisible() {}, agrandirDepuisMosaique() {} };
+      const v = visionneuseCap.brancher(ui.doc, { compte: { appeler: async () => ({ ok: true, blob: async () => new Blob(['FICTIF']) }), connecte: () => true },
+        visionneuse: async () => page, urls: fausseAdresses(), pdfjs: null, vignette: async () => new Blob(['miniature FICTIVE']) });
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => horloge, visionneuse: () => v });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le premier'); // Bateau FICTIF, avec dossier
+        let lectures = 0;
+        await v.ouvrir([{ id: 'FICTIF_1_0123456789', sorte: 'image' }], { titre: 'Bateau FICTIF', lireJournal: async () => { lectures++; return chantiersDossiers.lireDernieresLignes(f, { id: 'CH-908' }, 5); } });
+        await attendreQue(() => el('visionneuse-cap').open && lectures === 1, 'visionneuse du chantier pas ouverte');
+        const q = el('question-note-visionneuse'), texte = el('texte-note-visionneuse'), msg = el('message-chantier-visionneuse');
+        const question = 'Je vais ajouter, à la fin du journal de « Bateau FICTIF » : « 11/11/2026 à 16 h 00 — rappeler le couvreur FICTIF ». Rien d’autre n’est modifié ni effacé. J’ajoute ?';
+        // 1. Une phrase : la question s'affiche DANS la visionneuse ; « Non » : rien écrit.
+        dicter('ajoute au journal, rappeler le couvreur FICTIF');
+        attendre(!q.hidden && texte.textContent === question, `question pas dans la visionneuse : ${texte.textContent}`);
+        attendre(touchable(ui, el('oui-note-visionneuse')) && touchable(ui, el('non-note-visionneuse')) && el('oui-note-visionneuse').textContent === 'Oui, ajouter', 'boutons de la question');
+        el('non-note-visionneuse').click();
+        attendre(q.hidden, 'question restée après « Non »');
+        attendreEgal(f.ecritures.length, 0, '« Non » a écrit');
+        // 2. Double toucher hors des boutons = « Non ».
+        dicter('ajoute au journal, rappeler le couvreur FICTIF');
+        attendre(!q.hidden, 'question pas revenue');
+        const tap = () => q.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 30, clientY: 860 }));
+        tap(); tap();
+        attendre(q.hidden && f.ecritures.length === 0, 'double toucher : pas « Non », ou écrit');
+        // 3. « Oui, ajouter » : une écriture, à la fin ; « C'est fait » en bas ; petit journal relu.
+        dicter('ajoute au journal, rappeler le couvreur FICTIF');
+        el('oui-note-visionneuse').click();
+        await attendreQue(() => f.ecritures.length === 1 && !msg.hidden && /C’est fait/.test(msg.textContent), `pas ajouté : ${msg.textContent}`);
+        attendre(f.textes.get(idJournal).endsWith('\n11/11/2026 à 16 h 00 — rappeler le couvreur FICTIF\n'), `journal : ${f.textes.get(idJournal)}`);
+        await attendreQue(() => lectures === 2 && /rappeler le couvreur FICTIF/.test(el('journal-visionneuse').textContent), 'petit journal pas relu');
+        // 4. En deux temps : « Je t'écoute » s'affiche en bas ; puis la question ; « oui » à la voix ajoute.
+        dicter('ajoute au journal');
+        attendre(!msg.hidden && msg.textContent === 'Je t’écoute : dis ta note.', `pas « Je t’écoute » : ${msg.textContent}`);
+        dicter('deuxième note FICTIVE');
+        attendre(!q.hidden && /deuxième note FICTIVE/.test(texte.textContent), 'question du deuxième temps absente');
+        dicter('oui');
+        await attendreQue(() => f.ecritures.length === 2 && q.hidden, 'le « oui » dit n’a pas ajouté');
+        attendre(f.textes.get(idJournal).endsWith('— deuxième note FICTIVE\n'), 'deuxième note pas à la fin');
+        // 5. Visionneuse fermée pendant une question : rien écrit ; la question reste dans la fiche.
+        dicter('ajoute au journal, troisième note FICTIVE');
+        el('fermer-visionneuse').click();
+        await attendreQue(() => !el('visionneuse-cap').open, 'visionneuse pas fermée');
+        attendre(q.hidden && el('chantiers-cap').classList.contains('mode-confirmation') && f.ecritures.length === 2, 'question perdue ou écrit');
+        dicter('non');
+        attendreEgal(f.ecritures.length, 2, 'écrit après « non »');
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Visionneuse, c126 (11/11/2026, FICTIF) : « oui » et « non » DITS répondent à la question de « ↺ » (« Tout remettre comme au départ ? ») : « non » ne change rien, « oui » remet tout, une phrase douteuse ne fait rien ; question fermée : « oui » seul n’est pas rangé et ne remet rien', async c => {
+    await interfaceChoix(c, async ({ ui, el, dicter, nombre }) => {
+      let departs = 0;
+      const page = { montrerFichier() {}, fermer() {}, montrerMosaique() {}, remplirMiniature() {}, miniatureIllisible() {}, agrandirDepuisMosaique() {}, remettreCommeAuDepart: () => { departs++; } };
+      const v = visionneuseCap.brancher(ui.doc, { compte: { appeler: async () => ({ ok: true, blob: async () => new Blob(['FICTIF']) }), connecte: () => true },
+        visionneuse: async () => page, urls: fausseAdresses(), pdfjs: null });
+      await v.ouvrirVide();
+      const demande = el('confirmer-depart-visionneuse');
+      const ouvrirDemande = () => { el('bouton-menu-visionneuse').click(); el('menu-depart-visionneuse').click(); };
+      // « non » dit : rien.
+      ouvrirDemande();
+      attendre(!demande.hidden, 'question pas ouverte');
+      attendreEgal(dicter('non'), 'J’ai touché « Non » : rien n’a été fait.', '« non » dit');
+      attendreEgal([demande.hidden, departs], [true, 0], '« non » dit a remis à zéro, ou question restée');
+      // Phrase douteuse : rien, la question reste.
+      ouvrirDemande();
+      attendreEgal(dicter('oui mais attends'), 'Je ne suis pas sûr de ce que tu as dit : touche « Oui » ou « Non ». Rien n’a été fait.', 'doute');
+      attendreEgal([demande.hidden, departs], [false, 0], 'doute : quelque chose a été fait');
+      // « oui » dit : tout comme au départ.
+      attendreEgal(dicter('oui'), 'J’ai touché « Oui ».', '« oui » dit');
+      attendreEgal([demande.hidden, departs], [true, 1], '« oui » dit n’a pas remis à zéro');
+      // Question fermée : « oui » seul ne remet rien et n'est pas rangé dans « À trier ».
+      dicter('oui');
+      attendreEgal([departs, TACHES.length], [1, nombre], '« oui » hors question : remis à zéro ou rangé');
+      el('fermer-visionneuse').click();
+    });
+  });
+
+  await testAsync('Visionneuse, c161 (12/11/2026, FICTIF) : un petit micro sous « Oui » et « Non » de « ↺ » : visible, touchable, sous les deux boutons ; « non » dit avec CE micro ne change rien, « oui » dit avec CE micro remet tout ; caché avec la question', async c => {
+    await interfaceChoix(c, async ({ ui, el }) => {
+      let departs = 0;
+      const page = { montrerFichier() {}, fermer() {}, montrerMosaique() {}, remplirMiniature() {}, miniatureIllisible() {}, agrandirDepuisMosaique() {}, remettreCommeAuDepart: () => { departs++; } };
+      const v = visionneuseCap.brancher(ui.doc, { compte: { appeler: async () => ({ ok: true, blob: async () => new Blob(['FICTIF']) }), connecte: () => true },
+        visionneuse: async () => page, urls: fausseAdresses(), pdfjs: null });
+      await v.ouvrirVide();
+      const demande = el('confirmer-depart-visionneuse');
+      const micro = el('micro-depart-visionneuse');
+      const ouvrirDemande = () => { el('bouton-menu-visionneuse').click(); el('menu-depart-visionneuse').click(); };
+      const direAvecCeMicro = phrase => { Object.assign(ui.dictee, { disponible: () => true, enCours: () => false, arreter() {}, demarrer(r) { r.surFinal(phrase); if (r.surFin) r.surFin(); } }); micro.click(); };
+      ouvrirDemande();
+      attendre(!demande.hidden && demande.contains(micro), 'question pas ouverte, ou micro pas dedans');
+      attendre(touchable(ui, micro), 'micro pas touchable');
+      const rm = micro.getBoundingClientRect(); const rb = el('oui-depart-visionneuse').parentElement.getBoundingClientRect();
+      attendre(rm.top >= rb.bottom && Math.abs((rm.left + rm.right) / 2 - (rb.left + rb.right) / 2) < 3 && rm.width >= 44, `micro pas sous les boutons, au milieu : ${JSON.stringify([rm.top, rb.bottom, rm.left, rm.right, rb.left, rb.right])}`);
+      direAvecCeMicro('non');
+      attendreEgal([demande.hidden, departs], [true, 0], '« non » dit avec ce micro');
+      ouvrirDemande();
+      direAvecCeMicro('oui');
+      attendreEgal([demande.hidden, departs], [true, 1], '« oui » dit avec ce micro');
+      attendre(!touchable(ui, micro), 'micro encore touchable, question fermée');
+      el('fermer-visionneuse').click();
+    });
+  });
+
+  await testAsync('Visionneuse, c162 (12/11/2026, FAUX Drive FICTIF) : « Voir dans Cap » de la carte d’une relation ouvre SON dossier dans la visionneuse : photos et PDF du dossier et de ses sous-dossiers, en mosaïque, nom de la relation en titre, vidéos laissées au Lecteur ; dossier sans photo : message ; hors ligne : « Pas de réseau », rien lu ; lecture seule (GET) ; la carte appelle bien la visionneuse avec le dossier', async c => {
+    await interfaceChoix(c, async ({ ui, el }) => {
+      let mosaique = -1;
+      const page = { montrerFichier() {}, fermer() {}, montrerMosaique: n => { mosaique = n; }, remplirMiniature() {}, miniatureIllisible() {}, agrandirDepuisMosaique() {}, remettreCommeAuDepart() {} };
+      const dossiers = {
+        FICTIF_rel_annabelle_0123456789: [{ id: 'FICTIF_img_b', name: 'b FICTIF.jpg', mimeType: 'image/jpeg' }, { id: 'FICTIF_pdf_a', name: 'a FICTIF.pdf', mimeType: 'application/pdf' },
+          { id: 'FICTIF_video', name: 'film FICTIF.mp4', mimeType: 'video/mp4' }, { id: 'FICTIF_album_0123456789', name: 'album FICTIF', mimeType: 'application/vnd.google-apps.folder' }],
+        FICTIF_album_0123456789: [{ id: 'FICTIF_img_c', name: 'c FICTIF.png', mimeType: 'image/png' }],
+        FICTIF_rel_vide_0123456789: [{ id: 'FICTIF_texte', name: 'note FICTIVE.txt', mimeType: 'text/plain' }]
+      };
+      const demandes = [];
+      const compte = { connecte: () => true, appeler: async (adresse, options = {}) => {
+        const u = new URL(adresse); demandes.push([options.method || 'GET', u.pathname]);
+        const q = u.searchParams.get('q') || '';
+        const id = (q.match(/^'([^']+)' in parents/) || [])[1];
+        return { ok: true, status: 200, json: async () => ({ files: id ? (dossiers[id] || []) : [] }), blob: async () => new Blob(['FICTIF']) };
+      } };
+      let enLigne = true;
+      const v = visionneuseCap.brancher(ui.doc, { compte, visionneuse: async () => page, urls: fausseAdresses(), pdfjs: null, vignette: async () => 'data:,', enLigne: () => enLigne });
+      attendreEgal(await v.ouvrirDossier('FICTIF_rel_annabelle_0123456789', 'Annabelle FICTIVE'), true, 'dossier pas ouvert');
+      attendreEgal(mosaique, 3, 'photos et PDF (dossier + sous-dossier), sans la vidéo');
+      attendre(el('visionneuse-cap').open && el('visionneuse-cap').textContent.includes('Annabelle FICTIVE'), 'titre de la relation absent');
+      attendre(demandes.length >= 2 && demandes.every(([m]) => m === 'GET'), `pas en lecture seule : ${JSON.stringify(demandes)}`);
+      el('fermer-visionneuse').click();
+      mosaique = -1;
+      attendreEgal(await v.ouvrirDossier('FICTIF_rel_vide_0123456789', 'Vide FICTIF'), false, 'dossier sans photo');
+      attendre(el('etat-visionneuse').textContent.includes('Aucune photo ni PDF dans ce dossier'), `message : ${el('etat-visionneuse').textContent}`);
+      attendreEgal(mosaique, -1, 'mosaïque montrée pour un dossier vide');
+      el('fermer-visionneuse').click();
+      enLigne = false; const avant = demandes.length;
+      attendreEgal(await v.ouvrirDossier('FICTIF_rel_annabelle_0123456789', 'Annabelle FICTIVE'), false, 'hors ligne');
+      attendre(el('etat-visionneuse').textContent.includes('Pas de réseau') && demandes.length === avant, 'hors ligne : lu quand même, ou pas de message');
+      el('fermer-visionneuse').click();
+    });
+    // La carte : « Voir dans Cap » ferme la carte et demande à la visionneuse CE dossier.
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    memoireRelations.garder(st, [{ id: 'FICTIF_rel_annabelle_0123456789', nom: 'r_Annabelle FICTIVE' }], new Map());
+    carteCap.reglerStockage(() => st);
+    const vraieInstance = visionneuseCap.instance; const appels = [];
+    visionneuseCap.instance = { ouvrirDossier: async (id, titre) => { appels.push([id, titre]); return true; } };
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const el = id => ui.parId(id);
+    try {
+      attendre(carteCap.ouvrir(carteCap.trouver('annabelle').find(e => e.source === 'relations'), el('chercher-champ')), 'carte pas ouverte');
+      await attendreQue(() => el('carte-cap').open, 'carte pas ouverte');
+      el('carte-cap').getAnimations({ subtree: true }).forEach(a => a.finish());
+      const bouton = [...el('blocs-carte-cap').children].find(x => x.textContent === 'Voir dans Cap');
+      attendre(bouton && bouton.tagName === 'BUTTON', '« Voir dans Cap » absent');
+      bouton.scrollIntoView({ block: 'center' }); attendre(touchable(ui, bouton), '« Voir dans Cap » pas touchable');
+      bouton.click();
+      await attendreQue(() => !el('carte-cap').open, 'carte pas fermée');
+      attendreEgal(appels, [['FICTIF_rel_annabelle_0123456789', 'Annabelle FICTIVE']], 'visionneuse pas appelée avec le dossier');
+    } finally {
+      visionneuseCap.instance = vraieInstance;
+      carteCap.reglerStockage(() => (typeof localStorage !== 'undefined' ? localStorage : null));
+      if (el('carte-cap').open) el('carte-cap').close();
+    }
+  });
+
+  // ----- 11/11/2026 (c127, séance 6a) : un FAUX classeur .xlsx FICTIF fabriqué ici (zip, compressé ou non) -----
+  async function fauxXlsx(onglets, { compresser = true } = {}) {
+    const enc = new TextEncoder();
+    const echap = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const lettre = i => String.fromCharCode(65 + i);
+    const partages = [];
+    const idx = s => { let i = partages.indexOf(s); if (i < 0) { partages.push(s); i = partages.length - 1; } return i; };
+    const fichiers = {};
+    onglets.forEach(({ nom, lignes }, k) => {
+      const rows = lignes.map((l, r) => `<row r="${r + 1}">${l.map((x, ci) => {
+        const ref = `${lettre(ci)}${r + 1}`;
+        if (x === '' || x === null || x === undefined) return '';
+        if (typeof x === 'boolean') return `<c r="${ref}" t="b"><v>${x ? 1 : 0}</v></c>`;
+        if (typeof x === 'number') return `<c r="${ref}"><v>${x}</v></c>`;
+        if (ci % 2) return `<c r="${ref}" t="inlineStr"><is><t>${echap(x)}</t></is></c>`;
+        return `<c r="${ref}" t="s"><v>${idx(x)}</v></c>`;
+      }).join('')}</row>`).join('');
+      fichiers[`xl/worksheets/sheet${k + 1}.xml`] = `<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>${rows}</sheetData></worksheet>`;
+    });
+    fichiers['xl/workbook.xml'] = `<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${onglets.map((o, k) => `<sheet name="${echap(o.nom)}" sheetId="${k + 1}" r:id="rId${k + 1}"/>`).join('')}</sheets></workbook>`;
+    fichiers['xl/_rels/workbook.xml.rels'] = `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${onglets.map((o, k) => `<Relationship Id="rId${k + 1}" Target="worksheets/sheet${k + 1}.xml"/>`).join('')}</Relationships>`;
+    fichiers['xl/sharedStrings.xml'] = `<?xml version="1.0"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${partages.map(s => `<si><t>${echap(s)}</t></si>`).join('')}</sst>`;
+    const parts = [], central = [];
+    let decalage = 0;
+    for (const [nom, contenu] of Object.entries(fichiers)) {
+      const brut = enc.encode(contenu);
+      const donnees = compresser ? new Uint8Array(await new Response(new Blob([brut]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()) : brut;
+      const n = enc.encode(nom);
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034b50, true); h.setUint16(8, compresser ? 8 : 0, true); h.setUint32(18, donnees.length, true); h.setUint32(22, brut.length, true); h.setUint16(26, n.length, true);
+      const cd = new DataView(new ArrayBuffer(46));
+      cd.setUint32(0, 0x02014b50, true); cd.setUint16(10, compresser ? 8 : 0, true); cd.setUint32(20, donnees.length, true); cd.setUint32(24, brut.length, true); cd.setUint16(28, n.length, true); cd.setUint32(42, decalage, true);
+      parts.push(new Uint8Array(h.buffer), n, donnees);
+      central.push(new Uint8Array(cd.buffer), n);
+      decalage += 30 + n.length + donnees.length;
+    }
+    const tailleCentral = central.reduce((a, b) => a + b.length, 0);
+    const fin = new DataView(new ArrayBuffer(22));
+    fin.setUint32(0, 0x06054b50, true); fin.setUint16(8, Object.keys(fichiers).length, true); fin.setUint16(10, Object.keys(fichiers).length, true); fin.setUint32(12, tailleCentral, true); fin.setUint32(16, decalage, true);
+    return new Uint8Array(await new Blob([...parts, ...central, new Uint8Array(fin.buffer)]).arrayBuffer());
+  }
+  const TITRES_A_FAIRE_FICTIFS = ['Terminée ?', 'Domaine', 'Projet', 'Élément', 'Personne concernée', 'Tâche', 'Priorité', 'Date d’inscription', 'Jours restants', 'Date d’échéance', 'Notes / contexte', 'Chantier'];
+  const PRET_FICTIF = [TITRES_A_FAIRE_FICTIFS,
+    [false, 'Maison FICTIVE', '', '', '', 'Appeler le couvreur FICTIF', 'Haute', '', '', 46337, '', 'CH-908'],
+    [true, 'Maison FICTIVE', '', '', '', 'Tâche FICTIVE déjà faite', '', '', '', '', '', 'CH-908'],
+    ['', 'Maison FICTIVE', '', '', '', 'Commander les tuiles FICTIVES', 'Basse', '', '', '20/12/2026', '', 'CH-908 Bateau FICTIF'],
+    ['', 'Loisirs FICTIFS', '', '', '', 'Tâche FICTIVE sans chantier', '', '', '', '', '', ''],
+    ['VRAI', 'Loisirs FICTIFS', '', '', '', 'Autre tâche FICTIVE faite', '', '', '', '', '', 'ch-12'],
+    ['', '', '', '', '', '', '', '', '', '', '', 'CH-908']];
+
+  await testAsync('Chantiers, c127 (11/11/2026, séance 6a, FAUX classeur FICTIF) : l’onglet « Prêt » de « À faire » lu en LECTURE SEULE par le compte Cap (export .xlsx par drive/v3, retrouvé par son nom) ; tâches comptées par chantier CH-xxx (en cours, terminées) ; sans chantier comptées à part ; dates lues ; onglet absent, tableur absent ou en double : dit ; aucune écriture, rien gardé sur le téléphone ; l’API Sheets reste refusée au compte Cap', async () => {
+    for (const compresser of [true, false]) {
+      const octets = await fauxXlsx([{ nom: 'Autre onglet FICTIF', lignes: [['x']] }, { nom: 'Prêt', lignes: PRET_FICTIF }], { compresser });
+      const lignes = await chantiers.lireOngletXlsx(octets, 'Prêt');
+      attendreEgal(lignes[1][5], 'Appeler le couvreur FICTIF', `lecture de l’onglet (compressé : ${compresser})`);
+      attendreEgal(await chantiers.lireOngletXlsx(octets, 'Inexistant FICTIF'), null, 'onglet absent');
+    }
+    const r = chantiers.analyserPret(await chantiers.lireOngletXlsx(await fauxXlsx([{ nom: 'Prêt', lignes: PRET_FICTIF }]), 'Prêt'));
+    attendreEgal([...r.parChantier.keys()].sort(), ['CH-12', 'CH-908'], 'chantiers trouvés');
+    const b = r.parChantier.get('CH-908');
+    attendreEgal(b.enCours.map(x => [x.tache, x.priorite, x.echeance]), [['Appeler le couvreur FICTIF', 'Haute', '11/11/2026'], ['Commander les tuiles FICTIVES', 'Basse', '20/12/2026']], 'tâches en cours de CH-908');
+    attendreEgal([b.terminees, r.parChantier.get('CH-12').terminees, r.parChantier.get('CH-12').enCours.length, r.sansChantier], [1, 1, 0, 1], 'terminées et sans chantier');
+    // Par le compte Cap : recherche par nom, export .xlsx, aucune écriture, rien sur le téléphone.
+    const octets = await fauxXlsx([{ nom: 'Prêt', lignes: PRET_FICTIF }]);
+    const appels = [];
+    let fichiersVus = [{ id: 'FICTIF_a_faire_0123456789' }];
+    const compte = { connecte: () => true, appeler: async (url, options = {}) => {
+      appels.push([String(url), String(options.method || 'GET')]);
+      if (/\/export\?/.test(url)) return { ok: true, arrayBuffer: async () => octets.buffer.slice(octets.byteOffset, octets.byteOffset + octets.byteLength) };
+      return { ok: true, json: async () => ({ files: fichiersVus }) };
+    } };
+    const disqueAvant = JSON.stringify(Object.keys(localStorage).sort());
+    const lu = await chantiers.lirePret({ compteCap: compte, enLigne: () => true });
+    attendreEgal(lu.parChantier.get('CH-908').enCours.length, 2, 'lecture par le compte Cap');
+    attendre(appels.length === 2 && appels.every(([, m]) => m === 'GET') && /name%3D%27%C3%80\+faire%27/.test(appels[0][0]) && /FICTIF_a_faire_0123456789\/export\?mimeType=application%2Fvnd\.openxmlformats/.test(appels[1][0]), `appels : ${JSON.stringify(appels)}`);
+    attendreEgal(JSON.stringify(Object.keys(localStorage).sort()), disqueAvant, 'quelque chose gardé sur le téléphone');
+    fichiersVus = [];
+    await attendreRejet(() => chantiers.lirePret({ compteCap: compte, enLigne: () => true }), 'partage-le avec le compte Cap (lecture seule)');
+    fichiersVus = [{ id: 'a' }, { id: 'b' }];
+    await attendreRejet(() => chantiers.lirePret({ compteCap: compte, enLigne: () => true }), 'garde-en un seul');
+    await attendreRejet(() => chantiers.lirePret({ compteCap: { connecte: () => false }, enLigne: () => true }), 'pas connecté');
+    await attendreRejet(() => chantiers.lirePret({ compteCap: compte, enLigne: () => false }), 'Pas de réseau');
+    // Le code de lecture n'appelle que drive/v3 ; aucune écriture possible par ce chemin.
+    attendre(!/sheets\.googleapis|method:\s*'(POST|PUT|PATCH|DELETE)'|appelerEcriture/.test(SOURCE_CHANTIERS_TEST), 'chantiers.js parle à l’API Sheets ou écrit');
+  });
+
+  await testAsync('Chantiers, c128 (11/11/2026, séance 6b, FICTIF) : « Tâches » dans la fiche : les tâches du chantier dans « Prêt » (en cours : tâche, priorité, échéance ; nombre de terminées), dans la zone de résultat qui défile ; autre chantier : les siennes ou « Aucune tâche » ; erreur de lecture dite ; relu à chaque toucher ; rien écrit ; les quatre actions restent visibles', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    const pret = chantiers.analyserPret(await chantiers.lireOngletXlsx(await fauxXlsx([{ nom: 'Prêt', lignes: PRET_FICTIF }]), 'Prêt'));
+    let lectures = 0, panne = false;
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers,
+        lirePret: async () => { lectures++; if (panne) throw new Error('Je ne vois pas le tableur « À faire » : partage-le avec le compte Cap (lecture seule).'); return pret; } });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        attendre(el('taches-chantier').hidden, '« Tâches » sans chantier choisi');
+        dicter('le premier'); // Bateau FICTIF (CH-908)
+        const b = el('taches-chantier'), zone = el('resultat-chantier');
+        attendre(!b.hidden && b.textContent === 'Tâches' && touchable(ui, b), '« Tâches » absent ou pas touchable');
+        attendre(touchable(ui, el('lire-journal-chantier')) && touchable(ui, el('voir-documents-chantier')), 'les actions ne se touchent plus');
+        b.click();
+        await attendreQue(() => zone.querySelector('.taches-titre'), `tâches pas montrées : ${zone.textContent}`);
+        attendreEgal(zone.querySelector('.taches-titre').textContent, 'Tâches dans « Prêt » : 2 en cours, 1 terminée.', 'titre');
+        attendreEgal([...zone.querySelectorAll('.tache-ligne')].map(x => x.textContent), ['Appeler le couvreur FICTIF — priorité Haute — échéance 11/11/2026', 'Commander les tuiles FICTIVES — priorité Basse — échéance 20/12/2026'], 'lignes');
+        attendre(!zone.hidden && ui.cadre.contentWindow.getComputedStyle(zone).overflowY === 'auto', 'zone pas montrée ou ne défile pas');
+        // Relu à chaque toucher.
+        b.click();
+        await attendreQue(() => lectures === 2 && zone.querySelector('.taches-titre'), 'pas relu');
+        // Autre chantier sans tâche dans « Prêt ».
+        dicter('le deuxième');
+        attendre(zone.hidden || !zone.querySelector('.taches-titre'), 'tâches d’un autre chantier restées affichées');
+        el('taches-chantier').click();
+        await attendreQue(() => zone.textContent === 'Aucune tâche de ce chantier dans l’onglet « Prêt ».', `autre chantier : ${zone.textContent}`);
+        // Erreur de lecture : dite clairement.
+        panne = true;
+        el('taches-chantier').click();
+        await attendreQue(() => /partage-le avec le compte Cap/.test(zone.textContent), `erreur pas dite : ${zone.textContent}`);
+        attendreEgal(f.ecritures.length, 0, 'écriture');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Visionneuse, c129 (11/11/2026, FICTIF) : petit journal : la dernière ligne (la plus récente) toujours VISIBLE, même avec des notes longues, à l’ouverture et après chaque relecture (ajout d’une note)', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const page = { montrerFichier() {}, fermer() {}, montrerMosaique() {}, remplirMiniature() {}, miniatureIllisible() {}, agrandirDepuisMosaique() {} };
+    const v = visionneuseCap.brancher(ui.doc, { compte: { appeler: async () => ({ ok: true, blob: async () => new Blob(['FICTIF']) }), connecte: () => true },
+      visionneuse: async () => page, urls: fausseAdresses(), pdfjs: null, vignette: async () => new Blob(['m']) });
+    const longue = i => `11/11/2026 à 09 h ${i}0 — note FICTIVE assez longue pour passer sur deux ou trois lignes dans le petit journal du chantier, numéro ${i}`;
+    let lignes = [1, 2, 3, 4].map(longue).concat(['11/11/2026 à 16 h 00 — essai FICTIF']);
+    await v.ouvrir([{ id: 'FICTIF_1', sorte: 'image' }], { titre: 'Chantier FICTIF', lireJournal: async () => lignes });
+    const j = el('journal-visionneuse');
+    await attendreQue(() => !j.hidden && j.querySelectorAll('p').length === 5, 'journal');
+    const visibleEnBas = () => { const d = [...j.querySelectorAll('p')].pop().getBoundingClientRect(), r = j.getBoundingClientRect(); return d.bottom <= r.bottom + 0.5 && d.top >= r.top - 0.5; };
+    attendre(j.scrollHeight > j.clientHeight, 'notes pas assez longues (essai mal fait)');
+    attendre(visibleEnBas(), 'dernière ligne cachée à l’ouverture');
+    attendreEgal([...j.querySelectorAll('p')].pop().textContent, '11/11/2026 à 16 h 00 — essai FICTIF', 'la plus récente n’est pas en bas');
+    // Une note ajoutée : relecture ; la nouvelle (longue) est visible.
+    lignes = [2, 3, 4].map(longue).concat(['11/11/2026 à 16 h 00 — essai FICTIF', longue(9)]);
+    j.scrollTop = 0; // Max avait fait défiler vers le haut
+    await v.rafraichirJournal();
+    attendreEgal([...j.querySelectorAll('p')].pop().textContent, longue(9), 'nouvelle ligne pas en bas');
+    attendre(visibleEnBas(), 'nouvelle ligne cachée après la relecture');
+    el('fermer-visionneuse').click();
+  });
+
+  await testAsync('Chantiers, c130 (11/11/2026, FICTIF, défaut vu par Max : EMPILEMENT) : la fiche d’un chantier est un ÉCRAN À PART : la liste, les compteurs et leurs boutons ne restent pas derrière, aucune couche qui défile pour rien ; transition « rien puis sable » ; « Fermer » ramène à la liste, puis ferme ; la voix choisit toujours dans la liste cachée (« le deuxième »), sauf pendant une question', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, lirePret: async () => ({ parChantier: new Map() }), maintenant: () => new Date(2026, 10, 11, 17, 0).getTime() });
+      const vue = ui.cadre.contentWindow;
+      const affiche_ = id => { const x = el(id); return Boolean(x && !x.hidden && x.getClientRects().length && vue.getComputedStyle(x).display !== 'none'); };
+      const dlg = el('chantiers-cap');
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        attendre(affiche_('liste-chantiers') && affiche_('compteurs-chantiers'), 'la liste n’est pas montrée au départ');
+        // 1. Liste → fiche : plus rien de la liste derrière, pas de couche qui défile pour rien.
+        dicter('le premier');
+        attendre(affiche_('fiche-chantier'), 'fiche pas montrée');
+        for (const id of ['liste-chantiers', 'compteurs-chantiers', 'compteur-prompts', 'note-chantiers']) attendre(!affiche_(id), `« ${id} » reste derrière la fiche`);
+        attendre(dlg.scrollHeight <= dlg.clientHeight + 1, `couche qui défile pour rien : ${dlg.scrollHeight} pour ${dlg.clientHeight}`);
+        attendre(el('fiche-chantier').getBoundingClientRect().top < 120, 'fiche pas en haut');
+        // 2. La voix choisit toujours dans la liste cachée.
+        const avant = el('fiche-chantier').textContent;
+        dicter('le deuxième');
+        attendre(affiche_('fiche-chantier') && el('fiche-chantier').textContent !== avant && !affiche_('liste-chantiers'), `« le deuxième » ne choisit plus : ${el('fiche-chantier').textContent}`);
+        dicter('le premier');
+        attendreEgal(el('fiche-chantier').textContent, avant, '« le premier » ne revient pas au premier');
+        // Pendant une question (note à ajouter), « le deuxième » ne change PAS de chantier.
+        dicter('ajoute au journal, note FICTIVE c130');
+        attendre(dlg.classList.contains('mode-confirmation'), 'pas de question (essai mal fait)');
+        dicter('le deuxième');
+        attendreEgal(el('fiche-chantier').textContent, avant, 'la voix a changé de chantier pendant une question');
+        dicter('non');
+        attendreEgal(f.ecritures.length, 0, 'écrit');
+        // 3. « Fermer » : retour à la liste (fenêtre ouverte) ; encore « Fermer » : fenêtre fermée.
+        el('fermer-chantiers').click();
+        attendre(dlg.open && affiche_('liste-chantiers') && affiche_('compteurs-chantiers') && !affiche_('fiche-chantier') && !affiche_('taches-chantier') && !affiche_('resultat-chantier'), '« Fermer » ne ramène pas à la liste propre');
+        el('fermer-chantiers').click();
+        await attendreQue(() => !dlg.open, '« Fermer » depuis la liste ne ferme pas');
+        // 4. Rouverte : la liste, jamais une ancienne fiche.
+        ecran.ouvrir();
+        await attendreQue(() => affiche_('liste-chantiers'), 'liste pas montrée à la réouverture');
+        attendre(!affiche_('fiche-chantier') && !dlg.classList.contains('fiche-ouverte'), 'ancienne fiche restée à la réouverture');
+        // 5. Transition (animations non réduites) : l'écran d'avant part en fondu (copie fantôme), puis le nouveau monte.
+        vue.matchMedia = q => ({ matches: false, addEventListener() {}, removeEventListener() {} });
+        await new Promise(r => setTimeout(r, 1600));
+        el('liste-chantiers').querySelector('.ligne-chantier').click();
+        attendre(ui.doc.querySelector('.choix-fantome'), 'pas de fondu de l’écran d’avant');
+        await new Promise(r => setTimeout(r, 700));
+        attendre(!ui.doc.querySelector('.choix-fantome') && affiche_('fiche-chantier'), 'fondu resté, ou fiche absente');
+        el('fermer-chantiers').click();
+        attendre(ui.doc.querySelector('.choix-fantome'), 'pas de fondu au retour à la liste');
+        await new Promise(r => setTimeout(r, 700));
+        attendre(affiche_('liste-chantiers'), 'liste absente après le retour');
+        vue.matchMedia = q => ({ matches: /reduce/.test(q), addEventListener() {}, removeEventListener() {} });
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c131 (11/11/2026, FICTIF) : recherche dans la liste : n’importe où dans le nom, sans majuscules ni accents ; champ vide = liste complète ; rien trouvé = « Aucun chantier trouvé » ; aucune relecture, rien écrit ; la fiche cache le champ', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, lirePret: async () => ({ parChantier: new Map() }) });
+      const champ = el('recherche-chantiers'), msg = el('message-recherche-chantiers');
+      const lignes = () => [...el('liste-chantiers').querySelectorAll('.ligne-chantier .nom-morceau')].map(x => x.textContent);
+      const taper = txt => { champ.value = txt; champ.dispatchEvent(new Event('input')); };
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => lignes().length > 3, 'liste pas montrée');
+        const tout = lignes();
+        attendre(champ.getClientRects().length > 0 && msg.hidden, 'champ pas montré au départ');
+        taper('haie');
+        attendreEgal(lignes(), ['Haie FICTIVE'], 'recherche « haie »');
+        taper('ALLEE');
+        attendreEgal(lignes(), ['Allée FICTIVE'], 'recherche sans accents ni majuscules');
+        taper('fictive');
+        attendre(lignes().length > 1 && lignes().every(x => /fictive/i.test(x)), 'recherche « fictive » : résultats faux');
+        taper('zzzz');
+        attendreEgal([lignes().length, msg.hidden, msg.textContent], [0, false, 'Aucun chantier trouvé'], 'rien trouvé');
+        taper('');
+        attendreEgal(lignes(), tout, 'champ vide : liste complète pas revenue');
+        attendre(msg.hidden, 'message resté quand le champ est vide');
+        // La fiche cache le champ ; revenir à la liste le remontre.
+        taper('haie');
+        el('liste-chantiers').querySelector('.ligne-chantier').click();
+        attendre(el('chantiers-cap').classList.contains('fiche-ouverte') && champ.getClientRects().length === 0, 'champ visible sur la fiche');
+        el('fermer-chantiers').click();
+        attendreEgal(champ.getClientRects().length > 0, true, 'champ pas revenu à la liste');
+        attendreEgal(f.ecritures.length, 0, 'écrit');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c132 (11/11/2026, FICTIF) : avec la recherche active, « numéro N » désigne le N-ième chantier de la LISTE COMPLÈTE (numéro affiché = le même), la fiche s’ouvre même si le filtre cache ce chantier ; hors liste : « il n’y a que N » ; rien d’autre ne change', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, lirePret: async () => ({ parChantier: new Map() }) });
+      const champ = el('recherche-chantiers');
+      const noms = () => [...el('liste-chantiers').querySelectorAll('.ligne-chantier .nom-morceau')].map(x => x.textContent);
+      const numeros = () => [...el('liste-chantiers').querySelectorAll('.ligne-chantier .numero-morceau')].map(x => x.textContent);
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => noms().length > 3, 'liste pas montrée');
+        const complete = noms();
+        const cible = complete.find(n => !/fictive/i.test(n)); // un chantier que le filtre « fictive » cache
+        const rang = complete.indexOf(cible) + 1;
+        // Filtre : seulement quelques noms « fictive » ; le 4e n'est pas forcément affiché.
+        champ.value = 'fictive'; champ.dispatchEvent(new Event('input'));
+        attendre(noms().length < complete.length && !noms().includes(cible), 'filtre mal fait (essai mal fait)');
+        attendreEgal(numeros(), noms().map((x, i) => String(i + 1)), 'numéros affichés : rang dans la liste affichée (comme avant)');
+        // « le deuxième » = le deuxième AFFICHÉ (pas la liste complète).
+        dicter('le deuxième');
+        attendre(el('fiche-chantier').textContent.includes(noms()[1]), `le deuxième ne désigne pas le 2e affiché : ${el('fiche-chantier').textContent}`);
+        el('fermer-chantiers').click();
+        champ.value = 'fictive'; champ.dispatchEvent(new Event('input'));
+        // « numéro 4 » : le 4e de la liste complète, fiche ouverte.
+        dicter(`numéro ${rang}`);
+        attendre(el('fiche-chantier').textContent.includes(cible), `mauvais chantier : ${el('fiche-chantier').textContent.slice(0,50)} (attendu ${cible}, rang ${rang}, dit « numéro ${rang} », complète ${complete.slice(0,6).join(' | ')}, affichés ${noms().join(' | ')})`);
+        el('fermer-chantiers').click();
+        // Hors liste : message, aucune fiche.
+        champ.value = 'fictive'; champ.dispatchEvent(new Event('input'));
+        const total = complete.length;
+        attendreEgal(dicter(`numéro ${total + 5}`), `Il n’y a que ${total} chantiers : dis un numéro de 1 à ${total}.`, 'hors liste');
+        // Rien d'autre ne change : recherche vide, « le premier » marche comme avant.
+        champ.value = ''; champ.dispatchEvent(new Event('input'));
+        dicter('le premier');
+        attendre(el('fiche-chantier').textContent.includes(complete[0]), `le premier : fiche « ${el('fiche-chantier').textContent.slice(0,60)} » ; attendu ${complete[0]} ; affichés ${noms().length}/${complete.length} ; champ « ${champ.value} »`);
+        attendreEgal(f.ecritures.length, 0, 'écrit');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Chantiers, c97 (10/11/2026, FICTIF, demande de Max) : sur un PETIT écran (360 × 640), nom de chantier très long : les 4 actions « Note », « Journal », « Documents », « Drive » en 2 × 2, identiques, toutes visibles et touchables SANS défiler ; le bloc du haut ne défile plus lui-même ; une seule zone de résultat ; « Note » ouvre le champ ; rien pour un chantier sans dossier', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const lignes = LISTE_CHANTIERS_FICTIVE.map(x => x.slice());
+    lignes.find(x => x[0] === 'Bateau FICTIF')[0] = `Bateau ${'avec un nom de chantier FICTIF très très long '.repeat(8).trim()}`;
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(lignes))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f, 'CH-908', 'Bateau FICTIF', JOURNAL_FICTIF_7);
+    documentsFictifs(f, 60);
+    await interfaceChoix(c, async ({ ui, el, dicter }) => {
+      ui.cadre.style.width = '360px';
+      ui.cadre.style.height = '640px';
+      const vue = ui.cadre.contentWindow;
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, maintenant: () => new Date(2026, 10, 10, 9, 0).getTime() });
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+        dicter('le deuxième'); // sans dossier
+        attendre(el('actions-chantier').hidden, 'actions pour un chantier sans dossier');
+        dicter('le premier'); // le chantier au nom très long, avec dossier
+        const ids = ['ouvrir-note-chantier', 'lire-journal-chantier', 'voir-documents-chantier', 'ouvrir-dossier-chantier'];
+        attendreEgal(ids.map(id => el(id).textContent), ['Note', 'Journal', 'Documents', 'Drive'], 'mots des boutons');
+        const visibleSansDefiler = (n, quoi) => { const r = n.getBoundingClientRect(); attendre(r.top >= 0 && r.bottom <= vue.innerHeight + 0.5 && r.height > 30, `${quoi} hors de l’écran sans défiler : ${JSON.stringify(r)} (écran ${vue.innerHeight})`); };
+        const r = ids.map(id => el(id).getBoundingClientRect());
+        attendre(Math.abs(r[0].top - r[1].top) < 1 && Math.abs(r[2].top - r[3].top) < 1 && r[2].top > r[0].bottom - 1
+          && r.every(x => Math.abs(x.width - r[0].width) < 1 && Math.abs(x.height - r[0].height) < 1), `pas une grille 2 × 2 identique : ${JSON.stringify(r)}`);
+        for (const id of ids) { visibleSansDefiler(el(id), id); attendre(touchable(ui, el(id)), `${id} pas touchable`); }
+        attendre(vue.getComputedStyle(el('haut-chantier')).overflowY === 'visible', 'le bloc du haut défile encore lui-même');
+        attendre(el('zone-note-chantier').hidden, 'champ de note ouvert d’office');
+        // Journal, puis Documents : la MÊME zone, visible sans défiler.
+        el('lire-journal-chantier').click();
+        const zone = el('resultat-chantier');
+        await attendreQue(() => zone.querySelectorAll('.journal-ligne').length === 5, `journal : ${zone.textContent.slice(0, 80)}`);
+        visibleSansDefiler(zone, 'zone de résultat (journal)');
+        el('voir-documents-chantier').click();
+        await attendreQue(() => zone.querySelectorAll('.documents-nom').length === 40, // c109 : 40 cases (avant : 10 noms)
+        `documents : ${zone.textContent.slice(0, 80)}`);
+        attendre(!zone.querySelector('.journal-ligne'), 'journal resté dans la zone');
+        visibleSansDefiler(zone, 'zone de résultat (documents)');
+        attendre(zone.scrollHeight > zone.clientHeight && vue.getComputedStyle(zone).overflowY === 'auto', 'la zone de résultat ne défile pas');
+        attendre(!el('lignes-journal-chantier') && !el('documents-chantier'), 'les deux anciennes zones de résultat existent encore');
+        // « Note » : le champ s'ouvre, la zone de résultat se ferme ; le bouton d'ajout reste visible sans défiler.
+        el('ouvrir-note-chantier').click();
+        attendre(!el('zone-note-chantier').hidden && zone.hidden, '« Note » : champ fermé ou résultat resté');
+        visibleSansDefiler(el('ajouter-note-chantier'), '« Ajouter une note au journal »');
+        el('ouvrir-note-chantier').click();
+        attendre(el('zone-note-chantier').hidden, '« Note » ne referme pas le champ');
+        attendreEgal(f.ecritures.length, 0, 'écrit quelque chose');
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  // ----- 10/11/2026 (accord de Max, c98) : « Tout synchroniser », FICTIF -----
+  function compteSynchroFictif(f, { connecte = true, retour = false } = {}) {
+    let etat = connecte;
+    const appels = { seConnecter: 0 };
+    return Object.assign(Object.create(f), f, { appels,
+      adresse: () => 'compte-cap-fictif@exemple.invalid', connecte: () => etat, minutesRestantes: () => (etat ? 50 : 0),
+      retourRecent: () => retour, message: () => 'refus FICTIF', seConnecter: () => { appels.seConnecter++; },
+      devenirConnecte() { etat = true; retour = true; } });
+  }
+  function driveSynchroFictif() {
+    const f = fauxCompteCapDossiers();
+    const D = 'application/vnd.google-apps.folder';
+    const G = 'application/vnd.google-apps.document';
+    // Un chantier « à l'ancienne » (journal avec sa ligne, sans « Documents ») et un journal de relation sans sa ligne.
+    f.fichiers.push({ id: 'FICTIF_racine_0123456789', name: 'Chantiers', mimeType: D, parents: ['root'], appProperties: { cap_chantiers_racine: '1' }, createdTime: '2026-11-10T13:30:00.000Z' },
+      { id: 'FICTIF_dossier_ancien_0123456789', name: 'Ancien FICTIF', mimeType: D, parents: ['FICTIF_racine_0123456789'], appProperties: { cap_chantier: 'CH-801' }, createdTime: '2026-11-10T13:31:00.000Z' },
+      { id: 'FICTIF_journal_ancien_0123456789', name: 'Journal de bord', mimeType: G, parents: ['FICTIF_dossier_ancien_0123456789'], appProperties: { cap_chantier_journal: 'CH-801' }, createdTime: '2026-11-10T13:31:30.000Z' });
+    f.textes.set('FICTIF_journal_ancien_0123456789', `${chantiersDossiers.texteLigne('CH-801', '2026-11-10T13:31:00.000Z')}\n`);
+    const { alpha } = relationsFictives(f);
+    f.fichiers.push({ id: 'FICTIF_racine_journaux_0123456789', name: 'Journaux des relations', mimeType: D, parents: ['root'], appProperties: { cap_relations_journaux: '1' }, createdTime: '2026-11-10T14:00:00.000Z' },
+      { id: 'FICTIF_journal_alpha_0123456789', name: 'Journal – FICTIF Alpha', mimeType: G, parents: ['FICTIF_racine_journaux_0123456789'], appProperties: { cap_relation_journal: alpha.id }, createdTime: '2026-11-10T14:01:00.000Z' });
+    f.textes.set('FICTIF_journal_alpha_0123456789', '\n');
+    return f;
+  }
+  const listeSynchroFictive = { lire: async () => ({ chantiers: [{ id: 'CH-801', nom: 'Ancien FICTIF' }, { id: 'CH-802', nom: 'Autre FICTIF' }] }) };
+
+  test('Page (10/11/2026, c101) : AUCUN identifiant en double dans toute la page (index.html)', () => {
+    const page = new DOMParser().parseFromString(SOURCE_HTML, 'text/html');
+    const vus = new Map();
+    for (const n of page.querySelectorAll('[id]')) vus.set(n.id, (vus.get(n.id) || 0) + 1);
+    const doubles = [...vus].filter(([, k]) => k > 1).map(([id, k]) => `${id} (${k})`);
+    attendreEgal(doubles, [], 'identifiants en double');
+  });
+
+  await testAsync('Tout synchroniser, c101 (10/11/2026, FICTIF) : une erreur inattendue s’écrit en clair (« La synchronisation s’est arrêtée : … »), jamais une fenêtre vide ; zone de texte absente : créée', async c => {
+    await interfaceChoix(c, async ({ ui, el }) => {
+      el('texte-synchro-tout').remove();
+      const compte = { adresse: () => { throw new Error('panne FICTIVE'); }, connecte: () => true };
+      const s = synchroTout.brancher(ui.doc, { compteCap: compte, liste: () => null, stockage: null });
+      attendre(el('synchro-tout').querySelector('#texte-synchro-tout'), 'zone de texte pas créée');
+      const texte = await s.lancer();
+      attendre(el('synchro-tout').open && /La synchronisation s’est arrêtée : panne FICTIVE/.test(texte) && /panne FICTIVE/.test(el('texte-synchro-tout').textContent), `erreur : ${texte}`);
+      attendre(el('texte-synchro-tout').getBoundingClientRect().height > 0, 'texte invisible');
+      el('synchro-tout').close();
+    });
+  });
+
+  test('Tout synchroniser, c98 (10/11/2026) : la marque « synchro en cours » vaut 10 minutes', () => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    attendre(!synchroTout.retourEnAttente(st, 1000), 'marque sans rien');
+    st.setItem(synchroTout.CLE_RETOUR, JSON.stringify({ quand: 1000 }));
+    attendre(synchroTout.retourEnAttente(st, 1000 + 9 * 60 * 1000), 'marque de 9 minutes refusée');
+    attendre(!synchroTout.retourEnAttente(st, 1000 + 11 * 60 * 1000), 'marque de 11 minutes acceptée');
+  });
+
+  await testAsync('Tout synchroniser, c98 (10/11/2026, FAUX Drive FICTIF) : compte connecté : 1) connexion, 2) lectures (Liste, dossiers, journaux), 3) la LISTE COMPLÈTE (chantiers et relations) puis UN Oui ; « Non » : rien ; « Oui » : mise à niveau ; relancé : rien à changer, aucun doublon', async c => {
+    await interfaceChoix(c, async ({ ui, el }) => {
+      const f = driveSynchroFictif();
+      const compte = compteSynchroFictif(f);
+      const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+      const s = synchroTout.brancher(ui.doc, { compteCap: compte, liste: () => listeSynchroFictive, stockage: st, maintenant: () => new Date(2026, 10, 10, 21, 30).getTime() });
+      const texte = await s.lancer();
+      attendre(el('synchro-tout').open && /1\. Compte Cap connecté\./.test(texte) && /2\. Liste des chantiers relue : 2 chantiers\./.test(texte)
+        && /Dossiers de chantier : 1\./.test(texte) && /Journaux des relations : 1\./.test(texte), `étapes : ${texte}`);
+      attendre(/• Chantier « Ancien FICTIF » : créer le sous-dossier « Documents »/.test(texte) && /• Relation « Journal – FICTIF Alpha » : ajouter « Journal ouvert par Cap le .* pour le dossier « r_FICTIF Alpha »\. »/.test(texte) && /Je le fais \?$/.test(texte), `liste : ${texte}`);
+      attendre(el('synchro-tout').classList.contains('mode-confirmation') && !el('oui-synchro-tout').hidden, 'pas de question');
+      attendreEgal(f.ecritures.length, 0, 'écrit avant le Oui');
+      el('non-synchro-tout').click();
+      attendre(/Rien n’a été changé\.$/.test(el('texte-synchro-tout').textContent) && f.ecritures.length === 0, '« Non »');
+      await s.lancer();
+      el('oui-synchro-tout').click();
+      await attendreQue(() => /Synchronisé à 21 h 30\.$/.test(el('texte-synchro-tout').textContent), `pas fini : ${el('texte-synchro-tout').textContent}`);
+      attendre(/Chantiers mis à niveau : 1\./.test(el('texte-synchro-tout').textContent) && /Journaux des relations mis à niveau : 1\./.test(el('texte-synchro-tout').textContent), 'résultats');
+      attendreEgal(f.fichiers.filter(x => x.appProperties.cap_chantier_documents === 'CH-801').length, 1, '« Documents » pas créé');
+      attendre(/^Journal ouvert par Cap le /.test(f.textes.get('FICTIF_journal_alpha_0123456789').trim()), 'ligne du journal de relation absente');
+      const apres = f.ecritures.length;
+      const t2 = await s.lancer();
+      attendre(/3\. Mise à niveau : rien à changer\.\nSynchronisé à 21 h 30\.$/.test(t2) && f.ecritures.length === apres, `relance : ${t2}`);
+      attendreEgal(compte.appels.seConnecter, 0, 'Google ouvert alors que le compte était connecté');
+      // c101 : la zone de l'écran Réglages (même ancien nom) reste INTACTE.
+      for (const id of ['texte-etat-google', 'dernier-envoi', 'synchroniser-maintenant', 'connexion-google', 'ouvrir-reglages-drive']) attendre(el(id) && el(id).closest('#etat-synchro'), `zone des Réglages abîmée : ${id}`);
+      el('synchro-tout').close();
+    });
+  });
+
+  await testAsync('Tout synchroniser, c98 (10/11/2026, FAUX Drive FICTIF) : compte pas connecté : marque posée, Google ouvert UNE fois ; au retour, Cap REPREND tout seul (marque effacée) ; retour sans connexion : message, pas de nouvelle ouverture de Google (aucune boucle)', async c => {
+    await interfaceChoix(c, async ({ ui, el }) => {
+      const f = driveSynchroFictif();
+      const compte = compteSynchroFictif(f, { connecte: false });
+      const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+      const attente = [];
+      const s = synchroTout.brancher(ui.doc, { compteCap: compte, liste: () => listeSynchroFictive, stockage: st, minuteur: fn => attente.push(fn), maintenant: () => Date.now() });
+      const texte = await s.lancer();
+      attendre(/Google va s’ouvrir\. Valide-le toi-même/.test(texte) && synchroTout.retourEnAttente(st, Date.now()), `départ : ${texte}`);
+      attente.forEach(fn => fn());
+      attendreEgal(compte.appels.seConnecter, 1, 'Google pas ouvert une fois');
+      // Retour de Google, connecté : reprise.
+      compte.devenirConnecte();
+      attendre(s.reprendreSiRetour(), 'pas de reprise');
+      await attendreQue(() => /Je le fais \?$/.test(el('texte-synchro-tout').textContent), `reprise : ${el('texte-synchro-tout').textContent}`);
+      attendre(!synchroTout.retourEnAttente(st, Date.now()), 'marque pas effacée');
+      attendre(!s.reprendreSiRetour(), 'reprise deux fois');
+      el('non-synchro-tout').click();
+      // Retour sans connexion : message, pas de boucle.
+      const g = compteSynchroFictif(f, { connecte: false, retour: true });
+      st.setItem(synchroTout.CLE_RETOUR, JSON.stringify({ quand: Date.now() }));
+      const s2 = synchroTout.brancher(ui.doc, { compteCap: g, liste: () => listeSynchroFictive, stockage: st, minuteur: fn => attente.push(fn) });
+      attente.length = 0;
+      s2.reprendreSiRetour();
+      await attendreQue(() => /La connexion du compte Cap n’a pas abouti : refus FICTIF/.test(el('texte-synchro-tout').textContent), `échec : ${el('texte-synchro-tout').textContent}`);
+      attendreEgal([attente.length, g.appels.seConnecter], [0, 0], 'Google rouvert : boucle');
+      el('synchro-tout').close();
+    });
+  });
+
+  // ----- 12/11/2026 (accord de Max, c150, A1 de la « carte complète ») : mémoire des relations sur le téléphone, FICTIF -----
+  await testAsync('Mémoire des relations, c150 (12/11/2026, FAUX Drive FICTIF, A1) : « Tout synchroniser » et « Journaux des relations » gardent SUR LE TÉLÉPHONE, pour chaque dossier « r_… », le nom, l’identifiant du dossier et celui du journal (vide s’il n’y en a pas) ; « R_ » ignoré ; un dossier ajouté apparaît à la synchro suivante ; lecture ratée : ancienne mémoire gardée ; rien n’est affiché de plus ; rien écrit dans le Drive', async c => {
+    const attendu = [
+      { nom: 'FICTIF Alpha', nomDossier: 'r_FICTIF Alpha', idDossier: 'FICTIF_rel_alpha_0123456789', idJournal: 'FICTIF_journal_alpha_0123456789' },
+      { nom: 'FICTIF Beta', nomDossier: 'r_FICTIF Beta', idDossier: 'FICTIF_rel_beta_0123456789', idJournal: '' }];
+    await interfaceChoix(c, async ({ ui, el }) => {
+      const f = driveSynchroFictif();
+      const compte = compteSynchroFictif(f);
+      const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+      attendreEgal(memoireRelations.lire(st), null, 'mémoire avant la synchro');
+      const s = synchroTout.brancher(ui.doc, { compteCap: compte, liste: () => listeSynchroFictive, stockage: st, maintenant: () => new Date(2026, 10, 12, 9, 10).getTime() });
+      const texte = await s.lancer();
+      const copie = memoireRelations.lire(st);
+      attendre(copie, `rien gardé : ${texte}`);
+      attendreEgal(copie.relations, attendu, 'mémoire après « Tout synchroniser »');
+      attendreEgal(copie.quand, new Date(2026, 10, 12, 9, 10).getTime(), 'heure de la mémoire');
+      attendre(!/FICTIF Beta|Mémoire|mémoire/.test(texte), `quelque chose de plus est affiché : ${texte}`);
+      attendreEgal(f.ecritures.length, 0, 'écrit dans le Drive');
+      el('non-synchro-tout').click();
+      // Un dossier « r_… » créé plus tard : présent après la synchro suivante, sans rien changer d'autre.
+      f.fichiers.push({ id: 'FICTIF_rel_delta_0123456789', name: 'r_FICTIF Delta', mimeType: 'application/vnd.google-apps.folder', parents: ['FICTIF_relations_0123456789'], appProperties: {}, createdTime: '2026-11-12T08:00:00.000Z' });
+      await s.lancer();
+      attendreEgal(memoireRelations.lire(st).relations.map(r => r.nom), ['FICTIF Alpha', 'FICTIF Beta', 'FICTIF Delta'], 'dossier ajouté absent après la synchro');
+      el('non-synchro-tout').click();
+      // Lecture ratée (dossier « Relations » en double) : l'ancienne mémoire reste.
+      const avant = st.getItem(memoireRelations.CLE);
+      f.fichiers.push({ id: 'FICTIF_relations_bis_0123456789', name: 'Relations', mimeType: 'application/vnd.google-apps.folder', parents: ['root'], appProperties: {}, createdTime: '2026-11-12T08:00:00.000Z' });
+      await s.lancer();
+      attendreEgal(st.getItem(memoireRelations.CLE), avant, 'mémoire vidée ou changée par une lecture ratée');
+      if (!el('non-synchro-tout').hidden) el('non-synchro-tout').click();
+      el('synchro-tout').close();
+    });
+    // « Journaux des relations » : même mémoire à l'ouverture.
+    const g = fauxCompteCapDossiers();
+    relationsFictives(g);
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const m2 = new Map(); const st2 = { getItem: k => (m2.has(k) ? m2.get(k) : null), setItem: (k, v) => m2.set(k, String(v)) };
+    const ecran = journauxRelationsEcran.brancher(ui.doc, { compteCap: g, stockage: st2, enLigne: () => true });
+    await ecran.ouvrir();
+    attendreEgal(memoireRelations.lire(st2).relations.map(r => [r.nom, r.idDossier, r.idJournal]),
+      [['FICTIF Alpha', 'FICTIF_rel_alpha_0123456789', ''], ['FICTIF Beta', 'FICTIF_rel_beta_0123456789', '']], 'mémoire à l’ouverture de « Journaux des relations »');
+    attendreEgal(g.ecritures.length, 0, 'écrit dans le Drive');
+    ecran.fermer();
+    // Pièces sans DOM.
+    attendreEgal(memoireRelations.construire([{ id: 'x', nom: 'r_FICTIF X' }, { id: 'y', nom: 'Autre FICTIF' }, { nom: 'r_FICTIF sans id' }], new Map([['x', { id: 'jx' }]]), 5).relations,
+      [{ nom: 'FICTIF X', nomDossier: 'r_FICTIF X', idDossier: 'x', idJournal: 'jx' }], 'construire');
+    attendreEgal(memoireRelations.garder({ setItem() { throw new Error('plein'); } }, [], new Map()), null, 'mémoire pleine : pas d’erreur');
+    attendreEgal(memoireRelations.lire({ getItem: () => '{pas du json' }), null, 'copie illisible');
+  });
+
+  // ----- 12/11/2026 (accord de Max, c153, A4) : écarts Dictionnaire / dossiers « r_… », en nombres seulement, FICTIF -----
+  await testAsync('Tout synchroniser, c153 (12/11/2026, FAUX Drive et FAUX Dictionnaire FICTIFS, A4) : une ligne dit combien de dossiers « r_ » n’ont pas de ligne dans le Dictionnaire et combien de lignes n’ont pas de dossier (même règle de nom, diminutif compris ; homonymes = deux lignes ; organismes et fiches incomplètes pas comptés), en NOMBRES seulement, aucun nom ; compte personnel pas connecté, Dictionnaire pas choisi, lecture ratée : Cap le dit ; rien gardé ni écrit', async c => {
+    const dico = [['Prénom', 'Nom', 'Type'], ['FICTIF', 'Alpha', 'Personne'], ['Bernard (FICTIF)', 'Beta', 'Personne'], ['FICTIF', 'Omega', 'Personne'],
+      ['FICTIF', 'Sigma', 'Personne'], ['FICTIF', 'Sigma', 'Personne'], ['Organisme FICTIF', '', 'Organisme'], ['FICTIF', '', 'Personne']];
+    attendreEgal(relations.ecarts(dico, ['r_FICTIF Alpha', 'r_FICTIF Beta', 'r_FICTIF Delta', 'Autre FICTIF']), { dossiersSansLigne: 1, lignesSansDossier: 3 }, 'écarts (pièce sans DOM)');
+    attendreEgal(relations.ecarts(dico, ['r_fictif ALPHA', 'r_FICTIF Beta', 'r_FICTIF Omega', 'r_FICTIF Sigma']), { dossiersSansLigne: 0, lignesSansDossier: 0 }, 'tout colle (majuscules)');
+    await interfaceChoix(c, async ({ ui, el }) => {
+      const f = driveSynchroFictif(); // dossiers r_FICTIF Alpha et r_FICTIF Beta
+      f.fichiers.push({ id: 'FICTIF_rel_delta_0123456789', name: 'r_FICTIF Delta', mimeType: 'application/vnd.google-apps.folder', parents: ['FICTIF_relations_0123456789'], appProperties: {}, createdTime: '2026-11-12T08:00:00.000Z' });
+      const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+      let connecte = true; let lecture = async () => dico;
+      const s = synchroTout.brancher(ui.doc, { compteCap: compteSynchroFictif(f), liste: () => listeSynchroFictive, stockage: st, maintenant: () => new Date(2026, 10, 12, 10, 0).getTime(),
+        dictionnaire: () => ({ connecte: () => connecte, lire: () => lecture() }) });
+      const ligneEcarts = t => (String(t).split('\n').find(l => /Relations et Dictionnaire/.test(l)) || '');
+      let texte = await s.lancer();
+      attendreEgal(ligneEcarts(texte), '   Relations et Dictionnaire : 1 dossier « r_ » sans ligne dans le Dictionnaire, 3 lignes sans dossier.', `ligne des écarts : ${texte}`);
+      attendre(!/Omega|Delta|Sigma|Bernard/.test(texte), 'un nom est affiché');
+      attendre(![...m.entries()].some(([k, v]) => (k === coordonneesRelations.CLE ? /Omega|Sigma/ : /Omega|Sigma|Bernard/).test(v)), 'le Dictionnaire est gardé sur le téléphone hors de la copie à part, ou une fiche SANS dossier est gardée (c154)');
+      attendreEgal(f.ecritures.length, 0, 'écrit dans le Drive');
+      el('non-synchro-tout').click();
+      connecte = false;
+      texte = await s.lancer();
+      attendre(/pas comparés \(ton compte Google personnel n’est pas connecté/.test(ligneEcarts(texte)), `pas connecté : ${ligneEcarts(texte)}`);
+      el('non-synchro-tout').click();
+      connecte = true; lecture = async () => null;
+      texte = await s.lancer();
+      attendre(/pas comparés \(Dictionnaire général pas encore choisi/.test(ligneEcarts(texte)), `pas choisi : ${ligneEcarts(texte)}`);
+      el('non-synchro-tout').click();
+      lecture = async () => { throw new Error('refus FICTIF Omega'); };
+      texte = await s.lancer();
+      attendre(/pas comparés \(le Dictionnaire n’a pas pu être lu\)/.test(ligneEcarts(texte)) && !/Omega/.test(texte), `lecture ratée : ${ligneEcarts(texte)}`);
+      attendre(/Je le fais \?$/.test(texte), 'la synchro ne continue pas après les écarts');
+      el('non-synchro-tout').click();
+      el('synchro-tout').close();
+    });
+  });
+
+  // ----- 12/11/2026 (accord de Max, c154, A3a) : copie des fiches des relations sur le téléphone, FICTIF -----
+  await testAsync('Tout synchroniser, c154 (12/11/2026, FAUX Drive et FAUX Dictionnaire FICTIFS, A3a) : l’onglet « Dictionnaire » est lu en entier et TOUTES les cases remplies (notes, naissance, « Note pour IA », colonne ajoutée comprises) des personnes qui ONT un dossier « r_ » sont gardées dans une copie à part sur le téléphone ; même règle de nom (diminutif ; en secours le prénom complet) ; homonymes : aucune case gardée ; dossier sans fiche : « absente » ; personne sans dossier : rien gardé ; l’écran ne montre que des nombres ; lecture ratée, pas connecté, pas choisi : l’ancienne copie reste ; rien écrit dans le Drive', async c => {
+    const E = ['Prénom', 'Nom', 'Type', 'Téléphone', 'Mail', 'Adresse postale', 'Note pour IA', 'Note', 'Date de naissance / anniversaire', 'Domaine', '', 'Colonne ajoutée FICTIVE'];
+    const dico = [E,
+      ['FICTIF', 'Alpha', 'Personne', '06 00 00 00 01', 'alpha.fictif@exemple.invalid', '1 rue FICTIVE', 'NOTE-IA-FICTIVE-ALPHA', 'NOTE-FICTIVE-ALPHA', 'NAISSANCE-FICTIVE-ALPHA', 'Famille', 'SANS-TITRE-FICTIF', 'AJOUT-FICTIF-ALPHA'],
+      ['Bernard (FICTIF)', 'Beta', 'Personne', '06 00 00 00 02', '', '', '', '', '', '', '', ''],
+      ['FICTIF', 'Delta', 'Personne', '06 00 00 00 03'], ['FICTIF', 'Delta', 'Personne', '06 00 00 00 04'],
+      ['Zeta (Zed)', 'Omega-FICTIF', 'Personne', '06 00 00 00 05'],
+      ['FICTIF', 'Sansdossier', 'Personne', 'TEL-SANS-DOSSIER-FICTIF']];
+    await interfaceChoix(c, async ({ ui, el }) => {
+      const f = driveSynchroFictif(); // dossiers r_FICTIF Alpha et r_FICTIF Beta
+      const ajouter = (id, name) => f.fichiers.push({ id, name, mimeType: 'application/vnd.google-apps.folder', parents: ['FICTIF_relations_0123456789'], appProperties: {}, createdTime: '2026-11-12T08:00:00.000Z' });
+      ajouter('FICTIF_rel_delta_0123456789', 'r_FICTIF Delta'); ajouter('FICTIF_rel_zeta_0123456789', 'r_Zeta Omega-FICTIF'); ajouter('FICTIF_rel_eps_0123456789', 'r_FICTIF Epsilon');
+      const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+      let connecte = true; let lecture = async () => dico;
+      const s = synchroTout.brancher(ui.doc, { compteCap: compteSynchroFictif(f), liste: () => listeSynchroFictive, stockage: st, maintenant: () => new Date(2026, 10, 12, 13, 0).getTime(),
+        dictionnaire: () => ({ connecte: () => connecte, lire: () => lecture() }) });
+      const ligne = t => (String(t).split('\n').find(l => /Coordonnées des relations/.test(l)) || '');
+      let texte = await s.lancer();
+      attendreEgal(ligne(texte), '   Coordonnées des relations : 3 fiches gardées sur le téléphone seulement (1 nom avec homonymes, 1 dossier sans fiche).', `ligne : ${texte}`);
+      attendre(!/FICTIVE-|AJOUT|06 00|exemple\.invalid|Bernard|Zed/.test(texte), `une donnée du Dictionnaire est affichée : ${texte}`);
+      const champs = n => Object.fromEntries((coordonneesRelations.pour(st, n) || { champs: [] }).champs.map(x => [x.titre, x.valeur]));
+      attendreEgal(champs('r_FICTIF Alpha'), { Prénom: 'FICTIF', Nom: 'Alpha', Type: 'Personne', Téléphone: '06 00 00 00 01', Mail: 'alpha.fictif@exemple.invalid', 'Adresse postale': '1 rue FICTIVE',
+        'Note pour IA': 'NOTE-IA-FICTIVE-ALPHA', Note: 'NOTE-FICTIVE-ALPHA', 'Date de naissance / anniversaire': 'NAISSANCE-FICTIVE-ALPHA', Domaine: 'Famille', 'Colonne K': 'SANS-TITRE-FICTIF', 'Colonne ajoutée FICTIVE': 'AJOUT-FICTIF-ALPHA' }, 'Alpha : toutes les cases, famille comprise, colonne sans titre et colonne ajoutée');
+      attendreEgal(champs('FICTIF Beta'), { Prénom: 'Bernard (FICTIF)', Nom: 'Beta', Type: 'Personne', Téléphone: '06 00 00 00 02' }, 'Beta (diminutif) : cases vides pas gardées');
+      attendreEgal(champs('r_Zeta Omega-FICTIF').Téléphone, '06 00 00 00 05', 'secours par le prénom complet');
+      const delta = coordonneesRelations.pour(st, 'r_FICTIF Delta');
+      attendreEgal([delta.etat, delta.nombre, delta.champs], ['homonymes', 2, undefined], 'homonymes : aucune case');
+      attendreEgal(coordonneesRelations.pour(st, 'r_FICTIF Epsilon').etat, 'absente', 'dossier sans fiche');
+      attendre(!/SANS-DOSSIER/.test(st.getItem(coordonneesRelations.CLE)), 'une personne sans dossier est gardée');
+      attendreEgal(f.ecritures.length, 0, 'écrit dans le Drive');
+      el('non-synchro-tout').click();
+      const avant = st.getItem(coordonneesRelations.CLE);
+      for (const [quoi, regler] of [['pas connecté', () => { connecte = false; }], ['pas choisi', () => { connecte = true; lecture = async () => null; }], ['lecture ratée', () => { lecture = async () => { throw new Error('refus FICTIF'); }; }]]) {
+        regler();
+        texte = await s.lancer();
+        attendreEgal([st.getItem(coordonneesRelations.CLE), ligne(texte)], [avant, ''], `${quoi} : copie changée ou ligne affichée`);
+        el('non-synchro-tout').click();
+      }
+      el('synchro-tout').close();
+    });
+    attendreEgal(coordonneesRelations.garder({ setItem: () => { throw new Error('plein'); } }, dico, ['r_FICTIF Alpha'], relations), null, 'mémoire pleine');
+    attendreEgal(coordonneesRelations.garder({ setItem: () => {} }, null, ['r_FICTIF Alpha'], relations), null, 'lecture vide acceptée');
+  });
+
+  await testAsync('Tout synchroniser, c98 (10/11/2026) : le bouton est sur la page ET suit la fenêtre ouverte du dessus (comme le micro et le petit livre) ; touchable ; ne chevauche ni le micro ni le petit livre', async c => {
+    await interfaceChoix(c, async ({ ui, el }) => {
+      const bouton = el('bouton-synchro');
+      const pasDeChevauchement = () => { for (const id of ['petit-micro', 'bouton-apprendre']) attendre(!seCroisent(bouton.getBoundingClientRect(), el(id).getBoundingClientRect()), `chevauche ${id}`); };
+      attendre(bouton && touchable(ui, bouton), 'bouton absent ou pas touchable sur la page');
+      pasDeChevauchement();
+      el('chantiers-cap').showModal();
+      await attendreQue(() => bouton.parentNode === el('chantiers-cap'), 'le bouton ne suit pas la fenêtre ouverte');
+      attendre(touchable(ui, bouton), 'bouton pas touchable dans la fenêtre');
+      pasDeChevauchement();
+      el('chantiers-cap').close();
     });
   });
 
@@ -8775,6 +12134,7 @@ TESTS_JS = r"""
     for (const id of [...ui.doc.querySelectorAll('dialog')].map(d => d.id).filter(Boolean)) {
       const d = el(id); d.showModal(); await pause();
       attendre(d.contains(b), `bouton pas posé dans « ${id} »`);
+      if (id === 'visionneuse-cap') el('bouton-menu-visionneuse').click(); // c118 : rangé dans le menu du bouton blanc
       verifier(id, d);
       d.close(); await pause();
     }
@@ -9128,13 +12488,13 @@ TESTS_JS = r"""
     attendre(!ui.doc.documentElement.classList.contains('eau-ouverte'), 'défilement de Cap encore bloqué');
     // CONTRE LA PANNE DE TOUCHER : après l'entrée, les boutons de Cap reçoivent bien le toucher.
     // Étape A (07/11/2026) : les 3 boutons de l'accueil (sous l'eau, qui ne capte aucun toucher).
-    for (const id of ['ouvrir-chercher', 'microphone', 'ouvrir-autre']) /* 09/11/2026 : nouvel ordre, gros micro */ { // 08/11/2026 (étape 2) : le micro de l'accueil est « ouvrir-micro » (avant : « microphone », déplacé dans l'écran Micro)
+    for (const id of ['accueil-todo', 'accueil-media', 'accueil-chantiers', 'ouvrir-chercher', 'microphone', 'accueil-oeil', 'accueil-bureau', 'accueil-agenda', 'accueil-a-trier', 'accueil-scanner', 'accueil-theme', 'accueil-reglages']) /* 12/11/2026 (c163) : toute la grille */ { // 08/11/2026 (étape 2) : le micro de l'accueil est « ouvrir-micro » (avant : « microphone », déplacé dans l'écran Micro)
       const touche = ui.doc.elementFromPoint(...centre(ui.parId(id)));
       attendre(touche === ui.parId(id) || ui.parId(id).contains(touche), `bouton de Cap recouvert après l’entrée : ${id}`);
     }
     let ouvert = false;
-    ui.parId('ouvrir-autre').addEventListener('click', () => { ouvert = true; }, { once: true });
-    const [x, y] = centre(ui.parId('ouvrir-autre'));
+    ui.parId('accueil-reglages').addEventListener('click', () => { ouvert = true; }, { once: true }); // c163 : le rouage remplace Autre sur l'accueil
+    const [x, y] = centre(ui.parId('accueil-reglages'));
     ui.doc.elementFromPoint(x, y).click();
     attendre(ouvert, 'le bouton de Cap ne répond pas après « Entrer dans Cap »');
     // Le glissement vers le haut de Cap ouvre toujours les tuiles (inchangé).
@@ -9159,8 +12519,8 @@ TESTS_JS = r"""
     await attendreQue(() => !ecran.etat().visible, 'eau toujours là après l’entrée');
     attendre(!ecran.etat().animation && !ui.doc.documentElement.classList.contains('cap-monte'), 'animation pas finie');
     const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-    const toucheAutre = ui.doc.elementFromPoint(...centre(ui.parId('ouvrir-autre')));
-    attendre(toucheAutre === ui.parId('ouvrir-autre') || ui.parId('ouvrir-autre').contains(toucheAutre), 'bouton « Autre » recouvert après l’entrée');
+    const toucheAutre = ui.doc.elementFromPoint(...centre(ui.parId('accueil-reglages'))); // c163 : le rouage remplace Autre sur l'accueil
+    attendre(toucheAutre === ui.parId('accueil-reglages') || ui.parId('accueil-reglages').contains(toucheAutre), 'rouage (avant : « Autre ») recouvert après l’entrée');
     // Un second passage par l'eau : le glissement refait la même entrée.
     ecran.afficher();
     glisserSurEau(ui);
@@ -9275,7 +12635,7 @@ TESTS_JS = r"""
       if (vue === 'tuiles') ui.parId('basculer-vue').click();
       const boutons = visibles();
       attendre(boutons.length >= (vue === 'accueil' ? 2 : 1), `pas assez de boutons visibles (${vue}) : ${boutons.length}`);
-      if (vue === 'accueil') attendre(['ouvrir-chercher', 'microphone', 'ouvrir-autre'].every( /* 09/11/2026 */id => boutons.includes(ui.parId(id))), 'boutons de l’accueil absents des boutons testés');
+      if (vue === 'accueil') attendre(['accueil-todo', 'accueil-media', 'accueil-chantiers', 'ouvrir-chercher', 'microphone', 'accueil-oeil', 'accueil-bureau', 'accueil-agenda', 'accueil-a-trier', 'accueil-scanner', 'accueil-theme', 'accueil-reglages'].every( /* 12/11/2026 (c163) */ /* 09/11/2026 */id => boutons.includes(ui.parId(id))), 'boutons de l’accueil absents des boutons testés');
       for (const b of boutons) {
         const touche = ui.doc.elementFromPoint(...centre(b));
         attendre(touche === b || b.contains(touche), `bouton recouvert (${vue}) : ${b.id || b.className || b.textContent.trim().slice(0, 30)} par ${touche ? (touche.id || touche.className || touche.tagName) : 'rien'}`);
@@ -9286,13 +12646,13 @@ TESTS_JS = r"""
     // Toucher une tuile ou un bouton : le bouton fonctionne ET l'eau bouge.
     const avant = ecran.fond.etat().touchers;
     let ouvert = false;
-    ui.parId('ouvrir-autre').addEventListener('click', () => { ouvert = true; }, { once: true });
-    const [x, y] = centre(ui.parId('ouvrir-autre'));
+    ui.parId('accueil-reglages').addEventListener('click', () => { ouvert = true; }, { once: true }); // c163 : le rouage remplace Autre sur l'accueil
+    const [x, y] = centre(ui.parId('accueil-reglages'));
     const cible = ui.doc.elementFromPoint(x, y);
     cible.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 3, clientX: x, clientY: y, isPrimary: true }));
     cible.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 3, clientX: x, clientY: y, isPrimary: true }));
     cible.click();
-    attendre(ouvert, '« Autre » ne répond pas sous l’eau');
+    attendre(ouvert, 'rouage (avant : « Autre ») ne répond pas sous l’eau');
     attendre(ecran.fond.etat().touchers > avant, 'l’eau ne bouge pas au toucher');
     // Pendant l'écran d'ouverture : l'eau de l'accueil s'arrête ; elle repart après l'entrée.
     ui.parId('aller-eau').click();
@@ -9351,8 +12711,8 @@ TESTS_JS = r"""
     attendreEgal(fenetre2.getComputedStyle(ui2.parId('toile-eau')).display, 'none', 'eau d’ouverture visible malgré l’arrêt');
     attendreEgal(fenetre2.getComputedStyle(ui2.doc.body).backgroundColor, 'rgb(10, 12, 12)', 'fond du thème absent sans eau');
     const centre = el => { const r = el.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; };
-    const toucheSansEau = ui2.doc.elementFromPoint(...centre(ui2.parId('ouvrir-autre')));
-    attendre(toucheSansEau === ui2.parId('ouvrir-autre') || ui2.parId('ouvrir-autre').contains(toucheSansEau), '« Autre » recouvert sans eau');
+    const toucheSansEau = ui2.doc.elementFromPoint(...centre(ui2.parId('accueil-reglages'))); // c163 : le rouage remplace Autre sur l'accueil
+    attendre(toucheSansEau === ui2.parId('accueil-reglages') || ui2.parId('accueil-reglages').contains(toucheSansEau), 'rouage (avant : « Autre ») recouvert sans eau');
     // Remise en marche : l'eau revient tout de suite sur l'accueil, réglage gardé.
     ui2.parId('interrupteur-eau').click();
     attendre(ecran2.eauActive() && ecran2.fond.etat().active, 'eau pas revenue');
@@ -10290,6 +13650,11 @@ TESTS_JS = r"""
     ui.visibilite(false);
     attendreEgal(ui.vibrations, [200], 'vibration répétée');
     attendreEgal(lireFileGoogle(c).length, 2, 'file perdue à l’expiration');
+    // 11/11/2026 (décision de Max, c140 et c145) : hors ligne, le bouton n'ouvre plus Google (page d'erreur de Chrome) : le
+    // réseau revient d'abord. Avant : le bouton était touché hors ligne et ouvrait Google.
+    ui.parId('redonner-acces-google').click();
+    attendreEgal(c.redirections.length, 0, 'Google ouvert hors ligne');
+    c.navigator.onLine = true;
     ui.parId('redonner-acces-google').click();
     attendreEgal(c.redirections.length, 1, 'bouton sans redirection');
     attendre(!c.redirections[0].searchParams.has('prompt'), 'bouton encore silencieux');
@@ -10451,9 +13816,14 @@ TESTS_JS = r"""
     attendre(!ui.parId('heure'), 'heure encore affichée');
     // Étape A : accueil = 3 boutons en colonne (Micro, Chercher, Autre) ; la barre de recherche est dans « Chercher ».
     // 09/11/2026 (étape 2) : Chercher en haut, gros micro au milieu, Autre en bas. Avant : Micro, Chercher, Autre.
-    const colonne = ['ouvrir-chercher', 'microphone', 'ouvrir-autre'].map(id => ui.parId(id).getBoundingClientRect());
+    const colonne = ['accueil-todo', 'accueil-media', 'accueil-chantiers', 'ouvrir-chercher', 'microphone', 'accueil-oeil', 'accueil-bureau', 'accueil-agenda', 'accueil-a-trier', 'accueil-scanner', 'accueil-theme', 'accueil-reglages'].map(id => ui.parId(id).getBoundingClientRect()); // 12/11/2026 (c163) : la grille
     attendre(colonne.every(r => r.width >= 48 && r.height >= 48 && r.top >= 0 && r.bottom <= ui.cadre.clientHeight + 1), 'boutons de l’accueil hors écran ou trop petits');
-    attendre(colonne[0].bottom <= colonne[1].top && colonne[1].bottom <= colonne[2].top, 'boutons de l’accueil pas en colonne (Chercher, micro, Autre)');
+    // 12/11/2026 (c163) : la grille 3 × 4 (avant : colonne Chercher, micro, Autre) : 4 lignes de haut en bas, 3 colonnes alignées.
+    const lignesGrille = [0, 1, 2, 3].map(i => colonne.slice(3 * i, 3 * i + 3));
+    const milieu = (r, axe) => (axe === 'x' ? r.left + r.right : r.top + r.bottom) / 2;
+    attendre(lignesGrille.every(l => Math.abs(milieu(l[0], 'y') - milieu(l[1], 'y')) < 2 && Math.abs(milieu(l[1], 'y') - milieu(l[2], 'y')) < 2 && l[0].right <= l[1].left && l[1].right <= l[2].left)
+      && lignesGrille.every((l, i) => !i || lignesGrille[i - 1].every(r => r.bottom <= l[0].top))
+      && [0, 1, 2].every(k => lignesGrille.every(l => Math.abs(milieu(l[k], 'x') - milieu(lignesGrille[0][k], 'x')) < 2)), 'boutons de l’accueil pas en grille 3 × 4 (4 lignes de haut en bas, 3 colonnes alignées)');
     attendre(ui.parId('zone-recherche').hidden && ui.parId('zone-recherche').getBoundingClientRect().height === 0, 'barre de recherche encore sur l’accueil');
     attendre(ui.doc.querySelector('.choix-source').contains(ui.parId('source-recherche')), 'menu hors de la barre');
     ui.parId('basculer-vue').click();
@@ -11652,11 +15022,12 @@ TESTS_JS = r"""
     // 09/11/2026 (accord de Max, partie 2 A) : menu renommé, « Tout » par défaut. Avant : ['Tâches', 'Rendez-vous',
     // 'Gmail (plus tard)', 'Drive (plus tard)', 'Archives perso (plus tard)', 'Mémoire perso (plus tard)'], Tâches par défaut.
     attendreEgal([...select.options].map(option => option.textContent),
-      ['Tout', 'Tâches', 'Rendez-vous', 'Personnes', 'Notes (plus tard)', 'Listes (plus tard)', 'Documents (plus tard)', 'Musique (plus tard)', 'Mails (plus tard)', 'Archives (plus tard)', 'Biographie (plus tard)'], 'options');
+      ['Tout', 'Tâches', 'Rendez-vous', 'Personnes', 'Chantier', 'Notes (plus tard)', 'Listes (plus tard)', 'Documents (plus tard)', 'Musique (plus tard)', 'Mails (plus tard)', 'Archives (plus tard)', 'Biographie (plus tard)'], 'options');
     attendreEgal(select.selectedIndex, 0, 'choix initial');
     attendreEgal(select.value, 'tout', '« Tout » pas par défaut');
-    attendre([...select.options].slice(4).every(option => option.disabled) && [...select.options].slice(0, 4).every(option => !option.disabled), 'option future accessible');
-    const style = ui.cadre.contentWindow.getComputedStyle(select.options[4]);
+    // 11/11/2026 (c135) : + « Chantier » (5e, accessible) ; les options futures commencent au 6e. Avant : slice(4), slice(0, 4), options[4].
+    attendre([...select.options].slice(5).every(option => option.disabled) && [...select.options].slice(0, 5).every(option => !option.disabled), 'option future accessible');
+    const style = ui.cadre.contentWindow.getComputedStyle(select.options[5]);
     attendre(style.color !== ui.cadre.contentWindow.getComputedStyle(select.options[0]).color, 'options non grisées');
     const champ = ui.parId('saisie-recherche');
     attendreEgal([champ.type, champ.getAttribute('enterkeyhint'), champ.autocomplete], ['search', 'search', 'off'], 'champ mobile');
@@ -12428,12 +15799,13 @@ TESTS_JS = r"""
       const inconnue = await traiterDemande({ texte: 'Efface tout FICTIF', source: 'micro' }).suite;
       attendreEgal([inconnue.type, TACHES.length], ['question', avant], 'action inconnue refusée');
 
-      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Le numéro de ton médecin est le 01 23 45 67 89.' }] } });
-      const invente = await traiterDemande({ texte: 'Quel est le numéro de mon médecin FICTIF ?', source: 'micro' }).suite;
+      // 09/11/2026 (décision de Max) : exemples neutres (avant : un professionnel de santé et une officine fictifs).
+      reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Le numéro de ton plombier est le 01 23 45 67 89.' }] } });
+      const invente = await traiterDemande({ texte: 'Quel est le numéro de mon plombier FICTIF ?', source: 'micro' }).suite;
       attendreEgal([invente.type, invente.message], ['reponse', 'Je ne sais pas : tu ne m’as jamais donné ce numéro.'], 'numéro inconnu : « je ne sais pas », jamais inventé');
       attendre(JSON.parse(envois[envois.length - 1].options.body).system.includes('réponds « Je ne sais pas. »'), 'consigne « je ne sais pas » envoyée à chaque échange');
       reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'Je ne sais pas.' }] } });
-      const sait = await traiterDemande({ texte: 'Et le numéro de la pharmacie FICTIF ?', source: 'micro' }).suite;
+      const sait = await traiterDemande({ texte: 'Et le numéro de la boulangerie FICTIVE ?', source: 'micro' }).suite;
       attendreEgal(sait.message, 'Je ne sais pas.', 'Claude qui dit ne pas savoir : réponse gardée');
       reponses.push({ statut: 200, corps: { content: [{ type: 'text', text: 'C’est le 06 11 22 33 44.' }] } });
       const donne = await traiterDemande({ texte: 'Retiens le 0611223344 pour le garage FICTIF, et redis-le moi', source: 'micro' }).suite;
@@ -12498,6 +15870,65 @@ TESTS_JS = r"""
       cleIA.retirer();
       cerveauClaude.oublier();
       ['cap_echanges_ia_v1', 'cap_depense_ia_v1', 'cap_journal_ia_v1', 'cap_consignes_v1', 'cap_fiche_consignes_v1'].forEach(cle => localStorage.removeItem(cle));
+    }
+  })();
+
+  // ----- 12/11/2026 (accord de Max, c154, A3a) : VERROU N° 2, données FICTIVES dans TOUTES les colonnes -----
+  await (async () => {
+    const nom = 'Verrou n° 2 (c154, A3a, FICTIF) : les coordonnées des relations gardées sur le téléphone (toutes les colonnes : téléphones, mails, adresse, coordonnées, surnoms, « Note pour IA », notes, naissance, domaine, colonne ajoutée) ne partent JAMAIS : ni vers l’IA (vraie conversation et vraie tâche), ni dans la sauvegarde Drive, ni dans la synchronisation, ni dans un journal ou une autre clé du téléphone';
+    const MARQUES = ['TEL-FICTIF-VERROU-0600000099', 'mail.fictif.verrou@exemple.invalid', 'ADRESSE-FICTIVE-VERROU', 'TEL2-FICTIF-VERROU', 'MAIL2-FICTIF-VERROU', 'COORD-FICTIVES-VERROU',
+      'SURNOM-FICTIF-VERROU', 'NOTE-IA-FICTIVE-VERROU', 'NOTE-FICTIVE-VERROU', 'NAISSANCE-FICTIVE-VERROU', 'DOMAINE-FICTIF-VERROU', 'AJOUT-FICTIF-VERROU'];
+    const entetes = ['Prénom', 'Nom', 'Type', 'Téléphone', 'Mail', 'Adresse postale', 'Deuxième téléphone', 'Deuxième mail', 'Coordonnées', 'Appellations et surnoms', 'Note pour IA', 'Note', 'Date de naissance / anniversaire', 'Domaine', 'Colonne ajoutée FICTIVE'];
+    const vraiFetch = window.fetch;
+    const gc = { connecte: googleConnexion.connecte, appeler: googleConnexion.appeler }; const trouverOuCreer = googleSheets.trouverOuCreer;
+    const gardees = {}; for (const k of [coordonneesRelations.CLE, memoireRelations.CLE, 'cap_sauvegarde_v1']) gardees[k] = localStorage.getItem(k);
+    const envois = []; const reponses = [];
+    const fuite = t => MARQUES.filter(x => String(t).includes(x));
+    try {
+      reinitialiser();
+      memoireRelations.garder(localStorage, [{ id: 'FICTIF_rel_verrou_0123456789', nom: 'r_Annabelle FICTIVE' }], new Map());
+      attendre(coordonneesRelations.garder(localStorage, [entetes, ['Annabelle', 'FICTIVE', 'Personne', ...MARQUES]], ['r_Annabelle FICTIVE'], relations), 'copie pas gardée');
+      attendreEgal(fuite(localStorage.getItem(coordonneesRelations.CLE)), MARQUES, 'la copie FICTIVE ne contient pas toutes les colonnes (test vide)');
+      window.fetch = (adresse, options = {}) => {
+        envois.push(['fetch', String(adresse), String(options.body || '')]);
+        if (adresse === REGLAGES_IA.fichier_consignes) return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve('Tu es Cap FICTIF.') });
+        if (adresse !== REGLAGES_IA.adresse) return Promise.reject(new Error('Hors de ce test.'));
+        const suivante = reponses.shift() || { content: [{ type: 'text', text: 'D’accord FICTIF.' }], usage: { input_tokens: 10, output_tokens: 5 } };
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(suivante) });
+      };
+      googleConnexion.connecte = () => true;
+      googleConnexion.appeler = async (adresse, options = {}) => {
+        envois.push(['google', String(adresse), String(options.body || '')]);
+        return { ok: true, status: 200, json: async () => ({ id: 'FICTIF_copie_0123456789', name: 'FICTIF', files: [{ id: 'FICTIF_dossier_0123456789' }], values: [], valueRanges: [], sheets: [] }) };
+      };
+      googleSheets.trouverOuCreer = async () => ({ id: 'FICTIF_tableau_0123456789' });
+      cleIA.enregistrer('sk-ant-FICTIF-0000000000000000000000wxyz');
+      cerveauClaude.oublier();
+      attendreEgal(cerveau.fournisseurActif(), 'claude', 'Claude choisi');
+      // 1. L'IA : une vraie conversation qui NOMME la relation, puis une vraie tâche à son nom (journal, file de synchro).
+      await traiterDemande({ texte: 'Quel est le téléphone et la date de naissance d’Annabelle FICTIVE ?', source: 'micro' }).suite;
+      reponses.push({ content: [{ type: 'tool_use', name: 'ajouter_tache', input: { intitule: 'appeler Annabelle FICTIVE', categorie: 'Quotidien', sous_categorie: '' } }], usage: { input_tokens: 10, output_tokens: 5 } });
+      await traiterDemande({ texte: 'Pense à appeler Annabelle FICTIVE', source: 'micro' }).suite;
+      attendre(envois.filter(e => e[1] === REGLAGES_IA.adresse).length >= 2, 'l’IA n’a pas été appelée deux fois (test vide)');
+      // 2. La sauvegarde Drive et la synchronisation (faux Google : toutes les demandes sont gardées).
+      try { await sauvegardeDrive.sauvegarder(); } catch (erreur) { /* faux Google : seule compte la demande envoyée */ }
+      attendre(envois.some(e => /\/copy\?/.test(e[1])), 'la sauvegarde n’a rien envoyé (test vide)');
+      try { await synchronisation.envoyer(); } catch (erreur) { /* idem */ }
+      // 3. Rien n'est sorti : ni dans une adresse, ni dans un corps envoyé.
+      for (const [qui, adresse, corps] of envois) attendreEgal(fuite(adresse + corps), [], `fuite vers ${qui} ${adresse.slice(0, 60)}`);
+      // 4. Journaux et toutes les autres clés du téléphone : rien.
+      attendreEgal(fuite(JSON.stringify([journalIA.lire(), journalActions.lireComplet()])), [], 'fuite dans un journal');
+      for (const k of Object.keys(localStorage)) if (k !== coordonneesRelations.CLE) attendreEgal(fuite(localStorage.getItem(k)), [], `fuite dans la clé ${k}`);
+      resultats.push({ nom, ok: true, erreur: '' });
+    } catch (erreur) {
+      resultats.push({ nom, ok: false, erreur: String(erreur && erreur.message ? erreur.message : erreur) });
+    } finally {
+      window.fetch = vraiFetch;
+      Object.assign(googleConnexion, gc); googleSheets.trouverOuCreer = trouverOuCreer;
+      cleIA.retirer(); cerveauClaude.oublier();
+      ['cap_echanges_ia_v1', 'cap_depense_ia_v1', 'cap_journal_ia_v1', 'cap_consignes_v1', 'cap_fiche_consignes_v1'].forEach(cle => localStorage.removeItem(cle));
+      for (const [k, v] of Object.entries(gardees)) { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); }
+      reinitialiser();
     }
   })();
 
@@ -12981,15 +16412,15 @@ TESTS_JS = r"""
 
   test('Fichiers vocaux : Échéancier (ajout avec rappel par défaut, terminer déplace sans effacer, lecture triée)', () => {
     const maintenant = new Date(2026, 10, 3, 10, 0);
-    const commande = fichiersVocauxEcheancier.detecterCommande('échéance anniversaire de Léa le 8 mars', maintenant);
-    attendre(commande && commande.type === 'ajouter' && commande.element === 'anniversaire de Léa', 'commande reconnue');
+    const commande = fichiersVocauxEcheancier.detecterCommande('échéance anniversaire de Léa FICTIVE le 8 mars', maintenant);
+    attendre(commande && commande.type === 'ajouter' && commande.element === 'anniversaire de Léa FICTIVE', 'commande reconnue');
     attendreEgal(commande.delaiJours, 30, 'rappel par défaut à 30 jours');
     const sansRappel = fichiersVocauxEcheancier.detecterCommande('échéance contrôle technique le 8 mars, pas de rappel', maintenant);
     attendreEgal(sansRappel.delaiJours, null, 'pas de rappel respecté');
     attendreEgal(fichiersVocauxEcheancier.detecterCommande('échéance, lis-moi'), { type: 'lire' }, 'lecture reconnue');
     const { contenu } = fichiersVocauxEcheancier.ajouter('', commande, maintenant);
-    attendre(contenu.includes('anniversaire de Léa'), 'ligne ajoutée dans À venir');
-    const resultat = fichiersVocauxEcheancier.terminer(contenu, 'anniversaire de Léa', new Date(2026, 10, 4));
+    attendre(contenu.includes('anniversaire de Léa FICTIVE'), 'ligne ajoutée dans À venir');
+    const resultat = fichiersVocauxEcheancier.terminer(contenu, 'anniversaire de Léa FICTIVE', new Date(2026, 10, 4));
     attendre(resultat.trouve, 'échéance trouvée');
     const corpsAVenir = fichiersVocauxTableau.corpsSection(resultat.contenu, 'À venir');
     attendreEgal(fichiersVocauxTableau.lignesDonnees(corpsAVenir).length, 0, 'plus dans À venir');
@@ -13022,6 +16453,1511 @@ TESTS_JS = r"""
     attendreEgal(fichiersVocauxControleur.detecterCommande('échéance anniversaire le 8 mars').systeme, 'echeancier', 'échéancier routé');
     attendreEgal(fichiersVocauxControleur.detecterCommande('à faire appeler le garagiste').systeme, 'a_faire', 'à faire routé');
     attendreEgal(fichiersVocauxControleur.detecterCommande('bonjour Cap'), null, 'phrase libre non capturée');
+  });
+
+  await testAsync('Visionneuse, c133 (11/11/2026, FAUX Drive FICTIF) : « Ouvrir un chantier » dans le menu du bouton blanc, sous « Ajouter un fichier » ; mosaïque de carrés (un par chantier, nom seulement, ordre de l’écran Chantiers, 3 colonnes sur le Pixel, défile) ; toucher un carré = mosaïque des documents DIRECTEMENT (aucune fiche) ; « Fermer » = retour aux chantiers, puis visionneuse d’origine, puis fermée ; lecture seule, aucun appel à l’IA', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    let lectures = 0;
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => { lectures++; return chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap'); } };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    const parent = 'FICTIF_documents_CH-908_0123456789';
+    const ajout = (id, name, mimeType) => f.fichiers.push({ id, name, mimeType, parents: [parent], appProperties: {} });
+    ajout('FICTIF_pdf_0123456789', 'Devis FICTIF.pdf', 'application/pdf');
+    ajout('FICTIF_img_0123456789', 'Photo FICTIVE du mur.jpg', 'image/jpeg');
+    ajout('FICTIF_mp3_0123456789', 'Chanson FICTIVE.mp3', 'audio/mpeg');
+    const appelerAvant = f.appeler;
+    const contenus = [];
+    f.appeler = (adresse, options = {}, ...reste) => {
+      if (/alt=media/.test(String(adresse))) { contenus.push([String(adresse), String(options.method || 'GET')]); return Promise.resolve({ ok: true, blob: async () => new Blob(['%PDF FICTIF']) }); }
+      return appelerAvant.call(f, adresse, options, ...reste);
+    };
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const page = { mosaique: null, miniatures: [], chargements: 0, fermee: 0 };
+    const adressesV = fausseAdresses();
+    const charger = async () => { page.chargements++; return { montrerFichier() {}, fermer() { page.fermee++; },
+      montrerMosaique: (n, toucher) => { page.mosaique = { n, toucher }; page.miniatures = []; },
+      remplirMiniature: (i, adresse) => page.miniatures.push([i, adresse]), miniatureIllisible() {}, agrandirDepuisMosaique() {} }; };
+    charger.vider = () => { page.vide = true; };
+    const v = visionneuseCap.brancher(ui.doc, { compte: f, urls: adressesV, pdfjs: null, vignette: async () => new Blob(['miniature FICTIVE']),
+      visionneuse: charger, sourceChantiers: () => fausseSource, dossiersChantiers: () => chantiersDossiers });
+    attendre(v, 'visionneuse pas branchée');
+    const appelsIa = [];
+    const remis = [];
+    for (const [nom, objet] of [['cerveau', typeof cerveau !== 'undefined' ? cerveau : null], ['cerveauClaude', typeof cerveauClaude !== 'undefined' ? cerveauClaude : null]]) {
+      if (!objet) continue;
+      for (const cle of Object.keys(objet)) if (typeof objet[cle] === 'function') { const avant = objet[cle]; objet[cle] = function (...a) { appelsIa.push(`${nom}.${cle}`); return avant.apply(this, a); }; remis.push(() => { objet[cle] = avant; }); }
+    }
+    const disqueAvant = JSON.stringify(Object.keys(localStorage).sort());
+    const el = id => ui.parId(id);
+    const vue = ui.cadre.contentWindow;
+    const auDoigt = b => { const r = b.getBoundingClientRect(); const x = ui.doc.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return x === b || b.contains(x); };
+    try {
+      // 1. Le menu : « Ouvrir un chantier » juste après « Ajouter un fichier ».
+      const boutonsMenu = [...el('menu-visionneuse').children].filter(x => x.tagName === 'BUTTON').map(x => x.textContent);
+      const iA = boutonsMenu.indexOf('Ajouter un fichier');
+      attendre(iA >= 0 && boutonsMenu[iA + 1] === 'Ouvrir un chantier', `menu : ${JSON.stringify(boutonsMenu)}`);
+      // 2. La visionneuse d'origine (l'œil), puis le menu, puis « Ouvrir un chantier ».
+      await v.ouvrirVide();
+      attendreEgal([el('visionneuse-cap').open, page.chargements], [true, 1], 'visionneuse d’origine');
+      el('bouton-menu-visionneuse').click();
+      const bouton = el('menu-chantiers-visionneuse');
+      attendre(!el('menu-visionneuse').hidden && auDoigt(bouton), '« Ouvrir un chantier » pas touchable');
+      bouton.click();
+      const grille = el('grille-chantiers-visionneuse');
+      attendre(grille && !grille.hidden, 'mosaïque des chantiers pas montrée');
+      attendre(/Lecture de la Liste des chantiers/.test(el('message-grille-chantiers').textContent), 'pas de message pendant la première lecture');
+      await attendreQue(() => el('liste-grille-chantiers').children.length === 6, 'chantiers pas montrés');
+      const cases = [...el('liste-grille-chantiers').querySelectorAll('button.case-chantier-grille')];
+      const attendu = chantiers.trier(chantiers.evaluer(chantiers.copie(st).chantiers, Date.now()).chantiers).map(x => x.nom);
+      attendreEgal(cases.map(b => b.textContent), attendu, 'carrés : noms seulement, ordre de l’écran Chantiers');
+      attendre(!cases.some(b => /EXEMPLE/.test(b.textContent)), 'un exemple montré');
+      attendre(el('message-grille-chantiers').hidden, 'message resté');
+      // Allure : 3 colonnes égales sur le Pixel (412 px), carrés, texte lisible, rien ne déborde, tous touchables.
+      const r = cases.slice(0, 4).map(b => b.getBoundingClientRect());
+      attendre(Math.abs(r[0].top - r[1].top) < 1 && Math.abs(r[1].top - r[2].top) < 1 && r[3].top > r[0].top + 10, `pas 3 colonnes : ${JSON.stringify(r)}`);
+      attendre(r.slice(0, 3).every(x => Math.abs(x.width - r[0].width) < 1 && x.width > 100 && x.height >= x.width - 1), `carrés pas égaux : ${JSON.stringify(r)}`);
+      attendre(parseFloat(vue.getComputedStyle(cases[0]).fontSize) >= 16, 'texte trop petit');
+      const lg = el('liste-grille-chantiers');
+      attendre(lg.scrollWidth <= lg.clientWidth + 1, 'défilement de côté');
+      attendreEgal(vue.getComputedStyle(lg).overflowY, 'auto', 'la mosaïque ne défile pas');
+      attendre(cases.every(b => { b.scrollIntoView({ block: 'nearest' }); return auDoigt(b); }), 'un carré pas touchable');
+      attendre(r[0].top >= 64, 'mosaïque sous la barre');
+      // 3. Un chantier SANS dossier : rien n'est ouvert, la mosaïque le dit et reste.
+      const lus = contenus.length;
+      cases.find(b => b.textContent === 'Jardin FICTIF').click();
+      await attendreQue(() => /pas encore de dossier/.test(el('message-grille-chantiers').textContent), `message : ${el('message-grille-chantiers').textContent}`);
+      attendre(!grille.hidden && !page.mosaique && contenus.length === lus, 'quelque chose a été ouvert');
+      // 4. Bateau FICTIF : ses documents DIRECTEMENT en mosaïque (PDF et image seulement), nom en haut à gauche, aucune fiche.
+      cases.find(b => b.textContent === 'Bateau FICTIF').click();
+      await attendreQue(() => page.mosaique && page.miniatures.length === 2, 'documents du chantier pas montrés');
+      attendreEgal(page.mosaique.n, 2, 'nombre de documents');
+      attendre(grille.hidden, 'mosaïque des chantiers restée devant les documents');
+      attendreEgal([el('titre-visionneuse').hidden, el('titre-visionneuse').textContent], [false, 'Bateau FICTIF'], 'nom du chantier');
+      attendre(!el('chantiers-cap').open, 'une fiche a été ouverte');
+      await attendreQue(() => !el('journal-visionneuse').hidden, 'petit journal absent');
+      // 5. « Fermer » : retour à la mosaïque des chantiers (visionneuse toujours ouverte), documents relâchés.
+      el('fermer-visionneuse').click();
+      attendre(el('visionneuse-cap').open && !grille.hidden, 'pas revenu aux chantiers');
+      attendre(el('titre-visionneuse').hidden && el('journal-visionneuse').hidden, 'nom ou journal du chantier resté');
+      attendre(page.miniatures.every(([, a]) => adressesV.liberees.includes(a)), 'miniatures pas relâchées');
+      await attendreQue(() => el('liste-grille-chantiers').children.length === 6, 'chantiers pas remontrés');
+      // 6. À la voix : « ferme » sur la mosaïque des chantiers = visionneuse d'origine (rouverte vide, comme l'œil).
+      const chargementsAvant = page.chargements;
+      attendreEgal(v.fermerParVoix(), 'Je ferme la liste des chantiers.', 'voix');
+      attendre(el('visionneuse-cap').open && grille.hidden, 'pas revenu à la visionneuse d’origine');
+      await attendreQue(() => page.chargements === chargementsAvant + 1, 'visionneuse d’origine pas rouverte');
+      attendre(el('titre-visionneuse').hidden, 'nom resté');
+      // 7. Mosaïque rouverte puis « Fermer » sans rien choisir : la visionneuse d'origine reste telle quelle (aucun rechargement).
+      bouton.click();
+      await attendreQue(() => !grille.hidden && el('liste-grille-chantiers').children.length === 6, 'mosaïque pas rouverte');
+      el('fermer-grille-chantiers').click();
+      attendre(el('visionneuse-cap').open && grille.hidden && page.chargements === chargementsAvant + 1, 'la visionneuse d’origine a changé');
+      // 8. « Fermer » encore : la visionneuse se ferme.
+      el('fermer-visionneuse').click();
+      attendre(!el('visionneuse-cap').open, 'visionneuse pas fermée');
+      // 9. Une ouverture d'ailleurs (fiche, voix) ne revient pas aux chantiers.
+      await v.ouvrirVide();
+      bouton.click();
+      await attendreQue(() => !grille.hidden, 'mosaïque (3)');
+      await v.ouvrir([{ id: 'FICTIF_pdf_0123456789', sorte: 'pdf' }], { titre: 'Bateau FICTIF', lireJournal: async () => [] });
+      attendre(grille.hidden, 'mosaïque restée après une ouverture d’ailleurs');
+      el('fermer-visionneuse').click();
+      attendre(!el('visionneuse-cap').open, 'une ouverture d’ailleurs est revenue aux chantiers');
+      // 10. Beaucoup de chantiers FICTIFS : la mosaïque défile.
+      const beaucoup = [TITRES_LISTE_CHANTIERS, ...Array.from({ length: 47 }, (_, i) => ligneChantier(`Chantier FICTIF numéro ${i + 1} au nom assez long`, 'Projets', 'ponctuel', 'vert', 'en cours', `CH-${String(500 + i)}`))];
+      fausseSource.lire = async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(beaucoup))), 'compte_cap');
+      await v.ouvrirVide();
+      bouton.click();
+      await attendreQue(() => el('liste-grille-chantiers').children.length === 47, '47 chantiers pas montrés');
+      attendre(lg.scrollHeight > lg.clientHeight + 100, 'la mosaïque ne défile pas avec 47 chantiers');
+      const dernier = lg.lastElementChild; dernier.scrollIntoView({ block: 'nearest' });
+      attendre(auDoigt(dernier), 'le dernier carré n’est pas touchable après défilement');
+      const rd = dernier.getBoundingClientRect();
+      attendre(rd.height >= rd.width - 1 && dernier.scrollHeight <= dernier.clientHeight + 1, 'nom long coupé');
+      el('fermer-visionneuse').click(); el('fermer-visionneuse').click();
+      attendre(!el('visionneuse-cap').open, 'visionneuse pas fermée (47)');
+      // Rien écrit, rien de nouveau sur le disque, aucun appel à l'IA ; aucun fichier Drive lu en dehors du chantier choisi.
+      attendreEgal(f.ecritures.length, 0, 'écriture');
+      attendreEgal(appelsIa, [], 'appel à l’IA');
+      attendreEgal(JSON.stringify(Object.keys(localStorage).sort()), disqueAvant, 'quelque chose gardé sur le téléphone');
+      attendre(contenus.every(([a, meth]) => meth === 'GET' && /FICTIF_(pdf|img)_/.test(a)), `lectures : ${JSON.stringify(contenus)}`);
+      for (const mot of ['cerveau', 'anthropic', 'traiterDemande', 'journalIa', 'innerHTML']) attendre(!SOURCE_VISIONNEUSE_CAP.includes(mot), `visionneuse_cap.js contient « ${mot} »`);
+    } finally { f.appeler = appelerAvant; for (const r of remis) r(); }
+  });
+
+  await testAsync('Chantiers, c134 (11/11/2026, FICTIF, défaut vu par Max : SAUT) : au toucher d’un chantier dans une liste DÉFILÉE, l’écran qui part en fondu reste EXACTEMENT là où il était (le chantier touché à la même place, compteurs et « Mettre à niveau » PAS revenus à l’écran), puis la fiche monte ; liste NON défilée : pareil ; retour par « Fermer » : la liste revient', async c => {
+    const m = new Map(); const s = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const lignes = [TITRES_LISTE_CHANTIERS];
+    for (let i = 1; i <= 47; i++) lignes.push(ligneChantier(`Chantier ${String(i).padStart(2, '0')} FICTIF`, 'Maison', 'ponctuel', 'vert', 'en cours', `CH-9${String(i).padStart(2, '0')}`));
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(s),
+      lire: async () => chantiers.garder(s, chantiers.analyser(commandesVocales.lireCsv(csvDe(lignes))), 'compte_cap') };
+    await interfaceChoix(c, async ({ ui, el }) => {
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), maintenant: () => new Date(2026, 10, 11, 18, 0).getTime() });
+      const vue = ui.cadre.contentWindow;
+      const dlg = el('chantiers-cap');
+      // Le double, dans l'écran qui part en fondu, d'un élément de l'écran d'avant (même texte, même rang).
+      const double = (selecteur, texte) => [...ui.doc.querySelectorAll(`.choix-fantome ${selecteur}`)].find(x => x.textContent === texte);
+      const hautVisible = x => { const r = x.getBoundingClientRect(); return r.bottom > 0 && r.top < vue.innerHeight; };
+      // Le navigateur de test sans fenêtre n'avance pas les animations au pas des attentes : celles de la vraie fenêtre (montée
+      // du sable) sont TERMINÉES avant chaque mesure ; la copie qui part en fondu n'est jamais touchée.
+      const finirAnimations = () => { for (const a of ui.doc.getAnimations()) { const cible = a.effect && a.effect.target; const fin = a.effect && a.effect.getComputedTiming().endTime; if (fin !== Infinity && !(cible && cible.closest && cible.closest('.choix-fantome'))) a.finish(); } };
+      try {
+        ecran.ouvrir();
+        await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 47, 'les 47 chantiers ne sont pas montrés');
+        vue.matchMedia = q => ({ matches: false, addEventListener() {}, removeEventListener() {} }); // animations NON réduites
+        await new Promise(r => setTimeout(r, 1600));
+        for (const [cas, rang] of [['liste défilée', 30], ['liste non défilée', 0]]) {
+          const ligne = el('liste-chantiers').querySelectorAll('.ligne-chantier')[rang];
+          if (rang) ligne.scrollIntoView({ block: 'center' });
+          else dlg.scrollTop = 0;
+          await new Promise(r => setTimeout(r, 50));
+          finirAnimations();
+          const avant = ligne.getBoundingClientRect();
+          const compteursAvant = hautVisible(el('compteurs-chantiers'));
+          const champAvant = el('recherche-chantiers').getBoundingClientRect().height;
+          if (rang) attendre(!compteursAvant && dlg.scrollTop > 200, `essai mal fait : liste pas défilée (${dlg.scrollTop})`);
+          ligne.click();
+          attendre(ui.doc.querySelector('.choix-fantome'), `${cas} : pas de fondu`);
+          const copie = double('.ligne-chantier', ligne.textContent);
+          attendre(copie, `${cas} : le chantier touché n’est pas dans l’écran qui part`);
+          const apres = copie.getBoundingClientRect();
+          { const champ = ui.doc.querySelector('.choix-fantome input'); const h = champ ? champ.getBoundingClientRect().height : -99; attendre(Math.abs(h - champAvant) <= 1, `${cas} : le champ « Chercher un chantier » n’a pas la même hauteur dans l’écran qui part : ${champAvant} px avant, ${Math.round(h)} px dans la copie`); }
+          attendreEgal([vue.getComputedStyle(copie).display, Math.round(apres.height)], [vue.getComputedStyle(ligne).display, Math.round(avant.height)], `${cas} : la ligne n’a pas la même allure dans l’écran qui part (affichage, hauteur)`);
+          attendre(Math.abs(apres.top - avant.top) < 2 && Math.abs(apres.left - avant.left) < 2, `${cas} : la liste SAUTE au toucher (le chantier était à ${Math.round(avant.top)} px, il passe à ${Math.round(apres.top)} px)`);
+          const compteurs = double('p', el('compteurs-chantiers').textContent);
+          attendreEgal(Boolean(compteurs && hautVisible(compteurs)), compteursAvant, `${cas} : les compteurs reviennent (ou disparaissent) à l’écran pendant le fondu`);
+          await new Promise(r => setTimeout(r, 700));
+          attendre(!ui.doc.querySelector('.choix-fantome') && !el('fiche-chantier').hidden, `${cas} : fondu resté, ou fiche absente`);
+          finirAnimations();
+          const ficheHaut = Math.round(el('fiche-chantier').getBoundingClientRect().top);
+          attendre(ficheHaut < 120, `${cas} : fiche pas en haut (${ficheHaut} px)`);
+          el('fermer-chantiers').click();
+          await new Promise(r => setTimeout(r, 1600));
+          attendre(!el('liste-chantiers').hidden && dlg.open, `${cas} : la liste ne revient pas`);
+        }
+        vue.matchMedia = q => ({ matches: /reduce/.test(q), addEventListener() {}, removeEventListener() {} });
+        ecran.fermer();
+      } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+    });
+  });
+
+  await testAsync('Recherche de l’accueil, c135 (11/11/2026, FICTIF) : « Chantier » dans le menu (après « Personnes », accessible, même menu dans Chercher et dans l’écran des tâches) ; le choisir ouvre l’écran des chantiers et le menu revient à son choix d’avant ; dans Chercher, les lettres tapées n’importe où dans « Chantier » (sans majuscules ni accents) font sortir la proposition « Chantier », en tête, 6 au plus ; la toucher ouvre l’écran des chantiers ; sinon rien ne change', async c => {
+    c.TACHES.push({ ...TACHES_FICTIVES[0], id: 'FICTIF-c135', intitule: 'Tache FICTIVE avec un a', categorie: 'À trier', fait: false, abandonnee_le: '', parente: '' });
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    let ouvertures = 0;
+    const compter = () => { ouvertures++; };
+    ui.doc.addEventListener('cap-ouvrir-chantiers', compter);
+    try {
+      for (const id of ['chercher-source', 'source-recherche']) {
+        const opts = [...el(id).options];
+        const i = opts.findIndex(o => o.textContent === 'Chantier');
+        attendre(i === opts.findIndex(o => o.textContent === 'Personnes') + 1 && !opts[i].disabled && opts[i].value === 'chantiers', `${id} : « Chantier » absent, mal placé ou grisé`);
+      }
+      // Le menu de Chercher : « Personnes », puis « Chantier » : l'écran des chantiers s'ouvre, le menu revient à « Personnes ».
+      el('ouvrir-chercher').click();
+      transitionEcrans.terminer(ui.doc);
+      const menu = el('chercher-source');
+      menu.value = 'personnes'; menu.dispatchEvent(new Event('change'));
+      menu.value = 'chantiers'; menu.dispatchEvent(new Event('change'));
+      attendreEgal([ouvertures, menu.value, el('source-recherche').value], [1, 'personnes', 'personnes'], 'menu de Chercher');
+      menu.value = 'tout'; menu.dispatchEvent(new Event('change'));
+      // Le menu de l'écran des tâches : pareil, et la recherche n'affiche pas « Chantier » comme source.
+      const menu2 = el('source-recherche');
+      menu2.value = 'chantiers'; menu2.dispatchEvent(new Event('change'));
+      attendreEgal([ouvertures, menu2.value, el('libelle-source').textContent], [2, 'tout', 'Tout'], 'menu de l’écran des tâches');
+      // Propositions de Chercher.
+      const champ = el('chercher-champ');
+      const taper = texte => { champ.value = texte; champ.dispatchEvent(new Event('input', { bubbles: true })); return [...el('propositions-chercher').querySelectorAll('.proposition-chercher')]; };
+      for (const lettres of ['c', 'A', 'nti', 'HANT', 'ier', 'chantier', 'Chantièr']) {
+        const props = taper(lettres);
+        attendre(props.length >= 1 && props.length <= 6 && props[0].textContent === 'Écran · Chantier', `« ${lettres} » : pas de « Chantier » en tête : ${JSON.stringify(props.map(b => b.textContent))}`);
+      }
+      attendre(taper('a').some(b => /^Tâche · Tache FICTIVE avec un a/.test(b.textContent)), 'les autres propositions ont disparu');
+      for (const lettres of ['x', 'chantiers', 'pelote']) attendre(!taper(lettres).some(b => /Chantier$/.test(b.textContent)), `« ${lettres} » fait sortir « Chantier »`);
+      // Source « Personnes » : pas de « Chantier » (il n'est pas une personne).
+      menu.value = 'personnes'; menu.dispatchEvent(new Event('change'));
+      attendre(!taper('a').some(b => /Chantier$/.test(b.textContent)), '« Chantier » proposé dans « Personnes »');
+      menu.value = 'tout'; menu.dispatchEvent(new Event('change'));
+      // Toucher la proposition : l'écran des chantiers ; les propositions se ferment.
+      const prop = taper('ch')[0];
+      attendre(touchable(ui, prop), 'proposition « Chantier » pas touchable');
+      prop.click();
+      attendreEgal([ouvertures, el('propositions-chercher').hidden], [3, true], 'toucher « Chantier »');
+    } finally { ui.doc.removeEventListener('cap-ouvrir-chantiers', compter); }
+  });
+
+  // ----- 12/11/2026 (accord de Max, c163) : NOUVEL ACCUEIL, grille 3 × 4 ; RÈGLE D'OR : mêmes destinations -----
+  await testAsync('Accueil, c163 (12/11/2026, FICTIF) : grille 3 × 4 sur l’eau (To-do, Média, Chantiers / loupe, micro, œil / Documents, Agenda, À trier / scanner, Jour-Nuit, rouage) ; « Autre » caché (gardé) ; RÈGLE D’OR : chaque icône touche l’ANCIEN bouton (liste AVANT → APRÈS) ; Agenda grisé : « Il n’y a pas encore de lien » ; l’interrupteur commande le thème ; To-do ramène à l’accueil ; la bande du micro ne recouvre ni la loupe ni l’œil', async c => {
+    await accueilGrosMicro(c, async ({ ui, el, outils }) => {
+      const GRILLE = [['accueil-todo', 'accueil-media', 'accueil-chantiers'], ['ouvrir-chercher', 'microphone', 'accueil-oeil'], ['accueil-bureau', 'accueil-agenda', 'accueil-a-trier'], ['accueil-scanner', 'accueil-theme', 'accueil-reglages']];
+      const r = id => el(id).getBoundingClientRect();
+      const cx = x => (x.left + x.right) / 2, cy = x => (x.top + x.bottom) / 2;
+      GRILLE.forEach((ligne, i) => {
+        const rs = ligne.map(r);
+        attendre(rs.every(x => Math.abs(cy(x) - cy(rs[0])) < 2) && rs[0].right <= rs[1].left && rs[1].right <= rs[2].left, `ligne ${i + 1} pas alignée : ${ligne}`);
+        if (i) { const avant = GRILLE[i - 1].map(r); attendre(avant[0].bottom <= rs[0].top, `ligne ${i + 1} pas sous la ligne ${i}`); rs.forEach((x, k) => attendre(Math.abs(cx(x) - cx(avant[k])) < 2, `colonne ${k + 1} pas alignée (ligne ${i + 1})`)); }
+      });
+      attendre(Math.abs(cx(r('microphone')) - 206) < 2, 'micro pas au milieu');
+      // 12/11/2026 (c164) : chaque case a SON dessin (défaut vu sur les captures : le rouage avait le dessin de To-do) ; le rouage est une roue dentée.
+      const dessins = GRILLE.flat().map(id => (el(id).querySelector('svg') ? el(id).querySelector('svg').innerHTML : ''));
+      attendre(dessins.every(Boolean) && new Set(dessins).size === dessins.length, `deux cases ont le même dessin : ${GRILLE.flat().filter((id, i) => dessins.indexOf(dessins[i]) !== i)}`);
+      attendre(/r="3"/.test(dessins[GRILLE.flat().indexOf('accueil-reglages')]) && /M19\.4 15/.test(dessins[GRILLE.flat().indexOf('accueil-reglages')]), 'le rouage n’est pas une roue dentée');
+      attendre(GRILLE.flat().every(id => touchable(ui, el(id))), 'une icône pas touchable');
+      const tc = r('accueil-theme'), tm = r('microphone');
+      attendre(tc.left >= tm.left - 1 && tc.right <= tm.right + 1, `interrupteur hors de la colonne du milieu : ${JSON.stringify([tc.left, tc.right, tm.left, tm.right])}`);
+      attendre(el('ouvrir-autre').hidden && !touchable(ui, el('ouvrir-autre')), '« Autre » encore visible');
+      // RÈGLE D'OR : liste AVANT → APRÈS ; un toucher sur l'icône = un toucher sur l'ANCIEN bouton, et lui seul.
+      const AVANT_APRES = [['accueil-todo', 'chercher-todo'], ['accueil-media', 'chercher-media'], ['accueil-chantiers', 'chercher-chantiers'], ['accueil-oeil', 'ouvrir-oeil'],
+        ['accueil-a-trier', 'chercher-a-trier'], ['accueil-scanner', 'ouvrir-scanner'], ['accueil-reglages', 'ouvrir-reglages-cap'], ['accueil-theme', 'bouton-theme-cap']];
+      const ANCIENS = ['chercher-todo', 'chercher-documents', 'chercher-media', 'chercher-photo', 'chercher-a-trier', 'chercher-chantiers', 'ouvrir-scanner', 'ouvrir-oeil', 'ouvrir-notes', 'ouvrir-agenda', 'ouvrir-lecteur', 'ouvrir-reglages-cap', 'bouton-theme-cap', 'ouvrir-autre'];
+      const touches = [];
+      const bloquer = e => { touches.push(e.currentTarget.id); e.stopImmediatePropagation(); };
+      ANCIENS.forEach(id => el(id).addEventListener('click', bloquer, true));
+      try {
+        for (const [neuf, ancien] of AVANT_APRES) { touches.length = 0; el(neuf).click(); attendreEgal(touches, [ancien], `${neuf} : destination changée`); }
+        // c165 : Bureau ouvre son écran (aucun ancien bouton touché) ; « Documents » de Bureau touche l'ancien « Documents ».
+        touches.length = 0; el('accueil-bureau').click(); transitionEcrans.terminer(ui.doc);
+        attendre(touches.length === 0 && !el('ecran-bureau').hidden, 'Bureau n’ouvre pas son écran');
+        el('bureau-documents').click(); attendreEgal(touches, ['chercher-documents'], 'Documents de Bureau : destination changée');
+        el('fermer-bureau').click(); transitionEcrans.terminer(ui.doc);
+        attendre(el('ecran-bureau').hidden && touchable(ui, el('accueil-bureau')), 'Bureau ne revient pas à l’accueil');
+        touches.length = 0; el('accueil-agenda').click();
+        attendreEgal([touches.length, el('message-accueil').hidden, el('message-accueil').textContent], [0, false, 'Il n’y a pas encore de lien.'], 'Agenda grisé');
+      } finally { ANCIENS.forEach(id => el(id).removeEventListener('click', bloquer, true)); }
+      // L'interrupteur commande vraiment le thème (et suit l'ancien).
+      const avant = el('bouton-theme-cap').getAttribute('aria-checked');
+      el('accueil-theme').click();
+      await new Promise(f => setTimeout(f, 0)); // l'interrupteur de l'accueil suit l'ancien (observateur)
+      attendre(el('bouton-theme-cap').getAttribute('aria-checked') !== avant && el('accueil-theme').getAttribute('aria-checked') === el('bouton-theme-cap').getAttribute('aria-checked'), 'thème pas changé ou pas suivi');
+      el('accueil-theme').click();
+      await new Promise(f => setTimeout(f, 0));
+      attendreEgal(el('accueil-theme').getAttribute('aria-checked'), avant, 'thème pas revenu');
+      // To-do depuis l'accueil : l'écran des tâches, puis « Fermer » ramène à l'ACCUEIL.
+      el('accueil-todo').click(); transitionEcrans.terminer(ui.doc);
+      attendre(!el('ecran-complet').hidden, 'écran des tâches pas ouvert');
+      el('fermer-chercher').click(); transitionEcrans.terminer(ui.doc);
+      attendre(el('ecran-complet').hidden && el('ecran-chercher').hidden && touchable(ui, el('accueil-todo')), 'pas revenu à l’accueil');
+      // Bande du micro : 1er toucher du micro, « + » sous la loupe, « écrire » sous l'œil, entre les lignes 2 et 3, rien recouvert.
+      el('microphone').click();
+      attendre(outils(), '« + » et « écrire » pas montrés');
+      const p = r('micro-ajouter'), e = r('micro-ecrire'), l = r('ouvrir-chercher'), o = r('accueil-oeil'), b = r('accueil-bureau');
+      attendre(Math.abs(cx(p) - cx(l)) < 2 && Math.abs(cx(e) - cx(o)) < 2 && Math.abs(cy(p) - cy(e)) < 2, 'bande pas symétrique');
+      attendre(p.top >= l.bottom && p.bottom <= b.top, 'bande pas entre les lignes 2 et 3');
+      for (const id of ['ouvrir-chercher', 'accueil-oeil', 'microphone', 'micro-ajouter', 'micro-ecrire']) attendre(touchable(ui, el(id)), `${id} recouvert`);
+      // Scans en attente : recopiés sous la grille.
+      el('scans-en-attente').textContent = '2 scans FICTIFS en attente'; el('scans-en-attente').hidden = false;
+      await new Promise(f => setTimeout(f, 0));
+      attendreEgal([el('scans-accueil').hidden, el('scans-accueil').textContent], [false, '2 scans FICTIFS en attente'], 'scans pas recopiés');
+      el('scans-en-attente').hidden = true; await new Promise(f => setTimeout(f, 0));
+      attendre(el('scans-accueil').hidden, 'scans pas cachés');
+    });
+  });
+
+  await testAsync('Accueil, c163 (12/11/2026, FICTIF) : la grille 3 × 4 ET la bande du micro TIENNENT à l’écran, rien coupé ni débordant, à toutes les tailles des essais (360 × 560, 412 × 900 comme le Pixel 7a, 1024 × 768) ; chaque case reste assez grande pour le doigt', async c => {
+    const IDS = ['chercher-barre', 'accueil-todo', 'accueil-media', 'accueil-chantiers', 'ouvrir-chercher', 'microphone', 'accueil-oeil', 'micro-ajouter', 'micro-ecrire', 'accueil-bureau', 'accueil-agenda', 'accueil-a-trier', 'accueil-scanner', 'accueil-theme', 'accueil-reglages'];
+    for (const [largeur, hauteur] of [[360, 560], [412, 900], [412, 860], [412, 800], [1024, 768]]) { // c168 : + 412 × 860 et 412 × 800 (grands écrans)
+      const ui = preparerInterface(c, { largeur, hauteur });
+      const el = id => ui.parId(id);
+      el('micro-ajouter').hidden = false; el('micro-ecrire').hidden = false; // la bande ouverte : le cas le plus haut
+      el('bande-recherche-accueil').hidden = false; // c167 : + la ligne de recherche, ouverte en même temps
+      const nav = el('accueil-boutons').getBoundingClientRect();
+      for (const id of IDS) {
+        const x = el(id).getBoundingClientRect();
+        attendre(x.width >= 44 && x.height >= 44, `${largeur} × ${hauteur} : ${id} trop petit (${Math.round(x.width)} × ${Math.round(x.height)})`);
+        attendre(x.left >= 0 && x.right <= largeur && x.top >= nav.top - 1 && x.bottom <= Math.min(nav.bottom, hauteur) + 1, `${largeur} × ${hauteur} : ${id} coupé ou hors de l’accueil (${Math.round(x.top)}–${Math.round(x.bottom)}, accueil ${Math.round(nav.top)}–${Math.round(nav.bottom)})`);
+        attendre(touchable(ui, el(id)), `${largeur} × ${hauteur} : ${id} pas touchable`);
+      }
+      attendre(ui.doc.documentElement.scrollWidth <= largeur && ui.doc.body.scrollWidth <= largeur, `${largeur} × ${hauteur} : débordement horizontal`);
+      // 12/11/2026 (c166, demande de Max) : cases un peu plus grandes : une case = la plus petite de 14 % de la hauteur et 29 %
+      // de la largeur de l'accueil (avant, c163 : 13 % et 28 %).
+      const taille = el('microphone').getBoundingClientRect().width;
+      const boite = el('accueil-boutons'); const st = ui.cadre.contentWindow.getComputedStyle(boite);
+      const placeH = boite.clientHeight - parseFloat(st.paddingTop) - parseFloat(st.paddingBottom); // la place SANS la marge intérieure
+      const placeL = boite.clientWidth - parseFloat(st.paddingLeft) - parseFloat(st.paddingRight);
+      // c168 : grands écrans (place d'au moins 600 × 380 points, comme le Pixel 7a) : 15,5 % / 30 % ; sinon 14 % / 29 % (c166).
+      const grand = placeH >= 600 && placeL >= 380;
+      const attendu = grand ? Math.min(0.155 * placeH, 0.30 * placeL) : Math.min(0.14 * placeH, 0.29 * placeL);
+      attendre(Math.abs(taille - attendu) < 1, `${largeur} × ${hauteur} : case de ${taille.toFixed(1)} points, attendu ${attendu.toFixed(1)} (${grand ? '15,5 % / 30 %' : '14 % / 29 %'})`);
+      attendre(ui.doc.documentElement.scrollHeight <= hauteur, `${largeur} × ${hauteur} : la page défile`);
+    }
+  });
+
+  await testAsync('Accueil, c165 (12/11/2026, FICTIF) : l’icône page cornée ouvre l’écran « Bureau » : « Documents » (touche l’ancien « Documents » de Chercher : la visionneuse, comme avant) et « Notes » (grisée : « Il n’y a pas encore de lien ») ; son « Fermer » caché (celui du geste de retour et de la voix) ramène à l’accueil ; Chercher et Autre gardent toutes leurs icônes', async c => {
+    await accueilGrosMicro(c, async ({ ui, el }) => {
+      el('accueil-bureau').click(); transitionEcrans.terminer(ui.doc);
+      attendre(!el('ecran-bureau').hidden && ui.doc.documentElement.classList.contains('ecran-cap-ouvert'), 'écran Bureau pas ouvert');
+      attendreEgal([...el('ecran-bureau').querySelectorAll('button:not([hidden])')].map(b => [b.id, b.textContent.trim()]), [['bureau-documents', 'Documents'], ['bureau-notes', 'Notes']], 'les deux choix');
+      for (const id of ['bureau-documents', 'bureau-notes']) attendre(touchable(ui, el(id)), `${id} pas touchable`);
+      attendre(el('bureau-notes').classList.contains('bouton-pas-pret') && el('bureau-notes').getAttribute('aria-disabled') === 'true', 'Notes pas grisée');
+      let documents = 0; const compter = () => { documents++; };
+      el('chercher-documents').addEventListener('click', compter, true);
+      el('bureau-notes').click();
+      attendreEgal([documents, el('message-bureau').hidden, el('message-bureau').textContent], [0, false, 'Il n’y a pas encore de lien.'], 'Notes');
+      // Le bouton caché « fermer-bureau » (celui que touchent le geste de retour et la voix) : retour à l’accueil.
+      el('fermer-bureau').click(); transitionEcrans.terminer(ui.doc);
+      attendre(el('ecran-bureau').hidden && touchable(ui, el('accueil-bureau')), 'pas revenu à l’accueil');
+      el('chercher-documents').removeEventListener('click', compter, true);
+      // Rien perdu : Chercher et Autre gardent leurs icônes.
+      for (const id of ['chercher-todo', 'chercher-documents', 'chercher-media', 'chercher-photo', 'chercher-a-trier', 'chercher-chantiers', 'ouvrir-scanner', 'ouvrir-oeil', 'ouvrir-notes', 'ouvrir-agenda', 'ouvrir-lecteur', 'ouvrir-reglages-cap']) attendre(el(id) && !el(id).hidden, `${id} perdu`);
+    });
+  });
+
+  await testAsync('Accueil, c165 (12/11/2026, FICTIF) : l’écran « Bureau » se ferme à la VOIX (« ferme ça ») et revient à l’accueil, comme « Autre » et « Chercher »', async c => {
+    await interfaceCommandes1(c, async ({ ui, el, dicter }) => {
+      await finTransition(ui);
+      el('accueil-bureau').click();
+      await finTransition(ui);
+      attendre(!el('ecran-bureau').hidden, 'Bureau pas ouvert');
+      attendreEgal(dicter('ferme ça'), 'Je ferme.', 'réponse');
+      await attendreQue(() => el('ecran-bureau').hidden, 'Bureau pas fermé à la voix');
+      await finTransition(ui);
+      attendre(touchable(ui, el('accueil-bureau')), 'pas revenu à l’accueil');
+    });
+  });
+
+  await testAsync('Accueil, c167 (12/11/2026, FICTIF) : la loupe ouvre une LIGNE DE RECHERCHE juste au-dessus de loupe / micro / œil, sur les trois colonnes (barre et propositions DÉPLACÉES de l’écran Chercher : un seul exemplaire) ; elle la referme au 2e toucher ; l’écran Chercher et ses icônes restent cachés (rien effacé) ; la voix « ouvre chercher » l’ouvre, puis dit « déjà ouvert »', async c => {
+    await interfaceCommandes1(c, async ({ ui, el, dicter }) => {
+      await finTransition(ui);
+      const bande = el('bande-recherche-accueil');
+      attendre(bande.hidden, 'ligne de recherche ouverte au départ');
+      attendreEgal([ui.doc.querySelectorAll('#chercher-barre').length, ui.doc.querySelectorAll('#chercher-champ').length, ui.doc.querySelectorAll('#propositions-chercher').length], [1, 1, 1], 'barre en double');
+      attendre(bande.contains(el('chercher-barre')) && bande.contains(el('propositions-chercher')) && !el('ecran-chercher').contains(el('chercher-champ')), 'barre pas déplacée');
+      el('ouvrir-chercher').click();
+      await finTransition(ui);
+      attendre(!bande.hidden && el('ecran-chercher').hidden && !ui.doc.documentElement.classList.contains('ecran-cap-ouvert'), 'la loupe n’ouvre pas la ligne (ou ouvre l’écran Chercher)');
+      const rb = el('chercher-barre').getBoundingClientRect(), rl = el('ouvrir-chercher').getBoundingClientRect(), ro = el('accueil-oeil').getBoundingClientRect(), rt = el('accueil-todo').getBoundingClientRect();
+      attendre(rb.top >= rt.bottom && rb.bottom <= rl.top, 'ligne pas entre la 1re ligne et loupe / micro / œil');
+      attendre(rb.left <= rl.left + 2 && rb.right >= ro.right - 2, 'ligne pas sur les trois colonnes');
+      for (const id of ['chercher-champ', 'chercher-source', 'ouvrir-chercher', 'microphone', 'accueil-oeil', 'accueil-todo']) attendre(touchable(ui, el(id)), `${id} pas touchable`);
+      attendre(el('ecran-chercher').querySelector('.grille-chercher').hidden, 'icônes de Chercher visibles');
+      for (const id of ['chercher-todo', 'chercher-documents', 'chercher-media', 'chercher-photo', 'chercher-a-trier', 'chercher-chantiers']) attendre(el(id), `${id} effacé`);
+      attendreEgal(dicter('ouvre chercher'), 'Chercher est déjà ouvert.', 'voix, déjà ouvert');
+      el('ouvrir-chercher').click();
+      attendre(bande.hidden, '2e toucher : pas refermée');
+      attendreEgal(dicter('ouvre chercher'), 'J’ouvre Chercher.', 'voix');
+      attendre(!bande.hidden, 'la voix n’ouvre pas la ligne');
+      el('ouvrir-chercher').click();
+    });
+  });
+
+  await testAsync('Accueil, c169 (12/11/2026, FICTIF) : MODE « SAISIE » : le champ de recherche prend la main : la barre, puis « + », micro, crayon sur une ligne ; toutes les autres icônes cachées (pas effacées) ; le micro ne sert qu’à la recherche (la phrase remplit le champ, aucune commande, rien dans « À trier ») ; fin de saisie (champ quitté, Entrée) : tout revient, la bande du micro comme avant, la ligne reste ouverte', async c => {
+    const nombre = TACHES.length;
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const dictees = [];
+    Object.assign(ui.dictee, { disponible: () => true, enCours: () => false, arreter() {}, demarrer(r) { dictees.push(1); r.surFinal('  pelote FICTIVE  '); if (r.surFin) r.surFin(); } });
+    brancherAccueil(c, ui, { dicteeSaisie: () => ui.dictee });
+    const el = id => ui.parId(id);
+    const nav = el('accueil-boutons'), champ = el('chercher-champ');
+    const AUTRES = ['accueil-todo', 'accueil-media', 'accueil-chantiers', 'ouvrir-chercher', 'accueil-oeil', 'accueil-bureau', 'accueil-agenda', 'accueil-a-trier', 'accueil-scanner', 'accueil-theme', 'accueil-reglages'];
+    const entrer = () => champ.dispatchEvent(new FocusEvent('focus'));
+    const quitter = () => champ.dispatchEvent(new FocusEvent('blur'));
+    el('ouvrir-chercher').click();
+    attendre(el('micro-ajouter').hidden && el('micro-ecrire').hidden, 'bande du micro ouverte au départ');
+    entrer();
+    attendre(nav.classList.contains('mode-saisie'), 'mode saisie pas ouvert');
+    for (const id of ['chercher-barre', 'chercher-champ', 'micro-ajouter', 'microphone', 'micro-ecrire']) attendre(touchable(ui, el(id)), `${id} pas touchable en saisie`);
+    for (const id of AUTRES) attendre(el(id) && el(id).getClientRects().length === 0, `${id} encore affiché en saisie (ou effacé)`);
+    const [rp, rm, re, rb] = ['micro-ajouter', 'microphone', 'micro-ecrire', 'chercher-barre'].map(id => el(id).getBoundingClientRect());
+    const cy = x => (x.top + x.bottom) / 2;
+    attendre(rp.right <= rm.left && rm.right <= re.left && Math.abs(cy(rp) - cy(rm)) < 2 && Math.abs(cy(re) - cy(rm)) < 2 && rm.top >= rb.bottom, '« + », micro, crayon pas sur une ligne sous la barre');
+    // Le micro : la phrase remplit le champ ; aucune commande, rien dans « À trier ».
+    let saisies = 0; champ.addEventListener('input', () => { saisies++; });
+    const statutAvant = el('statut') ? el('statut').textContent : '';
+    el('microphone').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+    el('microphone').click();
+    attendreEgal([dictees.length, champ.value, saisies >= 1, TACHES.length], [1, 'pelote FICTIVE', true, nombre], 'micro de la saisie');
+    attendre(nav.classList.contains('mode-saisie') && (!el('statut') || el('statut').textContent === statutAvant), 'le micro a quitté la saisie ou a lancé autre chose');
+    // Fin de saisie (le champ perd la main) : tout revient ; bande du micro comme avant (fermée) ; ligne ouverte.
+    quitter();
+    attendre(!nav.classList.contains('mode-saisie') && el('micro-ajouter').hidden && el('micro-ecrire').hidden && !el('bande-recherche-accueil').hidden, 'fin de saisie : pas comme avant');
+    for (const id of AUTRES) attendre(touchable(ui, el(id)), `${id} pas revenu`);
+    // Bande du micro OUVERTE avant : elle le reste après ; Entrée termine aussi la saisie.
+    el('micro-ajouter').hidden = false; el('micro-ecrire').hidden = false;
+    entrer();
+    attendre(nav.classList.contains('mode-saisie'), 'saisie pas rouverte');
+    champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    attendre(!nav.classList.contains('mode-saisie') && !el('micro-ajouter').hidden && !el('micro-ecrire').hidden, 'Entrée : saisie pas finie, ou bande du micro changée');
+    // Hors saisie, le micro reprend son rôle habituel : sa phrase ne va PAS dans la barre (le micro de Cap peut écouter).
+    champ.value = '';
+    el('microphone').click();
+    attendreEgal(champ.value, '', 'hors saisie, le micro dicte encore dans la barre');
+    el('micro-ajouter').hidden = true; el('micro-ecrire').hidden = true;
+    el('ouvrir-chercher').click();
+  });
+
+  await testAsync('Accueil, c170 (12/11/2026, FICTIF) : en mode « saisie », « + », micro, crayon BORD À BORD sur toute la largeur, un tiers chacun, gros (hauteur = le plus petit d’un tiers de la largeur et de 45 % de la hauteur restante) ; la barre pleine largeur ; tout tient, clavier ouvert compris (hauteurs réduites)', async c => {
+    for (const [largeur, hauteur] of [[412, 900], [412, 520], [360, 560], [360, 330], [1024, 768]]) {
+      const ui = preparerInterface(c, { largeur, hauteur });
+      brancherAccueil(c, ui, { dicteeSaisie: () => ui.dictee });
+      const el = id => ui.parId(id);
+      el('ouvrir-chercher').click();
+      el('chercher-champ').dispatchEvent(new FocusEvent('focus'));
+      attendre(el('accueil-boutons').classList.contains('mode-saisie'), `${largeur} × ${hauteur} : saisie pas ouverte`);
+      const boite = el('accueil-boutons'); const st = ui.cadre.contentWindow.getComputedStyle(boite);
+      const placeH = boite.clientHeight - parseFloat(st.paddingTop) - parseFloat(st.paddingBottom);
+      const placeL = boite.clientWidth - parseFloat(st.paddingLeft) - parseFloat(st.paddingRight);
+      const nav = boite.getBoundingClientRect();
+      const haut = Math.min(placeL / 3, 0.45 * placeH);
+      const rb = el('chercher-barre').getBoundingClientRect();
+      attendre(Math.abs(rb.width - placeL) < 1.5, `${largeur} × ${hauteur} : barre pas pleine largeur (${Math.round(rb.width)} / ${Math.round(placeL)})`);
+      const rs = ['micro-ajouter', 'microphone', 'micro-ecrire'].map(id => el(id).getBoundingClientRect());
+      rs.forEach((r, k) => {
+        attendre(Math.abs(r.width - placeL / 3) < 1.5 && Math.abs(r.height - haut) < 1.5 && r.height >= 44, `${largeur} × ${hauteur} : bouton ${k + 1} de ${Math.round(r.width)} × ${Math.round(r.height)}, attendu ${Math.round(placeL / 3)} × ${Math.round(haut)}`);
+        attendre(r.top >= nav.top - 1 && r.bottom <= Math.min(nav.bottom, hauteur) + 1, `${largeur} × ${hauteur} : bouton ${k + 1} coupé`);
+      });
+      attendre(Math.abs(rs[0].left - nav.left) < 1.5 && Math.abs(rs[0].right - rs[1].left) < 1 && Math.abs(rs[1].right - rs[2].left) < 1 && Math.abs(rs[2].right - nav.right) < 1.5, `${largeur} × ${hauteur} : pas bord à bord`);
+      for (const id of ['chercher-champ', 'micro-ajouter', 'microphone', 'micro-ecrire']) attendre(touchable(ui, el(id)), `${largeur} × ${hauteur} : ${id} pas touchable`);
+      attendre(ui.doc.documentElement.scrollWidth <= largeur, `${largeur} × ${hauteur} : débordement horizontal`);
+      el('chercher-champ').dispatchEvent(new FocusEvent('blur'));
+    }
+  });
+
+  // ----- 12/11/2026 (accord de Max, c155, A3b) : coordonnées sur la carte d'une relation, FICTIF -----
+  await testAsync('Recherche de l’accueil, c155 (12/11/2026, FICTIF, A3b) : la carte d’une relation montre ses coordonnées tirées de la copie du téléphone : nom, téléphone + « Appeler » (tel:, sans nouvel onglet), mail + « Écrire un mail » (mailto:), adresse postale ; JAMAIS les notes, la naissance, « Note pour IA », les deuxièmes téléphone et mail ; homonymes : « 2 fiches portent ce nom » sans coordonnées ; nom changé : la carte le dit ; pas encore synchronisé : la carte le dit ; aucun réseau', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const dossiers = [['FICTIF_rel_annabelle_0123456789', 'r_Annabelle FICTIVE'], ['FICTIF_rel_homo_0123456789', 'r_Homonyme FICTIF'], ['FICTIF_rel_change_0123456789', 'r_Ancien FICTIF'], ['FICTIF_rel_vide_0123456789', 'r_Vide FICTIF']];
+    memoireRelations.garder(st, dossiers.map(([id, nom]) => ({ id, nom })), new Map());
+    const E = ['Prénom', 'Nom', 'Type', 'Téléphone', 'Mail', 'Adresse postale', 'Deuxième téléphone', 'Deuxième mail', 'Note pour IA', 'Note', 'Date de naissance / anniversaire'];
+    coordonneesRelations.garder(st, [E,
+      ['Annabelle', 'FICTIVE', 'Personne', '06 00 00 00 01 / 07 00 00 00 02', 'Pro : annabelle.fictive@exemple.invalid', '1 rue FICTIVE\n75000 FICTIF', 'TEL2-FICTIF', 'MAIL2-FICTIF', 'NOTE-IA-FICTIVE', 'NOTE-FICTIVE', 'NAISSANCE-FICTIVE'],
+      ['Homonyme', 'FICTIF', 'Personne', '06 00 00 00 03'], ['Homonyme', 'FICTIF', 'Personne', '06 00 00 00 04'],
+      ['Vide', 'FICTIF', 'Personne']], dossiers.map(d => d[1]).slice(0, 3), relations);
+    carteCap.reglerStockage(() => st);
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const el = id => ui.parId(id);
+    const requetes = c.requetes.length;
+    const blocs = () => [...el('blocs-carte-cap').children].map(x => [x.tagName, x.textContent]);
+    const ouvrir = async nom => {
+      if (el('carte-cap').open) el('carte-cap').close();
+      const entree = carteCap.trouver(nom).find(e => e.source === 'relations');
+      attendre(entree, `${nom} pas trouvé`);
+      attendre(carteCap.ouvrir(entree, el('chercher-champ')), 'carte pas ouverte');
+      await attendreQue(() => el('carte-cap').open, 'carte pas ouverte');
+      el('carte-cap').getAnimations({ subtree: true }).forEach(a => a.finish());
+    };
+    try {
+      await ouvrir('annabelle');
+      attendreEgal(blocs(), [['P', 'Annabelle FICTIVE'], ['P', 'Téléphone : 06 00 00 00 01 / 07 00 00 00 02'], ['A', 'Appeler'], ['P', 'Mail : Pro : annabelle.fictive@exemple.invalid'], ['A', 'Écrire un mail'],
+        ['P', 'Adresse : 1 rue FICTIVE\n75000 FICTIF'], ['A', 'Ouvrir le dossier'], ['BUTTON', 'Voir dans Cap'], ['P', 'Pas encore de journal'], ['BUTTON', '+']], 'carte par défaut (c156 : + le « + » en dernier ; c162 : + « Voir dans Cap »)');
+      const liens = [...el('blocs-carte-cap').querySelectorAll('a')];
+      attendreEgal(liens.slice(0, 2).map(a => [a.getAttribute('href'), a.target]), [['tel:0600000001', ''], ['mailto:annabelle.fictive@exemple.invalid', '']], 'liens Appeler et Écrire un mail');
+      attendreEgal(liens[2].target, '_blank', 'le dossier s’ouvre toujours hors de Cap');
+      for (const x of [...el('blocs-carte-cap').children, el('fermer-carte-cap')]) { x.scrollIntoView({ block: 'center' }); attendre(touchable(ui, x), `${x.textContent} pas touchable (la carte défile)`); }
+      attendre(!/TEL2|MAIL2|NOTE|NAISSANCE/.test(el('carte-cap').textContent), `donnée cachée montrée par défaut : ${el('carte-cap').textContent}`);
+      await ouvrir('homonyme');
+      attendreEgal(blocs()[0], ['P', '2 fiches portent ce nom dans le Dictionnaire : pas de coordonnées.'], 'homonymes');
+      attendre(!/06 00|Appeler/.test(el('carte-cap').textContent), 'homonymes : coordonnées montrées');
+      await ouvrir('ancien');
+      attendreEgal(blocs()[0], ['P', 'Pas de coordonnées trouvées (le nom du dossier ne correspond plus au Dictionnaire).'], 'nom changé');
+      await ouvrir('vide');
+      attendreEgal(blocs()[0], ['P', 'Coordonnées : touche « Tout synchroniser » (ton compte Google personnel connecté).'], 'pas encore dans la copie');
+      attendreEgal(c.requetes.length, requetes, 'réseau utilisé');
+    } finally {
+      carteCap.reglerStockage(() => (typeof localStorage !== 'undefined' ? localStorage : null));
+      if (el('carte-cap').open) el('carte-cap').close();
+    }
+  });
+
+  // ----- 12/11/2026 (accord de Max, c156, A3c) : le « + » de la carte d'une relation, FICTIF -----
+  await testAsync('Recherche de l’accueil, c156 (12/11/2026, FICTIF, A3c) : un petit « + » en bas à droite de la carte d’une relation montre TOUT LE RESTE de sa fiche (titre de colonne + valeur) : notes, naissance, « Note pour IA », deuxièmes téléphone et mail, type, domaine, colonne sans titre, colonne ajoutée plus tard ; cases vides cachées ; rien de tout ça dans la page avant le toucher ; un 2e toucher referme ; homonymes : pas de « + » ; fiche courte : seulement le type ; aucun réseau', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const dossiers = [['FICTIF_rel_annabelle_0123456789', 'r_Annabelle FICTIVE'], ['FICTIF_rel_homo_0123456789', 'r_Homonyme FICTIF'], ['FICTIF_rel_simple_0123456789', 'r_Simple FICTIF']];
+    memoireRelations.garder(st, dossiers.map(([id, nom]) => ({ id, nom })), new Map());
+    const E = ['Prénom', 'Nom', 'Type', 'Téléphone', 'Mail', 'Adresse postale', 'Deuxième téléphone', 'Deuxième mail', 'Note pour IA', 'Note', 'Date de naissance / anniversaire', 'Domaine', 'Vide FICTIVE', '', 'Colonne ajoutée FICTIVE'];
+    coordonneesRelations.garder(st, [E,
+      ['Annabelle', 'FICTIVE', 'Personne', '06 00 00 00 01', 'annabelle.fictive@exemple.invalid', '1 rue FICTIVE', 'TEL2-FICTIF', 'MAIL2-FICTIF', 'NOTE-IA-FICTIVE', 'NOTE-FICTIVE\nsur deux lignes', 'NAISSANCE-FICTIVE', 'Famille', '', 'SANS-TITRE-FICTIF', 'AJOUT-FICTIF'],
+      ['Homonyme', 'FICTIF', 'Personne', '06 00 00 00 03', '', '', '', '', '', 'NOTE-HOMONYME'], ['Homonyme', 'FICTIF', 'Personne', '06 00 00 00 04'],
+      ['Simple', 'FICTIF', 'Personne', '06 00 00 00 05']], dossiers.map(d => d[1]), relations);
+    carteCap.reglerStockage(() => st);
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const el = id => ui.parId(id);
+    const requetes = c.requetes.length;
+    const ouvrir = async nom => {
+      if (el('carte-cap').open) el('carte-cap').close();
+      attendre(carteCap.ouvrir(carteCap.trouver(nom).find(e => e.source === 'relations'), el('chercher-champ')), 'carte pas ouverte');
+      await attendreQue(() => el('carte-cap').open, 'carte pas ouverte');
+      el('carte-cap').getAnimations({ subtree: true }).forEach(a => a.finish());
+    };
+    const SECRETS = /TEL2|MAIL2|NOTE|NAISSANCE|AJOUT|SANS-TITRE|Famille|Type/;
+    try {
+      await ouvrir('annabelle');
+      const zone = el('blocs-carte-cap');
+      const plus = zone.lastElementChild;
+      attendreEgal([plus.tagName, plus.textContent, plus.getAttribute('aria-expanded')], ['BUTTON', '+', 'false'], 'le « + » est le dernier bloc');
+      attendre(!SECRETS.test(el('carte-cap').textContent), `donnée du « + » déjà dans la page : ${el('carte-cap').textContent}`);
+      plus.scrollIntoView({ block: 'center' });
+      attendre(touchable(ui, plus), '« + » pas touchable');
+      const rz = zone.getBoundingClientRect(); const rp = plus.getBoundingClientRect();
+      attendre(Math.abs(rz.right - rp.right) < 2 && rp.width < rz.width / 2 && rp.width >= 44 && rp.height >= 44, `« + » pas petit à droite : ${JSON.stringify([rz.right, rp.right, rp.width, rp.height])}`);
+      plus.click();
+      const reste = plus.nextElementSibling;
+      attendre(reste && reste.className === 'reste-carte', 'le reste ne s’est pas ouvert sous le « + »');
+      attendreEgal([...reste.children].map(x => x.textContent), ['Type : Personne', 'Deuxième téléphone : TEL2-FICTIF', 'Deuxième mail : MAIL2-FICTIF', 'Note pour IA : NOTE-IA-FICTIVE',
+        'Note : NOTE-FICTIVE\nsur deux lignes', 'Date de naissance / anniversaire : NAISSANCE-FICTIVE', 'Domaine : Famille', 'Colonne N : SANS-TITRE-FICTIF', 'Colonne ajoutée FICTIVE : AJOUT-FICTIF'], 'tout le reste, cases vides cachées');
+      attendreEgal([plus.textContent, plus.getAttribute('aria-expanded')], ['−', 'true'], '« + » ouvert');
+      for (const x of reste.children) { x.scrollIntoView({ block: 'center' }); attendre(touchable(ui, x), `${x.textContent} pas visible`); }
+      plus.click();
+      attendreEgal([plus.nextElementSibling, plus.textContent], [null, '+'], '2e toucher : refermé');
+      attendre(!SECRETS.test(el('carte-cap').textContent), 'le reste est resté dans la page');
+      plus.click(); el('fermer-carte-cap').click();
+      await attendreQue(() => !el('carte-cap').open, 'carte pas fermée');
+      await ouvrir('annabelle');
+      attendre(!SECRETS.test(el('carte-cap').textContent), 'carte rouverte : le reste est encore ouvert');
+      await ouvrir('homonyme');
+      attendre(!zone.querySelector('.plus-carte') && !/NOTE/.test(el('carte-cap').textContent), 'homonymes : « + » montré');
+      await ouvrir('simple');
+      zone.querySelector('.plus-carte').click();
+      attendreEgal([...zone.querySelector('.reste-carte').children].map(x => x.textContent), ['Type : Personne'], 'fiche courte : seulement le type derrière le « + »');
+      attendreEgal(c.requetes.length, requetes, 'réseau utilisé');
+    } finally {
+      carteCap.reglerStockage(() => (typeof localStorage !== 'undefined' ? localStorage : null));
+      if (el('carte-cap').open) el('carte-cap').close();
+    }
+  });
+
+  // ----- 12/11/2026 (accord de Max, c151, A2 de la « carte complète ») : « Relation · Nom » dans Chercher, puis la carte, FICTIF -----
+  await testAsync('Recherche de l’accueil, c151 (12/11/2026, FICTIF, A2) : un nom de relation tapé dans Chercher (n’importe où dans le nom, sans majuscules ni accents) propose « Relation · Nom » (tiré de la mémoire du téléphone) ; le toucher ouvre UNE carte : « Ouvrir le dossier » et « Ouvrir le journal » (liens hors de Cap), ou « Pas encore de journal » ; « Fermer » revient à Chercher ; une autre source peut compléter la carte ; rien lu ni envoyé', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    memoireRelations.garder(st, [{ id: 'FICTIF_rel_annabelle_0123456789', nom: 'r_Annabelle FICTIVE' }, { id: 'FICTIF_rel_bruno_0123456789', nom: 'r_Bruno Étoile-FICTIF' }],
+      new Map([['FICTIF_rel_annabelle_0123456789', { id: 'FICTIF_journal_annabelle_0123456789' }]]));
+    carteCap.reglerStockage(() => st);
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const champ = el('chercher-champ');
+    const taper = texte => { champ.value = texte; champ.dispatchEvent(new Event('input', { bubbles: true })); return [...el('propositions-chercher').children]; };
+    const boutonDe = (lignes, texte) => lignes.map(x => (x.tagName === 'BUTTON' ? x : x.querySelector('button'))).find(b => b && b.textContent === texte);
+    const requetes = c.requetes.length;
+    try {
+      el('ouvrir-chercher').click();
+      transitionEcrans.terminer(ui.doc);
+      // 1. Proposition, au milieu du nom, sans majuscules ni accents.
+      let lignes = taper('nabel');
+      attendre(boutonDe(lignes, 'Relation · Annabelle FICTIVE'), `pas proposé : ${lignes.map(x => x.textContent)}`);
+      lignes = taper('ETOILE');
+      attendre(boutonDe(lignes, 'Relation · Bruno Étoile-FICTIF'), `accents : ${lignes.map(x => x.textContent)}`);
+      // Source « Personnes » : aussi ; Entrée (valider) : aussi.
+      el('chercher-source').value = 'personnes'; el('chercher-source').dispatchEvent(new Event('change'));
+      attendre(boutonDe(taper('annabelle'), 'Relation · Annabelle FICTIVE'), 'absent dans « Personnes »');
+      el('chercher-source').value = 'tout'; el('chercher-source').dispatchEvent(new Event('change'));
+      taper('annabelle');
+      champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      transitionEcrans.terminer(ui.doc);
+      const bouton = boutonDe([...el('propositions-chercher').children], 'Relation · Annabelle FICTIVE');
+      attendre(bouton, `après Entrée : ${[...el('propositions-chercher').children].map(x => x.textContent)}`);
+      // 2. La carte d'Annabelle : dossier + journal, liens hors de Cap, touchables.
+      bouton.click();
+      await attendreQue(() => el('carte-cap').open, 'carte pas ouverte');
+      el('carte-cap').getAnimations({ subtree: true }).forEach(a => a.finish());
+      attendreEgal(el('titre-carte-cap').textContent, 'Annabelle FICTIVE', 'titre');
+      const liens = [...el('blocs-carte-cap').querySelectorAll('a')];
+      attendreEgal(liens.map(a => [a.textContent, a.href, a.target]), [
+        ['Ouvrir le dossier', 'https://drive.google.com/drive/folders/FICTIF_rel_annabelle_0123456789', '_blank'],
+        ['Ouvrir le journal', 'https://docs.google.com/document/d/FICTIF_journal_annabelle_0123456789/edit', '_blank']], 'liens');
+      for (const a of liens) attendre(touchable(ui, a), `${a.textContent} pas touchable`);
+      attendre(touchable(ui, el('fermer-carte-cap')), '« Fermer » pas touchable');
+      el('fermer-carte-cap').click();
+      await attendreQue(() => !el('carte-cap').open, 'carte pas fermée');
+      attendre(!el('bande-recherche-accueil').hidden, 'Chercher quitté');
+      // 3. Bruno : pas de journal.
+      boutonDe(taper('bruno'), 'Relation · Bruno Étoile-FICTIF').click();
+      await attendreQue(() => el('carte-cap').open, 'carte de Bruno pas ouverte');
+      attendreEgal([...el('blocs-carte-cap').children].map(x => [x.tagName, x.textContent]), [['P', 'Coordonnées : touche « Tout synchroniser » (ton compte Google personnel connecté).'], ['A', 'Ouvrir le dossier'], ['BUTTON', 'Voir dans Cap'], ['P', 'Pas encore de journal']], 'carte sans journal (c155 : + ligne des coordonnées ; c162 : + « Voir dans Cap »)');
+      el('fermer-carte-cap').click();
+      await attendreQue(() => !el('carte-cap').open, 'carte pas fermée (2)');
+      // 4. Plusieurs sources : une source de plus complète la carte, sans rien changer d'autre.
+      attendreEgal(carteCap.sources(), ['relations', 'chantiers'], 'sources de départ'); // c152 : + chantiers
+      carteCap.ajouterSource({ nom: 'essai-c151', trouver: () => [], blocs: e => (e.cle === 'annabelle fictive' ? [{ type: 'texte', texte: 'Bloc FICTIF d’une autre source' }] : []) });
+      boutonDe(taper('annabelle'), 'Relation · Annabelle FICTIVE').click();
+      await attendreQue(() => el('carte-cap').open, 'carte pas rouverte');
+      attendreEgal([...el('blocs-carte-cap').children].map(x => x.textContent), ['Coordonnées : touche « Tout synchroniser » (ton compte Google personnel connecté).', 'Ouvrir le dossier', 'Voir dans Cap', 'Ouvrir le journal', 'Bloc FICTIF d’une autre source'], 'autre source (c155 : + ligne des coordonnées ; c162 : + « Voir dans Cap »)');
+      el('fermer-carte-cap').click();
+      await attendreQue(() => !el('carte-cap').open, 'carte pas fermée (3)');
+      // 5. Mémoire vide : aucune relation proposée.
+      m.clear();
+      attendre(!taper('annabelle').some(x => /Relation/.test(x.textContent)), 'relation proposée sans mémoire');
+      attendreEgal(c.requetes.length, requetes, 'quelque chose a été lu ou envoyé');
+    } finally {
+      carteCap.retirerSource('essai-c151');
+      carteCap.reglerStockage(() => (typeof localStorage !== 'undefined' ? localStorage : null));
+      if (el('carte-cap').open) el('carte-cap').close();
+    }
+  });
+
+  await testAsync('Chantiers, c171 (12/11/2026, FICTIF) : MOSAÏQUE : pas de clavier à l’entrée ; 3 colonnes de CARRÉS (360 × 560, 412 × 900, 1024 × 768) ; même teinte que les tuiles To-do (fond à 60 %, l’eau se voit), encre foncée ; voyant en bande de couleur ; nom sur 3 lignes au plus (nom complet dans aria-label), rien ne déborde, même un très long mot ; ↳ pour un sous-chantier, sans retrait ; ▣ dans le carré ; statut hors du carré (dans aria-label) ; le doigt peut faire défiler ; un toucher ouvre toujours la fiche', async c => {
+    for (const [largeur, hauteur] of [[360, 560], [412, 900], [1024, 768]]) {
+      const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+      const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+        lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+      await fausseSource.lire();
+      st.setItem('cap_chantiers_avec_dossier', JSON.stringify(['CH-908']));
+      const f = fauxCompteCapDossiers(); chantierFictifAvecJournal(f); // Bateau FICTIF (CH-908) : dossier et journal
+      const ui = preparerInterface(c, { largeur, hauteur });
+      const el = id => ui.parId(id);
+      const vue = ui.cadre.contentWindow;
+      const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, stockage: st,
+        lirePret: async () => ({ parChantier: new Map() }), enLigne: () => true, maintenant: () => new Date(2026, 10, 12, 19, 0).getTime() });
+      const ici = `${largeur} × ${hauteur}`;
+      try {
+        await ecran.ouvrir();
+        el('chantiers-cap').getAnimations({ subtree: true }).forEach(a => a.finish());
+        attendre(el('chantiers-cap').open && ui.doc.activeElement !== el('recherche-chantiers'), `${ici} : le champ a la main à l’entrée (clavier)`);
+        const liste = el('liste-chantiers');
+        attendreEgal(vue.getComputedStyle(liste).gridTemplateColumns.split(' ').length, 3, `${ici} : pas 3 colonnes`);
+        const cases = [...liste.querySelectorAll('.ligne-chantier')];
+        attendreEgal(cases.length, 6, `${ici} : nombre de carrés`);
+        const tuile = ui.doc.createElement('div'); tuile.className = 'tuile'; ui.doc.body.append(tuile);
+        const fondTuile = vue.getComputedStyle(tuile).backgroundColor; tuile.remove();
+        attendreEgal(fondTuile, 'rgba(255, 254, 247, 0.6)', 'teinte des tuiles To-do changée');
+        const haie = cases.find(b => /Haie FICTIVE/.test(b.getAttribute('aria-label')));
+        const bateau = cases.find(b => b.dataset.id === 'CH-908');
+        for (const b of cases) {
+          const r = b.getBoundingClientRect(), s = vue.getComputedStyle(b);
+          attendre(Math.abs(r.width - r.height) <= 1 && r.width >= 80, `${ici} : carré de ${Math.round(r.width)} × ${Math.round(r.height)}`);
+          attendreEgal([s.backgroundColor, s.color], [fondTuile, 'rgb(32, 62, 73)'], `${ici} : teinte ou encre du carré`);
+          attendreEgal(vue.getComputedStyle(b.querySelector('.etat-chantier')).display, 'none', `${ici} : statut dans le carré`);
+          attendre(b.getAttribute('aria-label').includes(b.querySelector('.nom-morceau').textContent), `${ici} : aria-label sans le nom`);
+          attendreEgal(s.touchAction.includes('none'), false, `${ici} : le doigt ne peut pas faire défiler depuis un carré`);
+        }
+        attendre(/rgb\(214, 69, 69\)/.test(vue.getComputedStyle(haie).boxShadow) && haie.dataset.voyant === 'rouge', `${ici} : bande rouge absente`);
+        attendre(cases.every(b => /inset/.test(vue.getComputedStyle(b).boxShadow)), `${ici} : bande de voyant absente`);
+        attendreEgal([haie.classList.contains('niveau-1'), vue.getComputedStyle(haie).marginLeft, vue.getComputedStyle(haie, '::after').content.includes('↳')], [true, '0px', true], `${ici} : sous-chantier`);
+        attendre(!vue.getComputedStyle(cases.find(b => b.classList.contains('niveau-0')), '::after').content.includes('↳'), `${ici} : ↳ sur un chantier principal`);
+        const marque = bateau && bateau.querySelector('.marque-dossier');
+        attendre(marque, `${ici} : ▣ absent`);
+        const rm = marque.getBoundingClientRect(), rbt = bateau.getBoundingClientRect();
+        attendre(vue.getComputedStyle(marque, '::before').content.includes('▣') && rm.left >= rbt.left && rm.right <= rbt.right + 1 && rm.top >= rbt.top && rm.bottom <= rbt.bottom + 1, `${ici} : ▣ hors du carré`);
+        // Nom très long (et un mot de 60 lettres) : 3 lignes au plus, rien ne sort du carré, nom complet dans aria-label.
+        const long = 'Chantier FICTIF au nom très très long pour essayer la largeur des carrés de la mosaïque ' + 'x'.repeat(60) + ' et la fin du nom FICTIF';
+        const nom = haie.querySelector('.nom-morceau');
+        nom.textContent = long; haie.setAttribute('aria-label', `Sous-chantier ${long}, voyant rouge`);
+        const lh = parseFloat(vue.getComputedStyle(nom).lineHeight);
+        const rn = nom.getBoundingClientRect(), rh = haie.getBoundingClientRect();
+        attendre(nom.clientHeight <= 3 * lh + 1 && rn.right <= rh.right + 1 && rn.bottom <= rh.bottom + 1 && Math.abs(rh.width - rh.height) <= 1, `${ici} : nom long sur plus de 3 lignes, ou hors du carré (${nom.clientHeight} / ${lh})`);
+        attendre(haie.getAttribute('aria-label').includes(long), `${ici} : nom complet absent de aria-label`);
+        attendre(cases.every(b => touchable(ui, b) || (b.scrollIntoView({ block: 'center' }), touchable(ui, b))), `${ici} : un carré pas touchable`);
+        // Un toucher ouvre toujours la fiche.
+        cases[0].click();
+        attendre(el('chantiers-cap').classList.contains('fiche-ouverte') && !el('fiche-chantier').hidden, `${ici} : la fiche ne s’ouvre pas`);
+      } finally {
+        if (el('chantiers-cap').open) el('chantiers-cap').close();
+        chantiersEcran.ouvrirFiche = undefined;
+        commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher();
+      }
+    }
+  });
+
+  await testAsync('To-do, c172 (12/11/2026, FICTIF) : TROIS colonnes de tuiles carrées (360 × 560, 412 × 900, 1024 × 768) ; même teinte que les carrés Chantiers (fond à 60 %) ; rien ne déborde d’une tuile (titre et nombre) ; les tuiles fixes viennent de tuiles_config.js, dans son ordre, avec ses noms', async c => {
+    attendre(Array.isArray(TUILES_CONFIG.fixes) && TUILES_CONFIG.fixes.length === 5 && TUILES_CONFIG.finales.length === 3 && Object.isFrozen(TUILES_CONFIG.fixes), 'tableau des tuiles absent ou modifiable');
+    for (const [largeur, hauteur] of [[360, 560], [412, 900], [1024, 768]]) {
+      const ui = preparerInterface(c, { largeur, hauteur });
+      const el = id => ui.parId(id);
+      const vue = ui.cadre.contentWindow;
+      const ici = `${largeur} × ${hauteur}`;
+      el('basculer-vue').click();
+      const grille = el('tuiles');
+      attendreEgal(vue.getComputedStyle(grille).gridTemplateColumns.split(' ').length, 3, `${ici} : pas 3 colonnes`);
+      const tuilesVues = [...grille.querySelectorAll('.tuile')];
+      attendre(tuilesVues.length >= 8, `${ici} : tuiles absentes (${tuilesVues.length})`);
+      const titres = tuilesVues.map(t => t.querySelector('.titre-tuile').textContent);
+      attendreEgal(titres.slice(0, 5), TUILES_CONFIG.fixes.map(t => t.titre), `${ici} : tuiles fixes pas celles du tableau, ou pas dans son ordre`);
+      attendreEgal(titres.slice(-3), TUILES_CONFIG.finales.map(t => t.titre), `${ici} : tuiles finales pas celles du tableau`);
+      const fondCarre = (() => { const d = ui.doc.createElement('div'); d.style.background = 'var(--tuile-fond)'; ui.doc.body.append(d); const f = vue.getComputedStyle(d).backgroundColor; d.remove(); return f; })();
+      for (const t of tuilesVues) {
+        const r = t.getBoundingClientRect(); const o = t.querySelector('.ouvrir-tuile');
+        attendre(Math.abs(r.width - r.height) <= 1 && r.width >= 44, `${ici} : tuile « ${t.textContent.trim()} » pas carrée ou trop petite pour le doigt (${Math.round(r.width)} × ${Math.round(r.height)})`);
+        attendre(o.scrollHeight <= o.clientHeight + 1 && o.scrollWidth <= o.clientWidth + 1, `${ici} : « ${t.querySelector('.titre-tuile').textContent} » déborde de sa tuile`);
+        if (!t.classList.contains('tuile-fixe')) continue;
+        attendreEgal(vue.getComputedStyle(t).backgroundColor, 'rgba(238, 247, 251, 0.6)', `${ici} : teinte d’une tuile fixe`);
+      }
+      const categorie = tuilesVues.find(t => !t.classList.contains('tuile-fixe') && !t.classList.contains('tuile-outil'));
+      attendreEgal(vue.getComputedStyle(categorie).backgroundColor, fondCarre, `${ici} : une catégorie n’a pas la teinte des carrés Chantiers`);
+    }
+  });
+
+  await testAsync('To-do, c173 (12/11/2026, FICTIF, défauts vus par Max) : une vue ouverte DEPUIS une tuile (Aujourd’hui, une catégorie) : pas de « Fermer », le titre sur sa ligne à l’horizontale, et le glissement vers le bas RAMÈNE AUX TUILES (pas à l’accueil) ; une vue ouverte d’ailleurs (« À trier » de l’accueil) : le glissement ramène à l’accueil, comme avant', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const glisse = (type, y) => { const e = new Event(type, { bubbles: true }); Object.defineProperties(e, { touches: { value: type === 'touchend' ? [] : [{ clientX: 200, clientY: y }] }, changedTouches: { value: [{ clientX: 200, clientY: y }] } }); el('titre-vue').dispatchEvent(e); };
+    const glisserVersLeBas = () => { el('ecran-complet').scrollTop = 0; glisse('touchstart', 300); glisse('touchend', 500); transitionEcrans.terminer(ui.doc); };
+    el('basculer-vue').click(); transitionEcrans.terminer(ui.doc);
+    attendre(!el('ecran-complet').hidden && el('ecran-complet').dataset.vue === 'tuiles' && el('fermer-chercher').getClientRects().length > 0, 'tuiles pas ouvertes, ou « Fermer » caché sur les tuiles');
+    for (const trouver of [g => [...g.querySelectorAll('.tuile')].find(t => t.querySelector('.titre-tuile').textContent === 'Aujourd’hui'), g => g.querySelector('.tuile[data-categorie]:not([data-categorie=""])')]) {
+      const tuile = trouver(el('tuiles'));
+      attendre(tuile, 'tuile introuvable');
+      const nom = tuile.querySelector('.titre-tuile').textContent;
+      tuile.querySelector('.ouvrir-tuile').click();
+      attendre(el('ecran-complet').dataset.vue !== 'tuiles', `${nom} : vue pas ouverte`);
+      attendre(el('fermer-chercher').getClientRects().length === 0 && el('retour-tuiles').getClientRects().length > 0, `${nom} : « Fermer » encore là, ou « ‹ Tuiles » absent`);
+      const h = el('titre-vue').getBoundingClientRect(), r = el('retour-tuiles').getBoundingClientRect();
+      const lh = parseFloat(ui.cadre.contentWindow.getComputedStyle(el('titre-vue')).lineHeight) || 30;
+      attendre(h.top >= r.bottom - 1 && h.width >= 150 && h.height <= 2.6 * lh && el('titre-vue').scrollWidth <= el('titre-vue').clientWidth + 1, `${nom} : titre pas sur sa ligne à l’horizontale (${Math.round(h.width)} × ${Math.round(h.height)})`);
+      glisserVersLeBas();
+      attendre(!el('ecran-complet').hidden && el('ecran-complet').dataset.vue === 'tuiles', `${nom} : le glissement n’a pas ramené aux tuiles`);
+      attendre(el('fermer-chercher').getClientRects().length > 0, `${nom} : « Fermer » pas revenu sur les tuiles`);
+    }
+    // Sur les tuiles, le glissement ferme l'écran (accueil), comme avant.
+    glisserVersLeBas();
+    attendre(el('ecran-complet').hidden, 'tuiles : le glissement ne ramène plus à l’accueil');
+    // « À trier » de l'accueil (pas depuis une tuile) : « Fermer » visible, le glissement ramène à l'accueil, comme avant.
+    el('accueil-a-trier').click(); transitionEcrans.terminer(ui.doc);
+    attendre(!el('ecran-complet').hidden && el('fermer-chercher').getClientRects().length > 0, 'À trier depuis l’accueil : « Fermer » caché');
+    glisserVersLeBas();
+    attendre(el('ecran-complet').hidden, 'À trier depuis l’accueil : le glissement ne ramène plus à l’accueil');
+  });
+
+  await testAsync('Chantiers, c173 (12/11/2026, FICTIF, défaut de c171 vu par Max) : « Fermer » de la fiche, pendant le fondu de retour : aucune copie écrasée (largeur nulle) ; les compteurs, cachés pendant la fiche, n’apparaissent pas dans la copie ; la liste revient', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st), lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    await fausseSource.lire();
+    const f = fauxCompteCapDossiers(); chantierFictifAvecJournal(f);
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const el = id => ui.parId(id);
+    const vue = ui.cadre.contentWindow;
+    const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, stockage: st,
+      lirePret: async () => ({ parChantier: new Map() }), enLigne: () => true, maintenant: () => new Date(2026, 10, 12, 20, 0).getTime() });
+    try {
+      await ecran.ouvrir();
+      vue.matchMedia = q => ({ matches: false, addEventListener() {}, removeEventListener() {} }); // animations NON réduites
+      await attendreQue(() => el('liste-chantiers').querySelectorAll('.ligne-chantier').length === 6, 'liste pas montrée');
+      await attendreQue(() => !el('compteurs-chantiers').hidden, 'compteurs pas montrés');
+      el('liste-chantiers').querySelector('.ligne-chantier').click();
+      await new Promise(r => setTimeout(r, 700));
+      attendre(el('chantiers-cap').classList.contains('fiche-ouverte'), 'fiche pas ouverte');
+      el('fermer-chantiers').click();
+      const fantome = ui.doc.querySelector('.choix-fantome');
+      attendre(fantome, 'pas de fondu au retour');
+      const ecrasees = [...fantome.children].filter(x => x.textContent.trim() && x.getBoundingClientRect().width < 40);
+      attendreEqal_(ecrasees.map(x => x.textContent.trim().slice(0, 40)), []);
+      const compteursCopie = [...fantome.querySelectorAll('p')].find(x => x.textContent === el('compteurs-chantiers').textContent);
+      attendre(!compteursCopie || compteursCopie.getClientRects().length === 0, 'les compteurs, cachés pendant la fiche, apparaissent dans la copie');
+      await new Promise(r => setTimeout(r, 700));
+      attendre(!ui.doc.querySelector('.choix-fantome') && !el('chantiers-cap').classList.contains('fiche-ouverte') && el('liste-chantiers').getClientRects().length > 0, 'la liste ne revient pas');
+    } finally {
+      if (el('chantiers-cap').open) el('chantiers-cap').close();
+      chantiersEcran.ouvrirFiche = undefined;
+      commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher();
+    }
+    function attendreEqal_(reel, attendu) { attendreEgal(reel, attendu, 'copie écrasée (largeur presque nulle) pendant le fondu'); }
+  });
+
+  // ----- 12/11/2026 (accord écrit de Max, M3a-c) : MMS, tout FICTIF (faux pont de la coque, numéros de la plage de fiction, faux Drive) -----
+  const fauxPontMms = (messages, { accorde = true, repondre = true } = {}) => {
+    const f = { demandes: 0, accorde };
+    f.MmsAndroid = { autorise: () => f.accorde, demander: () => { f.demandes++; if (repondre) setTimeout(() => { f.accorde = true; f.__mmsAutorisation && f.__mmsAutorisation(true); }, 0); }, recents: () => JSON.stringify(messages) };
+    return f;
+  };
+  const stockageMms = () => { const m = new Map(); return { m, getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) }; };
+  const MMS_FICTIFS = [
+    { id: '901', date: 1762950000000, image: true, video: false, texte: true, expediteur: '+33639980021', destinataires: 1 },
+    { id: '902', date: 1762950100000, image: false, video: true, texte: false, expediteur: '06 39 98 00 22', destinataires: 1 },
+    { id: '903', date: 1762950200000, image: true, video: false, texte: false, expediteur: '+33639980021', destinataires: 3 },
+    { id: '904', date: 1762950300000, image: true, video: false, texte: false, expediteur: '+33639980099', destinataires: 1 },
+    { id: '905', date: 1762950400000, image: true, video: false, texte: false, expediteur: null, destinataires: 1 },
+    { id: '906', date: 1762950500000, image: false, video: false, texte: true, expediteur: '0639980023', destinataires: 1 }];
+  const COPIE_COORD_FICTIVE = { version: 1, quand: 0, personnes: [
+    { cle: 'annabelle fictif', nomDossier: 'r_Annabelle FICTIF', etat: 'trouve', champs: [{ titre: 'Prénom', valeur: 'Annabelle' }, { titre: 'Téléphone', valeur: '06 39 98 00 21' }, { titre: 'Mail', valeur: 'annabelle@exemple.invalid' }] },
+    { cle: 'bruno fictif', nomDossier: 'r_Bruno FICTIF', etat: 'trouve', champs: [{ titre: 'Coordonnées', valeur: '12 rue Imaginaire 75000 Nulle-Part, bruno@exemple.invalid, 06.39.98.00.22' }] },
+    { cle: 'c1 fictif', nomDossier: 'r_C1 FICTIF', etat: 'trouve', champs: [{ titre: 'Deuxième téléphone', valeur: '+33 6 39 98 00 23' }] },
+    { cle: 'c2 fictif', nomDossier: 'r_C2 FICTIF', etat: 'trouve', champs: [{ titre: 'Portable', valeur: '0033639980023' }] },
+    { cle: 'homo fictif', nomDossier: 'r_Homo FICTIF', etat: 'homonymes', nombre: 2 },
+    { cle: 'sans fictif', nomDossier: 'r_Sans FICTIF', etat: 'trouve', champs: [{ titre: 'Mail', valeur: 'sans@exemple.invalid' }, { titre: 'Âge', valeur: '0639980024' }] },
+    { cle: 'absente fictif', nomDossier: 'r_Absente FICTIF', etat: 'absente' }] }; // c177 : + une fiche introuvable
+  const morceauxNumeros = ['+33', '06 39', '0639', '639980', '06.39', '98 00'];
+
+  await testAsync('MMS, M3a (12/11/2026, FAUX pont FICTIF) : hors coque « pas disponible » ; l’autorisation SMS demandée seulement sur demande, une fois ; refus = rien lu ; les MMS lus n’ont AUCUN numéro (empreinte seulement, la même que l’index) ; groupe = plusieurs destinataires ; numéro masqué : empreinte nulle ; 20 au plus ; rien d’envoyé', async c => {
+    const appels = [];
+    const vraiFetch = window.fetch;
+    window.fetch = (...a) => { appels.push(String(a[0])); return Promise.reject(new Error('aucun réseau dans ce test')); };
+    try {
+      attendreEgal([mmsLecture.disponible({}), mmsLecture.autorise({}), await mmsLecture.demander({}), await mmsLecture.lireRecents('0'.repeat(64), {})], [false, false, false, []], 'hors coque');
+      const refus = fauxPontMms(MMS_FICTIFS, { accorde: false, repondre: false });
+      attendreEgal(await mmsLecture.lireRecents('0'.repeat(64), refus), [], 'lu sans autorisation');
+      const r = mmsLecture.demander(refus, 30);
+      setTimeout(() => refus.__mmsAutorisation(false), 0);
+      attendreEgal(await r, false, 'refus pris pour un oui');
+      attendreEgal(refus.demandes, 1, 'question pas posée');
+      const p = fauxPontMms(MMS_FICTIFS, { accorde: false });
+      attendreEgal(await mmsLecture.demander(p), true, 'oui pas reçu');
+      attendreEgal(await mmsLecture.demander(p), true, 'deuxième demande');
+      attendreEgal(p.demandes, 1, 'question reposée alors que c’est déjà accepté');
+      const cle = indexRelations.cleDuTelephone(stockageMms());
+      const lus = await mmsLecture.lireRecents(cle, p);
+      attendreEgal(lus.map(m => [m.id, m.image, m.video, m.texte, m.groupe]), [['901', true, false, true, false], ['902', false, true, false, false], ['903', true, false, false, true], ['904', true, false, false, false], ['905', true, false, false, false], ['906', false, false, true, false]], 'lecture');
+      attendreEgal(lus.map(m => m.nombreDestinataires), [1, 1, 3, 1, 1, 1], 'nombre de destinataires (c176)');
+      attendreEgal(lus[0].empreinte, await indexRelations.empreinteNumero('06 39 98 00 21', cle), 'empreinte différente de l’index');
+      attendreEgal(lus[0].empreinte, lus[2].empreinte, 'même numéro, autre empreinte');
+      attendreEgal(lus[4].empreinte, null, 'numéro masqué');
+      const texte = JSON.stringify(lus);
+      for (const m of morceauxNumeros.concat(['expediteur', 'destinataires'])) attendre(!texte.includes(m), `un numéro (ou le champ brut) dans les MMS lus : « ${m} »`);
+      const beaucoup = fauxPontMms(Array.from({ length: 30 }, (_, i) => ({ id: String(i), date: i, image: true, expediteur: null, destinataires: 1 })));
+      attendreEgal((await mmsLecture.lireRecents(cle, beaucoup)).length, 20, '20 au plus');
+      const casse = fauxPontMms([]); casse.MmsAndroid.recents = () => 'pas du JSON';
+      attendreEgal(await mmsLecture.lireRecents(cle, casse), [], 'réponse illisible');
+      attendreEgal(appels, [], 'quelque chose a été envoyé');
+      for (const mot of ['fetch(', 'XMLHttpRequest', 'sendBeacon', 'console.', 'localStorage', 'setItem', 'cerveau', 'annoncer', 'parler', 'speechSynthesis', 'appeler(', 'document']) attendre(!SOURCE_MMS_LECTURE.includes(mot), `mms_lecture.js contient « ${mot} »`);
+    } finally { window.fetch = vraiFetch; }
+  });
+
+  await testAsync('MMS, M3b (12/11/2026, FICTIF) : numéros pris dans Téléphone / Deuxième téléphone / Portable / Coordonnées (pas dans Mail ni Âge) ; personne connue → son dossier ; groupe, inconnu, masqué, numéro de deux personnes → « À trier » ; résumé en NOMBRES seulement (aucun nom, aucun numéro) ; l’index n’est pas gardé ; rien d’envoyé', async c => {
+    const appels = [];
+    const vraiFetch = window.fetch;
+    window.fetch = (...a) => { appels.push(String(a[0])); return Promise.reject(new Error('aucun réseau dans ce test')); };
+    try {
+      attendreEgal(mmsRangement.numerosDans('12 rue Imaginaire 75000 Nulle-Part, 06.39.98.00.22 ou +33 1 99 00 00 12'), ['06.39.98.00.22', '+33 1 99 00 00 12'], 'numéros d’une case Coordonnées');
+      const pers = mmsRangement.personnesDepuisCopie(COPIE_COORD_FICTIVE);
+      attendreEgal(pers.map(p => [p.identifiant, p.numeros.length]), [['r_Annabelle FICTIF', 1], ['r_Bruno FICTIF', 1], ['r_C1 FICTIF', 1], ['r_C2 FICTIF', 1]], 'personnes retenues');
+      const st = stockageMms();
+      st.setItem(coordonneesRelations.CLE, JSON.stringify(COPIE_COORD_FICTIVE));
+      const avant = [...st.m.keys()].sort();
+      const { cle, index, personnes, dossiers } = await mmsRangement.preparerIndex(st);
+      attendreEgal(personnes, 4, 'nombre de personnes');
+      attendreEgal(dossiers, { total: 7, avecNumero: 4, sansNumero: 1, homonymes: 1, introuvable: 1 }, 'dossiers r_ (c177)');
+      attendreEgal([...st.m.keys()].sort(), [...avant, indexRelations.CLE_STOCKAGE].sort(), 'l’index (ou autre chose) a été gardé sur le téléphone');
+      const lus = await mmsLecture.lireRecents(cle, fauxPontMms(MMS_FICTIFS));
+      const classes = mmsRangement.classer(lus, index);
+      attendreEgal(classes.map(m => m.destination.type === 'personne' ? m.destination.identifiant : m.destination.raison),
+        ['r_Annabelle FICTIF', 'r_Bruno FICTIF', 'groupe', 'inconnu', 'inconnu', 'plusieurs'], 'classement');
+      attendreEgal(classes.map(m => m.expediteur), ['reconnu', 'reconnu', 'reconnu', 'inconnu', 'inconnu', 'plusieurs'], 'expéditeur (c177 : reconnu même dans un groupe)');
+      const r = mmsRangement.resumer(classes, dossiers);
+      attendreEgal(r, { total: 6, versPersonne: 2, personnes: 2, aTrier: 4, inconnu: 2, groupe: 1, plusieurs: 1, sansExpediteur: 1, unDestinataire: 5, plusieursDestinataires: 1, expediteurs: 4,
+        expediteursReconnus: 2, expediteursInconnus: 1, expediteursPartages: 1, dossiers: { total: 7, avecNumero: 4, sansNumero: 1, homonymes: 1, introuvable: 1 } }, 'résumé');
+      const t = mmsRangement.texte(r);
+      attendreEgal(t, ['6 MMS lus : 2 d’une personne qui a un dossier « r_ » (2 personnes), 4 à trier (2 numéros inconnus ou masqués, 1 message de groupe, 1 numéro partagé par deux personnes).', 'Détail : 1 sans numéro d’expéditeur lisible, 5 avec un seul destinataire, 1 avec plusieurs destinataires.', 'Dossiers r_ : 7 au total ; fiche avec numéro : 4 ; fiche sans numéro : 1 ; deux fiches au même nom : 1 ; fiche introuvable : 1.', 'Expéditeurs différents : 4, dont reconnus : 2, inconnus : 1, numéro de deux fiches : 1.', 'Rien n’a été copié ni envoyé.'].join('\n'), 'texte du résumé');
+      attendre(!mmsRangement.texte(mmsRangement.resumer(classes.slice(0, 2))).includes('numéro de deux fiches') && !mmsRangement.texte(mmsRangement.resumer(classes.slice(0, 2))).includes('Dossiers r_'), 'lignes en trop sans partage ni dossiers');
+      attendreEgal(mmsRangement.texte(mmsRangement.resumer([])), 'Aucun MMS reçu trouvé sur le téléphone.', 'aucun MMS');
+      for (const m of morceauxNumeros.concat(['Annabelle', 'Bruno', 'FICTIF', 'r_C', 'Absente', 'Homo', 'Sans'])) attendre(!JSON.stringify(r).includes(m) && !t.includes(m), `résumé avec « ${m} »`);
+      attendreEgal(mmsRangement.classer([{ id: 'x', empreinte: 'constructor' }, { id: 'y', empreinte: '__proto__' }], index).map(m => m.destination.raison), ['inconnu', 'inconnu'], 'empreinte piège');
+      const vide = stockageMms();
+      attendreEgal((await mmsRangement.preparerIndex(vide)).personnes, 0, 'sans copie des coordonnées');
+      attendreEgal(appels, [], 'quelque chose a été envoyé');
+      for (const mot of ['fetch(', 'XMLHttpRequest', 'sendBeacon', 'console.', 'setItem', 'cerveau', 'annoncer', 'parler', 'speechSynthesis', 'appeler(', 'document', 'MmsAndroid']) attendre(!SOURCE_MMS_RANGEMENT.includes(mot), `mms_rangement.js contient « ${mot} »`);
+    } finally { window.fetch = vraiFetch; }
+  });
+
+  await testAsync('MMS, M3c (12/11/2026, FAUX Drive FICTIF) : rien sans le Oui ; puis « MMS des relations — RÉPÉTITION FICTIVE » (racine) avec « Personne Test FICTIF » et « À trier » dedans, dossiers VIDES marqués ; relancé : rien recréé ; panne au milieu : reprise sans doublon ; verrou ; aucun dossier r_, aucun fichier envoyé ; démonstration avec de faux messages sans numéro', async c => {
+    const D = 'application/vnd.google-apps.folder';
+    const f = fauxCompteCapDossiers();
+    const p = await mmsRepetition.preparer(f);
+    attendreEgal(p.aCreer.length, 3, 'liste de ce qui serait créé');
+    attendreEgal(f.ecritures.length, 0, 'écrit pendant la préparation');
+    const r = await mmsRepetition.creer(f);
+    attendreEgal(r.cree, ['MMS des relations — RÉPÉTITION FICTIVE', 'Personne Test FICTIF', 'À trier'], 'créés');
+    const racine = f.fichiers.find(x => x.appProperties.cap_mms_repetition_racine === '1');
+    attendre(racine && racine.parents[0] === 'root' && racine.mimeType === D, 'racine');
+    attendreEgal(f.fichiers.filter(x => x.parents[0] === racine.id).map(x => [x.name, x.mimeType, x.appProperties.cap_mms_repetition_dossier]), [['Personne Test FICTIF', D, 'personne_test'], ['À trier', D, 'a_trier']], 'sous-dossiers');
+    attendre(f.ecritures.every(([m, u]) => m === 'POST' && new URL(u).pathname === '/drive/v3/files'), 'autre écriture qu’une création de dossier');
+    attendre(f.fichiers.every(x => x.mimeType === D && !/^r_/i.test(x.name)), 'un fichier ou un dossier r_ créé');
+    attendreEgal((await mmsRepetition.creer(f)).dejaLa, true, 'relancé : recréé');
+    attendreEgal(f.fichiers.length, 3, 'doublon');
+    const g = fauxCompteCapDossiers({ panne: n => n === 2 });
+    let erreur = '';
+    try { await mmsRepetition.creer(g); } catch (e) { erreur = e.message; }
+    attendre(/réseau/.test(erreur), 'panne pas remontée');
+    attendreEgal(g.fichiers.length, 1, 'après la panne');
+    attendreEgal((await mmsRepetition.creer(g)).cree, ['Personne Test FICTIF', 'À trier'], 'reprise');
+    attendreEgal(g.fichiers.length, 3, 'doublon après reprise');
+    const h = fauxCompteCapDossiers();
+    const deux = await Promise.allSettled([mmsRepetition.creer(h), mmsRepetition.creer(h)]);
+    attendreEgal(deux.map(x => x.status), ['fulfilled', 'rejected'], 'verrou');
+    attendreEgal(h.fichiers.length, 3, 'deux créations en même temps');
+    const demo = mmsRepetition.demonstration();
+    attendreEgal(demo.length, 4, 'démonstration');
+    attendreEgal(demo.map(l => l.endsWith('« Personne Test FICTIF »')), [true, false, false, false], 'démonstration : destinations');
+    attendre(demo.slice(1).every(l => l.endsWith('« À trier »')), 'démonstration : à trier');
+    attendre(!/\d{4}/.test(demo.join(' ')) && !/\d{4}/.test(SOURCE_MMS_REPETITION.replace(/\d{2}\/\d{2}\/\d{4}/g, '')), 'un numéro dans la démonstration ou le code');
+    for (const mot of ['MmsAndroid', 'mmsLecture', 'indexRelations', 'coordonneesRelations', 'cerveau', 'console.', 'upload', 'media', 'DELETE', 'PATCH', 'trashed: true']) attendre(!SOURCE_MMS_REPETITION.includes(mot), `mms_repetition.js contient « ${mot} »`);
+  });
+
+  await testAsync('MMS, écran (12/11/2026, FICTIF) : deux boutons dans Réglages du Drive ; « Lire » hors coque : « seulement dans l’application » ; dans la coque : la question d’Android puis des nombres seulement ; « Répétition » : la liste et « Oui, créer » ; « Non » : rien créé ; « Oui » : créé ; textContent seulement', async c => {
+    const ui = preparerInterface(c);
+    const el = id => ui.parId(id);
+    for (const id of ['lire-mms', 'repetition-mms', 'resultat-mms', 'barre-mms', 'oui-mms', 'non-mms']) attendre(el(id), `${id} absent`);
+    attendre(el('lire-mms').closest('#reglages-drive') && el('repetition-mms').closest('#reglages-drive'), 'boutons hors de Réglages du Drive');
+    const f = fauxCompteCapDossiers();
+    const st = stockageMms();
+    st.setItem(coordonneesRelations.CLE, JSON.stringify(COPIE_COORD_FICTIVE));
+    const hors = mmsEcran.brancher(ui.doc, { compte: f, stockage: st, fenetre: {} });
+    await hors.lireMms();
+    attendre(/seulement dans l’application Cap du téléphone/.test(el('resultat-mms').textContent), 'hors coque');
+    const ui2 = preparerInterface(c);
+    const el2 = id => ui2.parId(id);
+    const pont = fauxPontMms(MMS_FICTIFS, { accorde: false });
+    const e = mmsEcran.brancher(ui2.doc, { compte: f, stockage: st, fenetre: pont });
+    const t = await e.lireMms();
+    attendreEgal(pont.demandes, 1, 'question d’Android pas posée');
+    attendre(/^6 MMS lus : 2 d’une personne/.test(t) && el2('resultat-mms').textContent.startsWith('6 MMS lus'), `résumé : ${el2('resultat-mms').textContent}`);
+    for (const m of morceauxNumeros.concat(['Annabelle', 'Bruno', 'FICTIF', 'Absente'])) attendre(!el2('resultat-mms').textContent.includes(m), `écran avec « ${m} »`);
+    attendre(el2('resultat-mms').textContent.includes('Dossiers r_ : 7 au total ; fiche avec numéro : 4') && el2('resultat-mms').textContent.includes('Expéditeurs différents : 4, dont reconnus : 2, inconnus : 1'), `lignes c177 absentes : ${el2('resultat-mms').textContent}`);
+    attendreEgal(ui2.cadre.contentWindow.getComputedStyle(el2('resultat-mms')).whiteSpace, 'pre-line', 'lignes collées (c177)');
+    attendre(el2('barre-mms').hidden, 'Oui/Non montrés pour une lecture');
+    attendreEgal(await e.preparerRepetition(), 'question', 'question de la répétition');
+    attendre(!el2('barre-mms').hidden && /RÉPÉTITION FICTIVE/.test(el2('resultat-mms').textContent) && /Personne Test FICTIF/.test(el2('resultat-mms').textContent), 'liste de la répétition');
+    el2('non-mms').click();
+    attendreEgal([f.ecritures.length, el2('resultat-mms').textContent, el2('barre-mms').hidden], [0, 'Rien n’a été créé.', true], 'Non');
+    await e.preparerRepetition();
+    const fini = await e.confirmer();
+    attendre(/^C’est fait/.test(fini) && f.fichiers.length === 3, `Oui : ${fini}`);
+    attendreEgal(await e.confirmer(), '', 'deuxième Oui sans question');
+    const deco = fauxCompteCapDossiers({ connecte: false });
+    const e3 = mmsEcran.brancher(preparerInterface(c).doc, { compte: deco, stockage: st, fenetre: pont });
+    attendreEgal(await e3.preparerRepetition(), '', 'compte Cap pas connecté');
+    attendre(!/innerHTML|insertAdjacentHTML|outerHTML/.test(SOURCE_MMS_ECRAN), 'mms_ecran.js écrit du HTML');
+    for (const mot of ['MmsAndroid', 'indexRelations', 'coordonneesRelations', 'cerveau', 'console.']) attendre(!SOURCE_MMS_ECRAN.includes(mot), `mms_ecran.js contient « ${mot} »`);
+  });
+
+  // ----- 12/11/2026 (accord de Max, M1) : index par empreinte, numéros FICTIFS (plage de fiction), aucun numéro en clair -----
+  await testAsync('Index relations, M1 (12/11/2026, FICTIF) : un numéro (même écrit autrement) retrouve sa personne ; inconnu : null ; deux personnes au même numéro : « plusieurs » ; l’index ne contient AUCUN numéro ; la clé vient du téléphone (créée une fois, gardée, différente d’un téléphone à l’autre, jamais dans le code) ; une autre clé donne d’autres empreintes ; rien n’est envoyé (ni Drive, ni IA)', async c => {
+    const stockageFictif = () => { const m = new Map(); return { m, getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) }; };
+    const appels = [];
+    const vraiFetch = window.fetch;
+    window.fetch = (...a) => { appels.push(String(a[0])); return Promise.reject(new Error('aucun réseau dans ce test')); };
+    try {
+      const st = stockageFictif();
+      const cle = indexRelations.cleDuTelephone(st);
+      attendre(/^[0-9a-f]{64}$/.test(cle) && st.m.get(indexRelations.CLE_STOCKAGE) === cle, 'clé pas créée ou pas gardée sur le téléphone');
+      attendreEgal(indexRelations.cleDuTelephone(st), cle, 'clé recréée au lieu d’être relue');
+      const autre = indexRelations.cleDuTelephone(stockageFictif());
+      attendre(autre && autre !== cle, 'deux téléphones ont la même clé (clé fixe ?)');
+      const personnes = [
+        { identifiant: 'FICTIF-rel-annabelle', numeros: ['06 39 98 00 11', '01 99 00 00 12'] },
+        { identifiant: 'FICTIF-rel-bruno', numeros: ['+33 6 39 98 00 13'] },
+        { identifiant: 'FICTIF-rel-c1', numeros: ['06 39 98 00 14'] }, { identifiant: 'FICTIF-rel-c2', numeros: ['0033639980014'] },
+        { identifiant: 'FICTIF-rel-vide', numeros: ['insert-address-token', '', 'abc'] }];
+      const index = await indexRelations.construireIndex(personnes, cle);
+      attendreEgal(await indexRelations.trouverPersonne('06.39.98.00.11', index, cle), 'FICTIF-rel-annabelle', 'numéro écrit autrement');
+      attendreEgal(await indexRelations.trouverPersonne('+33199000012', index, cle), 'FICTIF-rel-annabelle', 'deuxième numéro');
+      attendreEgal(await indexRelations.trouverPersonne('0639980013', index, cle), 'FICTIF-rel-bruno', 'Bruno');
+      attendreEgal(await indexRelations.trouverPersonne('06 39 98 00 14', index, cle), 'plusieurs', 'même numéro pour deux personnes');
+      attendreEgal(await indexRelations.trouverPersonne('06 39 98 00 99', index, cle), null, 'inconnu');
+      attendreEgal(await indexRelations.trouverPersonne('insert-address-token', index, cle), null, 'masqué');
+      attendreEgal(Object.keys(index.empreintes).length, 4, 'nombre d’empreintes');
+      const texte = JSON.stringify(index);
+      for (const morceau of ['+33', '06 39', '+33639980011', '0639980011', '639980011', '+33199000012', '0199000012', '199000012', '639980013', '639980014', 'FICTIF-rel-vide']) attendre(!texte.includes(morceau), `un numéro (ou une personne sans numéro) dans l’index : « ${morceau} »`);
+      attendre(Object.keys(index.empreintes).every(e => /^[0-9a-f]{64}$/.test(e)), 'une clé de l’index n’est pas une empreinte');
+      const index2 = await indexRelations.construireIndex(personnes, autre);
+      attendre(Object.keys(index2.empreintes).every(e => !index.empreintes[e]), 'une autre clé donne les mêmes empreintes');
+      attendreEgal(await indexRelations.trouverPersonne('06 39 98 00 11', index, autre), null, 'l’index d’un autre téléphone retrouve quelqu’un');
+      attendreEgal(appels, [], 'quelque chose a été envoyé');
+      for (const mot of ['fetch(', 'XMLHttpRequest', 'sendBeacon', 'console.', 'document', 'cerveau', 'annoncer', 'parler', 'speechSynthesis', 'googleConnexion', 'appeler(']) attendre(!SOURCE_INDEX_RELATIONS.includes(mot), `index_relations.js contient « ${mot} »`);
+      attendre(!/[0-9a-f]{64}/i.test(SOURCE_INDEX_RELATIONS), 'une clé écrite dans le code');
+    } finally { window.fetch = vraiFetch; }
+  });
+
+  // ----- 12/11/2026 (accord de Max, M2) : numéros FICTIFS seulement, pris dans la plage réservée à la fiction (06 39 98 …, 01 99 00 …) -----
+  test('Numéros, M2 (12/11/2026, FICTIF) : un même numéro écrit de 20 façons (06, +33, 0033, espaces, points, tirets, parenthèses, « (0) », espaces insécables) donne UNE forme « +33639980001 » ; 07 et fixe aussi ; masqué, vide, lettres, trop court : null sans erreur ; aucun stockage, aucun réseau', () => {
+    const n = numeros.normaliserNumero;
+    const formes = ['06 39 98 00 01', '0639980001', '+33 6 39 98 00 01', '0033639980001', '06.39.98.00.01', '06-39-98-00-01', '(06) 39 98 00 01',
+      '+33639980001', '+33 (0)6 39 98 00 01', '+33(0)639980001', '0033 6 39 98 00 01', '00 33 6 39 98 00 01', ' 06 39 98 00 01 ', '06\u00a039\u00a098\u00a000\u00a001',
+      '06\u202f39\u202f98\u202f00\u202f01', '+33.6.39.98.00.01', '+33-6-39-98-00-01', '(+33) 6 39 98 00 01', '06 39-98.00 01', '0 6 3 9 9 8 0 0 0 1'];
+    attendreEgal(formes.length, 20, 'nombre de formes');
+    for (const f of formes) attendreEgal(n(f), '+33639980001', `forme « ${f} »`);
+    attendreEgal([n('07 00 00 00 02'), n('01 99 00 00 03'), n('+44 20 7946 0958')], ['+33700000002', '+33199000003', '+442079460958'], '07, fixe, étranger'); // 13/11/2026 (avant publication) : 07 FICTIF manifeste ; avant : un 07 hors des plages de fiction (retiré)
+    for (const x of ['insert-address-token', '', '   ', 'abc', '12', '+12', 'FICTIF 06 39 98 00 01', '06 39 98 00', '063998000112', '+33 06 39', 'numéro masqué', null, undefined, 639980001])
+      attendreEgal(n(x), null, `non reconnu : ${JSON.stringify(x)}`);
+    const source = SOURCE_NUMEROS;
+    for (const mot of ['localStorage', 'sessionStorage', 'indexedDB', 'fetch(', 'XMLHttpRequest', 'console.', 'document', 'cerveau']) attendre(!source.includes(mot), `numeros.js contient « ${mot} »`);
+  });
+
+  // ----- 12/11/2026 (accord de Max, c152, C1 de la « carte complète ») : « Chantier · Nom » dans Chercher, puis la carte, FICTIF -----
+  await testAsync('Recherche de l’accueil, c152 (12/11/2026, FAUX Drive FICTIF, C1) : un nom de chantier tapé dans Chercher propose « Chantier · Nom » (copie du téléphone) ; la carte a les boutons de la fiche : « Dossier » (lien hors de Cap), « Journal », « Documents », « Tâches » (sans dossier : « Pas encore de dossier » et « Tâches ») ; « Journal » ferme la carte et ouvre la fiche du chantier avec son journal ; « Tout synchroniser » garde les identifiants des dossiers sur le téléphone ; rien écrit', async c => {
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    await fausseSource.lire();
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f); // Bateau FICTIF (CH-908) : dossier et journal
+    attendre(chantiersDossiers.garderIds(st, await chantiersDossiers.dossiersExistants(f)), 'identifiants pas gardés');
+    st.setItem('cap_chantiers_avec_dossier', JSON.stringify(['CH-908']));
+    const idBateau = chantiersDossiers.lireIds(st)['CH-908'];
+    attendre(idBateau, 'identifiant du dossier de Bateau absent');
+    carteCap.reglerStockage(() => st);
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers, stockage: st,
+      lirePret: async () => ({ parChantier: new Map() }), enLigne: () => true, maintenant: () => new Date(2026, 10, 12, 9, 50).getTime() });
+    const champ = el('chercher-champ');
+    const taper = texte => { champ.value = texte; champ.dispatchEvent(new Event('input', { bubbles: true })); return [...el('propositions-chercher').children]; };
+    const boutonDe = (lignes, texte) => lignes.map(x => (x.tagName === 'BUTTON' ? x : x.querySelector('button'))).find(b => b && b.textContent === texte);
+    const blocs = () => [...el('blocs-carte-cap').children].map(x => [x.tagName, x.textContent]);
+    try {
+      el('ouvrir-chercher').click();
+      transitionEcrans.terminer(ui.doc);
+      // Proposition (au milieu du nom, sans majuscules).
+      const b = boutonDe(taper('ATEA'), 'Chantier · Bateau FICTIF');
+      attendre(b, `pas proposé : ${[...el('propositions-chercher').children].map(x => x.textContent)}`);
+      attendre(!taper('EXEMPLE').some(x => /Chantier · EXEMPLE/.test(x.textContent)), 'exemple fictif de la Liste proposé');
+      // Carte d'un chantier avec dossier.
+      boutonDe(taper('bateau'), 'Chantier · Bateau FICTIF').click();
+      await attendreQue(() => el('carte-cap').open, 'carte pas ouverte');
+      el('carte-cap').getAnimations({ subtree: true }).forEach(a => a.finish());
+      attendreEgal(el('titre-carte-cap').textContent, 'Bateau FICTIF', 'titre');
+      attendreEgal(blocs(), [['A', 'Dossier'], ['BUTTON', 'Journal'], ['BUTTON', 'Documents'], ['BUTTON', 'Tâches']], 'boutons de la carte');
+      const lien = el('blocs-carte-cap').querySelector('a');
+      attendreEgal([lien.href, lien.target], [`https://drive.google.com/drive/folders/${idBateau}`, '_blank'], 'lien du dossier');
+      for (const x of el('blocs-carte-cap').children) attendre(touchable(ui, x), `${x.textContent} pas touchable`);
+      // « Journal » : la carte se ferme, la fiche de Bateau s'ouvre avec ses dernières lignes.
+      [...el('blocs-carte-cap').children].find(x => x.textContent === 'Journal').click();
+      await attendreQue(() => !el('carte-cap').open && el('chantiers-cap').open, 'carte pas fermée ou fiche pas ouverte');
+      await attendreQue(() => el('resultat-chantier').querySelectorAll('.journal-ligne').length >= 1, `journal pas montré : ${el('resultat-chantier').textContent}`);
+      attendre(/Bateau FICTIF/.test(el('fiche-chantier').textContent) && el('chantiers-cap').classList.contains('fiche-ouverte'), `pas la fiche de Bateau : ${el('fiche-chantier').textContent}`);
+      ecran.fermer();
+      await attendreQue(() => !el('chantiers-cap').open, 'écran des chantiers pas fermé');
+      // Chantier sans dossier.
+      boutonDe(taper('papiers'), 'Chantier · Papiers FICTIFS').click();
+      await attendreQue(() => el('carte-cap').open, 'carte de Papiers pas ouverte');
+      attendreEgal(blocs(), [['P', 'Pas encore de dossier'], ['BUTTON', 'Tâches']], 'carte sans dossier');
+      el('fermer-carte-cap').click();
+      await attendreQue(() => !el('carte-cap').open, 'carte pas fermée');
+      attendreEgal(f.ecritures.length, 0, 'écrit dans le Drive');
+    } finally {
+      carteCap.reglerStockage(() => (typeof localStorage !== 'undefined' ? localStorage : null));
+      if (el('carte-cap').open) el('carte-cap').close();
+      chantiersEcran.ouvrirFiche = undefined;
+      commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher();
+    }
+    // « Tout synchroniser » garde aussi les identifiants des dossiers de chantier.
+    await interfaceChoix(c, async ({ ui: ui2, el: el2 }) => {
+      const g = driveSynchroFictif();
+      const m2 = new Map(); const st2 = { getItem: k => (m2.has(k) ? m2.get(k) : null), setItem: (k, v) => m2.set(k, String(v)), removeItem: k => m2.delete(k) };
+      const s2 = synchroTout.brancher(ui2.doc, { compteCap: compteSynchroFictif(g), liste: () => listeSynchroFictive, stockage: st2, maintenant: () => new Date(2026, 10, 12, 9, 50).getTime() });
+      await s2.lancer();
+      attendreEgal(chantiersDossiers.lireIds(st2), { 'CH-801': 'FICTIF_dossier_ancien_0123456789' }, 'identifiants après « Tout synchroniser »');
+      attendreEgal(g.ecritures.length, 0, 'écrit avant le Oui');
+      el2('non-synchro-tout').click();
+      el2('synchro-tout').close();
+    });
+    attendreEgal(chantiersDossiers.garderIds(st, new Map()), false, 'lecture vide : copie effacée');
+    attendreEgal(chantiersDossiers.lireIds(st)['CH-908'], idBateau, 'copie perdue après une lecture vide');
+  });
+
+  await testAsync('Recherche de l’accueil, c136 (11/11/2026, FICTIF, défaut vu par Max) : Entrée dans Chercher RESTE dans Chercher : résultats sous la barre (30 au plus, « et N autres… »), ou « Rien trouvé nulle part » / « Rien trouvé dans Personnes », lisible sur l’eau ; JAMAIS l’écran des tuiles ; le texte reste ; « Chantier » reste en tête ; toucher une tâche ouvre toujours l’écran des tâches, la tâche surlignée, et « Fermer » revient à Chercher', async c => {
+    c.TACHES.push({ ...TACHES_FICTIVES[0], id: 'FICTIF-c136', intitule: 'Ranger le grenier FICTIF c136', categorie: 'À trier', fait: false, abandonnee_le: '', parente: '' });
+    for (let i = 1; i <= 34; i++) c.TACHES.push({ ...TACHES_FICTIVES[0], id: `FICTIF-c136-${i}`, intitule: `Lot FICTIF c136 numéro ${i}`, categorie: 'À trier', fait: false, abandonnee_le: '', parente: '' });
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const vue = ui.cadre.contentWindow;
+    const champ = el('chercher-champ');
+    const entree = texte => { champ.value = texte; champ.dispatchEvent(new Event('input', { bubbles: true })); champ.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); transitionEcrans.terminer(ui.doc); return [...el('propositions-chercher').children]; };
+    const resteDansChercher = cas => attendre(!el('bande-recherche-accueil').hidden && el('ecran-complet').hidden && !(el('tuiles') && el('tuiles').getClientRects().length), `${cas} : Chercher quitté (écran des tâches ou tuiles)`);
+    el('ouvrir-chercher').click();
+    transitionEcrans.terminer(ui.doc);
+    // 1. Nom FICTIF absent : « Rien trouvé nulle part », dans Chercher, lisible, pas un bouton ; le texte reste.
+    let lignes = entree('Zéphyrine FICTIVE');
+    resteDansChercher('rien trouvé');
+    attendreEgal(lignes.map(x => x.textContent), ['Rien trouvé nulle part'], 'message');
+    attendre(!el('propositions-chercher').hidden && !lignes[0].querySelector('button') && lignes[0].getAttribute('role') === 'status', 'message caché, ou bouton');
+    const st = vue.getComputedStyle(lignes[0]);
+    attendre(st.backgroundColor !== 'rgba(0, 0, 0, 0)' && st.backgroundColor !== 'transparent' && st.color !== st.backgroundColor, `message pas lisible sur l’eau : ${st.color} sur ${st.backgroundColor}`);
+    attendreEgal(champ.value, 'Zéphyrine FICTIVE', 'texte effacé');
+    // 2. Source « Personnes » : « Rien trouvé dans Personnes ».
+    el('chercher-source').value = 'personnes'; el('chercher-source').dispatchEvent(new Event('change'));
+    lignes = entree('Zéphyrine FICTIVE');
+    attendreEgal(lignes.map(x => x.textContent), ['Rien trouvé dans Personnes'], 'message (Personnes)');
+    el('chercher-source').value = 'tout'; el('chercher-source').dispatchEvent(new Event('change'));
+    // 3. Beaucoup de résultats : 30 au plus, puis « et N autres… » ; « Chantier » en tête quand les lettres y sont.
+    lignes = entree('Lot FICTIF c136');
+    resteDansChercher('beaucoup');
+    attendreEgal([lignes.filter(x => x.matches('button.proposition-chercher') || x.querySelector('button')).length, lignes[lignes.length - 1].textContent], [30, 'et 4 autres…'], '30 au plus');
+    lignes = entree('a');
+    attendre(lignes[0].textContent === 'Écran · Chantier', `« Chantier » pas en tête : ${lignes[0].textContent}`);
+    // 4. Une tâche trouvée, touchée : l'écran des tâches, la tâche surlignée ; « Fermer » revient à Chercher.
+    lignes = entree('grenier FICTIF');
+    resteDansChercher('une tâche');
+    const bouton = el('propositions-chercher').querySelector('.proposition-chercher');
+    attendre(bouton && /Ranger le grenier FICTIF c136/.test(bouton.textContent) && touchable(ui, bouton), 'tâche pas montrée ou pas touchable');
+    bouton.click();
+    transitionEcrans.terminer(ui.doc);
+    attendre(!el('ecran-complet').hidden && el('liste-taches').querySelector('.surbrillance-recherche'), 'tâche pas ouverte ni surlignée');
+    el('fermer-chercher').click();
+    transitionEcrans.terminer(ui.doc);
+    attendre(el('ecran-complet').hidden && !el('bande-recherche-accueil').hidden, '« Fermer » ne revient pas à Chercher');
+    if (!el('bande-recherche-accueil').hidden) el('ouvrir-chercher').click(); // c167 : la loupe referme la ligne (avant : « Fermer » de Chercher)
+  });
+
+  await testAsync('Visionneuse, c137 (11/11/2026, FICTIF, ligne 111) : après « Ajouter un fichier », un message en bas dit ce qui s’est passé (« Fichier ajouté : « nom ». », « 2 fichiers ajoutés. », « Aucun fichier choisi : rien n’a été ajouté. » si rien n’est pris ou si le choix est annulé), visible à l’écran, parti après 6 s ; une question de note en cours reste ouverte', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const vue = ui.cadre.contentWindow;
+    const ajouts = [];
+    const compte = { appeler: async () => ({ ok: true, blob: async () => new Blob(['contenu FICTIF']) }), connecte: () => true };
+    const faussePage = { montrerFichier() {}, fermer() {}, montrerMosaique() {}, remplirMiniature() {}, miniatureIllisible() {}, agrandirDepuisMosaique() {},
+      montrerPlusieurs: liste => ajouts.push(...liste.map(x => x.titre)), remettreCommeAuDepart() {} };
+    const v = visionneuseCap.brancher(ui.doc, { compte, visionneuse: async () => faussePage, urls: fausseAdresses(), pdfjs: null, vignette: async () => new Blob(['miniature FICTIVE']) });
+    await v.ouvrirVide();
+    const entree = el('fichier-visionneuse');
+    const msg = el('message-chantier-visionneuse');
+    const choisir = noms => { const d = new DataTransfer(); for (const n of noms) d.items.add(new File(['image FICTIVE'], n, { type: 'image/png' })); entree.files = d.files; entree.dispatchEvent(new Event('change')); };
+    const visible = () => { if (msg.hidden) return false; const r = msg.getBoundingClientRect(); return r.height > 0 && r.top >= 0 && r.bottom <= vue.innerHeight; };
+    // Avant : aucun message.
+    attendre(msg.hidden, 'message déjà là');
+    // Un fichier.
+    choisir(['image FICTIVE.png']);
+    await attendreQue(() => ajouts.length === 1 && visible(), 'message absent après un fichier');
+    attendreEgal(msg.textContent, 'Fichier ajouté : « image FICTIVE.png ».', 'un fichier');
+    // Deux fichiers.
+    choisir(['photo FICTIVE 1.png', 'photo FICTIVE 2.png']);
+    await attendreQue(() => ajouts.length === 3 && msg.textContent === '2 fichiers ajoutés.' && visible(), `deux fichiers : ${msg.textContent}`);
+    // Parti après 6 s.
+    await new Promise(r => setTimeout(r, 6200));
+    attendre(msg.hidden, 'message resté après 6 s');
+    // Rien pris : « change » sans fichier, puis choix annulé (« cancel »).
+    choisir([]);
+    attendre(visible() && msg.textContent === 'Aucun fichier choisi : rien n’a été ajouté.', `rien choisi : ${msg.textContent}`);
+    await new Promise(r => setTimeout(r, 6200));
+    entree.dispatchEvent(new Event('cancel'));
+    attendre(visible() && msg.textContent === 'Aucun fichier choisi : rien n’a été ajouté.', `choix annulé : ${msg.textContent}`);
+    attendreEgal(ajouts.length, 3, 'quelque chose ajouté sans choix');
+    // Une question de note en cours (c125) reste ouverte quand un fichier est ajouté.
+    v.direChantier('question', 'Question FICTIVE : j’ajoute la note ?', { oui() {}, non() {} });
+    attendre(!el('question-note-visionneuse').hidden, 'question pas montrée (essai mal fait)');
+    choisir(['image FICTIVE 3.png']);
+    await attendreQue(() => ajouts.length === 4, 'fichier pas montré (question)');
+    attendre(!el('question-note-visionneuse').hidden, 'la question a été fermée par le message');
+    el('fermer-visionneuse').click();
+  });
+
+  await testAsync('Réglages, c138 (11/11/2026, FICTIF, livraison de Haiku) : bouton « Matières » TOUT EN HAUT des Réglages, avant « Synchroniser maintenant », même allure que les autres boutons, icône en ligne ; il ouvre la page de choix en plein écran ; barre de Cap avec « Fermer » au-dessus (touchable, le cadre dessous) ; « Fermer » ou une fermeture par le système ramène aux Réglages et VIDE la page ; aucune requête réseau', async c => {
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const vue = ui.cadre.contentWindow;
+    const m = matieresEcran.brancher(ui.doc);
+    attendre(m, 'pas branché');
+    el('ouvrir-reglages-cap').click();
+    transitionEcrans.terminer(ui.doc);
+    const reglages = el('ecran-reglages');
+    attendre(!reglages.hidden, 'Réglages pas ouverts (essai mal fait)');
+    const bouton = el('ouvrir-matieres');
+    const boutons = [...reglages.querySelectorAll('button')];
+    attendreEgal([boutons[0] && boutons[0].id, boutons.indexOf(bouton) < boutons.indexOf(el('synchroniser-maintenant'))], ['ouvrir-matieres', true], 'pas tout en haut, avant « Synchroniser maintenant »');
+    // « Synchroniser maintenant » est caché ici (Cap pas connecté dans le test) : on compare avec son bloc, toujours affiché.
+    attendre(bouton.getBoundingClientRect().bottom <= el('etat-synchro').getBoundingClientRect().top + 0.5, 'pas au-dessus du bloc de « Synchroniser maintenant » à l’écran');
+    attendreEgal(bouton.textContent.trim(), 'Matières', 'texte');
+    attendre(bouton.querySelector('svg') && !bouton.querySelector('img'), 'icône pas en ligne');
+    // Même allure qu'un bouton ordinaire des Réglages (« Réglages du Drive »).
+    const a = vue.getComputedStyle(bouton), b = vue.getComputedStyle(el('ouvrir-reglages-drive'));
+    for (const p of ['backgroundColor', 'color', 'borderRadius', 'fontSize', 'fontWeight', 'fontFamily', 'minHeight', 'paddingTop', 'paddingLeft', 'width'])
+      attendreEgal(a[p], b[p], `allure différente (${p})`);
+    attendre(touchable(ui, bouton), 'bouton pas touchable');
+    // Ouvrir : plein écran, la page de choix dans le cadre, « Fermer » en haut, le cadre dessous.
+    const requetes = [];
+    const fetchAvant = vue.fetch; vue.fetch = (...x) => { requetes.push(String(x[0])); return fetchAvant.apply(vue, x); };
+    try {
+      bouton.click();
+      const fen = el('matieres-cap'), cadre = el('cadre-matieres'), fermer = el('fermer-matieres');
+      attendre(fen.open, 'fenêtre pas ouverte');
+      attendreEgal(cadre.getAttribute('src'), 'matieres/choix_matieres.html', 'page chargée');
+      const rf = fen.getBoundingClientRect(), rb = fermer.getBoundingClientRect(), rc = cadre.getBoundingClientRect();
+      attendre(rf.top <= 0.5 && rf.left <= 0.5 && Math.abs(rf.width - vue.innerWidth) < 1 && Math.abs(rf.height - vue.innerHeight) < 1, `pas plein écran : ${JSON.stringify(rf)}`);
+      attendre(touchable(ui, fermer) && rb.top < 80 && rb.height >= 44, `« Fermer » pas touchable en haut : ${JSON.stringify(rb)}`);
+      attendre(rc.top >= rb.bottom - 1 && rc.bottom >= vue.innerHeight - 1 && rc.height > vue.innerHeight * 0.8, `le cadre ne prend pas le reste : ${JSON.stringify(rc)}`);
+      // « Fermer » : retour aux Réglages, page vidée.
+      fermer.click();
+      attendre(!fen.open && cadre.getAttribute('src') === 'about:blank' && !reglages.hidden, '« Fermer » : pas revenu aux Réglages, ou page pas vidée');
+      // Fermeture par le système (retour, Échap) : page vidée aussi.
+      bouton.click();
+      attendre(fen.open && cadre.getAttribute('src') === 'matieres/choix_matieres.html', 'pas rouvert');
+      fen.close();
+      await new Promise(r => setTimeout(r, 50)); // l'événement « close » arrive juste après
+      attendre(cadre.getAttribute('src') === 'about:blank' && !reglages.hidden, 'fermeture par le système : page pas vidée');
+      attendreEgal(requetes, [], 'requête réseau');
+    } finally { vue.fetch = fetchAvant; }
+    for (const mot of ['fetch(', 'XMLHttpRequest', 'sendBeacon', 'localStorage', 'innerHTML', 'cerveau']) attendre(!SOURCE_MATIERES_ECRAN.includes(mot), `matieres_ecran.js contient « ${mot} »`);
+  });
+
+  await testAsync('Lecteur, c139 (11/11/2026, FAUX Drive, ligne 1 de la liste) : téléphone SANS RÉSEAU : « Pas de réseau » (la vraie cause) au lieu de « compte Cap pas connecté », sans bouton « Autoriser… », sans lecture du Drive ; réseau revenu : comme avant ; réseau perdu pendant la lecture : « Pas de réseau » ; à la voix : « Pas de réseau »', async c => {
+    let reseau = false;
+    const el0 = ui => id => ui.parId(id);
+    const brancher = (ui, m) => {
+      brancherAccueil(c, ui);
+      return relationsMp30().brancher(ui.doc, { compte: m, arbre: () => relationsCompte0().lireArbre(m), sorte: relationsCompte0().sorte, stockage: c.localStorage,
+        lecteur: async () => fauxLecteurZencoder().objet, urls: fausseAdresses(), enLigne: () => reseau });
+    };
+    // 1. Identifiant, PAS connecté, hors ligne : « Pas de réseau », pas de bouton Google, aucune lecture du Drive.
+    let ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    let el = el0(ui);
+    let m = compteRelationsIsole(c);
+    m.enregistrerAdresse(COMPTE_CAP_FICTIF);
+    let tel = brancher(ui, m);
+    el('ouvrir-autre').click();
+    const avant = c.requetes.length;
+    el('ouvrir-lecteur').click();
+    await pause();
+    const etat = () => el('etat-musique-relations').textContent;
+    attendre(el('musique-relations').open && /^Pas de réseau/.test(etat()) && !/pas connecté/.test(etat()) && el('autoriser-musique-relations').hidden, `hors ligne : ${etat()}`);
+    attendreEgal(c.requetes.length, avant, 'Drive lu hors ligne');
+    // À la voix, hors ligne : « Pas de réseau ».
+    const dit = await tel.lancerVoix({ tout: true });
+    attendre(/^Pas de réseau/.test(String(dit)), `voix hors ligne : ${dit}`);
+    el('fermer-musique-relations').click();
+    await attendreQue(() => !el('musique-relations').open, 'Fermer');
+    // 2. Réseau revenu, toujours pas connecté : comme avant (« pas connecté » + « Autoriser… »).
+    reseau = true;
+    el('ouvrir-lecteur').click();
+    await pause();
+    attendre(/pas connecté/.test(etat()) && !el('autoriser-musique-relations').hidden, `réseau revenu : ${etat()}`);
+    el('fermer-musique-relations').click();
+    await attendreQue(() => !el('musique-relations').open, 'Fermer (2)');
+    // 3. Connecté mais hors ligne : « Pas de réseau », aucune lecture du Drive.
+    fauxDriveCompteCap(c);
+    ({ m } = connecterCompteFictif(c));
+    ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    el = el0(ui);
+    reseau = false;
+    tel = brancher(ui, m);
+    el('ouvrir-autre').click();
+    const avant3 = c.requetes.length;
+    el('ouvrir-lecteur').click();
+    await pause();
+    attendre(/^Pas de réseau/.test(etat()) && el('autoriser-musique-relations').hidden, `connecté hors ligne : ${etat()}`);
+    attendreEgal(c.requetes.length, avant3, 'Drive lu hors ligne (connecté)');
+    el('fermer-musique-relations').click();
+    await attendreQue(() => !el('musique-relations').open, 'Fermer (3)');
+    // 4. Réseau perdu PENDANT la lecture (la lecture du Drive échoue) : « Pas de réseau ».
+    ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    el = el0(ui);
+    reseau = true;
+    brancherAccueil(c, ui);
+    relationsMp30().brancher(ui.doc, { compte: m, arbre: async () => { reseau = false; throw new Error('Failed to fetch'); }, sorte: relationsCompte0().sorte, stockage: c.localStorage,
+      lecteur: async () => fauxLecteurZencoder().objet, urls: fausseAdresses(), enLigne: () => reseau });
+    el('ouvrir-autre').click();
+    el('ouvrir-lecteur').click();
+    await attendreQue(() => /^Pas de réseau/.test(etat()), `réseau perdu pendant la lecture : ${etat()}`);
+    attendre(el('autoriser-musique-relations').hidden, 'bouton « Autoriser » sans réseau');
+  });
+
+  await testAsync('Accueil, c140 (11/11/2026, FICTIF, défaut vu par Max en mode avion) : accès Google à redonner et téléphone SANS RÉSEAU : l’alerte dit « Pas de réseau… » (jamais « Google a coupé l’accès ») et cache « Redonner l’accès à Google » (aucune page de Google ouverte) ; réseau revenu : l’alerte redevient comme avant, bouton touchable ; réseau reperdu : « Pas de réseau » de nouveau', async c => {
+    c.localStorage.setItem('cap_google_deja_connecte_v1', 'oui'); // Cap a déjà été connecté : accès à redonner
+    c.navigator.onLine = false;
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    const texte = () => el('texte-alerte-google').textContent;
+    const bouton = el('redonner-acces-google');
+    await pause();
+    attendre(!el('alerte-google').hidden, 'alerte absente (essai mal fait)');
+    attendre(/^Pas de réseau/.test(texte()) && !/coupé/.test(texte()) && /Rien n’est perdu/.test(texte()), `hors ligne : ${texte()}`);
+    attendre(bouton.hidden && !bouton.getClientRects().length, 'bouton « Redonner l’accès » visible sans réseau');
+    const redirections = c.redirections.length;
+    // Réseau revenu : comme avant.
+    c.navigator.onLine = true;
+    c.window.dispatchEvent(new Event('online'));
+    await pause();
+    attendre(/^Google a coupé l’accès/.test(texte()) && !bouton.hidden && touchable(ui, bouton), `réseau revenu : ${texte()}`);
+    attendreEgal(bouton.textContent, 'Redonner l’accès à Google', 'texte du bouton');
+    // Réseau reperdu.
+    c.navigator.onLine = false;
+    c.window.dispatchEvent(new Event('offline'));
+    await pause();
+    attendre(/^Pas de réseau/.test(texte()) && bouton.hidden, `réseau reperdu : ${texte()}`);
+    attendreEgal(c.redirections.length, redirections, 'une page de Google a été ouverte');
+    c.navigator.onLine = true;
+  });
+
+  await testAsync('Visionneuse, c141 (11/11/2026, FICTIF, ligne 120) : une lecture du Drive ratée SANS RÉSEAU (jeton périmé) dit « Pas de réseau… », JAMAIS « Autoriser… » : document en grand, vignettes, mosaïque d’un chantier, mosaïque des chantiers ; avec réseau : comme avant (« a expiré » + bouton « Autoriser »)', async c => {
+    let reseau = false;
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const el = id => ui.parId(id);
+    const perime = { appeler: async () => { throw new Error('Compte Cap pas connecté (ou connexion expirée). Touche « Autoriser la lecture du compte Cap ».'); }, connecte: () => false, adresse: () => 'FICTIF', message: () => '' };
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap');
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st), lire: async () => chantiers.copie(st) };
+    const dossiersPerimes = { listerDocuments: async () => { throw new Error('Compte Cap pas connecté (ou connexion expirée).'); }, lireDernieresLignes: async () => [] };
+    const page = { montrerFichier() {}, fermer() {}, montrerMosaique() {}, remplirMiniature() {}, miniatureIllisible() {}, agrandirDepuisMosaique() {}, montrerPlusieurs() {} };
+    const v = visionneuseCap.brancher(ui.doc, { compte: perime, visionneuse: async () => page, urls: fausseAdresses(), pdfjs: null, vignette: async () => new Blob(['miniature FICTIVE']),
+      sourceChantiers: () => fausseSource, dossiersChantiers: () => dossiersPerimes, enLigne: () => reseau });
+    const etat = () => el('etat-visionneuse').textContent;
+    const autoriserCache = () => el('autoriser-visionneuse').hidden;
+    // 1. Document en grand, hors ligne.
+    await v.ouvrirEnGrand([{ id: 'FICTIF_pdf_0123456789', sorte: 'pdf' }]);
+    attendre(/^Pas de réseau/.test(etat()) && !/Autoriser/.test(etat()) && autoriserCache(), `document hors ligne : ${etat()}`);
+    // 2. Avec réseau : comme avant.
+    reseau = true;
+    await v.ouvrirEnGrand([{ id: 'FICTIF_pdf_0123456789', sorte: 'pdf' }]);
+    attendre(/a expiré/.test(etat()) && !autoriserCache(), `document avec réseau : ${etat()}`);
+    // 3. Mosaïque d'un chantier, hors ligne.
+    reseau = false;
+    await v.ouvrir([{ id: 'FICTIF_pdf_0123456789', sorte: 'pdf' }, { id: 'FICTIF_img_0123456789', sorte: 'image' }], { titre: 'Bateau FICTIF', lireJournal: async () => [] });
+    await attendreQue(() => /^Pas de réseau/.test(etat()), `mosaïque d’un chantier hors ligne : ${etat()}`);
+    attendre(autoriserCache(), 'bouton « Autoriser » dans la mosaïque hors ligne');
+    // 4. Mosaïque des chantiers (c133), hors ligne : toucher un chantier.
+    el('menu-chantiers-visionneuse').click();
+    await attendreQue(() => el('liste-grille-chantiers').children.length > 0, 'chantiers pas montrés');
+    [...el('liste-grille-chantiers').children].find(b => b.textContent === 'Bateau FICTIF').click();
+    await attendreQue(() => /^Pas de réseau/.test(el('message-grille-chantiers').textContent), `mosaïque des chantiers hors ligne : ${el('message-grille-chantiers').textContent}`);
+    attendre(autoriserCache(), 'bouton « Autoriser » depuis la mosaïque des chantiers');
+    el('fermer-visionneuse').click(); el('fermer-visionneuse').click();
+    attendre(!el('visionneuse-cap').open, 'visionneuse pas fermée');
+    // 5. Vignettes (plusieurs documents hors chantier), hors ligne.
+    await v.ouvrir([{ id: 'FICTIF_pdf_0123456789', sorte: 'pdf' }, { id: 'FICTIF_img_0123456789', sorte: 'image' }]);
+    await attendreQue(() => /^Pas de réseau/.test(el('etat-vignettes') ? el('etat-vignettes').textContent : ''), `vignettes hors ligne : ${el('etat-vignettes') && el('etat-vignettes').textContent}`);
+    attendre(!el('autoriser-vignettes') || el('autoriser-vignettes').hidden, 'bouton « Autoriser » des vignettes hors ligne');
+    el('fermer-vignettes').click();
+  });
+
+  await testAsync('Chantiers, c142 (11/11/2026, FAUX Drive FICTIF, ligne 120) : SANS RÉSEAU (compte Cap périmé), la fiche dit « Pas de réseau… » au lieu de « pas connecté : touche Autoriser » : créer le dossier, mettre à niveau, ajouter une note (la note reste dans le champ), lire le journal, voir les documents ; rien n’est tenté ni écrit ; avec réseau : comme avant', async c => {
+    let reseau = true;
+    const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)) };
+    const fausseSource = { ...chantiers, copie: () => chantiers.copie(st),
+      lire: async () => chantiers.garder(st, chantiers.analyser(commandesVocales.lireCsv(csvDe(LISTE_CHANTIERS_FICTIVE))), 'compte_cap') };
+    const f = fauxCompteCapDossiers();
+    chantierFictifAvecJournal(f);
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const el = id => ui.parId(id);
+    const ecran = chantiersEcran.brancher(ui.doc, { source: fausseSource, lire: () => fausseSource.lire(), compteCap: f, dossiers: chantiersDossiers,
+      maintenant: () => new Date(2026, 10, 11, 22, 40).getTime(), enLigne: () => reseau, lirePret: async () => ({ parChantier: new Map() }) });
+    try {
+      ecran.ouvrir();
+      await attendreQue(() => el('liste-chantiers').querySelectorAll('.marque-dossier').length === 1, 'marque « dossier » absente');
+      // Hors ligne, jeton périmé.
+      reseau = false;
+      const connecteAvant = f.connecte; f.connecte = () => false;
+      const requetes = c.requetes.length, ecritures = f.ecritures.length;
+      const pasReseau = (x, quoi) => attendre(/^Pas de réseau/.test(String(x)) && !/Autoriser/.test(String(x)), `${quoi} : ${x}`);
+      // Fiche du chantier qui a un dossier : journal, documents, note.
+      [...el('liste-chantiers').querySelectorAll('.ligne-chantier')].find(b => b.querySelector('.marque-dossier')).click();
+      await ecran.lireJournal();
+      pasReseau(el('chantiers-cap').querySelector('.journal-message') && el('chantiers-cap').querySelector('.journal-message').textContent, 'journal');
+      await ecran.voirDocuments();
+      pasReseau(el('chantiers-cap').querySelector('.documents-message') && el('chantiers-cap').querySelector('.documents-message').textContent, 'documents');
+      el('ouvrir-note-chantier').click();
+      el('note-chantier').value = 'Note FICTIVE c142';
+      el('ajouter-note-chantier').click();
+      await pause();
+      const texteFiche = el('chantiers-cap').textContent;
+      attendre(/Pas de réseau/.test(texteFiche) && /ta note est toujours dans le champ/.test(texteFiche), 'note : pas de « Pas de réseau »');
+      attendreEgal(el('note-chantier').value, 'Note FICTIVE c142', 'note effacée');
+      attendre(!el('chantiers-cap').classList.contains('mode-confirmation'), 'une question a été posée hors ligne');
+      // Chantier SANS dossier : créer.
+      el('fermer-chantiers').click();
+      [...el('liste-chantiers').querySelectorAll('.ligne-chantier')].find(b => !b.querySelector('.marque-dossier')).click();
+      pasReseau(await ecran.demanderCreation(), 'créer le dossier');
+      // c147 : la mise à niveau à l'écran est retirée (« Tout synchroniser », test c143).
+      attendreEgal([c.requetes.length - requetes, f.ecritures.length - ecritures], [0, 0], 'quelque chose tenté ou écrit hors ligne');
+      // Avec réseau (toujours périmé) : comme avant.
+      reseau = true;
+      attendre(/pas connecté/.test(await ecran.demanderCreation()), 'avec réseau : plus comme avant');
+      f.connecte = connecteAvant;
+    } finally { commandesVocales.brancherAction('NAV-CH', undefined); ecran.debrancher(); }
+  });
+
+  await testAsync('Tout synchroniser, c143 (11/11/2026, FAUX Drive FICTIF, ligne 120) : SANS RÉSEAU, « Pas de réseau… », rien n’est tenté : Google n’est PAS ouvert (compte périmé), aucune marque de retour, aucune lecture ni écriture (compte connecté) ; avec réseau : comme avant (Google s’ouvre si la connexion manque)', async c => {
+    await interfaceChoix(c, async ({ ui, el }) => {
+      let reseau = false;
+      const f = driveSynchroFictif();
+      const m = new Map(); const st = { getItem: k => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: k => m.delete(k) };
+      const attente = [];
+      // 1. Compte périmé, hors ligne : pas de Google.
+      const perime = compteSynchroFictif(f, { connecte: false });
+      let s = synchroTout.brancher(ui.doc, { compteCap: perime, liste: () => listeSynchroFictive, stockage: st, minuteur: fn => attente.push(fn), enLigne: () => reseau });
+      let texte = await s.lancer();
+      attendre(/Pas de réseau/.test(texte) && /Rien n’a été fait\.$/.test(texte) && !/Google va s’ouvrir/.test(texte), `périmé hors ligne : ${texte}`);
+      attente.forEach(fn => fn());
+      attendreEgal([perime.appels.seConnecter, attente.length, synchroTout.retourEnAttente(st, Date.now())], [0, 0, false], 'Google ouvert ou marque posée hors ligne');
+      attendre(!el('synchro-tout').classList.contains('mode-confirmation'), 'question posée hors ligne');
+      el('synchro-tout').close();
+      // 2. Compte connecté, hors ligne : aucune lecture ni écriture.
+      const connecte = compteSynchroFictif(f, { connecte: true });
+      const ecrituresAvant = f.ecritures ? f.ecritures.length : 0;
+      const requetesAvant = c.requetes.length;
+      s = synchroTout.brancher(ui.doc, { compteCap: connecte, liste: () => listeSynchroFictive, stockage: st, minuteur: fn => attente.push(fn), enLigne: () => reseau });
+      texte = await s.lancer();
+      attendre(/Pas de réseau/.test(texte) && !/Liste des chantiers relue/.test(texte) && !/Compte Cap connecté/.test(texte), `connecté hors ligne : ${texte}`);
+      attendreEgal([c.requetes.length - requetesAvant, (f.ecritures ? f.ecritures.length : 0) - ecrituresAvant], [0, 0], 'lecture ou écriture hors ligne');
+      el('synchro-tout').close();
+      // 3. Avec réseau, compte périmé : comme avant (Google va s'ouvrir).
+      reseau = true;
+      s = synchroTout.brancher(ui.doc, { compteCap: perime, liste: () => listeSynchroFictive, stockage: st, minuteur: fn => attente.push(fn), enLigne: () => reseau });
+      texte = await s.lancer();
+      attendre(/Google va s’ouvrir/.test(texte), `avec réseau : ${texte}`);
+      try { st.removeItem(synchroTout.CLE_RETOUR); } catch (e) { /* rien */ }
+      el('synchro-tout').close();
+    });
+  });
+
+  await testAsync('Journaux des relations, c144 (11/11/2026, FAUX Drive FICTIF, ligne 120) : SANS RÉSEAU, « Pas de réseau… » au lieu de « pas connecté : touche Autoriser » : à l’ouverture, pour créer un journal, pour la mise à niveau ; aucune question, rien lu ni écrit ; avec réseau : comme avant', async c => {
+    const f = fauxCompteCapDossiers();
+    const rel = relationsFictives(f);
+    let reseau = false;
+    await interfaceChoix(c, async ({ ui, el }) => {
+      const ecran = journauxRelationsEcran.brancher(ui.doc, { compteCap: f, enLigne: () => reseau });
+      const etat = () => el('etat-journaux-relations').textContent + ' ' + (el('question-journal-relation') ? el('question-journal-relation').textContent : '');
+      const ecrituresAvant = f.ecritures.length, requetesAvant = c.requetes.length;
+      await ecran.ouvrir();
+      attendre(/Pas de réseau/.test(etat()) && !/Autoriser/.test(etat()) && el('liste-journaux-relations').children.length === 0, `ouverture hors ligne : ${etat()}`);
+      const tc = await ecran.demanderCreation(rel.alpha);
+      attendre(/^Pas de réseau/.test(tc) && /Rien n’a été créé\.$/.test(tc), `créer hors ligne : ${tc}`);
+      attendreEgal(typeof ecran.demanderMiseANiveau, 'undefined', 'mise à niveau encore là (c147)');
+      attendre(el('oui-journal-relation').hidden, 'question posée hors ligne');
+      attendreEgal([f.ecritures.length - ecrituresAvant, c.requetes.length - requetesAvant], [0, 0], 'lu ou écrit hors ligne');
+      // Avec réseau : la liste se lit comme avant.
+      reseau = true;
+      ecran.fermer();
+      await ecran.ouvrir();
+      await attendreQue(() => el('liste-journaux-relations').querySelectorAll('.ligne-relation').length === 2, `avec réseau : ${etat()}`);
+      ecran.fermer();
+    });
+  });
+
+  await testAsync('Réglages, c145 (11/11/2026, FICTIF, ligne 120) : SANS RÉSEAU, « Autoriser Cap (agenda et Drive) » (Réglages) et « Autoriser la lecture du compte Cap » (Réglages du Drive) n’ouvrent PAS la page de Google : « Pas de réseau… » ; avec réseau : Google s’ouvre comme avant', async c => {
+    c.navigator.onLine = false;
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    brancherAccueil(c, ui);
+    const el = id => ui.parId(id);
+    let reseau = false;
+    const m = compteRelationsIsole(c);
+    m.enregistrerAdresse(COMPTE_CAP_FICTIF);
+    relationsCompte0().brancher(ui.doc, { compte: m, pdfjs: async () => { throw new Error('inutile'); }, enLigne: () => reseau });
+    const redirections = c.redirections.length;
+    // Réglages : « Autoriser Cap (agenda et Drive) ».
+    el('connexion-google').click();
+    attendreEgal(c.redirections.length, redirections, 'Google ouvert hors ligne (Réglages)');
+    attendre(/^Pas de réseau/.test(el('statut').textContent), `Réglages hors ligne : ${el('statut').textContent}`);
+    // Réglages du Drive : « Autoriser la lecture du compte Cap ».
+    el('connecter-compte-relations').click();
+    attendreEgal(c.redirections.length, redirections, 'Google ouvert hors ligne (Réglages du Drive)');
+    attendre(/Pas de réseau/.test(el('reglages-drive').textContent), 'Réglages du Drive : pas de « Pas de réseau »');
+    // Avec réseau : comme avant.
+    reseau = true; c.navigator.onLine = true;
+    el('connecter-compte-relations').click();
+    attendreEgal(c.redirections.length, redirections + 1, 'Réglages du Drive : Google pas ouvert avec réseau');
+    el('connexion-google').click();
+    attendreEgal(c.redirections.length, redirections + 2, 'Réglages : Google pas ouvert avec réseau');
+  });
+
+  await testAsync('Voix, c146 (11/11/2026, FAUX Drive FICTIF, ligne 120) : SANS RÉSEAU (compte périmé), « affiche le pdf … » répond « Pas de réseau… » sans « Autoriser », sans ouvrir la visionneuse ; la relecture des commandes vocales dit « Pas de réseau » ; avec réseau : comme avant', async c => {
+    let reseau = false;
+    const ui = preparerInterface(c, { largeur: 412, hauteur: 900 });
+    const annonces = [], ouvertures = [];
+    const fausseVisionneuse = { ouvrir: async l => { ouvertures.push(l); }, annoncer: (texte, o) => { annonces.push([texte, o || {}]); } };
+    const perime = { adresse: () => 'compte-cap@FICTIF', connecte: () => false, appeler: async () => { throw new Error('ne doit pas être appelé'); } };
+    try {
+      commandesVisionneuse.brancher(ui.doc, { compte: perime, lireArbre: async () => { throw new Error('ne doit pas être lu'); }, sorte: () => 'pdf', visionneuse: () => fausseVisionneuse, enLigne: () => reseau });
+      const lignes = commandesVocales.analyser(TABLEUR_FICTIF_3A).lignes;
+      const dire = async phrase => { const d = commandesVocales.deciderMicro(phrase, { lignes, contexte: {} }); if (!d) return null; return d.suite ? await d.suite : d.message; };
+      const r = await dire('affiche le pdf devis fictif');
+      attendre(/^Pas de réseau/.test(String(r)) && !/Autoriser/.test(String(r)), `voix hors ligne : ${r}`);
+      attendreEgal([annonces.length, ouvertures.length], [0, 0], 'visionneuse ouverte ou « Autoriser » annoncé hors ligne');
+      reseau = true;
+      const r2 = await dire('affiche le pdf devis fictif');
+      attendre(/pas connecté/.test(String(r2)) && annonces.length === 1 && annonces[0][1].autorisation === true, `avec réseau : ${r2}`);
+      // Relecture des commandes vocales.
+      let erreur = '';
+      try { await commandesVocales.lireAvecCompteCap({ compte: perime, stockage: null, enLigne: () => false }); } catch (e) { erreur = e.message; }
+      attendre(/^Pas de réseau/.test(erreur) && !/Autoriser/.test(erreur), `relecture hors ligne : ${erreur}`);
+      erreur = '';
+      try { await commandesVocales.lireAvecCompteCap({ compte: perime, stockage: null, enLigne: () => true }); } catch (e) { erreur = e.message; }
+      attendre(/pas connecté/.test(erreur), `relecture avec réseau : ${erreur}`);
+    } finally { debrancherVision(); }
   });
 
   const erreursPage = window.erreursPage || [];
@@ -13172,6 +18108,23 @@ def verifier_lecteur_mp3_zencoder():
     ajout = ("  // 07/11/2026 (Claude Code, accord de Max) : SEULE ligne ajoutée au lecteur de Zencoder, pour que Cap puisse lancer un morceau, "
              "l'arrêter et savoir quand il finit. Rien d'autre n'a changé.\n"
              "  window.lecteurMp3Zencoder = { jouerFichier: jouerFichier, arreter: arreter, audio: audio };\n")
+    # 10/11/2026 (séance 4 du lecteur, accord de Max) : changements datés pour les vidéos (second élément, image, volume,
+    # écouteurs sur les deux éléments). Ils sont défaits ici un par un : le reste doit être exactement l'original.
+    changements_10_11 = [
+        ('  var audio = new Audio();\n  var adresseActuelle = null;\n  // 10/11/2026 (Claude Code, accord de Max, séance 4 du lecteur) : un second élément pour les VIDÉOS (MP4, WEBM), posé\n  // au-dessus du titre et caché pour la musique. La musique garde l\'élément audio d\'origine (même lecture qu\'avant, écran\n  // éteint compris). « audio » désigne désormais l\'élément qui joue : les boutons, la barre et le volume agissent sur lui.\n  var son = audio;\n  var image = document.createElement("video");\n  image.id = "image-video";\n  image.setAttribute("playsinline", "");\n  image.hidden = true;\n  document.getElementById("lecteur").insertBefore(image, titreFichier);\n  function surLesDeux(evenement, action) {\n    [son, image].forEach(function (element) {\n      element.addEventListener(evenement, function () { if (element === audio) action(); });\n    });\n  }\n\n  // 10/11/2026 : troisième paramètre « video » (vrai pour une vidéo). Avant : function jouerFichier(adresse, titre) {\n  function jouerFichier(adresse, titre, video) {\n    var voulu = video ? image : son;\n    if (voulu !== audio) { audio.pause(); audio.removeAttribute("src"); audio.load(); audio = voulu; }\n    image.hidden = !video;\n    adresseActuelle = adresse;',
+         '  var audio = new Audio();\n  var adresseActuelle = null;\n\n  function jouerFichier(adresse, titre) {\n    adresseActuelle = adresse;'),
+        ('  // 10/11/2026 : écouté sur les deux éléments (seul celui qui joue compte). Avant : audio.addEventListener("ended", …\n  surLesDeux("ended", function () {\n    boutonLecture.textContent = "▶";\n  });',
+         '  audio.addEventListener("ended", function () {\n    boutonLecture.textContent = "▶";\n  });'),
+        ('  // 10/11/2026 : le volume vaut pour les deux éléments. Avant : audio.volume = … (deux fois).\n  curseurVolume.addEventListener("input", function () {\n    son.volume = image.volume = Number(curseurVolume.value) / 100;\n  });\n  son.volume = image.volume = Number(curseurVolume.value) / 100;\n\n  surLesDeux("timeupdate", function () { // 10/11/2026 ; avant : audio.addEventListener("timeupdate", …',
+         '  curseurVolume.addEventListener("input", function () {\n    audio.volume = Number(curseurVolume.value) / 100;\n  });\n  audio.volume = Number(curseurVolume.value) / 100;\n\n  audio.addEventListener("timeupdate", function () {'),
+        ('  surLesDeux("loadedmetadata", function () { // 10/11/2026 ; avant : audio.addEventListener("loadedmetadata", …\n    metAJourAffichageTemps();',
+         '  audio.addEventListener("loadedmetadata", function () {\n    metAJourAffichageTemps();'),
+        ("  // 10/11/2026 (séance 4 du lecteur) : « audio » rend toujours l'élément qui joue (audio ou vidéo). Avant :\n  // window.lecteurMp3Zencoder = { jouerFichier: jouerFichier, arreter: arreter, audio: audio };\n  window.lecteurMp3Zencoder = { jouerFichier: jouerFichier, arreter: arreter, get audio() { return audio; } };\n",
+         '  window.lecteurMp3Zencoder = { jouerFichier: jouerFichier, arreter: arreter, audio: audio };\n'),
+    ]
+    for nouveau, ancien in changements_10_11:
+        attendre(texte.count(nouveau) == 1, "changement du 10/11/2026 absent ou en double")
+        texte = texte.replace(nouveau, ancien)
     attendre(texte.count(ajout) == 1, "ligne ajoutée absente ou en double")
     attendre(hashlib.sha256(texte.replace(ajout, "").encode("utf-8")).hexdigest()
              == "89f175978e471751f9935882d4c73df3303f02ce9d9f0781ea0a5c1fb79b3c4f", "le lecteur de Zencoder a été modifié ailleurs")
@@ -13211,6 +18164,12 @@ def verifier_visionneuse_zencoder():
     for morceau in ajouts_zoom:
         attendre(js.count(morceau) == 1, "ajout du zoom absent ou en double")
         js = js.replace(morceau, "")
+    # 11/11/2026 (accord de Max, c114) : mosaïque d'un chantier et toucher simple du document agrandi : ajouts datés (c114).
+    ajouts_c114 = [('    var centreX = zoneW / 2 + doc.zoomX;\n    var centreY = zoneH / 2 + doc.zoomY + (doc.decalageDefilement || 0); // c119 : centre de la partie VISIBLE de la mosaique\n', '    var centreX = zoneW / 2 + doc.zoomX;\n    var centreY = zoneH / 2 + doc.zoomY;\n'), ('      doc.pointeurs[e.pointerId] = { x: e.clientX, y: e.clientY };\n      // 11/11/2026 (Claude Code, accord de Max, c114) : pour reconnaitre un toucher SIMPLE (court, sans glisser).\n      if (nbPointeursDoc(doc) === 1) { doc.aBouge = false; doc.debutAppui = performance.now(); } else { doc.aBouge = true; }\n', '      doc.pointeurs[e.pointerId] = { x: e.clientX, y: e.clientY };\n'), ("      } else if (nbPointeursDoc(doc) === 1 && doc.departGlissement) {\n        // 11/11/2026 (c114) : un glissement de plus de quelques pixels n'est pas un toucher simple.\n        if (Math.abs(e.clientX - doc.departGlissement.x) + Math.abs(e.clientY - doc.departGlissement.y) > SEUIL_DEPLACEMENT_APPUI_LONG) doc.aBouge = true;\n", '      } else if (nbPointeursDoc(doc) === 1 && doc.departGlissement) {\n'), ("        doc.dernierAppuiTemps = maintenant;\n        // 11/11/2026 (Claude Code, accord de Max, c114) : document agrandi depuis la mosaique d'un chantier : un toucher\n        // SIMPLE (court, sans glisser, sans second toucher dans le delai du double appui) le remet a sa place. Le double\n        // appui, le pincement et le glissement gardent EXACTEMENT leur comportement.\n        if (doc.surToucherSimple && !doc.aBouge && maintenant - (doc.debutAppui || 0) < DUREE_APPUI_LONG - 100) {\n          var tempsAppui = maintenant;\n          clearTimeout(doc.minuteurToucherSimple);\n          doc.minuteurToucherSimple = setTimeout(function () {\n            doc.minuteurToucherSimple = null;\n            if (doc.dernierAppuiTemps === tempsAppui && doc.surToucherSimple) {\n              doc.dernierAppuiTemps = 0;\n              doc.surToucherSimple();\n            }\n          }, SEUIL_DOUBLE_APPUI + 30);\n        }\n", '        doc.dernierAppuiTemps = maintenant;\n'), ('    if (doc.minuteurAppuiLong) clearTimeout(doc.minuteurAppuiLong);\n    if (doc.minuteurToucherSimple) clearTimeout(doc.minuteurToucherSimple); // c114\n', '    if (doc.minuteurAppuiLong) clearTimeout(doc.minuteurAppuiLong);\n'), ('    documentsListe.splice(idx, 1);\n    if (documentsListe.length === 0 && !miniatures.length) { // c114 : la mosaique garde la zone visible\n', '    documentsListe.splice(idx, 1);\n    if (documentsListe.length === 0) {\n'), ('    }\n    if (doc === docAgrandi) finirAgrandi(); // c114 : retire par la croix : la mosaique revient\n', '    }\n'), ('  }\n\n  // ==============================================================\n  // 11/11/2026 (Claude Code, accord de Max, c114) : MOSAIQUE D\'UN CHANTIER\n  // Cap donne le nombre de documents, puis chaque miniature (petite image JPEG faite par Cap) des qu\'elle est prete.\n  // Les miniatures sont rangees en grille dans l\'espace partage (cases egales ; au-dela de ce qui tient, la zone\n  // defile). Un toucher sur une miniature : Cap lit le document entier et l\'ouvre ICI comme n\'importe quel document\n  // (meme zoom, meme deplacement, memes pages de PDF) ; la mosaique se cache dessous. Un toucher simple sur le document\n  // agrandi (ou sa croix) le retire et la mosaique revient, a la meme place. Un seul document entier a la fois.\n  // ==============================================================\n  var miniatures = [];\n  var docAgrandi = null;\n  var surFinAgrandi = null;\n  var defilementMosaique = 0;\n  var LARGEUR_MIN_MINIATURE = 110;\n\n  function placerMosaique() {\n    var n = miniatures.length;\n    if (!n) return;\n    var W = zoneImage.clientWidth || 1;\n    var H = zoneImage.clientHeight || 1;\n    // Le plus grand carre de case qui fait tout tenir ; si les cases deviennent trop petites, largeur minimale et\n    // la zone defile vers le bas.\n    var colonnes = 1, meilleure = 0;\n    for (var c = 1; c <= n; c++) {\n      var t = Math.min(W / c, H / Math.ceil(n / c));\n      if (t > meilleure) { meilleure = t; colonnes = c; }\n    }\n    if (W / colonnes < LARGEUR_MIN_MINIATURE) colonnes = Math.max(1, Math.floor(W / LARGEUR_MIN_MINIATURE));\n    var lignes = Math.ceil(n / colonnes);\n    var cw = W / colonnes;\n    var ch = Math.max(H / lignes, cw);\n    if (lignes * ch > H && H / lignes >= cw * 0.75) ch = H / lignes;\n    var marge = 6;\n    for (var i = 0; i < n; i++) {\n      if (miniatures[i].deplacee) continue; // c121 : une miniature posee par Max garde sa place\n      var s = miniatures[i].carte.style;\n      s.left = ((i % colonnes) * cw + marge) + "px";\n      s.top = (Math.floor(i / colonnes) * ch + marge) + "px";\n      s.width = (cw - 2 * marge) + "px";\n      s.height = (ch - 2 * marge) + "px";\n    }\n  }\n\n  function montrerMosaique(nombre, surToucher) {\n    fermerMosaique();\n    for (var i = 0; i < nombre; i++) {\n      (function (index) {\n        var carte = document.createElement("div");\n        carte.className = "carte-document carte-miniature miniature-en-chargement";\n        carte.setAttribute("role", "button");\n        carte.setAttribute("aria-label", "Document " + (index + 1));\n        var img = document.createElement("img");\n        img.className = "image-miniature";\n        img.alt = "";\n        carte.appendChild(img);\n        carte.addEventListener("click", function () {\n          if (ignorerClic) { ignorerClic = false; return; } // c121 : le lever d\'un deplacement n\'est pas un toucher\n          if (docAgrandi || typeof surToucher !== "function") return;\n          surToucher(index);\n        });\n        zoneImage.appendChild(carte);\n        var m = { carte: carte, img: img, deplacee: false };\n        miniatures.push(m);\n        brancherDeplacement(m); // c121\n      })(i);\n    }\n    zoneImage.classList.add("visible", "en-mosaique");\n    zoneImage.style.overflowY = "auto"; // beaucoup de miniatures : la zone defile\n    placerMosaique();\n  }\n\n  // ==============================================================\n  // 11/11/2026 (Claude Code, accord de Max, c121, marche 3) : DEPLACER UNE MINIATURE. Appui long (environ 0,5 s) sur une\n  // miniature : elle est saisie (elle se souleve) ; on la glisse ; on la pose en levant le doigt. Elle garde cette place\n  // (le reste de la mosaique ne bouge pas). Un toucher court garde son sens (plein ecran) ; un doigt qui bouge avant la\n  // demi-seconde annule la saisie. Pas pendant qu\'un document est agrandi. Rangement en memoire seulement (rien\n  // d\'enregistre) ; "comme au depart" le remet en grille.\n  // ==============================================================\n  var DUREE_SAISIE = 500;\n  var ignorerClic = false;\n  var arrangementModifie = false;\n  // 11/11/2026 (c122, defaut vu par Max) : UNE SEULE image active a la fois, et plus de blocage. Avant (c121) : chaque\n  // miniature gardait son propre geste en cours, efface seulement par SON propre lever ; un lever perdu (doigt leve\n  // ailleurs) la bloquait pour toujours ; et la miniature saisie etait DEPLACEE dans la page pendant le geste (pour passer\n  // devant), ce qui peut faire perdre le doigt au telephone. Maintenant : un seul geste pour toute la mosaique ; un nouvel\n  // appui termine l\'ancien geste ; le lever est attrape ou qu\'il arrive ; la miniature saisie passe devant par son plan\n  // (z-index), sans bouger dans la page ; l\'ancienne reste exactement ou elle est.\n  var geste = null;      // { m, id, x, y, left, top, saisie, minuteur }\n  var planMiniatures = 0; // plan de la derniere miniature prise en main\n  function terminerGeste() {\n    var g = geste;\n    if (!g) return;\n    geste = null;\n    clearTimeout(g.minuteur);\n    if (!g.saisie) return;\n    g.m.carte.classList.remove("miniature-saisie");\n    if (parseFloat(g.m.carte.style.left) !== g.left || parseFloat(g.m.carte.style.top) !== g.top) { g.m.deplacee = true; arrangementModifie = true; }\n    ignorerClic = true; // le "click" qui suit ce lever n\'ouvre pas le document\n    setTimeout(function () { ignorerClic = false; }, 400);\n  }\n  function brancherDeplacement(m) {\n    var carte = m.carte;\n    carte.addEventListener("pointerdown", function (e) {\n      if (docAgrandi) return;\n      terminerGeste(); // une seule image active : l\'ancien geste (meme perdu) s\'arrete, l\'image reste ou elle est\n      var g = { m: m, id: e.pointerId, x: e.clientX, y: e.clientY, left: parseFloat(carte.style.left) || 0, top: parseFloat(carte.style.top) || 0, saisie: false, minuteur: null };\n      geste = g;\n      g.minuteur = setTimeout(function () {\n        if (geste !== g || docAgrandi) return;\n        g.saisie = true;\n        carte.classList.add("miniature-saisie");\n        carte.style.zIndex = String(++planMiniatures); // devant les autres, SANS bouger dans la page\n        try { carte.setPointerCapture(g.id); } catch (err) { /* rien */ }\n      }, DUREE_SAISIE);\n    });\n    carte.addEventListener("pointermove", function (e) {\n      var g = geste;\n      if (!g || g.m !== m || e.pointerId !== g.id) return;\n      var dx = e.clientX - g.x, dy = e.clientY - g.y;\n      if (!g.saisie) {\n        if (Math.abs(dx) + Math.abs(dy) > SEUIL_DEPLACEMENT_APPUI_LONG) terminerGeste(); // pas un appui long\n        return;\n      }\n      carte.style.left = (g.left + dx) + "px";\n      carte.style.top = (g.top + dy) + "px";\n    });\n  }\n  // Le lever (ou l\'annulation) de CE doigt termine le geste, ou qu\'il arrive dans la page.\n  function finDuDoigt(e) { if (geste && e.pointerId === geste.id) terminerGeste(); }\n  document.addEventListener("pointerup", finDuDoigt, true);\n  document.addEventListener("pointercancel", finDuDoigt, true);\n  document.addEventListener("lostpointercapture", function (e) { if (geste && geste.saisie && e.pointerId === geste.id) terminerGeste(); }, true);\n\n  function remettreMosaiqueCommeAuDepart() {\n    terminerGeste(); // c122\n    planMiniatures = 0;\n    for (var i = 0; i < miniatures.length; i++) {\n      miniatures[i].deplacee = false;\n      miniatures[i].carte.style.zIndex = ""; // c122 : plan d\'origine\n      zoneImage.appendChild(miniatures[i].carte); // ordre d\'origine\n    }\n    if (docAgrandi) zoneImage.appendChild(docAgrandi.carte); // le document agrandi reste au-dessus\n    arrangementModifie = false;\n    placerMosaique();\n  }\n\n  function remplirMiniature(index, adresse) {\n    var m = miniatures[index];\n    if (!m) return;\n    m.img.src = adresse;\n    m.carte.classList.remove("miniature-en-chargement", "miniature-illisible");\n    if (m.texte) { m.texte.remove(); m.texte = null; } // c117 : la miniature est arrivee ensuite\n  }\n\n  // 11/11/2026 (Claude Code, accord de Max, c117) : la case DIT pourquoi elle n\'a pas de miniature (texte donne par Cap,\n  // jamais le nom du fichier) ; elle reste touchable : le document s\'ouvre quand meme.\n  function miniatureIllisible(index, texte) {\n    var m = miniatures[index];\n    if (!m) return;\n    m.carte.classList.remove("miniature-en-chargement");\n    m.carte.classList.add("miniature-illisible");\n    if (!m.texte) {\n      m.texte = document.createElement("span");\n      m.texte.className = "texte-miniature";\n      m.carte.appendChild(m.texte);\n    }\n    m.texte.textContent = texte || "Miniature impossible. Touche pour l\'ouvrir.";\n  }\n\n  // 11/11/2026 (c120) : "index" = la miniature agrandie : SA case disparait pendant l\'agrandi (sinon on la voit en double) ;\n  // elle revient quand le document est remis a sa place. Les autres ne bougent pas.\n  var miniatureAgrandie = -1;\n  function agrandirDepuisMosaique(adresse, titre, surFin, index) {\n    if (docAgrandi) retirerDocument(docAgrandi);\n    terminerGeste(); // c122\n    miniatureAgrandie = typeof index === "number" && miniatures[index] ? index : -1;\n    if (miniatureAgrandie >= 0) miniatures[miniatureAgrandie].carte.style.visibility = "hidden";\n    // 11/11/2026 (Claude Code, accord de Max, c119, marche 2) : la mosaique RESTE VISIBLE derriere le document agrandi,\n    // a sa place (ni cachee, ni defilee) ; seul son defilement est bloque pendant l\'agrandi. Le document est pose par-dessus,\n    // au centre de la partie visible. Avant (c114) : miniatures cachees et mosaique remontee en haut.\n    defilementMosaique = zoneImage.scrollTop;\n    zoneImage.classList.add("agrandi-sur-mosaique");\n    zoneImage.style.overflowY = "hidden";\n    ajouterDocumentDepuisAdresse(adresse, titre);\n    docAgrandi = documentsListe[documentsListe.length - 1] || null;\n    if (docAgrandi) docAgrandi.decalageDefilement = defilementMosaique; // applique au chargement de l\'image ou de la page\n    if (docAgrandi) docAgrandi.carte.style.zIndex = "100000"; // c122 : toujours devant les miniatures, meme relevees\n    surFinAgrandi = surFin || null;\n    if (docAgrandi) docAgrandi.surToucherSimple = function () { retirerDocument(docAgrandi); };\n    else finirAgrandi();\n  }\n\n  function finirAgrandi() {\n    docAgrandi = null;\n    zoneImage.classList.remove("agrandi-sur-mosaique"); // c119 (avant : "mosaique-cachee", miniatures cachees)\n    if (miniatureAgrandie >= 0 && miniatures[miniatureAgrandie]) miniatures[miniatureAgrandie].carte.style.visibility = ""; // c120\n    miniatureAgrandie = -1;\n    if (miniatures.length) zoneImage.style.overflowY = "auto";\n    zoneImage.scrollTop = defilementMosaique;\n    var rappel = surFinAgrandi;\n    surFinAgrandi = null;\n    if (rappel) { try { rappel(); } catch (e) { /* rien */ } }\n  }\n\n  function fermerMosaique() {\n    if (docAgrandi) retirerDocument(docAgrandi);\n    for (var i = 0; i < miniatures.length; i++) miniatures[i].carte.remove();\n    miniatures = [];\n    zoneImage.classList.remove("en-mosaique", "agrandi-sur-mosaique");\n    zoneImage.style.overflowY = "";\n    if (!documentsListe.length) zoneImage.classList.remove("visible");\n  }\n\n  window.addEventListener("resize", placerMosaique);\n', '  }\n'), ('  function fermer() {\n    fermerMosaique(); // c114\n', '  function fermer() {\n'), ("    montrerPlusieurs: montrerPlusieurs,\n    fermer: fermer,\n    // 11/11/2026 (Claude Code, accord de Max, c114) : la mosaique d'un chantier.\n    montrerMosaique: montrerMosaique,\n    remplirMiniature: remplirMiniature,\n    miniatureIllisible: miniatureIllisible,\n    agrandirDepuisMosaique: agrandirDepuisMosaique,\n    // 11/11/2026 (Claude Code, accord de Max, c118) : chaque document ouvert reprend sa taille et sa place d'ouverture.\n    remettreCommeAuDepart: function () {\n      for (var i = 0; i < documentsListe.length; i++) reinitialiserZoomDoc(documentsListe[i]);\n      remettreMosaiqueCommeAuDepart(); // c121 : la mosaique aussi, rangement compris\n    },\n    arrangementModifie: function () { return arrangementModifie; }, // c121 : repere en memoire seulement\n    documentAgrandi: function () { return Boolean(docAgrandi); }\n", '    montrerPlusieurs: montrerPlusieurs,\n    fermer: fermer\n')]  # + c117 à c122
+    ajouts_c114 = [('      if (docAgrandi || defilementDeuxDoigts) return; // c160 : deux doigts qui font defiler la mosaique : pas de saisie\n      terminerGeste(); // une seule image active', '      if (docAgrandi) return;\n      terminerGeste(); // une seule image active'), ('\n  // ==============================================================\n  // 12/11/2026 (Claude Code, accord de Max, c160) : FAIRE DEFILER LA MOSAIQUE A DEUX DOIGTS. Regle de Max : la zone ou\n  // tombent les deux doigts decide. Deux doigts sur la MEME miniature : reserve au zoom de cette case (plus tard) ; ici,\n  // rien ne change. Deux doigts ailleurs (sur l\'eau, ou sur deux cases differentes, l\'eau n\'etant visible qu\'entre les\n  // cases quand la mosaique depasse l\'ecran) : la mosaique suit les deux doigts, seulement s\'il y a de quoi defiler.\n  // Un doigt seul : rien ne change (ondes sur l\'eau, toucher, appui long). Pas pendant un document agrandi, ni pendant\n  // qu\'une miniature saisie est deplacee. Le lever de ces doigts n\'ouvre aucun document.\n  // ==============================================================\n  var doigtsMosaique = {};          // pointerId -> { y, carte }\n  var defilementDeuxDoigts = false;\n  var moyenneDefilement = 0;\n  function doigtsPoses() { var l = []; for (var k in doigtsMosaique) l.push(doigtsMosaique[k]); return l; }\n  function moyenneDoigts() { var l = doigtsPoses(), t = 0; for (var i = 0; i < l.length; i++) t += l[i].y; return l.length ? t / l.length : 0; }\n  zoneImage.addEventListener("pointerdown", function (e) {\n    if (!zoneImage.classList.contains("en-mosaique") || docAgrandi) return;\n    doigtsMosaique[e.pointerId] = { y: e.clientY, carte: (e.target && e.target.closest) ? e.target.closest(".carte-miniature") : null };\n    var l = doigtsPoses();\n    if (l.length < 2 || defilementDeuxDoigts) { moyenneDefilement = moyenneDoigts(); return; }\n    if (geste && geste.saisie) return; // une miniature saisie est en train d\'etre deplacee : elle garde la main\n    if (l[0].carte && l[0].carte === l[1].carte) return; // deux doigts sur la meme miniature : zoom de la case (plus tard)\n    defilementDeuxDoigts = true;\n    terminerGeste(); // l\'appui long eventuel du premier doigt est annule\n    moyenneDefilement = moyenneDoigts();\n  }, true);\n  document.addEventListener("pointermove", function (e) {\n    var d = doigtsMosaique[e.pointerId];\n    if (!d) return;\n    d.y = e.clientY;\n    if (!defilementDeuxDoigts || docAgrandi || doigtsPoses().length < 2) return;\n    var m = moyenneDoigts();\n    if (zoneImage.scrollHeight > zoneImage.clientHeight) zoneImage.scrollTop -= (m - moyenneDefilement);\n    moyenneDefilement = m;\n  }, true);\n  function finDoigtMosaique(e) {\n    if (!doigtsMosaique[e.pointerId]) return;\n    delete doigtsMosaique[e.pointerId];\n    moyenneDefilement = moyenneDoigts();\n    if (defilementDeuxDoigts) { ignorerClic = true; setTimeout(function () { ignorerClic = false; }, 400); }\n    if (!doigtsPoses().length) defilementDeuxDoigts = false;\n  }\n  document.addEventListener("pointerup", finDoigtMosaique, true);\n  document.addEventListener("pointercancel", finDoigtMosaique, true);\n', '')] + ajouts_c114  # 12/11/2026 (c160) : défilement à deux doigts
+    for nouveau, ancien in ajouts_c114:
+        attendre(js.count(nouveau) == 1 and "c114" in js, "ajout c114 absent ou en double")
+        js = js.replace(nouveau, ancien)
     attendre(empreinte(js.replace(ajout_js, "")) == "996f1fdd5d1d13775a74e7277ae6dfb90e69ff03a552478efb08ce71de683a0a", "visualiseur.js modifié ailleurs")
     attendre(empreinte(lire("bloc_visualiseur/visualiseur.css")) == "178b4c4c96457df90f1aeaff29430dfe7c05ea4dadc590e34e6b791bf48e9342", "visualiseur.css modifié")
     restes = sorted(p.relative_to(APP).as_posix() for p in (APP / "visionneuse").rglob("*") if p.is_file())
@@ -13226,11 +18185,126 @@ def verifier_commandes_vocales_jamais_ia():
     for fichier in ("cerveau.js", "cerveau_claude.js", "cerveau_prepare.js", "scan_lecture.js", "journal_ia.js", "limite_ia.js"):
         texte = (APP / fichier).read_text(encoding="utf-8")
         attendre("commandesVocales" not in texte and "cap_commandes_vocales" not in texte, f"{fichier} touche aux commandes vocales")
+    # 12/11/2026 (c150, A1) : la mémoire des relations reste sur le téléphone : ni l'IA ni la sauvegarde vers le Drive ne la lisent.
+    for fichier in ("cerveau.js", "cerveau_claude.js", "cerveau_prepare.js", "scan_lecture.js", "journal_ia.js", "limite_ia.js", "demandes.js", "sauvegarde_drive.js", "synchronisation.js"):
+        texte = (APP / fichier).read_text(encoding="utf-8")
+        attendre("memoireRelations" not in texte and "cap_memoire_relations" not in texte and "carteCap" not in texte, f"{fichier} lit la mémoire des relations ou la carte")
+    # 12/11/2026 (c154, A3a) : VERROU N° 1 : seuls ces fichiers ont le droit de nommer la copie des coordonnées des relations
+    # (module, clé du téléphone) et la lecture complète du Dictionnaire ; tous les autres (IA, sauvegarde, synchronisation,
+    # journaux...) en sont exclus, y compris les fichiers ajoutés plus tard.
+    permis = {"coordonneesRelations": {"coordonnees_relations.js", "synchro_tout.js", "carte_cap.js", "mms_rangement.js"},  # M3b : + le classement des MMS
+              "cap_coordonnees_relations": {"coordonnees_relations.js"},
+              "lireDictionnaireComplet": {"classement.js", "synchro_tout.js"},
+              "indexRelations": {"index_relations.js", "mms_lecture.js", "mms_rangement.js"},  # 12/11/2026 (M1) : l'index par empreinte et sa clé ; M3a-b : + lecture et classement des MMS
+              "MmsAndroid": {"mms_lecture.js"},  # 12/11/2026 (M3a) : seul ce fichier parle au pont des MMS de la coque
+              "mmsLecture": {"mms_lecture.js", "mms_ecran.js"},
+              "mmsRangement": {"mms_rangement.js", "mms_repetition.js", "mms_ecran.js"},
+              "cap_cle_index_relations": {"index_relations.js"}}
+    for chemin in sorted(APP.rglob("*")):
+        if not chemin.is_file() or chemin.suffix not in (".js", ".html", ".json", ".css") or chemin.name.startswith("test"):
+            continue
+        texte = chemin.read_text(encoding="utf-8", errors="replace")
+        for mot, fichiers in permis.items():
+            attendre(mot not in texte or chemin.name in fichiers, f"{chemin.relative_to(APP).as_posix()} nomme « {mot} » (verrou n° 1, c154)")
+    coord = (APP / "coordonnees_relations.js").read_text(encoding="utf-8")
+    for interdit in ("fetch(", "appeler", "cerveau", "anthropic", "XMLHttpRequest", "sendBeacon", "innerHTML", "console."):
+        attendre(interdit.lower() not in coord.lower(), f"coordonnees_relations.js contient « {interdit} »")
+    memoire = (APP / "memoire_relations.js").read_text(encoding="utf-8") + (APP / "carte_cap.js").read_text(encoding="utf-8")  # c151 : + la carte
+    for interdit in ("fetch(", "appeler(", "cerveau", "anthropic", "XMLHttpRequest", "innerHTML"):  # c155 : « appeler( » (l'appel réseau), le bouton « Appeler » est permis
+        attendre(interdit.lower() not in memoire.lower(), f"memoire_relations.js contient « {interdit} »")
+
+
+def verifier_coque_tel_mail():
+    # 12/11/2026 (c155, A3b) : « Appeler » ouvre le clavier du téléphone (ACTION_DIAL), jamais un appel direct ; aucune permission d'appel.
+    coque = (APP.parent / "android-coque" / "app" / "src" / "main")
+    java = (coque / "java" / "fr" / "maxlavegie" / "cap" / "MainActivity.java").read_text(encoding="utf-8")
+    manifeste = (coque / "AndroidManifest.xml").read_text(encoding="utf-8")
+    attendre("Intent.ACTION_DIAL" in java and "Intent.ACTION_SENDTO" in java, "la coque n'ouvre pas tel: / mailto:")
+    attendre("ACTION_CALL" not in java and "CALL_PHONE" not in manifeste, "la coque peut appeler toute seule")
+
+
+def verifier_coque_mms():
+    # 12/11/2026 (accord écrit de Max, M3a) : la coque LIT les MMS reçus, rien d'autre : une seule permission SMS (READ_SMS),
+    # demandée seulement par le pont (jamais au démarrage) ; le pont ne répond qu'aux pages de Cap ; aucune écriture, aucun
+    # journal, aucun fichier ; le numéro ne sort que vers la page (pas de Log, pas de Toast).
+    main = APP.parent / "android-coque" / "app" / "src" / "main"
+    java = (main / "java" / "fr" / "maxlavegie" / "cap" / "MainActivity.java").read_text(encoding="utf-8")
+    manifeste = re.sub(r"<!--.*?-->", "", (main / "AndroidManifest.xml").read_text(encoding="utf-8"), flags=re.S)
+    permissions = re.findall(r'<uses-permission\s+android:name="([^"]+)"', manifeste)
+    attendre("android.permission.READ_SMS" in permissions, "READ_SMS absente")
+    for interdite in ("SEND_SMS", "RECEIVE_SMS", "WRITE_SMS", "RECEIVE_MMS", "RECEIVE_WAP_PUSH", "READ_CONTACTS", "READ_CALL_LOG", "READ_PHONE_NUMBERS", "READ_PHONE_STATE"):
+        attendre(not any(p.endswith(interdite) for p in permissions), f"permission en trop : {interdite}")
+    debut = java.index("private class MmsAndroid {")
+    fin = java.index("\n    }\n", java.index("public String recents()", debut)) + 6
+    pont = java[debut:fin]
+    for methode in ("autorise", "demander", "recents"):
+        corps = pont[pont.index(f" {methode}()"):]
+        corps = corps[:corps.index("@JavascriptInterface") if "@JavascriptInterface" in corps else len(corps)]
+        attendre("pageDeCap()" in corps, f"MmsAndroid.{methode} ne vérifie pas la page de Cap")
+    for interdit in ("Log.", "Toast", ".insert(", ".delete(", ".update(", "FileOutputStream", "openOutputStream", "SmsManager", "sendTextMessage", "\"body\"", "\"text\"", "_data", "openInputStream"):
+        attendre(interdit not in pont, f"le pont des MMS contient « {interdit} »")
+    attendre(pont.count("lecteur.query(") == 3, "le pont des MMS fait d'autres lectures")
+    attendre('"msg_box=?", new String[]{"1"}' in pont and "ids.size() < 20" in pont, "pas seulement les 20 derniers MMS reçus")
+    attendre(java.count("Manifest.permission.READ_SMS}") == 1 and "Manifest.permission.READ_SMS}, CODE_PERMISSION_SMS" in pont, "autorisation SMS demandée ailleurs que dans le pont")
+    attendre('a.startsWith(URL_CAP)' in java and "adressePage = url;" in java, "adresse de la page pas vérifiée")
+    attendre('vue.addJavascriptInterface(new MmsAndroid(), "MmsAndroid");' in java, "pont pas branché")
+    # 12/11/2026 (c176) : le comptage des destinataires passe par AdressesMms (expéditeur répété en copie retiré), testé sur le PC.
+    attendre("AdressesMms.destinataires(types, adresses)" in pont and "destinataires++" not in pont, "le pont compte les destinataires lui-même (défaut de c175)")
+    javac = None
+    for base in [os.environ.get("JAVA_HOME", ""), r"C:\Program Files\Microsoft\jdk-17.0.21.21-hotspot"]:
+        if base and (pathlib.Path(base) / "bin" / "javac.exe").exists():
+            javac = pathlib.Path(base) / "bin"
+            break
+    attendre(javac is not None, "javac introuvable : le test Java des MMS ne peut pas tourner")
+    with tempfile.TemporaryDirectory() as dossier:
+        sources = [str(main / "java" / "fr" / "maxlavegie" / "cap" / "AdressesMms.java"), str(APP.parent / "android-coque" / "tests_jvm" / "TestAdressesMms.java")]
+        c = subprocess.run([str(javac / "javac.exe"), "-encoding", "UTF-8", "-d", dossier] + sources, capture_output=True, text=True, errors="replace")
+        attendre(c.returncode == 0, f"compilation Java : {c.stderr[:300]}")
+        r = subprocess.run([str(javac / "java.exe"), "-cp", dossier, "fr.maxlavegie.cap.TestAdressesMms"], capture_output=True, text=True, errors="replace")
+        attendre(r.returncode == 0 and "TOUT BON" in r.stdout, f"test Java des MMS : {r.stdout[-400:]}")
+
+
+def verifier_coque_sans_sauvegarde_android():
+    # 12/11/2026 (c157, décision de Max) : la sauvegarde Android est coupée pour Cap (rien ne part dans la sauvegarde Google).
+    manifeste = (APP.parent / "android-coque" / "app" / "src" / "main" / "AndroidManifest.xml").read_text(encoding="utf-8")
+    application = re.search(r"<application\s[^>]*>", manifeste, re.S)
+    attendre(application and re.search(r'android:allowBackup="false"', application.group(0)), "la sauvegarde Android n'est pas coupée (allowBackup)")
+    attendre('allowBackup="true"' not in manifeste and "fullBackupContent" not in manifeste and "backupAgent" not in manifeste, "une sauvegarde Android est déclarée")
+
+
+def verifier_coque_sans_transfert():
+    # 12/11/2026 (c158, décision de Max) : le transfert direct vers un nouveau téléphone (Android 12+) est coupé aussi : les
+    # règles d'extraction excluent TOUS les domaines, pour la sauvegarde ET le transfert ; aucune inclusion.
+    main = APP.parent / "android-coque" / "app" / "src" / "main"
+    manifeste = (main / "AndroidManifest.xml").read_text(encoding="utf-8")
+    application = re.search(r"<application\s[^>]*>", manifeste, re.S)
+    attendre(application and 'android:dataExtractionRules="@xml/regles_extraction"' in application.group(0), "règles d'extraction absentes du manifeste")
+    regles = (main / "res" / "xml" / "regles_extraction.xml").read_text(encoding="utf-8")
+    regles = re.sub(r"<!--.*?-->", "", regles, flags=re.S)
+    attendre("<include" not in regles, "une inclusion dans les règles d'extraction")
+    domaines = ["root", "file", "database", "sharedpref", "external", "device_root", "device_file", "device_database", "device_sharedpref"]
+    for section in ("cloud-backup", "device-transfer"):
+        bloc = re.search(rf"<{section}\b[^>]*>(.*?)</{section}>", regles, re.S)
+        attendre(bloc, f"section {section} absente")
+        for d in domaines:
+            attendre(re.search(rf'<exclude\s+domain="{d}"\s+path="\."\s*/>', bloc.group(1)), f"{section} : le domaine {d} n'est pas exclu")
+
+
+def verifier_coque_choix_multiple():
+    # 12/11/2026 (c159, défaut vu par Max) : un choix de plusieurs fichiers rend TOUS les fichiers (liste getClipData),
+    # pas seulement le premier (getData) : l'ancien FileChooserParams.parseResult ne doit plus servir.
+    java = (APP.parent / "android-coque" / "app" / "src" / "main" / "java" / "fr" / "maxlavegie" / "cap" / "MainActivity.java").read_text(encoding="utf-8")
+    code = re.sub(r"//[^\n]*", "", java)
+    attendre("parseResult(" not in code, "la coque lit encore le choix par parseResult (un seul fichier)")
+    corps = re.search(r"private Uri\[\] fichiersChoisis\(int resultat, Intent donnees\) \{(.*?)\n    \}", code, re.S)
+    attendre(corps and "getClipData()" in corps.group(1) and "getItemCount()" in corps.group(1) and "getItemAt(i).getUri()" in corps.group(1) and "getData()" in corps.group(1),
+             "fichiersChoisis ne lit pas toute la liste du choix multiple")
+    attendre("rendrePhoto(fichiersChoisis(resultat, donnees))" in code, "le choix de fichiers ne passe pas par fichiersChoisis")
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v132['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v132")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v227['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v227")
 
 
 def verifier_precache_fichiers_existent():
@@ -13248,6 +18322,23 @@ def verifier_precache_couverture():
     requis += [p.relative_to(APP).as_posix() for p in (APP / "icones").glob("*.png")]
     manquants = sorted(nom for nom in requis if nom not in precache)
     attendre(not manquants, f"absents de FICHIERS_PRECACHE : {', '.join(manquants)}")
+
+
+def verifier_matieres_c138():
+    # 11/11/2026 (c138) : la livraison « Matières » de Haiku copiée dans Cap : fichiers présents et gardés sur le téléphone,
+    # la vidéo de l'eau RÉUTILISÉE (aucune copie de plus de 5 Mo), aucune adresse Internet.
+    dossier = APP / "matieres"
+    pages = ["choix_matieres.html", "matieres/eau.html", "matieres/slime.html", "matieres/sable.html", "matieres/feuille.html"]
+    precache = {normaliser(e) for e in lire_precache()}
+    for nom in pages:
+        attendre((dossier / nom).is_file(), f"absent : matieres/{nom}")
+        attendre(f"matieres/{nom}" in precache, f"absent de FICHIERS_PRECACHE : matieres/{nom}")
+        texte = (dossier / nom).read_text(encoding="utf-8")
+        attendre(not re.search(r"https?://(?!www\.w3\.org/2000/svg)", texte), f"adresse Internet dans matieres/{nom}")
+    attendre(not list(dossier.rglob("*.mp4")), "une vidéo recopiée dans matieres/")
+    eau = (dossier / "matieres" / "eau.html").read_text(encoding="utf-8")
+    attendre('src="../../eau/galet_sortie.mp4"' in eau, "la page eau ne réutilise pas la vidéo de Cap")
+    attendre((dossier / "matieres" / "eau.html").resolve().parent.joinpath("../../eau/galet_sortie.mp4").resolve().is_file(), "vidéo de Cap introuvable depuis la page eau")
 
 
 def verifier_installation_en_dernier():
@@ -13287,14 +18378,20 @@ def verifier_rien_de_prive_publie():
 TESTS_PWA = [
     ("Publication : aucun prénom de proche, aucune phrase de la fiche, aucune clé", verifier_rien_de_prive_publie),
     ("PWA : fichiers requis présents", verifier_fichiers_requis),
+    ("Matières (c138) : pages copiées, gardées sur le téléphone, vidéo de l’eau réutilisée, aucune adresse Internet", verifier_matieres_c138),
     ("PWA : manifest, champs attendus", verifier_manifest),
     ("PWA : manifest, icônes déclarées", verifier_icones_manifest),
     ("PWA : icônes PNG, dimensions et signature", verifier_png),
     ("PWA : HTML, liens manifest et favicon", verifier_liens_manifest_favicon),
     ("PWA : HTML, liens locaux existants", verifier_liens_locaux),
-    ("Lecteur MP3 de Zencoder : copie identique, sauf la seule ligne datée du 07/11/2026", verifier_lecteur_mp3_zencoder),
+    ("Lecteur MP3 de Zencoder : copie identique, sauf la ligne datée du 07/11/2026 et les changements datés du 10/11/2026 (vidéos)", verifier_lecteur_mp3_zencoder),
     ("Visionneuse de Zencoder : copie identique, sauf l’eau devant à 35 % et les 3 chemins de pdf.js (datés du 07/11/2026)", verifier_visionneuse_zencoder),
     ("Commandes vocales (08/11/2026) : le tableur n’est jamais envoyé à l’IA", verifier_commandes_vocales_jamais_ia),
+    ("Coque (c155) : « Appeler » ouvre le clavier du téléphone (jamais d'appel direct), « Écrire un mail » la messagerie", verifier_coque_tel_mail),
+    ("Coque (c157) : sauvegarde Android coupée (allowBackup=false), rien ne part dans la sauvegarde Google", verifier_coque_sans_sauvegarde_android),
+    ("Coque (c158) : transfert direct vers un nouveau téléphone coupé (règles d'extraction : tout exclu)", verifier_coque_sans_transfert),
+    ("Coque (M3a) : lecture des MMS reçus seulement (READ_SMS, pont limité aux pages de Cap, aucune écriture ni journal)", verifier_coque_mms),
+    ("Coque (c159) : un choix de plusieurs fichiers rend tous les fichiers (liste du choix), pas seulement le premier", verifier_coque_choix_multiple),
     ("PWA : service-worker, version de cache", verifier_version_cache),
     ("PWA : service-worker, fichiers précachés existants", verifier_precache_fichiers_existent),
     ("PWA : service-worker, couverture de la précache", verifier_precache_couverture),
@@ -13357,6 +18454,12 @@ def construire_page():
         "SOURCE_FICHIERS_VOCAUX_DRIVE": "fichiers_vocaux_drive.js",
         "SOURCE_FICHIERS_VOCAUX_CONTROLEUR": "fichiers_vocaux_controleur.js",
         "SOURCE_TUILES": "tuiles.js",
+        "SOURCE_NUMEROS": "numeros.js",
+        "SOURCE_INDEX_RELATIONS": "index_relations.js",
+        "SOURCE_MMS_LECTURE": "mms_lecture.js",
+        "SOURCE_MMS_RANGEMENT": "mms_rangement.js",
+        "SOURCE_MMS_REPETITION": "mms_repetition.js",
+        "SOURCE_MMS_ECRAN": "mms_ecran.js",
         "SOURCE_MODE_TRIER": "mode_trier.js",
         "SOURCE_ECRAN_EAU": "ecran_eau.js",
         "SOURCE_RELATIONS": "relations.js",
@@ -13368,11 +18471,14 @@ def construire_page():
         "SOURCE_RELATIONS_MP3_TEST_C73": "relations_mp3.js",
         "SOURCE_INDEX_C74": "index.html",
         "SOURCE_TABLEUR_CAP_TEST": "tableur_cap.js",
+        "SOURCE_CHANTIERS_TEST": "chantiers.js",
+        "SOURCE_CHANTIERS_ECRAN_TEST": "chantiers_ecran.js",
         "SOURCE_COMPTE_RELATIONS_C77": "google_compte_relations.js",
         "SOURCE_RELATIONS_COMPTE": "relations_compte.js",
         "SOURCE_RELATIONS_MP3": "relations_mp3.js",
         "SOURCE_ACCUEIL_CAP": "accueil_cap.js",
         "SOURCE_VISIONNEUSE_CAP": "visionneuse_cap.js",
+        "SOURCE_MATIERES_ECRAN": "matieres_ecran.js",
         "SOURCE_HTML": "index.html",
         "SOURCE_STYLE": "style.css",
     }
@@ -13392,7 +18498,7 @@ def construire_page():
 <pre id="resultat-tests"></pre>
 <script>
 window.erreursPage = [];
-window.addEventListener('error', e => window.erreursPage.push(String(e.message)));
+window.addEventListener('error', e => window.erreursPage.push(String(e.message) + ' (' + String(e.filename || '').split('/').pop() + ':' + (e.lineno || '?') + ')')); // 10/11/2026 : + fichier et ligne
 window.addEventListener('unhandledrejection', e => window.erreursPage.push(String(e.reason)));
 // Seule demande réelle permise : l'attente en temps réel des tests (adresse fixe, réponse vide).
 const vraiFetchAttente = window.fetch.bind(window);
@@ -13480,11 +18586,13 @@ def executer_tests(port):
             "--dump-dom",
             # 08/11/2026 : 60000 -> 180000 et délai 120 -> 300 s : les transitions douces (vraies attentes) ont fait
             # dépasser les 60 s de temps simulé ; le DOM était alors lu avant la fin des tests (résultat vide).
-            "--virtual-time-budget=180000",
+            # 11/11/2026 (c115) : 180000 -> 300000 et délai 300 -> 420 s : de nouveau des rapports vides par moments (DOM lu avant la
+            # fin des tests : les tests de la visionneuse attendent de vrais délais, celui du double appui par exemple).
+            "--virtual-time-budget=300000",
             url,
         ]
         try:
-            resultat = subprocess.run(commande, capture_output=True, timeout=300)
+            resultat = subprocess.run(commande, capture_output=True, timeout=420)
         except subprocess.TimeoutExpired:
             return None
         return resultat.stdout.decode("utf-8", errors="replace")

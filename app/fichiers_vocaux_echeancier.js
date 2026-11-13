@@ -35,7 +35,7 @@ const fichiersVocauxEcheancier = (() => {
     return recherche.normaliser(String(texte || '')).replace(/\s+/g, ' ').trim();
   }
 
-  // "échéance anniversaire de Léa le 8 mars, rappel 15 jours avant" -> {element, date, delaiJours}
+  // "échéance anniversaire de Léa FICTIVE le 8 mars, rappel 15 jours avant" -> {element, date, delaiJours}
   // La phrase qui ouvre "échéance" vient de phrases_modifiables.js (rubrique "echeancier") : Max
   // peut l'ajouter/modifier/retirer dans les réglages, sans toucher au code.
   function detecterCommande(texteBrut, maintenant = new Date()) {

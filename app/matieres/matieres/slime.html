@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Essai SLIME v3 (FICTIF)</title>
+<!-- FICTIF — essai de matière. Aucune donnée réelle, aucun appel réseau, aucun droit. -->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #101010; font-family: sans-serif; }
+  #barre { position: absolute; top: 0; left: 0; right: 0; z-index: 2; display: flex; gap: 10px; justify-content: center;
+    padding: 10px; background: rgba(0, 0, 0, 0.35); }
+  #barre button { font: 600 16px sans-serif; padding: 10px 18px; border: 2px solid #fff; border-radius: 22px;
+    background: #fff; color: #111; touch-action: manipulation; cursor: pointer; }
+  #barre button[aria-pressed="true"] { background: #ffffe0; box-shadow: 0 0 12px #fff; }
+  #reglages { position: absolute; top: 64px; left: 10px; z-index: 2; color: #fff; font: 14px sans-serif;
+    background: rgba(0, 0, 0, 0.35); padding: 6px 10px; border-radius: 12px; }
+  #reglages input { vertical-align: middle; width: 160px; }
+  #zone-zero { position: absolute; top: 64px; right: 10px; z-index: 2; }
+  #bouton-zero { font: 700 15px sans-serif; padding: 12px 16px; border: 3px solid #fff; border-radius: 14px;
+    background: #222; color: #fff; touch-action: manipulation; cursor: pointer; }
+  #confirmation { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.55); }
+  #confirmation[hidden] { display: none; }
+  #confirmation .boite { background: #fff; color: #111; padding: 18px; border-radius: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 240px; }
+  #confirmation p { margin: 0; font: 700 18px sans-serif; text-align: center; }
+  #confirmation button { font: 700 16px sans-serif; padding: 12px; border: 2px solid #111; border-radius: 12px; background: #fff; color: #111; }
+  #slime { position: absolute; inset: 0; }
+  #slime canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; }
+  #aide { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; color: rgba(255, 255, 255, 0.8);
+    font: 14px sans-serif; pointer-events: none; }
+  /* === CADRE TÉLÉPHONE (réutilisable : copier ce bloc CSS et le bloc HTML « CADRE TÉLÉPHONE ») === */
+  #cadre { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #2b2b2b; }
+  #cadre-telephone { box-sizing: border-box; padding: 12px; background: #000; border-radius: 42px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    height: min(calc(100vh - 96px), calc((100vw - 96px) * 2.154)); aspect-ratio: 436 / 939; }   /* v5 : marge de 48 px tout autour */
+  #ecran { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 30px; background: #101010; }
+  /* === FIN CADRE TÉLÉPHONE === */
+  /* === LIVRAISON 11/11/2026 : SANS CADRE (la page choix_matieres.html fournit l'ecran). Ajout seulement. === */
+  #cadre { background: transparent; }
+  #cadre-telephone { width: 100%; height: 100%; aspect-ratio: auto; padding: 0; border-radius: 0; box-shadow: none; }
+  #ecran { border-radius: 0; }
+  /* === FIN LIVRAISON SANS CADRE === */</style>
+</head>
+<body>
+
+<!-- === CADRE TÉLÉPHONE (réutilisable) : tout ce qui est dans #ecran reste dans le cadre === -->
+<div id="cadre"><div id="cadre-telephone"><div id="ecran">
+
+<div id="barre">
+  <button id="bouton-rose" type="button" aria-pressed="true">Rose fluo</button>
+  <button id="bouton-vert" type="button" aria-pressed="false">Vert fluo</button>
+</div>
+
+<div id="reglages">
+  <label for="curseur-retour">Retour : <span id="valeur-retour">5</span> s</label>
+  <input id="curseur-retour" type="range" min="5" max="120" step="5" value="5">
+  <br>
+  <label for="curseur-echo">Force de l'écho : <span id="valeur-echo">8</span></label>
+  <input id="curseur-echo" type="range" min="0" max="8" step="0.5" value="8">
+  <br>
+  <label for="curseur-lenteur">Lenteur de l'écho : <span id="valeur-lenteur">5</span></label>
+  <input id="curseur-lenteur" type="range" min="1" max="20" step="1" value="5">
+</div>
+
+<div id="zone-zero">
+  <button id="bouton-zero" type="button">Remettre à zéro</button>
+</div>
+
+<div id="confirmation" hidden>
+  <div class="boite">
+    <p>Tout effacer ?</p>
+    <button id="oui-zero" type="button">Oui, tout effacer</button>
+    <button id="non-zero" type="button">Non</button>
+  </div>
+</div>
+
+<div id="slime"></div>
+
+<div id="aide">FICTIF — le doigt creuse et garde l'empreinte. Chaque point revient à plat après le délai choisi, dans l'ordre où le doigt est passé.</div>
+</div></div></div>
+<!-- === FIN CADRE TÉLÉPHONE === -->
+
+<script>
+// ============================================================
+// RÉGLAGES FACILES — tout est ici, en haut du fichier.
+// ============================================================
+const REGLAGES = {
+  taille: 2.4,          // taille d'une cellule en pixels (petit = plus fin, plus lourd sur le téléphone)
+  propagation: 0.09,    // vitesse à laquelle la déformation se propage (bas = lent, visqueux)
+  frottement: 0.07,     // frottement interne (haut = le mouvement s'amortit vite, moins de vibrations)
+  etirement: 0.30,      // renforce l'enfoncement sous le doigt (0 = rien de plus)
+  rayonDoigt: 7,        // rayon d'action du doigt, en cellules
+  creuse: 0.030,        // enfoncement ajouté à chaque image sous le doigt (cumulable)
+  limite: 1.4,          // profondeur maximale d'une empreinte (lisibilité)
+  dureeRetour: 5,      // secondes pour qu'un point revienne à plat, depuis le moment où le doigt l'a quitté
+  forceEcho: 8,       // v4 : FORCE de l'écho (0 = pas d'écho). Réglable en haut de la page. Très fort par défaut.
+  delaiEcho: 4.5,       // v4 : délai de l'écho, en secondes après le relâché (au lieu des 4 à 5 s observés)
+  lenteurEcho: 5,       // v5 : lenteur de l'écho : 5 = il se dessine 5 fois plus lentement qu'un geste
+  dureeGesteEcho: 1.5,  // v5 : durée d'un geste typique (secondes) ; l'écho dure dureeGesteEcho x lenteurEcho
+  limiteEcho: 3.0,      // v4 : profondeur maximale permise pendant l'écho (plus haut que 'limite' pour un écho ample)
+  brillance: 1.0,       // intensité des reflets humides (0 = mat)
+  penteReflet: 5.0,     // sensibilité des reflets aux bosses (haut = reflets plus marqués)
+  couleurs: {
+    rose: { clair: [255, 70, 180], ombre: [110, 0, 70] },   // ROSE FLUO
+    vert: { clair: [90, 255, 100], ombre: [0, 80, 20] }      // VERT FLUO
+  },
+  couleurDepart: 'rose'
+};
+
+// ============================================================
+// MODULE SLIME — autonome : demarrer(element) et arreter().
+// ============================================================
+const Slime = (() => {
+  let conteneur = null, canvasEcran = null, ctxEcran = null, canvasCache = null, ctxCache = null;
+  let largeur = 0, hauteur = 0, W = 0, H = 0, h = null, v = null, image = null;
+  let enfonce = null, poids = null, relache = null;   // état de chaque point
+  let echoH = null, echoFait = null;                  // v4 : profondeur au relâché, et écho déjà joué
+  let echoDebut = null, echoApplique = null;          // v5 : début du dessin lent de l'écho, et part déjà dessinée
+  let frame = 0, arret = true, dernier = 0;
+  let doigt = { actif: false, x: 0, y: 0 };
+  let couleur = REGLAGES.couleurs[REGLAGES.couleurDepart];
+
+  function maintenant() { return performance.now() / 1000; }
+
+  function dimensionner() {
+    largeur = conteneur.clientWidth || window.innerWidth;
+    hauteur = conteneur.clientHeight || window.innerHeight;
+    W = Math.max(8, Math.ceil(largeur / REGLAGES.taille));
+    H = Math.max(8, Math.ceil(hauteur / REGLAGES.taille));
+    h = new Float32Array(W * H);
+    v = new Float32Array(W * H);
+    enfonce = new Uint8Array(W * H);
+    poids = new Float32Array(W * H);
+    relache = new Float64Array(W * H).fill(-1);      // -1 = pas encore relâché
+    echoH = new Float32Array(W * H);
+    echoFait = new Uint8Array(W * H);
+    echoDebut = new Float64Array(W * H).fill(-1);
+    echoApplique = new Float32Array(W * H);
+    canvasCache.width = W;
+    canvasCache.height = H;
+    image = ctxCache.createImageData(W, H);
+    for (let i = 0; i < W * H; i++) image.data[i * 4 + 3] = 255;
+  }
+
+  // Pour chaque point : le doigt est-il dessus ? Quand il le quitte, on note l'heure du relâché.
+  function suivreDoigt(t) {
+    const R = REGLAGES.rayonDoigt;
+    const cx = doigt.x / REGLAGES.taille, cy = doigt.y / REGLAGES.taille;
+    for (let y = 1; y < H - 1; y++) {
+      for (let x = 1; x < W - 1; x++) {
+        const i = y * W + x;
+        const d = Math.hypot(x - cx, y - cy);
+        if (doigt.actif && d <= R) {
+          poids[i] = 1 - d / R;
+          enfonce[i] = 1;
+          relache[i] = -1;                            // sous le doigt : pas de retour
+        } else {
+          poids[i] = 0;
+          if (enfonce[i]) { enfonce[i] = 0; relache[i] = t; echoH[i] = h[i]; echoFait[i] = 0; echoDebut[i] = -1; echoApplique[i] = 0; }   // le doigt vient de le quitter
+        }
+      }
+    }
+  }
+
+  // Chaque point revient à plat en REGLAGES.dureeRetour secondes, depuis son relâché (ordre de passage).
+  function retour(t, dt) {
+    const duree = REGLAGES.dureeRetour;
+    for (let i = 0; i < W * H; i++) {
+      const r = relache[i];
+      if (r < 0 || enfonce[i]) continue;
+      // v4 : l'écho : à DELAI après le relâché, la profondeur d'origine est rejouée, FORCE fois, une seule fois.
+      // v5 : l'écho se dessine PEU À PEU, sur dureeGesteEcho x lenteurEcho secondes (au lieu d'un seul coup).
+      if (!echoFait[i] && t - r >= REGLAGES.delaiEcho) {
+        if (echoDebut[i] < 0) echoDebut[i] = t;
+        const duree = REGLAGES.dureeGesteEcho * REGLAGES.lenteurEcho;
+        const avancement = Math.min(1, (t - echoDebut[i]) / duree);
+        let voulu = REGLAGES.forceEcho * echoH[i] * avancement;
+        if (voulu > REGLAGES.limiteEcho) voulu = REGLAGES.limiteEcho;
+        else if (voulu < -REGLAGES.limiteEcho) voulu = -REGLAGES.limiteEcho;
+        h[i] += voulu - echoApplique[i];
+        echoApplique[i] = voulu;
+        if (avancement >= 1) echoFait[i] = 1;
+      }
+      const age = t - r;
+      if (age >= duree) { h[i] = 0; v[i] = 0; relache[i] = -1; continue; }
+      const reste = Math.max(1e-3, duree - age);
+      h[i] *= Math.max(0, 1 - dt / reste);
+      v[i] *= 0.9;
+    }
+  }
+
+  // Une étape de simulation : propagation + frottement ; sous le doigt, la matière s'enfonce.
+  function etape() {
+    const p = REGLAGES.propagation, f = REGLAGES.frottement;
+    for (let y = 1; y < H - 1; y++) {
+      const ligne = y * W;
+      for (let x = 1; x < W - 1; x++) {
+        const i = ligne + x;
+        const lap = h[i - 1] + h[i + 1] + h[i - W] + h[i + W] - 4 * h[i];
+        v[i] += p * lap - f * v[i];
+      }
+    }
+    for (let y = 1; y < H - 1; y++) {
+      const ligne = y * W;
+      for (let x = 1; x < W - 1; x++) {
+        const i = ligne + x;
+        h[i] += v[i];
+        if (h[i] > REGLAGES.limiteEcho) h[i] = REGLAGES.limiteEcho;
+        else if (h[i] < -REGLAGES.limiteEcho) h[i] = -REGLAGES.limiteEcho;
+      }
+    }
+    // Enfoncement sous le doigt : il continue tant qu'il reste posé.
+    for (let i = 0; i < W * H; i++) {
+      if (poids[i] > 0) {
+        h[i] -= REGLAGES.creuse * poids[i] * (1 + REGLAGES.etirement);
+        if (h[i] < -REGLAGES.limite) h[i] = -REGLAGES.limite;
+      }
+    }
+    for (let x = 0; x < W; x++) { h[x] = 0; h[(H - 1) * W + x] = 0; v[x] = 0; v[(H - 1) * W + x] = 0; }
+    for (let y = 0; y < H; y++) { h[y * W] = 0; h[y * W + W - 1] = 0; v[y * W] = 0; v[y * W + W - 1] = 0; }
+  }
+
+  // Rendu : la pente de la surface donne une normale ; lumière, reflets humides et liseré brillant.
+  function dessiner() {
+    const data = image.data;
+    const K = REGLAGES.penteReflet;
+    const Lx = -0.35, Ly = -0.55, Lz = 0.75, ln = Math.hypot(Lx, Ly, Lz);
+    const Hx = Lx / ln, Hy = Ly / ln, Hz = (Lz / ln) + 1;
+    const hn = Math.hypot(Hx, Hy, Hz);
+    const hx = Hx / hn, hy = Hy / hn, hz = Hz / hn;
+    const cl = couleur.clair, co = couleur.ombre, br = REGLAGES.brillance;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = y * W + x;
+        const gx = (x > 0 && x < W - 1) ? (h[i + 1] - h[i - 1]) : 0;
+        const gy = (y > 0 && y < H - 1) ? (h[i + W] - h[i - W]) : 0;
+        let nx = -gx * K, ny = -gy * K, nz = 1;
+        const nl = Math.hypot(nx, ny, nz); nx /= nl; ny /= nl; nz /= nl;
+        const diffus = Math.max(0, nx * Lx / ln + ny * Ly / ln + nz * Lz / ln);
+        const nh = Math.max(0, nx * hx + ny * hy + nz * hz);
+        const brillant = Math.pow(nh, 42) * 1.6 * br;
+        const doux = Math.pow(nh, 8) * 0.22 * br;
+        const liseré = Math.pow(1 - nz, 2) * 1.2 * br;
+        const t = 0.38 + 0.62 * diffus;
+        const p = i * 4;
+        let r = co[0] + (cl[0] - co[0]) * t;
+        let g = co[1] + (cl[1] - co[1]) * t;
+        let b = co[2] + (cl[2] - co[2]) * t;
+        const blanc = Math.min(1, brillant + doux);
+        r += (255 - r) * blanc + (cl[0] - r) * liseré * 0.5;
+        g += (255 - g) * blanc + (cl[1] - g) * liseré * 0.5;
+        b += (255 - b) * blanc + (cl[2] - b) * liseré * 0.5;
+        data[p] = r < 0 ? 0 : (r > 255 ? 255 : r);
+        data[p + 1] = g < 0 ? 0 : (g > 255 ? 255 : g);
+        data[p + 2] = b < 0 ? 0 : (b > 255 ? 255 : b);
+      }
+    }
+    ctxCache.putImageData(image, 0, 0);
+    ctxEcran.imageSmoothingEnabled = true;
+    ctxEcran.drawImage(canvasCache, 0, 0, W, H, 0, 0, largeur, hauteur);
+  }
+
+  function boucle() {
+    if (arret) return;
+    const t = maintenant();
+    const dt = Math.min(0.1, Math.max(0, t - dernier));
+    dernier = t;
+    suivreDoigt(t);
+    etape(); etape();
+    retour(t, dt);
+    dessiner();
+    frame = requestAnimationFrame(boucle);
+  }
+
+  function coords(e) {
+    const r = canvasEcran.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  }
+
+  function demarrer(element) {
+    arreter();
+    conteneur = element;
+    canvasEcran = document.createElement('canvas');
+    canvasCache = document.createElement('canvas');
+    conteneur.appendChild(canvasEcran);
+    ctxEcran = canvasEcran.getContext('2d');
+    ctxCache = canvasCache.getContext('2d');
+    canvasEcran.width = conteneur.clientWidth || window.innerWidth;
+    canvasEcran.height = conteneur.clientHeight || window.innerHeight;
+    dimensionner();
+    canvasEcran.addEventListener('pointerdown', e => {
+      canvasEcran.setPointerCapture(e.pointerId);
+      const c = coords(e); doigt = { actif: true, x: c.x, y: c.y };
+    });
+    canvasEcran.addEventListener('pointermove', e => {
+      if (!doigt.actif) return;
+      const c = coords(e); doigt.x = c.x; doigt.y = c.y;
+    });
+    const fin = () => { doigt.actif = false; };
+    canvasEcran.addEventListener('pointerup', fin);
+    canvasEcran.addEventListener('pointercancel', fin);
+    window.addEventListener('resize', () => {
+      canvasEcran.width = conteneur.clientWidth || window.innerWidth;
+      canvasEcran.height = conteneur.clientHeight || window.innerHeight;
+      dimensionner();
+    });
+    arret = false;
+    dernier = maintenant();
+    frame = requestAnimationFrame(boucle);
+  }
+
+  function arreter() {
+    arret = true;
+    cancelAnimationFrame(frame);
+    doigt.actif = false;
+    if (canvasEcran && canvasEcran.parentNode) canvasEcran.parentNode.removeChild(canvasEcran);
+    canvasEcran = null;
+  }
+
+  function choisirCouleur(nom) {
+    couleur = REGLAGES.couleurs[nom] || couleur;
+  }
+
+  // Remise à zéro : surface lisse, plus aucun point en retour.
+  function remettreAZero() {
+    if (!h) return;
+    h.fill(0); v.fill(0); enfonce.fill(0); poids.fill(0); relache.fill(-1); echoH.fill(0); echoFait.fill(0); echoDebut.fill(-1); echoApplique.fill(0);
+  }
+
+  return { demarrer, arreter, choisirCouleur, remettreAZero };
+})();
+
+// ============================================================
+// PAGE — interrupteur, réglage du retour, remise à zéro.
+// ============================================================
+(function () {
+  const boutonRose = document.getElementById('bouton-rose');
+  const boutonVert = document.getElementById('bouton-vert');
+  function choisir(nom) {
+    Slime.choisirCouleur(nom);
+    boutonRose.setAttribute('aria-pressed', String(nom === 'rose'));
+    boutonVert.setAttribute('aria-pressed', String(nom === 'vert'));
+  }
+  boutonRose.addEventListener('click', () => choisir('rose'));
+  boutonVert.addEventListener('click', () => choisir('vert'));
+
+  const curseur = document.getElementById('curseur-retour');
+  const valeur = document.getElementById('valeur-retour');
+  curseur.value = String(REGLAGES.dureeRetour);
+  valeur.textContent = String(REGLAGES.dureeRetour);
+  curseur.addEventListener('input', () => {
+    REGLAGES.dureeRetour = Number(curseur.value);
+    valeur.textContent = curseur.value;
+  });
+
+  const curseurEcho = document.getElementById('curseur-echo');
+  const valeurEcho = document.getElementById('valeur-echo');
+  curseurEcho.value = String(REGLAGES.forceEcho);
+  valeurEcho.textContent = String(REGLAGES.forceEcho);
+  curseurEcho.addEventListener('input', () => {
+    REGLAGES.forceEcho = Number(curseurEcho.value);
+    valeurEcho.textContent = curseurEcho.value;
+  });
+
+  const curseurLenteur = document.getElementById('curseur-lenteur');
+  const valeurLenteur = document.getElementById('valeur-lenteur');
+  curseurLenteur.value = String(REGLAGES.lenteurEcho);
+  valeurLenteur.textContent = String(REGLAGES.lenteurEcho);
+  curseurLenteur.addEventListener('input', () => {
+    REGLAGES.lenteurEcho = Number(curseurLenteur.value);
+    valeurLenteur.textContent = curseurLenteur.value;
+  });
+
+  Slime.demarrer(document.getElementById('slime'));
+  choisir(REGLAGES.couleurDepart);
+
+  const confirmation = document.getElementById('confirmation');
+  document.getElementById('bouton-zero').addEventListener('click', () => { confirmation.hidden = false; });
+  document.getElementById('non-zero').addEventListener('click', () => { confirmation.hidden = true; });
+  document.getElementById('oui-zero').addEventListener('click', () => { Slime.remettreAZero(); confirmation.hidden = true; });
+  document.body.dataset.slimePret = 'oui';
+})();
+</script>
+</body>
+</html>

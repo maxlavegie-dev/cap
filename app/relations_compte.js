@@ -45,15 +45,15 @@ const relationsCompte = (() => {
   const dossiersRacine = (arbre, nom) => arbre.enfants(arbre.racine).filter(x => x.name === nom && x.mimeType === DOSSIER);
   const parNom = liste => [...liste].sort((a, b) => String(a.name).localeCompare(String(b.name), 'fr'));
 
+  // 10/11/2026 (séance 3) : le type d'un fichier est décidé à UN seul endroit, types_fichiers.js (musique : MP3, FLAC, M4A,
+  // WAV, OGG, OPUS ; vidéo : MP4, WEBM ; PDF ; images). Ici, seulement les dossiers (album ou playlist, ou autre).
+  // Avant : 'mp3' (MP3 seulement), 'pdf', 'images', 'autres', décidés ici.
   function sorte(fichier) {
     const nom = String(fichier.name || '').toLowerCase();
-    const type = String(fichier.mimeType || '');
-    if (type === DOSSIER) return /album|playlist/.test(nom) ? 'albums' : 'sousDossiers';
-    if (type === 'audio/mpeg' || type === 'audio/mp3' || nom.endsWith('.mp3')) return 'mp3';
-    if (type === 'application/pdf' || nom.endsWith('.pdf')) return 'pdf';
-    if (type.startsWith('image/') || /\.(jpe?g|png|gif|webp|heic)$/.test(nom)) return 'images';
-    return 'autres';
+    if (String(fichier.mimeType || '') === DOSSIER) return /album|playlist/.test(nom) ? 'albums' : 'sousDossiers';
+    return typesFichiers.sorte(fichier);
   }
+  const ligneVide = () => ({ musique: 0, formats: {}, video: 0, images: 0, pdf: 0, albums: 0, sousDossiers: 0, autres: 0 });
 
   function compterDans(arbre, id, niveau, total, pdfs, vus) {
     if (vus.has(id)) return;
@@ -62,6 +62,7 @@ const relationsCompte = (() => {
       if (fichier.mimeType === DOSSIER && vus.has(fichier.id)) continue;
       const s = sorte(fichier);
       total[s]++;
+      if (s === 'musique') { const f = typesFichiers.analyser(fichier).format; total.formats[f] = (total.formats[f] || 0) + 1; }
       if (s === 'pdf') pdfs.push(fichier.id);
       if (fichier.mimeType === DOSSIER && niveau < PROFONDEUR_MAX) compterDans(arbre, fichier.id, niveau + 1, total, pdfs, vus);
     }
@@ -75,7 +76,7 @@ const relationsCompte = (() => {
     const vus = new Set([racines[0].id]);
     for (const fichier of parNom(arbre.enfants(racines[0].id))) {
       if (fichier.mimeType === DOSSIER && fichier.name.startsWith('r_')) {
-        const ligne = { nomDossier: fichier.name, mp3: 0, images: 0, pdf: 0, albums: 0, sousDossiers: 0, autres: 0 };
+        const ligne = { nomDossier: fichier.name, ...ligneVide() };
         compterDans(arbre, fichier.id, 1, ligne, resultat.pdfs, vus);
         resultat.lignes.push(ligne);
       } else resultat.autres++;
@@ -91,9 +92,9 @@ const relationsCompte = (() => {
     const vus = new Set([racines[0].id]);
     for (const fichier of parNom(arbre.enfants(racines[0].id))) {
       if (fichier.mimeType === DOSSIER) {
-        const t = { mp3: 0, images: 0, pdf: 0, albums: 0, sousDossiers: 0, autres: 0 };
+        const t = ligneVide();
         compterDans(arbre, fichier.id, 1, t, resultat.pdfs, vus);
-        resultat.lignes.push({ nomDossier: fichier.name, dossiers: t.albums + t.sousDossiers, pdf: t.pdf, images: t.images, autres: t.mp3 + t.autres });
+        resultat.lignes.push({ nomDossier: fichier.name, dossiers: t.albums + t.sousDossiers, pdf: t.pdf, images: t.images, autres: t.musique + t.video + t.autres });
       } else {
         resultat.directs++;
         if (sorte(fichier) === 'pdf') resultat.pdfs.push(fichier.id);
@@ -111,11 +112,19 @@ const relationsCompte = (() => {
     if (r.racines === 0) return 'Aucun dossier « Relations » à la racine du Drive du compte Cap. Rien n’a été modifié.';
     if (r.racines > 1) return `${r.racines} dossiers « Relations » à la racine du Drive du compte Cap : garde-en un seul. Rien n’a été modifié.`;
     const somme = cle => r.lignes.reduce((n, ligne) => n + ligne[cle], 0);
+    // 10/11/2026 (séance 3) : « 2 morceaux (1 FLAC, 1 MP3) · 1 vidéo » ; jamais un nom de fichier. Avant : « N MP3 ».
+    const morceaux = (n, formats) => {
+      const detail = Object.entries(formats).sort(([a], [b]) => a.localeCompare(b)).map(([f, k]) => `${k} ${f}`).join(', ');
+      return `${n} morceau${n > 1 ? 'x' : ''}${detail ? ` (${detail})` : ''}`;
+    };
+    const videos = n => `${n} vidéo${n > 1 ? 's' : ''}`;
+    const formatsTotal = {};
+    for (const l of r.lignes) for (const [f, k] of Object.entries(l.formats)) formatsTotal[f] = (formatsTotal[f] || 0) + k;
     return [`Compte Cap (lecture seule, rien n’est modifié) : ${r.lignes.length} dossier(s) « r_ ».`,
-      ...r.lignes.map(l => `${l.nomDossier} : ${l.mp3} MP3 · ${l.images} image(s) · ${l.pdf} PDF · ${l.albums} album(s)`
+      ...r.lignes.map(l => `${l.nomDossier} : ${morceaux(l.musique, l.formats)} · ${videos(l.video)} · ${l.images} image(s) · ${l.pdf} PDF · ${l.albums} album(s)`
         + (l.sousDossiers ? ` · ${l.sousDossiers} autre(s) sous-dossier(s)` : '') + (l.autres ? ` · ${l.autres} autre(s) fichier(s)` : '')),
       ...(r.autres ? [`${r.autres} autre(s) élément(s) dans « Relations » (pas des dossiers « r_ »).`] : []),
-      `Total : ${somme('mp3')} MP3, ${somme('images')} image(s), ${somme('pdf')} PDF, ${somme('albums')} album(s).`].join('\n');
+      `Total : ${morceaux(somme('musique'), formatsTotal)}, ${videos(somme('video'))}, ${somme('images')} image(s), ${somme('pdf')} PDF, ${somme('albums')} album(s).`].join('\n');
   }
 
   function resumerDocuments(d) {
@@ -166,14 +175,15 @@ const relationsCompte = (() => {
 
   // 09/11/2026 (décision de Max, bloc c76) : + propositionsOeil (false par défaut) : l'œil ouvre la visionneuse VIDE, sans lire
   // ni proposer les PDF du compte Cap ; Max touche lui-même « Choisir un fichier ». La lecture d'avant est gardée (true).
-  function brancher(doc, { compte, pdfjs, visionneuse = null, stockage = (typeof localStorage !== 'undefined' ? localStorage : null), maintenant = () => Date.now(), propositionsOeil = false }) {
+  // 11/11/2026 (c145) : + enLigne (le téléphone a-t-il du réseau ? remplaçable dans les tests).
+  function brancher(doc, { compte, pdfjs, visionneuse = null, stockage = (typeof localStorage !== 'undefined' ? localStorage : null), maintenant = () => Date.now(), propositionsOeil = false,
+    enLigne = () => (typeof navigator === 'undefined' || navigator.onLine !== false) }) {
     const el = id => doc.getElementById(id);
     const champ = el('adresse-compte-relations');
     const connecter = el('connecter-compte-relations');
     const bouton = el('compter-compte-relations');
     const zone = el('resume-compte-relations');
     const zoneDocuments = el('resume-documents-compte');
-    const boutonPdf = el('pdf-compte-relations');
     const lecteur = el('lecteur-pdf-relations');
     const canvas = el('canvas-pdf-relations');
     const etiquette = el('page-pdf-relations');
@@ -182,7 +192,7 @@ const relationsCompte = (() => {
     const pdfAvant = el('pdf-avant-relations');
     const pdfApres = el('pdf-apres-relations');
     const fermer = el('pdf-fermer-relations');
-    if (![champ, connecter, bouton, zone, zoneDocuments, boutonPdf, lecteur, canvas, etiquette, precedente, suivante, pdfAvant, pdfApres, fermer].every(Boolean)) return;
+    if (![champ, connecter, bouton, zone, zoneDocuments, lecteur, canvas, etiquette, precedente, suivante, pdfAvant, pdfApres, fermer].every(Boolean)) return;
     // Chaque zone garde son message jusqu'à la prochaine action (rien ne s'efface tout seul).
     const montrer = (z, texte, titre = '') => {
       z.hidden = false;
@@ -242,7 +252,9 @@ const relationsCompte = (() => {
 
     // Retour de Google pour le compte Cap : « Réglages du Drive » est rouvert, avec le résultat.
     // 08/11/2026 : si « Autoriser » avait été touché DANS la visionneuse, c'est elle qui se rouvre (PDF lus).
-    const retourVisionneuse = compte.retourRecent() && stockage && typeof visionneuseCap !== 'undefined'
+    // 10/11/2026 (c98) : retour de Google pendant « Tout synchroniser » : c'est synchro_tout.js qui reprend (rien ici).
+    const retourSynchro = compte.retourRecent() && stockage && typeof synchroTout !== 'undefined' && synchroTout.retourEnAttente(stockage, maintenant());
+    const retourVisionneuse = !retourSynchro && compte.retourRecent() && stockage && typeof visionneuseCap !== 'undefined'
       && visionneuseCap.retourDemande(stockage, maintenant());
     if (retourVisionneuse) {
       const apresChargementOeil = () => { void ouvrirOeil(compte.connecte() ? '' : compte.message()); };
@@ -251,7 +263,7 @@ const relationsCompte = (() => {
     }
     // 08/11/2026 (accord de Max) : « Autoriser » touché dans la fenêtre « Musique » : au retour, Autre puis la musique
     // (le Lecteur, branché par relations_mp3.js) au lieu de « Réglages du Drive ».
-    const retourMusique = !retourVisionneuse && compte.retourRecent() && stockage && typeof visionneuseCap !== 'undefined'
+    const retourMusique = !retourSynchro && !retourVisionneuse && compte.retourRecent() && stockage && typeof visionneuseCap !== 'undefined'
       && visionneuseCap.retourDemande(stockage, maintenant(), visionneuseCap.CLE_RETOUR_MUSIQUE);
     if (retourMusique) {
       const apresChargementMusique = () => {
@@ -262,7 +274,7 @@ const relationsCompte = (() => {
       };
       if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', apresChargementMusique, { once: true });
       else apresChargementMusique();
-    } else if (!retourVisionneuse && compte.retourRecent()) {
+    } else if (!retourSynchro && !retourVisionneuse && compte.retourRecent()) {
       const apresChargement = () => {
         const ouvrir = el('ouvrir-reglages-drive');
         if (ouvrir && !el('reglages-drive')?.open) ouvrir.click();
@@ -277,6 +289,8 @@ const relationsCompte = (() => {
     }
 
     connecter.addEventListener('click', () => {
+      // 11/11/2026 (accord de Max, c145, ligne 120) : SANS RÉSEAU, Google ne s'ouvre pas (page d'erreur de Chrome) : la vraie cause.
+      if (!enLigne()) { ecrire('Pas de réseau : la page de Google ne peut pas s’ouvrir. Reconnecte le téléphone, puis touche de nouveau « Autoriser la lecture du compte Cap ». Rien n’a été changé.'); return; }
       try {
         if (champ.value.trim()) compte.enregistrerAdresse(champ.value);
         ecrire('Ouverture de la page de Google… Choisis le compte Cap, PAS ton compte personnel. Cap revient tout seul ensuite, et le résultat s’affiche ici.');
@@ -285,7 +299,6 @@ const relationsCompte = (() => {
     });
 
     bouton.addEventListener('click', () => attenteLecture.pendant(bouton, async () => {
-      boutonPdf.hidden = true;
       zoneDocuments.hidden = true;
       ecrire('Lecture du Drive du compte Cap… (rien n’est modifié)');
       try {
@@ -293,7 +306,6 @@ const relationsCompte = (() => {
         pdfs = [...r.pdfs, ...r.documents.pdfs];
         ecrire(resumer(r), 'Relations');
         montrer(zoneDocuments, resumerDocuments(r.documents), 'Documents');
-        if (pdfs.length) { boutonPdf.textContent = `Afficher les PDF dans Cap (${pdfs.length})`; boutonPdf.hidden = false; }
       } catch (erreur) { ecrire(`${raison(erreur)} Rien n’a été modifié.`); }
     }));
 
@@ -324,15 +336,10 @@ const relationsCompte = (() => {
       finally { etiquette.classList.remove('en-lecture'); }
     };
 
-    boutonPdf.addEventListener('click', () => {
-      if (!pdfs.length) return;
-      // 07/11/2026 (étape B, lot 1, accord de Max) : les PDF s'ouvrent dans la visionneuse de Zencoder.
-      // L'ancien petit lecteur ci-dessous est DÉSACTIVÉ dans Cap (code gardé, utilisé seulement sans visionneuse).
-      const v = typeof visionneuse === 'function' ? visionneuse() : visionneuse;
-      if (v) { void v.ouvrir(pdfs.map(id => ({ id }))); return; }
-      if (!lecteur.open) lecteur.showModal();
-      void ouvrirIndex(0);
-    });
+    // 12/11/2026 (c148, décision de Max, ligne 15) : bouton de secours « Afficher les PDF dans Cap » RETIRÉ (l'œil ouvre la
+    // visionneuse). Avant : boutonPdf.addEventListener('click', …) ouvrait la visionneuse avec les PDF comptés (ou, sans
+    // visionneuse, l'ancien petit lecteur ci-dessous). L'ancien petit lecteur (ouvrirIndex, montrerPage, #lecteur-pdf-relations)
+    // n'est plus ouvert par rien ; code gardé, à retirer sur décision de Max.
     const changer = ecart => {
       if (!pdf || numero + ecart < 1 || numero + ecart > pdf.numPages) return;
       numero += ecart;

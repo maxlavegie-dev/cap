@@ -3,6 +3,11 @@
      de vert. Teinte A (choisie pour l'essai) : #EAF1F4. À comparer : B #E6EEF0, C #F0F5F6.
      L'eau et l'application Android en tirent leurs couleurs. */
   --fond: #EAF1F4;
+  /* 12/11/2026 (décision de Max, c171) : teinte et transparence des TUILES (To-do) et des CARRÉS (Chantiers), réglées ICI
+     seulement : fond à 60 % (l'eau se voit derrière), encre foncée (contraste vérifié par les tests des tuiles). */
+  --tuile-fond: rgb(255 254 247 / 60%);
+  --tuile-fond-fixe: rgb(238 247 251 / 60%);
+  --tuile-encre: #203e49;
   color-scheme: light;
   font-family: system-ui, sans-serif;
   font-size: 17.6px;
@@ -1676,9 +1681,15 @@ dialog button:hover {
 
 #commande-annuaire[open] {
   display: flex;
-  align-items: center;
+  align-items: safe center; /* 10/11/2026 (c87) : un long texte n'est plus coupé en haut ; avant : align-items: center */
   justify-content: center;
 }
+/* 10/11/2026 (c87, demande de Max) : « Oui » / « Non » (et « Annuler ») collés en bas, toujours visibles. */
+#commande-annuaire .commande-annuaire-boutons { position: sticky; bottom: 0; background: #203e49; padding-top: 8px; }
+/* 10/11/2026 (c87) : fenêtre d'abandon d'une tâche : « Annuler » / « Abandonner » collés en bas de la fenêtre qui défile. */
+#confirmation .actions-dialogue { position: sticky; bottom: -24px; margin-bottom: -24px; padding: 12px 0 24px; background: #f6f7ec; }
+/* 10/11/2026 (c87) : « Aucun de ces choix » collé en bas de la fenêtre de gros choix (phrase à apprendre, hésitation). */
+#choix-commande #aucun-choix-commande { position: sticky; bottom: 0; z-index: 2; background: var(--eau-fond-uni); }
 
 #commande-annuaire::backdrop {
   background: rgb(32 62 73 / 60%);
@@ -1942,8 +1953,12 @@ dialog button:hover {
   margin-bottom: 12px;
 }
 
+/* 12/11/2026 (c173, défaut vu par Max) : le titre sur SA ligne, sous les boutons, à l'horizontale. Avant : « flex: 1 1 auto »
+   sur la même ligne que « ‹ Tuiles » et « Fermer » (et la marge du petit micro) : presque plus de place, une lettre par ligne. */
+.entete-complet { flex-wrap: wrap; }
 .entete-complet h1 {
-  flex: 1 1 auto;
+  order: 3;
+  flex: 1 0 100%;
   margin: 0;
   font-size: 1.3rem;
   overflow-wrap: anywhere;
@@ -1966,21 +1981,24 @@ dialog button:hover {
   margin-left: auto;
 }
 
+/* 12/11/2026 (accord de Max, c172) : TROIS colonnes de tuiles carrées (avant : deux, écart 12 px). */
 .grille-tuiles {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
   margin-bottom: 16px;
 }
 
+/* c172 (nettoyage, décision de Max) : retirés ici, car morts ou gênants : « min-height: 110px » (cassait le carré à trois
+   colonnes) et les fonds « #fffef7 », « #eef7fb », « rgba(255, 254, 247, 0.92) » des trois premiers blocs (toujours écrasés
+   par le bloc « Option A » plus bas, qui prend la teinte réglée dans :root). */
 .tuile {
   position: relative;
+  container-type: inline-size; /* c172 : le texte suit la largeur de la tuile */
   aspect-ratio: 1 / 1;
-  min-height: 110px;
   border-radius: 14px;
   border: 2px solid var(--couleur-categorie, #8a9d9c);
   border-top-width: 10px;
-  background: #fffef7;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
   user-select: none;
   -webkit-user-select: none;
@@ -1989,13 +2007,11 @@ dialog button:hover {
 
 .tuile-fixe {
   border-color: #2d6f8f;
-  background: #eef7fb;
 }
 
 .tuile-outil {
   border-style: dashed;
   border-top-width: 2px;
-  background: rgba(255, 254, 247, 0.92); /* lot c21 : 0,75 → 0,92, lisible sur l'eau */
 }
 
 .ouvrir-tuile {
@@ -2005,7 +2021,7 @@ dialog button:hover {
   justify-content: space-between;
   width: 100%;
   height: 100%;
-  padding: 12px;
+  padding: 8px; /* c172 : 12 → 8 px, trois colonnes */
   border: 0;
   border-radius: 12px;
   font: inherit;
@@ -2016,13 +2032,13 @@ dialog button:hover {
 }
 
 .titre-tuile {
-  font-size: 1.05rem;
+  font-size: min(0.9rem, 13cqi); /* c172 : 1,05 rem → 0,9 rem au plus, moins sur une petite tuile (trois colonnes) */
   font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .compteur-tuile {
-  font-size: 1.4rem;
+  font-size: min(1.2rem, 18cqi); /* c172 : 1,4 → 1,2 rem au plus */
   font-weight: 700;
   color: var(--secondaire);
 }
@@ -2691,9 +2707,11 @@ dialog .micro-tri[aria-pressed="true"] {
 }
 #scanner-choix-emetteur[open] {
   display: flex;
-  align-items: center;
+  align-items: safe center; /* 10/11/2026 (c87) : un long contenu n'est plus coupé en haut ; avant : align-items: center */
   justify-content: center;
 }
+/* 10/11/2026 (c87, demande de Max) : « Aucun de ceux-là » (dernière case) collé en bas, toujours visible. */
+#scanner-choix-emetteur-cases > button:last-child { position: sticky; bottom: 0; background: #203e49; }
 #scanner-choix-emetteur::backdrop {
   background: rgb(32 62 73 / 60%);
 }
@@ -2876,13 +2894,13 @@ html.sans-eau .bouton-eau {
    Contraste du texte vérifié par les tests (au moins 8:1 dans le pire cas, eau la plus foncée dessous).
    Interrupteur « Eau » sur arrêt : rien ne change de lisibilité (le fond pâle est plus clair que l'eau). */
 .tuile {
-  background: rgb(255 254 247 / 60%);
+  background: var(--tuile-fond); /* c171 : teinte réglée dans :root (avant : rgb(255 254 247 / 60%)) */
 }
 .tuile-fixe {
-  background: rgb(238 247 251 / 60%);
+  background: var(--tuile-fond-fixe); /* c171 (avant : rgb(238 247 251 / 60%)) */
 }
 .tuile-outil {
-  background: rgb(255 254 247 / 60%);
+  background: var(--tuile-fond); /* c171 (avant : rgb(255 254 247 / 60%)) */
   border-color: rgb(32 62 73 / 45%);
 }
 #alerte-google {
@@ -3424,6 +3442,67 @@ body:has(#alerte-google:not([hidden])) #ecran-autre .grille-autre { width: min(8
 .message-autre { margin: 0; text-align: center; }
 #autoriser-visionneuse { position: absolute; left: 50%; top: 50%; transform: translateX(-50%); z-index: 3; }
 #ecran-autre .scans-en-attente { margin: 0; }
+/* 12/11/2026 (c165) : écran « Bureau » : deux grandes cases côte à côte, chacune avec son nom dessous. */
+#ecran-bureau .grille-bureau { grid-template-columns: repeat(2, 1fr); }
+#ecran-bureau .bouton-autre { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+#ecran-bureau .legende-bureau { font-size: 1rem; color: var(--eau-texte); }
+/* 12/11/2026 (accord de Max, c163) : NOUVEL ACCUEIL, grille 3 × 4 sur l'eau (maquette de Haiku). La nav MESURE la place qui
+   lui reste (conteneur) ; la taille d'une case en découle (cqh / cqw) : 4 lignes + la bande du micro + les écarts = 80 % de la
+   hauteur au plus, 3 colonnes + écarts = 95 % de la largeur : rien n'est coupé ni ne déborde, petit écran comme Pixel 7a. */
+#accueil-boutons.accueil-grille { container-type: size; align-self: stretch; width: 100%; display: flex; align-items: center; justify-content: center; }
+#accueil-boutons.accueil-grille .grille-accueil { --case: min(14cqh, 29cqw); /* c166 (demande de Max) : un peu plus grand ; avant (c163) : min(13cqh, 28cqw) */ display: grid; grid-template-columns: repeat(3, var(--case));
+  justify-content: center; align-content: center; column-gap: 4cqw; row-gap: 2.6cqh; }
+#accueil-boutons.accueil-grille .grille-accueil > .bouton-accueil-principal,
+#accueil-boutons.accueil-grille .grille-accueil > #microphone { width: var(--case); height: var(--case); justify-self: center; border-radius: 26px; }
+/* 12/11/2026 (c168, demande de Max) : GRANDS écrans (place de l'accueil d'au moins 600 points de haut et 380 de large, comme
+   le Pixel 7a) : cases nettement plus grosses ; les petits écrans gardent la taille de c166. Vérifié avec les deux bandes
+   ouvertes (micro et recherche). */
+@container (min-height: 600px) and (min-width: 380px) {
+  #accueil-boutons.accueil-grille .grille-accueil { --case: min(15.5cqh, 30cqw); }
+}
+#accueil-boutons.accueil-grille .grille-accueil > .bouton-pas-pret { opacity: 0.35; }
+#accueil-boutons.accueil-grille #accueil-reglages svg { width: 46%; height: 46%; }
+#accueil-boutons.accueil-grille .bande-micro { grid-column: 1 / -1; display: none; grid-template-columns: repeat(3, var(--case));
+  column-gap: 4cqw; justify-content: center; align-items: center; }
+#accueil-boutons.accueil-grille .bande-micro:has(> .outil-micro:not([hidden])) { display: grid; }
+#accueil-boutons.accueil-grille .bande-micro .outil-micro { width: calc(var(--case) * 0.77); height: calc(var(--case) * 0.77); justify-self: center; }
+#accueil-boutons.accueil-grille .bande-micro .vide { visibility: hidden; }
+/* 12/11/2026 (c167) : ligne de recherche de l'accueil (barre et propositions déplacées de l'écran Chercher). */
+#accueil-boutons.accueil-grille .bande-recherche { grid-column: 1 / -1; position: relative; z-index: 3; display: flex; justify-content: center; }
+/* 12/11/2026 (c169) : MODE « SAISIE » : la barre, puis « + », micro, crayon sur une ligne ; le reste caché (rien effacé). */
+#accueil-boutons.accueil-grille.mode-saisie .grille-accueil > :not(#bande-recherche-accueil):not(#microphone):not(#rangee-micro-accueil) { display: none !important; }
+#accueil-boutons.accueil-grille.mode-saisie .bande-recherche { grid-row: 1; flex-direction: column; align-items: center; }
+#accueil-boutons.accueil-grille.mode-saisie .bande-recherche #propositions-chercher { position: static; transform: none; margin-top: 6px; max-height: 30cqh; }
+#accueil-boutons.accueil-grille.mode-saisie .bande-micro { display: contents !important; } /* plus fort que « .bande-micro:has(...) » */
+#accueil-boutons.accueil-grille.mode-saisie .bande-micro .vide { display: none; }
+#accueil-boutons.accueil-grille.mode-saisie #micro-ajouter,
+#accueil-boutons.accueil-grille.mode-saisie #micro-ecrire,
+#accueil-boutons.accueil-grille.mode-saisie #microphone { align-self: center; }
+#accueil-boutons.accueil-grille.mode-saisie #micro-ajouter { grid-row: 2; grid-column: 1; }
+#accueil-boutons.accueil-grille.mode-saisie #microphone { grid-row: 2; grid-column: 2; }
+#accueil-boutons.accueil-grille.mode-saisie #micro-ecrire { grid-row: 2; grid-column: 3; }
+/* 12/11/2026 (c170, demande de Max) : en saisie, « + », micro, crayon BORD À BORD sur toute la largeur, à parts égales, gros :
+   hauteur = la plus petite d'un tiers de la largeur et de 45 % de la hauteur restante (clavier ouvert) ; la barre aussi pleine largeur. */
+#accueil-boutons.accueil-grille.mode-saisie .grille-accueil { width: 100%; grid-template-columns: repeat(3, 1fr); column-gap: 0; --haut-saisie: min(33.33cqw, 45cqh); }
+#accueil-boutons.accueil-grille.mode-saisie .bande-recherche #chercher-barre,
+#accueil-boutons.accueil-grille.mode-saisie .bande-recherche #propositions-chercher { width: 100%; }
+#accueil-boutons.accueil-grille.mode-saisie #micro-ajouter,
+#accueil-boutons.accueil-grille.mode-saisie #micro-ecrire,
+#accueil-boutons.accueil-grille.mode-saisie #microphone { width: 100%; height: var(--haut-saisie); justify-self: stretch; }
+#accueil-boutons.accueil-grille .bande-recherche #chercher-barre { width: calc(var(--case) * 3 + 8cqw); max-width: 100%; }
+#accueil-boutons.accueil-grille .bande-recherche #propositions-chercher { position: absolute; top: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  width: calc(var(--case) * 3 + 8cqw); max-width: 100%; max-height: 50cqh; overflow-y: auto; }
+#accueil-boutons.accueil-grille #accueil-theme { display: flex; align-items: center; justify-content: space-between; width: var(--case); height: var(--case);
+  justify-self: center; padding: 0 2%; border: none; border-radius: 26px; background: none; color: var(--eau-texte); font-size: calc(var(--case) / 8.6);
+  cursor: pointer; touch-action: manipulation; }
+#accueil-theme svg, #accueil-theme span { pointer-events: none; }
+#accueil-theme .icone-theme { width: 2em; height: 2em; }
+#accueil-theme .piste-theme { position: relative; width: 3.6em; height: 1.9em; flex: none; border-radius: 999px; background: rgba(var(--eau-contraste-rgb), 0.3); }
+#accueil-theme .curseur-theme { position: absolute; top: 0.18em; left: 0.18em; width: 1.54em; height: 1.54em; border-radius: 50%;
+  background: rgba(var(--eau-contraste-rgb), 1); transition: left 0.25s ease; }
+#accueil-theme[aria-checked="false"] .curseur-theme { left: calc(100% - 1.54em - 0.18em); }
+#accueil-boutons.accueil-grille .grille-accueil > .message-autre,
+#accueil-boutons.accueil-grille .grille-accueil > .scans-en-attente { grid-column: 1 / -1; margin: 0; }
 #theme-cap {
   display: flex;
   align-items: center;
@@ -3900,6 +3979,65 @@ html.theme-cap-clair .fenetre-scanner > .couche-eau-scanner { opacity: 0.6; filt
 }
 html.alerte-google-visible #micro-vignettes { top: calc(var(--hauteur-alerte, 132px) + 60px); }
 dialog#vignettes-cap { padding-right: 84px; }
+/* 11/11/2026 (c118, marche 1) : barre vide en haut de la visionneuse (64 px) : nom à gauche, bouton rond blanc à droite, même
+   niveau ; menu en ligne juste dessous, au-dessus des documents. Avant (c114) : nom posé seul en haut à gauche. */
+dialog#visionneuse-cap #barre-visionneuse { position: absolute; top: 0; left: 0; right: 0; height: 64px; z-index: 6; display: flex; align-items: center;
+  gap: 8px; padding: max(6px, env(safe-area-inset-top)) 12px 6px; box-sizing: border-box; pointer-events: none; }
+dialog#visionneuse-cap #bouton-menu-visionneuse { pointer-events: auto; flex: none; margin-left: auto; width: 48px; height: 48px; padding: 0; border: 0;
+  border-radius: 50%; background: #ffffff; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); touch-action: manipulation; }
+dialog#visionneuse-cap #bouton-menu-visionneuse[aria-expanded="true"] { box-shadow: 0 0 14px rgba(120, 200, 180, 0.9), 0 2px 8px rgba(0, 0, 0, 0.3); }
+dialog#visionneuse-cap #menu-visionneuse { position: absolute; top: 64px; left: 0; right: 0; z-index: 7; display: flex; flex-wrap: wrap; align-items: center;
+  justify-content: flex-end; gap: 8px; padding: 4px 12px 8px; box-sizing: border-box; }
+dialog#visionneuse-cap #menu-visionneuse[hidden] { display: none; }
+/* 11/11/2026 (c124) : petit journal sous la barre (5 lignes au plus, petit texte, défile s'il est long) ; le menu passe devant. */
+dialog#visionneuse-cap #journal-visionneuse { position: absolute; top: 64px; left: 8px; right: 8px; z-index: 5; max-height: 112px; overflow-y: auto;
+  margin: 0; padding: 6px 10px; box-sizing: border-box; border-radius: 10px; background: rgba(255, 255, 255, 0.82); color: #16201d;
+  font: 13px/1.35 sans-serif; overscroll-behavior: contain; }
+dialog#visionneuse-cap #journal-visionneuse[hidden] { display: none; }
+dialog#visionneuse-cap #journal-visionneuse p { margin: 0 0 2px; overflow-wrap: anywhere; }
+dialog#visionneuse-cap #menu-visionneuse-communs { display: flex; flex-direction: row-reverse; gap: 8px; align-items: center; } /* même ordre qu'ailleurs : synchronisation, livre, micro */
+/* Les boutons communs (micro, livre, synchronisation) gardent leur allure, mais en ligne dans le menu (pas en haut à droite). */
+dialog#visionneuse-cap #menu-visionneuse-communs > #petit-micro,
+dialog#visionneuse-cap #menu-visionneuse-communs > #bouton-apprendre,
+dialog#visionneuse-cap #menu-visionneuse-communs > #bouton-synchro { position: static !important; top: auto !important; right: auto !important; left: auto !important; transform: none !important; }
+dialog#visionneuse-cap #menu-visionneuse > button { min-height: 44px; padding: 0 14px; border: 0; border-radius: 22px; background: rgba(255, 255, 255, 0.92);
+  color: #16201d; font: 600 15px/1 sans-serif; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25); touch-action: manipulation; }
+dialog#visionneuse-cap #menu-depart-visionneuse { width: 44px; padding: 0 !important; font-size: 22px !important; }
+/* 11/11/2026 (c123) : petite fenêtre « Tout remettre comme au départ ? » par-dessus la visionneuse (elle arrête les touchers
+   dessous) ; deux gros boutons Oui / Non. */
+dialog#visionneuse-cap #confirmer-depart-visionneuse { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px; padding: 24px; box-sizing: border-box; background: rgba(0, 0, 0, 0.45); }
+dialog#visionneuse-cap #confirmer-depart-visionneuse[hidden] { display: none; }
+dialog#visionneuse-cap #question-depart-visionneuse { margin: 0; padding: 14px 18px; border-radius: 14px; background: #ffffff; color: #16201d;
+  font: 700 20px/1.3 sans-serif; text-align: center; }
+dialog#visionneuse-cap .boutons-depart-visionneuse { display: flex; gap: 16px; }
+/* 12/11/2026 (c161) : petit micro sous « Oui » et « Non » de « ↺ » (même aspect que le petit micro de la visionneuse). */
+dialog#visionneuse-cap #micro-depart-visionneuse { display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; margin: 18px auto 0;
+  padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.85); color: #3a3a38; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: background-color 0.9s ease, box-shadow 0.9s ease; }
+dialog#visionneuse-cap #micro-depart-visionneuse svg { width: 28px; height: 28px; pointer-events: none; }
+dialog#visionneuse-cap #micro-depart-visionneuse.en-ecoute { background: rgba(222, 242, 236, 0.95); }
+dialog#visionneuse-cap #micro-depart-visionneuse[aria-pressed="true"] { background: #ffffff; color: #16201d; box-shadow: 0 0 calc(1.2vw + 12px) rgba(120, 200, 180, 0.9), 0 2px 10px rgba(0, 0, 0, 0.3); }
+/* 11/11/2026 (c125) : question d'une note dictée (même allure que la question de « ↺ ») et message de la fiche en bas. */
+dialog#visionneuse-cap #question-note-visionneuse { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 16px; padding: 24px; box-sizing: border-box; background: rgba(0, 0, 0, 0.45); overflow-y: auto; }
+dialog#visionneuse-cap #question-note-visionneuse[hidden] { display: none; }
+dialog#visionneuse-cap #texte-note-visionneuse { margin: 0; padding: 14px 18px; border-radius: 14px; background: #ffffff; color: #16201d;
+  font: 600 17px/1.35 sans-serif; text-align: left; white-space: pre-line; overflow-wrap: anywhere; max-width: 100%; }
+dialog#visionneuse-cap #message-chantier-visionneuse { position: absolute; left: 12px; right: 12px; bottom: 16px; z-index: 19; margin: 0; padding: 10px 14px;
+  border-radius: 12px; background: rgba(255, 255, 255, 0.94); color: #16201d; font: 600 15px/1.3 sans-serif; pointer-events: none; overflow-wrap: anywhere; }
+dialog#visionneuse-cap #message-chantier-visionneuse[hidden] { display: none; }
+dialog#visionneuse-cap .boutons-depart-visionneuse > button { min-width: 120px; min-height: 56px; border: 0; border-radius: 28px; background: #ffffff;
+  color: #16201d; font: 700 20px/1 sans-serif; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35); touch-action: manipulation; }
+dialog#visionneuse-cap #titre-visionneuse { position: static; flex: 1 1 auto; min-width: 0; margin: 0; padding: 6px 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; /* c118 : une ligne, dans la barre */
+  border-radius: 10px; background: rgba(var(--eau-contraste-rgb, 255, 255, 255), 0.55); color: var(--eau-texte, #102020); font-weight: 700;
+  font-size: 1.2em; text-align: left; overflow-wrap: anywhere; pointer-events: none; }
+dialog#visionneuse-cap #titre-visionneuse[hidden] { display: block; visibility: hidden; } /* c118 : la barre garde sa place, même vide */
+/* 11/11/2026 (c111) : nom du chantier ouvert, en haut à gauche des vignettes (le petit micro et « Fermer » sont à droite). */
+dialog#vignettes-cap #titre-vignettes { position: absolute; top: 16px; left: 16px; right: 84px; margin: 0; font-weight: 700; font-size: 1.25em; text-align: left; overflow-wrap: anywhere; }
+dialog#vignettes-cap #titre-vignettes[hidden] { display: none; }
+dialog#vignettes-cap:has(#titre-vignettes:not([hidden])) { padding-top: 72px; } /* c111 : les vignettes ne passent jamais sous le titre */
+#chantiers-cap #resultat-chantier .documents-ouvrir-chantier { width: 100%; margin: 4px 0 6px; }
 @media (prefers-reduced-motion: reduce) { #micro-vignettes { transition: none; } }
 
 /* 09/11/2026 (accord de Max, étape 1 de l'intégration de Zencoder) : écran « Chercher » repris de la maquette
@@ -4202,7 +4340,9 @@ html.alerte-google-visible #signe-micro { top: calc(var(--hauteur-alerte, 132px)
 
 /* 09/11/2026 (accord de Max, mission C) : 5e icône « À trier » dans Chercher, centrée sous les quatre autres (même allure) ;
    dans la liste ouverte par elle, la dernière phrase ajoutée reste marquée (en plus de la surbrillance habituelle). */
-#ecran-chercher .grille-chercher > #chercher-a-trier { grid-column: 1 / -1; justify-self: center; width: calc((100% - 6%) / 2); } /* même écart que la grille (6 %) */
+/* 10/11/2026 (choix de Max) : avec la 6e icône « Chantiers », « À trier » et « Chantiers » forment la 3e rangée de la grille
+   (2 × 3, toutes identiques). Avant : « À trier » seule, centrée sur toute la largeur :
+   #ecran-chercher .grille-chercher > #chercher-a-trier { grid-column: 1 / -1; justify-self: center; width: calc((100% - 6%) / 2); } */
 .derniere-ajoutee { box-shadow: inset 4px 0 0 #2c7a5b; background: rgba(44, 122, 91, 0.12); border-radius: 8px; }
 
 /* 09/11/2026 (accord de Max, mission D) : fenêtre de gros choix des commandes : même allure que les autres fenêtres de choix
@@ -4243,6 +4383,31 @@ html.alerte-google-visible #signe-micro { top: calc(var(--hauteur-alerte, 132px)
 /* 09/11/2026 (accord de Max) : bouton rond « phrase à apprendre », à GAUCHE du petit micro (12 + 52 + 8 px), plus petit
    (44 px), même ligne (centré sur le micro) ; la note de musique et le signe se décalent à sa gauche. Le nombre des
    phrases en attente dans une petite pastille. Sous l'alerte Google comme le micro. */
+/* 10/11/2026 (c98) : « Tout synchroniser », même allure que le petit livre, à gauche de la place de la note de musique. */
+#bouton-synchro {
+  position: fixed;
+  top: calc(max(12px, env(safe-area-inset-top)) + 4px);
+  right: 184px;
+  z-index: 960;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: #3a3a38;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  touch-action: manipulation;
+}
+#bouton-synchro svg { width: 24px; height: 24px; pointer-events: none; }
+#synchro-tout #texte-synchro-tout { /* c101 ; avant : #etat-synchro */ white-space: pre-line; padding: 10px 12px; border-radius: 12px; background: var(--eau-fond-uni); overflow-wrap: anywhere; }
+#synchro-tout #barre-synchro-tout { position: sticky; bottom: 0; z-index: 3; }
+#synchro-tout #barre-synchro-tout .choix-grand-affichage { background: var(--eau-fond-uni); margin-bottom: 10px; }
+#synchro-tout.mode-confirmation #fermer-synchro-tout { display: none; }
 #bouton-apprendre {
   position: fixed;
   top: calc(max(12px, env(safe-area-inset-top)) + 4px);
@@ -4314,3 +4479,174 @@ html:has(#indicateur-musique:not([hidden])) #signe-micro { right: 184px; }
 }
 #ecran-reglages .bouton-lien-apprendre[hidden] { display: none; }
 #tampon-phrases-apprendre { margin: 8px 0 0; color: var(--eau-texte); }
+
+/* 09/11/2026 (chantiers, séance 1) : écran « Chantiers ». Même allure que les autres choix sur l'eau ; un sous-chantier
+   est en retrait ; le voyant est une pastille de couleur avant le mot (le mot reste écrit : jamais la couleur seule). */
+/* 10/11/2026 (décision de Max) : fiche courte collée en haut de l'écran des chantiers quand la liste défile ; fond uni de
+   l'eau derrière elle pour rester lisible par-dessus les boutons qui passent dessous. */
+/* 10/11/2026 (séance 3) : c'est le bloc « haut-chantier » (fiche + dossier Drive) qui est collé en haut ; la fiche garde son
+   fond. Avant : #chantiers-cap #fiche-chantier { position: sticky; top: 0; z-index: 2; … } */
+#chantiers-cap #haut-chantier { position: sticky; top: 0; z-index: 2; }
+#chantiers-cap #fiche-chantier { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px;
+  background: var(--eau-fond-uni); box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); }
+#chantiers-cap #dossier-chantier[hidden] { display: none; }
+/* 11/11/2026 (c107) : témoin du micro dans la fiche d'un chantier (petit, discret, caché pendant une question). */
+#chantiers-cap #temoin-micro-chantier { margin: 0 0 10px; padding: 4px 10px; font-size: 0.95em; opacity: 0.85; overflow-wrap: anywhere; }
+#chantiers-cap #temoin-micro-chantier[hidden],
+#chantiers-cap.mode-confirmation #temoin-micro-chantier { display: none; }
+#chantiers-cap #question-dossier-chantier { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--eau-fond-uni); }
+#chantiers-cap #dossier-chantier .choix-grand-affichage { background: var(--eau-fond-uni); }
+/* 10/11/2026 (c86, demande de Max, après l'essai de c85) : MODE CONFIRMATION de l'écran des chantiers, pendant la question
+   « Je vais créer… » : (a) la liste, les compteurs, la note et « Fermer » sont cachés et le bloc du haut n'est plus collé :
+   seul le texte défile, le fond ne bouge plus ; (b) « Oui, créer » et « Non » restent collés en bas, toujours visibles.
+   Avant : la question était dans le bloc collé en haut ; plus haut que l'écran, ses boutons restaient cachés. */
+/* 10/11/2026 (c89) : marque « dossier » dans la liste ; le lien vers Drive est caché pendant une question. */
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier .marque-dossier { grid-column: 2; font-size: 0.8em; opacity: 0.85; }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier .marque-dossier::before { content: '▣ '; }
+#chantiers-cap #ouvrir-dossier-chantier { display: block; text-decoration: none; background: var(--eau-fond-uni); } /* c97 : dans la grille */
+#chantiers-cap #zone-note-chantier textarea { display: block; width: 100%; box-sizing: border-box; margin: 0 0 10px; padding: 10px 12px; border-radius: 12px; font: inherit; font-size: 1.1rem; } /* c92 */
+/* 10/11/2026 (c93) : les lignes du journal ; et le bloc du haut a une hauteur limitée et défile lui-même (rien ne passe hors de
+   l'écran quand la fiche, les liens, la note et le journal s'empilent). Pendant une question, il redevient normal. */
+/* 10/11/2026 (c97) : le bloc du haut NE défile PLUS lui-même (ce défilement l'un dans l'autre répondait mal au doigt dans la coque) :
+   il est assez court pour tenir à l'écran : fiche limitée à 3 lignes, actions en 2 × 2, une seule zone de résultat limitée.
+   Avant (c93) : #chantiers-cap #haut-chantier { max-height: 75vh; overflow-y: auto; … } */
+#chantiers-cap #fiche-chantier { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+#chantiers-cap .grille-actions-chantier { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 12px; }
+#chantiers-cap .grille-actions-chantier .choix-grand-affichage { margin: 0; max-width: none; padding: 12px 6px; text-align: center;
+  text-decoration: none; background: var(--eau-fond-uni); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: clamp(20px, 6vw, 30px); }
+#chantiers-cap #actions-chantier[hidden],
+#chantiers-cap.mode-confirmation #actions-chantier,
+#chantiers-cap #resultat-chantier[hidden],
+#chantiers-cap.mode-confirmation #resultat-chantier { display: none; }
+#chantiers-cap #resultat-chantier { max-height: 25vh; overflow-y: auto; overscroll-behavior: contain; margin: 0 0 12px; padding: 10px 12px;
+  border-radius: 12px; background: var(--eau-fond-uni); }
+#chantiers-cap #resultat-chantier p { margin: 0 0 6px; overflow-wrap: anywhere; }
+#chantiers-cap #resultat-chantier .journal-titre,
+#chantiers-cap #resultat-chantier .documents-titre { font-weight: 700; }
+/* 11/11/2026 (c128) : bouton « Tâches » sous les quatre actions ; liste des tâches (lecture seule) dans la zone de résultat. */
+#chantiers-cap #taches-chantier { width: 100%; margin: 0 0 6px; min-height: 44px; padding-top: 6px; padding-bottom: 6px; } /* plus bas que les 4 actions : le résultat reste visible sur un petit écran */
+#chantiers-cap #taches-chantier[hidden] { display: none; }
+/* 11/11/2026 (c130, décision de Max) : fiche = écran à part : rien de la liste ne reste derrière. */
+#chantiers-cap.fiche-ouverte #liste-chantiers,
+#chantiers-cap.fiche-ouverte #compteurs-chantiers,
+#chantiers-cap.fiche-ouverte #compteur-prompts,
+#chantiers-cap.fiche-ouverte #note-chantiers,
+#chantiers-cap.fiche-ouverte #etat-chantiers,
+#chantiers-cap.fiche-ouverte #recherche-chantiers,
+#chantiers-cap.fiche-ouverte #message-recherche-chantiers { display: none !important; }
+/* 11/11/2026 (c131) : champ de recherche de la liste, pleine largeur. */
+#chantiers-cap :is(#recherche-chantiers, .recherche-chantiers) { display: block; box-sizing: border-box; width: 100%; min-height: 48px; margin: 0 0 10px; padding: 10px 14px;
+  border: 0; border-radius: 24px; background: #ffffff; color: #16201d; font: 16px/1.2 sans-serif; }
+#chantiers-cap #recherche-chantiers[hidden] { display: none; }
+#chantiers-cap :is(#message-recherche-chantiers, .message-recherche-chantiers) { margin: 0 0 10px; padding: 10px 14px; border-radius: 12px; background: var(--eau-fond-uni); }
+#chantiers-cap #message-recherche-chantiers[hidden] { display: none; }
+#chantiers-cap.fiche-ouverte { justify-content: flex-start; } /* c130 : la fiche commence en haut (pas centrée sur l'eau) */
+#chantiers-cap #resultat-chantier .taches-titre { font-weight: 700; }
+#chantiers-cap #resultat-chantier .tache-ligne { margin: 0 0 6px; overflow-wrap: anywhere; }
+/* 11/11/2026 (c109, séance 4, marche 1) : mosaïque des documents d'un chantier : cases égales, autant de colonnes que la
+   largeur le permet (2 sur le Pixel), type en gros, nom entier dessous (un mot très long passe à la ligne). */
+#chantiers-cap #resultat-chantier .documents-mosaique { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; margin: 6px 0; }
+#chantiers-cap #resultat-chantier .document-case { display: flex; flex-direction: column; gap: 4px; min-width: 0; min-height: 64px; padding: 8px 10px;
+  border-radius: 10px; background: rgba(255, 255, 255, 0.16); }
+#chantiers-cap #resultat-chantier .document-sorte { font-weight: 700; font-size: 1.05em; }
+/* 11/11/2026 (c110) : une case PDF ou Image se touche (même allure, texte à gauche, contour pour la reconnaître). */
+#chantiers-cap #resultat-chantier button.document-case { font: inherit; color: inherit; text-align: left; border: 2px solid rgba(255, 255, 255, 0.55); cursor: pointer; }
+#chantiers-cap #resultat-chantier .document-case .documents-nom { overflow-wrap: anywhere; font-size: 0.92em; line-height: 1.25; }
+/* 10/11/2026 (c94) : le prompt : hauteur limitée, il défile lui-même ; texte long gardé tel quel (retours à la ligne). */
+#chantiers-cap #prompt-chantier { max-height: 18vh; /* c97 ; avant : 30vh */ overflow-y: auto; overscroll-behavior: contain; margin: 0 0 12px; padding: 10px 12px;
+  border-radius: 12px; background: var(--eau-fond-uni); white-space: pre-wrap; overflow-wrap: anywhere; }
+#chantiers-cap #prompt-chantier .prompt-titre { font-weight: 700; }
+#chantiers-cap #prompt-chantier[hidden],
+#chantiers-cap.mode-confirmation #prompt-chantier,
+#chantiers-cap.mode-confirmation #compteur-prompts,
+/* 10/11/2026 (c96) : les documents du chantier : zone limitée qui défile, noms longs coupés proprement. */
+/* c97 : la zone des documents est désormais #resultat-chantier (plus haut). Avant : #chantiers-cap #documents-chantier { … } */
+#chantiers-cap #voir-documents-chantier[hidden],
+#chantiers-cap #documents-chantier[hidden],
+#chantiers-cap.mode-confirmation #voir-documents-chantier,
+#chantiers-cap.mode-confirmation #documents-chantier,
+#chantiers-cap #lire-journal-chantier[hidden],
+#chantiers-cap #lignes-journal-chantier[hidden],
+#chantiers-cap.mode-confirmation #lire-journal-chantier,
+#chantiers-cap.mode-confirmation #lignes-journal-chantier,
+#chantiers-cap #zone-note-chantier[hidden],
+#chantiers-cap.mode-confirmation #zone-note-chantier,
+#chantiers-cap #ouvrir-dossier-chantier[hidden],
+#chantiers-cap.mode-confirmation #ouvrir-dossier-chantier { display: none; }
+#chantiers-cap.mode-confirmation #liste-chantiers,
+#chantiers-cap.mode-confirmation #compteurs-chantiers,
+#chantiers-cap.mode-confirmation #note-chantiers,
+#chantiers-cap.mode-confirmation #etat-chantiers,
+#chantiers-cap.mode-confirmation #fermer-chantiers { display: none; }
+/* 10/11/2026 (c90) : journaux des relations : même allure que les chantiers ; pendant une question, la liste et les autres
+   boutons sont cachés, le texte défile seul et « Oui, créer » / « Non » restent collés en bas. */
+#journaux-relations #question-journal-relation { white-space: pre-line; padding: 10px 12px; border-radius: 12px; background: var(--eau-fond-uni); }
+#journaux-relations #barre-journal-relation { position: sticky; bottom: 0; z-index: 3; }
+#journaux-relations #barre-journal-relation .choix-grand-affichage { background: var(--eau-fond-uni); margin-bottom: 10px; }
+#journaux-relations .ligne-relation { display: grid; grid-template-columns: auto 1fr; column-gap: 0.6em; align-items: center; text-align: left; }
+#journaux-relations .ligne-relation .marque-journal { grid-column: 2; font-size: 0.8em; opacity: 0.85; }
+#journaux-relations #liens-journal-relation a { display: block; text-decoration: none; background: var(--eau-fond-uni); } /* c91 */
+/* 12/11/2026 (c151, A2) : la carte d'un nom : titre, liens en gros boutons (comme ceux des journaux des relations), textes lisibles sur l'eau. */
+#carte-cap #titre-carte-cap { font-weight: 700; padding: 10px 12px; border-radius: 12px; background: var(--eau-fond-uni); overflow-wrap: anywhere; }
+#carte-cap #blocs-carte-cap a, #carte-cap #blocs-carte-cap button { display: block; width: 100%; text-decoration: none; background: var(--eau-fond-uni); } /* c152 : + boutons d'action */
+#carte-cap #blocs-carte-cap button.plus-carte { width: 64px; margin-left: auto; font-size: 1.6em; line-height: 1; } /* c156 : « + » en bas à droite */
+#carte-cap .reste-carte { display: flex; flex-direction: column; gap: 8px; }
+#carte-cap .info-carte { padding: 10px 12px; border-radius: 12px; background: var(--eau-fond-uni); white-space: pre-line; overflow-wrap: anywhere; } /* c155 : adresse sur plusieurs lignes */
+#journaux-relations #liens-journal-relation[hidden],
+#journaux-relations.mode-confirmation #liens-journal-relation,
+#journaux-relations.mode-confirmation #liste-journaux-relations,
+#journaux-relations.mode-confirmation #etat-journaux-relations,
+#journaux-relations.mode-confirmation #fermer-journaux-relations { display: none; }
+#chantiers-cap #question-dossier-chantier { white-space: pre-line; overflow-wrap: anywhere; } /* 10/11/2026 (c88) : la liste de la mise à niveau, une ligne par chantier ; 11/11/2026 (c106) : un mot très long passe à la ligne (note longue montrée en entier, la fenêtre défile) */
+#chantiers-cap.mode-confirmation #haut-chantier { position: static; }
+#chantiers-cap #barre-dossier-chantier { position: sticky; bottom: 0; z-index: 3; }
+#chantiers-cap.mode-confirmation #barre-dossier-chantier { padding-top: 8px; } /* c92 : la barre vide ne prend plus de place ; avant : padding-top: 8px toujours */
+#chantiers-cap #barre-dossier-chantier .choix-grand-affichage { background: var(--eau-fond-uni); margin-bottom: 10px; box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2); }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier { display: grid; grid-template-columns: auto 1fr; column-gap: 0.6em; align-items: center; text-align: left; }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier .nom-morceau { grid-column: 2; }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier .etat-chantier { grid-column: 2; font-size: 0.85em; opacity: 0.85; }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier .etat-chantier::before { content: ''; display: inline-block; width: 0.7em; height: 0.7em; margin-right: 0.4em;
+  border-radius: 50%; background: #9aa3a8; vertical-align: middle; }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier[data-voyant="rouge"] .etat-chantier::before { background: #d64545; }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier[data-voyant="orange"] .etat-chantier::before { background: #e8962e; }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier[data-voyant="vert"] .etat-chantier::before { background: #3fa564; }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier.niveau-1 { margin-left: 1.4em; width: calc(100% - 1.4em); }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier.niveau-2 { margin-left: 2.8em; width: calc(100% - 2.8em); }
+:is(#liste-chantiers, .liste-chantiers) .ligne-chantier.niveau-3 { margin-left: 4.2em; width: calc(100% - 4.2em); }
+/* 12/11/2026 (accord de Max, c171, plan de l'agent 2 vérifié) : ÉCRAN CHANTIERS EN MOSAÏQUE. 3 colonnes de CARRÉS, même teinte
+   que les tuiles To-do (l'eau se voit derrière) ; voyant = bande de couleur sur le bord gauche ; numéro en haut, nom sur 3
+   lignes au plus (nom complet dans aria-label), ▣ si dossier (en haut à droite), ↳ pour un sous-chantier (sans retrait) ;
+   le statut sort du carré (il reste dans la fiche et dans aria-label). Le doigt fait défiler, même parti d'un carré.
+   « .liste-chantiers » : la COPIE de la liste pendant le fondu (c134) garde la même allure. */
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; touch-action: pan-y; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier { position: relative; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start;
+  gap: 4px; aspect-ratio: 1 / 1; width: auto; max-width: none; min-width: 0; min-height: 0; margin: 0; padding: 8px 8px 8px 16px; border: 0; border-radius: 12px;
+  background: var(--tuile-fond); color: var(--tuile-encre); font-size: 14px; font-weight: 700; line-height: 1.25; overflow: hidden;
+  box-shadow: inset 7px 0 0 #9aa3a8; touch-action: pan-y; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier[data-voyant="rouge"] { box-shadow: inset 7px 0 0 #d64545; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier[data-voyant="orange"] { box-shadow: inset 7px 0 0 #e8962e; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier[data-voyant="vert"] { box-shadow: inset 7px 0 0 #3fa564; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier .numero-morceau { min-width: 0; font-size: 13px; line-height: 1.1; opacity: 0.8; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier .nom-morceau { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  overflow-wrap: anywhere; text-align: left; max-height: 3.75em; } /* 3 lignes de 1,25 au plus */
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier .etat-chantier { display: none; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier .marque-dossier { position: absolute; top: 6px; right: 8px; font-size: 0; opacity: 1; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier .marque-dossier::before { content: '▣'; font-size: 16px; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier[class*="niveau-"] { margin-left: 0; width: auto; }
+:is(dialog.fenetre-choix #liste-chantiers, .liste-chantiers) .ligne-chantier:not(.niveau-0)::after { content: '↳'; position: absolute; right: 8px; bottom: 4px; font-size: 20px; line-height: 1; }
+
+/* 11/11/2026 (accord de Max, c138) : la page de choix des matières, en plein écran ; barre de Cap avec « Fermer » au-dessus
+   (la page de Haiku n'a pas de retour) ; le cadre prend tout le reste. « Fermer » à GAUCHE : le petit micro et le bouton « apprendre » se posent en haut à droite de chaque fenêtre. Fond blanc comme la page (mode Jour par défaut). */
+#matieres-cap.plein-ecran { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0;
+  border: 0; border-radius: 0; overflow: hidden; background: #ffffff; box-shadow: none; flex-direction: column; }
+#matieres-cap.plein-ecran[open] { display: flex; }
+#barre-matieres { flex: none; display: flex; justify-content: flex-start; padding: max(6px, env(safe-area-inset-top)) 12px 6px; background: #ffffff; }
+#fermer-matieres { min-height: 44px; padding: 0 18px; border: 2px solid #111111; border-radius: 22px; background: #ffffff; color: #111111;
+  font: 700 15px sans-serif; touch-action: manipulation; }
+#cadre-matieres { flex: 1 1 auto; width: 100%; min-height: 0; border: 0; display: block; }
+#ouvrir-matieres svg { vertical-align: middle; margin-right: 8px; flex: none; }
+
+/* 12/11/2026 (c177) : le résultat des MMS s'affiche ligne par ligne (une ligne par sorte de nombres). */
+#resultat-mms {
+  white-space: pre-line;
+}

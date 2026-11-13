@@ -177,3 +177,16 @@ Toute fenêtre ou tout écran de choix dans Cap, pour n'importe quelle fonction 
 - transition : l'écran d'avant disparaît dans le rien (fondu court), puis les boutons sortent de sous le sable (comme la montée de l'accueil) ; à la fermeture, l'inverse. « Animations réduites » : pas d'animation. Repli si ça saccade : fondu seul, sans flou.
 
 Dans le code : module `app/choix_sur_eau.js` (ouvrir, fermer) et classe `fenetre-choix` sur le `<dialog>` (style.css). Toute nouvelle fenêtre de choix l'utilise dès sa création. Une fenêtre existante qui ne respecte pas la règle est signalée à Max, pas modifiée d'office. Première fenêtre concernée : le choix des dossiers de musique (Lecteur).
+
+## Les chantiers (depuis le 09/11/2026, lecture seule)
+- L'écran « Chantiers » lit la « Liste des chantiers » (Drive de Max) sans jamais rien y écrire : par le compte Cap (Liste partagée en lecture seule) ou par le sélecteur de Cap dans Chrome. Une copie reste sur le téléphone pour le hors-ligne.
+- On l'ouvre en disant « ouvre les chantiers », ou en touchant la 6e icône (casque) de l'écran Chercher, à côté de « À trier » (10/11/2026).
+- Ordre : rouge, orange, vert, sans voyant, puis le nom. Un parent est rangé selon le pire voyant entre le sien et ceux de ses sous-chantiers (10/11/2026) ; le voyant affiché reste celui de la Liste.
+- Si la connexion du compte Cap a expiré (au bout d'environ 1 h), Cap dit de toucher « Autoriser la lecture du compte Cap », puis de rouvrir les chantiers.
+- Code : `app/chantiers.js` (lecture et tri, sans affichage) et `app/chantiers_ecran.js` (l'écran).
+- Dossiers de chantier (`app/chantiers_dossiers.js`) : depuis c102 (10/11/2026), plus de limite du nombre ; toujours un seul chantier à la fois, au doigt, après la liste de ce qui sera créé et « Oui, créer » ; aucun doublon ; une seule création en cours à la fois.
+- Journaux de relation (`app/journaux_relations.js`) : même règle depuis c103 (10/11/2026) : plus de limite, un journal à la fois, liste puis « Oui, créer », verrou, aucun doublon.
+- Note dictée en deux temps (c104, 10/11/2026) : dans la fiche d'un chantier avec dossier, « ajoute au journal » dit seul fait répondre « Je t'écoute : dis ta note. » ; la phrase suivante (30 secondes) va dans le champ, puis « Oui, ajouter » / « Non » ; « annuler » arrête l'attente.
+- Fiche qui ne trompe pas (c105, 11/11/2026) : tant que Cap n'a pas relu les dossiers, pas de « Créer le dossier » pour un chantier inconnu (« Je ne sais pas encore… : touche « Tout synchroniser » ») ; le téléphone garde la liste des numéros CH-xxx qui ont un dossier ; la fin de l'attente de la note est dite dans la fiche.
+- Notes du journal (c106, 11/11/2026) : plus de limite de longueur (avant : 500 caractères) ; la note est montrée en entier avant « Oui, ajouter » ; le verrou des écritures n'accepte toujours qu'un seul ajout, à la fin du document.
+

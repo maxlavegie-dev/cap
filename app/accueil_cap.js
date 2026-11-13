@@ -26,12 +26,15 @@ const accueilCap = (() => {
     bandeHautPx: 48 // départ ignoré tout en haut (rideau des notifications d'Android)
   });
 
-  function brancher(doc, { eau = null, stockage = null, maintenant = () => Date.now(), creerPetiteEau = null, creerEauScanner = null } = {}) {
+  // 12/11/2026 (c169) : + « dicteeSaisie » : la dictée du micro pendant le mode « saisie » (remplaçable dans les tests).
+  function brancher(doc, { eau = null, stockage = null, maintenant = () => Date.now(), creerPetiteEau = null, creerEauScanner = null,
+    dicteeSaisie = () => (typeof dictee !== 'undefined' ? dictee : null) } = {}) {
     const el = id => doc.getElementById(id);
     const racine = doc.documentElement;
     const corps = doc.body;
     const autre = el('ecran-autre');
     const reglages = el('ecran-reglages');
+    const bureau = el('ecran-bureau'); // 12/11/2026 (c165) : écran « Bureau » (Documents, Notes)
     const ouvrirChercher = el('ouvrir-chercher');
     const basculerVue = el('basculer-vue');
     const ecranComplet = el('ecran-complet');
@@ -57,9 +60,10 @@ const accueilCap = (() => {
     }
     function montrerDirect(ecran) {
       if (messageAutre) { messageAutre.hidden = true; messageAutre.textContent = ''; }
+      if (el('message-bureau')) { el('message-bureau').hidden = true; el('message-bureau').textContent = ''; } // c165
       // 08/11/2026 (étape 2) : l'écran Micro s'ajoute. Avant : for (const e of [autre, reglages]) …
       // 09/11/2026 : + l'écran Chercher. Avant : for (const e of [autre, reglages, micro]) …
-      for (const e of [autre, reglages, micro, chercher]) if (e) e.hidden = e !== ecran;
+      for (const e of [autre, reglages, micro, chercher, bureau]) if (e) e.hidden = e !== ecran; // c165 : + Bureau
       ecranOuvert = ecran;
       racine.classList.toggle('ecran-cap-ouvert', Boolean(ecran));
       appliquerTheme();
@@ -69,7 +73,7 @@ const accueilCap = (() => {
     // Ouvrir un écran depuis un autre note celui d'où l'on vient ; fermer (bouton, geste, « ferme ») y revient.
     // Rouvrir un écran déjà dans la pile la raccourcit (jamais de boucle). « accueil » et « eau » à la voix la vident
     // (événement « cap-vider-pile »). L'écran d'eau n'y entre jamais. Les fenêtres posées par-dessus ne changent pas.
-    // Écrans : 'accueil', 'ecran-autre', 'ecran-reglages', 'ecran-micro', 'ecran-chercher', 'taches' (écran des tâches).
+    // Écrans : 'accueil', 'ecran-autre', 'ecran-reglages', 'ecran-micro', 'ecran-chercher', 'ecran-bureau' (c165), 'taches' (écran des tâches).
     const pile = [];
     const ecranCourant = () => (vueComplete() ? 'taches' : (ecranOuvert ? ecranOuvert.id : 'accueil'));
     function noterDepart(vers) {
@@ -100,6 +104,7 @@ const accueilCap = (() => {
     el('ouvrir-autre').addEventListener('click', () => ouvrirEcran(autre));
     el('ouvrir-reglages-cap').addEventListener('click', () => ouvrirEcran(reglages));
     el('fermer-autre').addEventListener('click', () => revenir());
+    if (el('fermer-bureau')) el('fermer-bureau').addEventListener('click', () => revenir()); // c165
     el('fermer-reglages').addEventListener('click', () => revenir());
     // 08/11/2026 (accord de Max, étape 2) : écran Micro. Le micro de l'accueil ouvre l'écran (aucune dictée) ;
     // « + » et le clavier touchent « + » et « Écrire une demande » (même code, mêmes fenêtres).
@@ -152,7 +157,11 @@ const accueilCap = (() => {
         if (messageChercher) { messageChercher.hidden = true; messageChercher.textContent = ''; }
         if (champ) champ.value = '';
         if (el('propositions-chercher')) { el('propositions-chercher').replaceChildren(); el('propositions-chercher').hidden = true; } // 09/11/2026
-        ouvrirEcran(chercher); // 09/11/2026 : pile (avant : montrer(chercher))
+        // 12/11/2026 (décision de Max, c167) : la loupe ouvre (ou referme) la LIGNE DE RECHERCHE de l'accueil ; l'écran Chercher
+        // reste caché. Avant : ouvrirEcran(chercher); // 09/11/2026 : pile (avant : montrer(chercher))
+        const bandeRecherche = el('bande-recherche-accueil');
+        if (bandeRecherche) { bandeRecherche.hidden = !bandeRecherche.hidden; return; }
+        ouvrirEcran(chercher);
       });
       el('chercher-todo').addEventListener('click', () => versTaches());
       // 09/11/2026 (accord de Max, mission C) : « À trier » : l'écran des tâches (même chemin que To-do, donc « Fermer »
@@ -160,6 +169,11 @@ const accueilCap = (() => {
       if (el('chercher-a-trier')) el('chercher-a-trier').addEventListener('click', () => {
         versTaches();
         doc.dispatchEvent(new doc.defaultView.CustomEvent('cap-ouvrir-a-trier'));
+      });
+      // 10/11/2026 (choix de Max) : 6e icône « Chantiers » : ouvre l'écran « Chantiers » (chantiers_ecran.js l'écoute).
+      // Chercher reste dessous : « Fermer » y ramène.
+      if (el('chercher-chantiers')) el('chercher-chantiers').addEventListener('click', () => {
+        doc.dispatchEvent(new doc.defaultView.CustomEvent('cap-ouvrir-chantiers'));
       });
       el('chercher-documents').addEventListener('click', () => toucher('ouvrir-oeil'));
       el('chercher-media').addEventListener('click', () => toucher('ouvrir-lecteur'));
@@ -170,10 +184,80 @@ const accueilCap = (() => {
         champ.addEventListener('keydown', e => {
           if (e.key !== 'Enter') return;
           e.preventDefault();
-          const texte = champ.value.trim();
-          champ.value = ''; // rien ne reste « en cours de saisie » sur l'écran Chercher
+          // 11/11/2026 (accord de Max, c136) : Entrée RESTE dans Chercher : les résultats (ou « Rien trouvé ») s'affichent sous
+          // la barre (app.js écoute « cap-chercher-valider ») ; plus de saut vers l'écran des tâches (vue tuiles).
+          // Avant : const texte = champ.value.trim(); champ.value = ''; champ.blur(); versTaches(texte);
           champ.blur();
-          versTaches(texte);
+          champ.dispatchEvent(new doc.defaultView.CustomEvent('cap-chercher-valider', { bubbles: true }));
+        });
+        // c136 : toucher une TÂCHE dans les résultats de Chercher ouvre toujours l'écran des tâches, la tâche surlignée (même
+        // chemin qu'avant : « Fermer » revient à Chercher). Avant : la proposition simulait la touche Entrée.
+        // ----- 12/11/2026 (accord de Max, c169) : MODE « SAISIE » de l'accueil -----
+        // Le champ de la ligne de recherche prend la main (le clavier s'ouvre) : affichage épuré : la barre, et dessous
+        // SEULEMENT « + », le micro, le crayon (sur une ligne). Les autres icônes sont CACHÉES (rien effacé) et reviennent
+        // quand le champ perd la main, après Entrée, ou quand le clavier se referme (la hauteur visible revient).
+        // La bande du micro revient ensuite comme avant ; la ligne de recherche reste ouverte.
+        // Décision de Max (choix b) : pendant la saisie, le micro ne sert QU'À LA RECHERCHE : la phrase dite remplit le
+        // champ (les propositions suivent) ; aucune commande, rien dans « À trier ». « + » et le crayon gardent leur rôle.
+        const navAccueil = el('accueil-boutons');
+        const microAccueil = el('microphone');
+        const outilsSaisie = ['micro-ajouter', 'micro-ecrire'].map(el).filter(Boolean);
+        let saisie = null;
+        let clavierVu = false;
+        const entrerSaisie = () => {
+          if (saisie || !navAccueil || vueComplete() || ecranOuvert) return;
+          saisie = { cachesAvant: outilsSaisie.map(b => b.hidden) };
+          outilsSaisie.forEach(b => { b.hidden = false; });
+          navAccueil.classList.add('mode-saisie');
+        };
+        const sortirSaisie = () => {
+          if (!saisie) return;
+          outilsSaisie.forEach((b, i) => { b.hidden = saisie.cachesAvant[i]; });
+          saisie = null;
+          clavierVu = false;
+          navAccueil.classList.remove('mode-saisie');
+        };
+        champ.addEventListener('focus', entrerSaisie);
+        champ.addEventListener('blur', sortirSaisie);
+        champ.addEventListener('keydown', e => { if (e.key === 'Enter') sortirSaisie(); });
+        // Le clavier d'Android se ferme parfois sans que le champ perde la main : la hauteur visible revient : fin de saisie.
+        const vv = doc.defaultView.visualViewport;
+        if (vv) {
+          let hauteurMax = vv.height;
+          vv.addEventListener('resize', () => {
+            hauteurMax = Math.max(hauteurMax, vv.height);
+            if (!saisie) return;
+            if (vv.height < hauteurMax * 0.85) { clavierVu = true; return; }
+            if (clavierVu) { champ.blur(); sortirSaisie(); }
+          });
+        }
+        // Pendant la saisie, toucher « + », le micro ou le crayon ne fait pas perdre la main au champ avant leur action
+        // (sinon l'affichage bougerait sous le doigt).
+        for (const b of [...outilsSaisie, microAccueil].filter(Boolean)) {
+          for (const type of ['pointerdown', 'mousedown']) b.addEventListener(type, e => { if (saisie) e.preventDefault(); });
+        }
+        if (microAccueil) {
+          // Le micro pendant la saisie : SA dictée remplit le champ ; le micro habituel (commandes, « À trier ») ne reçoit rien.
+          microAccueil.addEventListener('pointerdown', e => { if (saisie) e.stopImmediatePropagation(); }, true);
+          microAccueil.addEventListener('click', e => {
+            if (!saisie) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            const d = dicteeSaisie();
+            if (!d || !d.disponible()) return;
+            if (d.enCours()) { d.arreter(); return; }
+            microAccueil.setAttribute('aria-pressed', 'true');
+            const remplir = texte => { champ.value = String(texte || '').trim(); champ.dispatchEvent(new doc.defaultView.Event('input', { bubbles: true })); };
+            d.demarrer({
+              surProvisoire: texte => { if (texte) remplir(texte); },
+              surFinal: texte => remplir(texte),
+              surFin: () => microAccueil.setAttribute('aria-pressed', 'false')
+            });
+          }, true);
+        }
+        champ.addEventListener('cap-chercher-vers-taches', e => {
+          champ.value = '';
+          versTaches(String(e.detail || ''));
         });
       }
       el('fermer-chercher-cap').addEventListener('click', () => { if (champ) champ.value = ''; revenir(); }); // 09/11/2026 : pile (avant : montrer(null))
@@ -200,6 +284,47 @@ const accueilCap = (() => {
     if (boutonTheme) boutonTheme.addEventListener('click', () => { sombre = !sombre; ecrire(CLE_THEME, sombre ? 'sombre' : 'clair'); appliquerTheme(); });
     // L'écran des tâches s'ouvre ou se ferme : l'eau reprend la bonne couleur.
     new doc.defaultView.MutationObserver(appliquerTheme).observe(corps, { attributes: true, attributeFilter: ['class'] });
+
+    // ----- 12/11/2026 (accord de Max, c163) : NOUVEL ACCUEIL, grille 3 × 4. RÈGLE D'OR : chaque icône qui a un lien TOUCHE
+    // l'ancien bouton (même destination, mêmes fenêtres, même retour : « Fermer » ramène à l'accueil quand on vient de
+    // l'accueil). Sans lien : grisée, « Il n'y a pas encore de lien ». L'interrupteur et le nombre de scans en attente
+    // sont ceux de l'écran Autre (recopiés, jamais en double).
+    const LIENS_ACCUEIL = Object.freeze({ 'accueil-todo': 'chercher-todo', 'accueil-media': 'chercher-media', 'accueil-chantiers': 'chercher-chantiers',
+      'accueil-oeil': 'ouvrir-oeil', 'accueil-a-trier': 'chercher-a-trier', 'accueil-scanner': 'ouvrir-scanner',
+      'accueil-reglages': 'ouvrir-reglages-cap', 'accueil-theme': 'bouton-theme-cap' });
+    for (const [id, ancien] of Object.entries(LIENS_ACCUEIL)) {
+      if (el(id)) el(id).addEventListener('click', () => { const b = el(ancien); if (b) b.click(); });
+    }
+    // 12/11/2026 (accord de Max, c165) : l'icône page cornée ouvre l'écran « Bureau » ; « Documents » y touche l'ancien bouton
+    // « Documents » de Chercher (la visionneuse, comme avant) ; « Notes » : grisée. Avant (c163) : elle touchait directement
+    // « Documents » de Chercher.
+    if (el('accueil-bureau') && bureau) el('accueil-bureau').addEventListener('click', () => ouvrirEcran(bureau));
+    if (el('bureau-documents')) el('bureau-documents').addEventListener('click', () => { const b = el('chercher-documents'); if (b) b.click(); });
+    const messageBureau = el('message-bureau');
+    if (el('bureau-notes') && messageBureau) el('bureau-notes').addEventListener('click', () => { messageBureau.textContent = 'Il n’y a pas encore de lien.'; messageBureau.hidden = false; });
+    const messageAccueil = el('message-accueil');
+    let minuteurMessageAccueil = null;
+    for (const b of doc.querySelectorAll('#accueil-boutons .bouton-pas-pret')) {
+      b.addEventListener('click', () => {
+        if (!messageAccueil) return;
+        messageAccueil.textContent = 'Il n’y a pas encore de lien.';
+        messageAccueil.hidden = false;
+        clearTimeout(minuteurMessageAccueil);
+        minuteurMessageAccueil = setTimeout(() => { messageAccueil.hidden = true; }, 4000);
+      });
+    }
+    const themeAccueil = el('accueil-theme');
+    if (themeAccueil && boutonTheme) {
+      const suivreTheme = () => themeAccueil.setAttribute('aria-checked', boutonTheme.getAttribute('aria-checked') || 'true');
+      suivreTheme();
+      new doc.defaultView.MutationObserver(suivreTheme).observe(boutonTheme, { attributes: true, attributeFilter: ['aria-checked'] });
+    }
+    const scansAutre = el('scans-en-attente'); const scansAccueil = el('scans-accueil');
+    if (scansAutre && scansAccueil) {
+      const suivreScans = () => { scansAccueil.textContent = scansAutre.textContent; scansAccueil.hidden = scansAutre.hidden; };
+      suivreScans();
+      new doc.defaultView.MutationObserver(suivreScans).observe(scansAutre, { attributes: true, attributeFilter: ['hidden'], childList: true, characterData: true, subtree: true });
+    }
 
     // ----- Curseur d'intensité : MAQUETTE (valeur gardée sous la clé de Zencoder, ne commande rien) -----
     const curseur = el('curseur-intensite-eau');
@@ -235,7 +360,11 @@ const accueilCap = (() => {
       const bas = t.clientY - d.y;
       const cote = Math.abs(t.clientX - d.x);
       const hauteur = doc.defaultView.innerHeight || 1;
-      if (bas >= GESTE.fractionHauteur * hauteur && bas >= GESTE.rapportVertical * cote && maintenant() - d.quand <= GESTE.dureeMaxMs) retourEau();
+      if (!(bas >= GESTE.fractionHauteur * hauteur && bas >= GESTE.rapportVertical * cote && maintenant() - d.quand <= GESTE.dureeMaxMs)) return;
+      // 12/11/2026 (décision de Max, c167) : ligne de recherche ouverte : le geste la FERME (comme un écran) ; sinon, l'eau.
+      const bandeRecherche = el('bande-recherche-accueil');
+      if (bandeRecherche && !bandeRecherche.hidden) { bandeRecherche.hidden = true; return; }
+      retourEau();
     }, { passive: true });
     doc.addEventListener('touchcancel', () => { depart = null; }, { passive: true });
 
@@ -295,13 +424,19 @@ const accueilCap = (() => {
       const petit = el('petit-micro');
       if (!petit) return;
       const dessus = fenetres.length ? fenetres[fenetres.length - 1] : corps;
-      if (petit.parentNode !== dessus) dessus.appendChild(petit);
+      // 11/11/2026 (accord de Max, c118) : visionneuse : le micro, le livre et la synchronisation vont DANS son menu (bouton
+      // rond blanc), en ligne ; partout ailleurs, rien ne change. La bulle et le signe restent dans la fenêtre (visibles).
+      const menuVision = dessus.id === 'visionneuse-cap' ? el('menu-visionneuse-communs') : null;
+      const hote = menuVision || dessus;
+      if (petit.parentNode !== hote) hote.appendChild(petit);
       const bulle = el('bulle-micro'); // 09/11/2026 : la bulle suit le micro
       if (bulle && bulle.parentNode !== dessus) dessus.appendChild(bulle);
       const signe = el('signe-micro'); // 09/11/2026 (étape 4) : le pouce et la croix aussi
       if (signe && signe.parentNode !== dessus) dessus.appendChild(signe);
       const apprendre = el('bouton-apprendre'); // 09/11/2026 : le bouton « phrase à apprendre » aussi
-      if (apprendre && apprendre.parentNode !== dessus) dessus.appendChild(apprendre);
+      if (apprendre && apprendre.parentNode !== hote) hote.appendChild(apprendre); // c118 : hote (menu de la visionneuse)
+      const synchro = el('bouton-synchro'); // 10/11/2026 (c98) : « Tout synchroniser » aussi
+      if (synchro && synchro.parentNode !== hote) hote.appendChild(synchro);
     }
     // 09/11/2026 (défaut 5 vu par Max : pas de micro dans la fenêtre de gros choix ouverte par-dessus « Musique ») : la
     // fenêtre du DESSUS est la dernière OUVERTE (ordre d'ouverture), pas la dernière dans la page. Avant :
@@ -336,6 +471,8 @@ const accueilCap = (() => {
     const observateur = new doc.defaultView.MutationObserver(placerAlerte);
     observateur.observe(doc.body, { subtree: true, attributes: true, attributeFilter: ['open', 'hidden'] });
     placerAlerte();
+    // 11/11/2026 (c118) : le menu du bouton rond blanc de la visionneuse (où ce code range le micro, le livre et la synchronisation).
+    try { if (typeof visionneuseCap !== 'undefined' && visionneuseCap.brancherMenu) visionneuseCap.brancherMenu(doc); } catch (e) { /* rien */ }
     appliquerTheme();
 
     // 09/11/2026 : + pile (lecture seule, pour les essais).

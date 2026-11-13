@@ -19,7 +19,8 @@ const relationsMp3 = (() => {
 
   // Nom affiché : sans « .mp3 » ni numéro de tête (le gros numéro est déjà à gauche).
   function nomMorceau(nomFichier) {
-    const sansExtension = String(nomFichier || '').replace(/\.mp3$/i, '').trim();
+    // 10/11/2026 (séance 3) : toute extension de musique retirée (types_fichiers.js). Avant : seulement « .mp3 ».
+    const sansExtension = typesFichiers.sansExtensionMusique(nomFichier);
     const sansNumero = sansExtension.replace(/^\d+\s*[-._)]*\s*/, '').trim();
     return sansNumero || sansExtension || 'morceau sans nom';
   }
@@ -32,9 +33,13 @@ const relationsMp3 = (() => {
   }
 
   // MP3 d'un dossier « r_ » : les morceaux libres, puis les albums (sous-dossiers à toute profondeur).
+  // 10/11/2026 (séance 4 du lecteur) : + les VIDÉOS reconnues (MP4, WEBM) du dossier, à toute profondeur, dans une liste à
+  // part « Vidéos », numérotées après la musique. « total » reste le nombre de morceaux de musique (un dossier n'est proposé
+  // que s'il a de la musique, règle de la séance 3) ; « nbVideos » le nombre de vidéos.
   function morceauxDe(arbre, sorte, idDossier) {
     const libres = [];
     const albums = [];
+    const videos = [];
     const vus = new Set();
     const parcourir = (id, album, niveau) => {
       if (vus.has(id) || niveau > PROFONDEUR_MAX) return;
@@ -46,10 +51,13 @@ const relationsMp3 = (() => {
             albums.push(nouveau);
             parcourir(fichier.id, nouveau, niveau + 1);
           } else parcourir(fichier.id, album, niveau + 1);
-        } else if (sorte(fichier) === 'mp3') {
+        } else if (sorte(fichier) === 'musique') { // 10/11/2026 (séance 3) : toute la musique ; avant : seulement le MP3
           (album ? album.morceaux : libres).push({
             id: fichier.id, nomFichier: String(fichier.name || ''), nom: nomMorceau(fichier.name), taille: Number(fichier.size) || 0
           });
+        } else if (sorte(fichier) === 'video') {
+          const nomFichier = String(fichier.name || '');
+          videos.push({ id: fichier.id, nomFichier, nom: typesFichiers.sansExtensionVideo(nomFichier) || 'vidéo sans nom', taille: Number(fichier.size) || 0, video: true });
         }
       }
     };
@@ -62,17 +70,21 @@ const relationsMp3 = (() => {
     const numeroter = m => ({ ...m, numero: ++n });
     const resultat = { libres: trier(libres).map(numeroter), albums: listes.map(a => ({ nom: a.nom, morceaux: a.morceaux.map(numeroter) })) };
     resultat.total = n;
+    resultat.videos = trier(videos).map(numeroter);
+    resultat.nbVideos = resultat.videos.length;
     return resultat;
   }
 
-  // Dossiers « r_ » de « Relations » (racine du compte Cap) qui contiennent au moins un MP3.
+  // Dossiers « r_ » de « Relations » (racine du compte Cap) qui contiennent au moins un fichier LISIBLE par le lecteur :
+  // musique (MP3, FLAC, M4A, WAV, OGG, OPUS) OU vidéo (MP4, WEBM), même dans un sous-dossier. Nom de fonction gardé.
+  // 10/11/2026 (décision de Max, après la séance 4 du lecteur) : une vidéo seule suffit. Avant (séance 3) : musique seulement.
   function dossiersAvecMp3(arbre, sorte) {
     const racines = arbre.enfants(arbre.racine).filter(x => x.name === 'Relations' && x.mimeType === DOSSIER);
     if (racines.length !== 1) return { racines: racines.length, dossiers: [] };
     const dossiers = arbre.enfants(racines[0].id)
       .filter(x => x.mimeType === DOSSIER && String(x.name).startsWith('r_'))
       .map(x => ({ id: x.id, nom: String(x.name), musique: morceauxDe(arbre, sorte, x.id) }))
-      .filter(x => x.musique.total > 0)
+      .filter(x => x.musique.total + (x.musique.nbVideos || 0) > 0) // avant : .filter(x => x.musique.total > 0)
       .sort((a, b) => a.nom.localeCompare(b.nom, 'fr'));
     return { racines: 1, dossiers };
   }
@@ -91,6 +103,9 @@ const relationsMp3 = (() => {
   const dessin = chemin => `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='#3a3a38' d='${chemin}'/></svg>`)}")`;
   const STYLE_RETOUCHES_LECTEUR = [
     '#lecteur .etiquette-fictif { display: none; }',
+    // 10/11/2026 (séance 4 du lecteur) : l'image d'une vidéo, au-dessus du titre, à la largeur du lecteur ; cachée pour la musique.
+    '#image-video { display: block; width: 100%; max-height: 42vh; margin: 0 auto 12px; border-radius: 12px; background: #000; object-fit: contain; }',
+    '#image-video[hidden] { display: none; }',
     '#controles button { color: transparent; -webkit-tap-highlight-color: transparent; outline: none;',
     '  background-repeat: no-repeat; background-position: center; background-size: 46%; }',
     '#controles button:focus, #controles button:focus-visible, #controles button:active { outline: none; }',
@@ -166,7 +181,9 @@ const relationsMp3 = (() => {
   // 08/11/2026 : marque du retour direct dans la musique (la même que visionneuseCap.CLE_RETOUR_MUSIQUE, vérifié par un test).
   const CLE_RETOUR_MUSIQUE = 'cap_retour_musique_v1';
   // 08/11/2026 (étape 2b) : + « hasard » (tirage au sort, remplaçable dans les tests).
-  function brancher(doc, { compte, arbre, sorte, lecteur, urls = URL, stockage = localStorage, maintenant = () => Date.now(), hasard = Math.random }) {
+  // 11/11/2026 (c139) : + enLigne (le téléphone a-t-il du réseau ? remplaçable dans les tests).
+  function brancher(doc, { compte, arbre, sorte, lecteur, urls = URL, stockage = localStorage, maintenant = () => Date.now(), hasard = Math.random,
+    enLigne = () => (typeof navigator === 'undefined' || navigator.onLine !== false) }) {
     const el = id => doc.getElementById(id);
     const ouvrir = el('musique-compte-relations');
     const reprendre = el('reprendre-musique-relations');
@@ -245,7 +262,13 @@ const relationsMp3 = (() => {
       // 08/11/2026 (demande de Max) : plus de texte d'aide (« N dossier(s) avec de la musique. Touche un dossier. »).
       etat.textContent = '';
       liste.replaceChildren(...dossiers.map(d => {
-        const bouton = noeud('button', 'choix-grand-affichage', `${d.nom} (${d.musique.total} MP3)`);
+        // 10/11/2026 (séance 3) : « (N morceaux) ». Avant : `${d.nom} (${d.musique.total} MP3)`.
+        // 10/11/2026 (séance 4 du lecteur) : + « , N vidéo(s) » s'il y en a.
+        const nv = d.musique.nbVideos || 0;
+        // 10/11/2026 (décision de Max) : sans musique, seulement « (1 vidéo) ».
+        const nm = d.musique.total;
+        const parties = [nm && `${nm} morceau${nm > 1 ? 'x' : ''}`, nv && `${nv} vidéo${nv > 1 ? 's' : ''}`].filter(Boolean);
+        const bouton = noeud('button', 'choix-grand-affichage', `${d.nom} (${parties.join(', ')})`);
         bouton.type = 'button';
         // 08/11/2026 (demande de Max) : les dossiers disparaissent dans le rien, puis les morceaux sortent du sable.
         bouton.addEventListener('click', () => changerEcran(() => montrerMorceaux(d)));
@@ -254,12 +277,15 @@ const relationsMp3 = (() => {
     };
 
     // La liste (morceaux libres, ou album) qui contient ce morceau.
-    const listeDe = (d, morceau) => [d.musique.libres, ...d.musique.albums.map(a => a.morceaux)].find(l => l.includes(morceau)) || [morceau];
+    const listeDe = (d, morceau) => [d.musique.libres, ...d.musique.albums.map(a => a.morceaux), d.musique.videos || []].find(l => l.includes(morceau)) || [morceau]; // 10/11/2026 : + vidéos
 
     const ligne = (d, morceau) => {
       const bouton = noeud('button', 'ligne-morceau');
       bouton.type = 'button';
       bouton.append(noeud('span', 'numero-morceau', String(morceau.numero)), noeud('span', 'nom-morceau', morceau.nom));
+      // 10/11/2026 (séance 4 du lecteur) : marques visibles « vidéo » et « trop gros pour être lu ici » (plus de 60 Mo).
+      const marques = [morceau.video && 'vidéo', morceau.taille > TAILLE_MAX && 'trop gros pour être lu ici'].filter(Boolean);
+      if (marques.length) bouton.append(noeud('span', 'marque-morceau', ` (${marques.join(', ')})`));
       bouton.addEventListener('click', () => choisir(d, morceau));
       return bouton;
     };
@@ -275,9 +301,11 @@ const relationsMp3 = (() => {
       for (const album of d.musique.albums) {
         blocs.push(noeud('h3', 'titre-liste-morceaux', `${album.nom} (liste de lecture, ${album.morceaux.length})`), ...album.morceaux.map(m => ligne(d, m)));
       }
+      // 10/11/2026 (séance 4 du lecteur) : les vidéos du dossier, après la musique.
+      if ((d.musique.videos || []).length) blocs.push(noeud('h3', 'titre-liste-morceaux', 'Vidéos'), ...d.musique.videos.map(m => ligne(d, m)));
       liste.replaceChildren(...blocs);
-      // Un seul morceau : lancement direct.
-      if (d.musique.total === 1 && !sansLancement) lancer(d, d.musique.libres[0] || d.musique.albums[0].morceaux[0]);
+      // Un seul morceau (et aucune vidéo) : lancement direct.
+      if (d.musique.total === 1 && !d.musique.nbVideos && !sansLancement) lancer(d, d.musique.libres[0] || d.musique.albums[0].morceaux[0]);
     };
 
     // Avant une liste de plusieurs morceaux : la connexion tiendra-t-elle ?
@@ -361,7 +389,8 @@ const relationsMp3 = (() => {
       nettoye = false;
       montrerIndicateur(); // 08/11/2026, 11h45 : la note discrète sur le lecteur
       if (morceau.taille > TAILLE_MAX) {
-        message(`« ${morceau.nom} » est trop gros (${Math.round(morceau.taille / 1e6)} Mo, plus de 60 Mo) : pas chargé.`);
+        // 10/11/2026 (demande de Max) : dit clairement. Avant : « « nom » est trop gros (N Mo, plus de 60 Mo) : pas chargé. »
+        message(`« ${morceau.nom} » : trop gros pour être lu ici (${Math.round(morceau.taille / 1e6)} Mo ; limite : 60 Mo). Rien n’a été chargé.`);
         return;
       }
       message(`Lecture en cours… (chargement de « ${morceau.nom} »)`);
@@ -374,7 +403,7 @@ const relationsMp3 = (() => {
         // Un autre morceau a été demandé entre-temps, ou le lecteur a été fermé : celui-ci est abandonné.
         if (numeroDemande !== demande || (!fenetreLecteur.open && !enArrierePlan)) return;
         const adresse = urls.createObjectURL(contenu);
-        zencoder.jouerFichier(adresse, `${morceau.numero}. ${morceau.nom}`);
+        zencoder.jouerFichier(adresse, `${morceau.numero}. ${morceau.nom}`, Boolean(morceau.video)); // 10/11/2026 : vidéo = image montrée
         if (adresseEnCours) urls.revokeObjectURL(adresseEnCours);
         adresseEnCours = adresse;
         // Ancien titre en double, désactivé le 07/11/2026 :
@@ -402,7 +431,7 @@ const relationsMp3 = (() => {
       const r = dossiersAvecMp3(await arbre(), sorte);
       dossiers = r.dossiers;
       if (r.racines !== 1) { etat.textContent = r.racines ? 'Plusieurs dossiers « Relations » à la racine du compte Cap : garde-en un seul.' : 'Aucun dossier « Relations » à la racine du compte Cap.'; return false; }
-      if (!dossiers.length) { etat.textContent = 'Aucun MP3 dans les dossiers « r_ » de « Relations ».'; return false; }
+      if (!dossiers.length) { etat.textContent = 'Aucune musique ni vidéo dans les dossiers « r_ » de « Relations ».'; return false; } // 10/11/2026 ; avant : « Aucun MP3… », puis « Aucune musique… »
       return true;
     };
 
@@ -446,6 +475,10 @@ const relationsMp3 = (() => {
     const autoriserMusique = el('autoriser-musique-relations');
     const proposerAutorisation = oui => { if (autoriserMusique) autoriserMusique.hidden = !oui; };
     let dejaOuvert = false;
+    // 11/11/2026 (accord de Max, c139, ligne 1 de la liste ; défaut 6 de c72) : téléphone SANS RÉSEAU (mode avion…) : Cap
+    // dit « Pas de réseau », la vraie cause, au lieu de « compte Cap pas connecté » ; pas de bouton « Autoriser… » (il ne
+    // marcherait pas sans réseau). Rien n'est modifié. Avant : seul l'état de la connexion du compte était regardé.
+    const PAS_DE_RESEAU = 'Pas de réseau : la musique du compte Cap se lit par Internet. Reconnecte le téléphone (mode avion ?), puis réessaie. Rien n’a été modifié.';
     async function ouvrirLecteur() {
       const premiereOuverture = !dejaOuvert;
       dejaOuvert = true;
@@ -458,6 +491,7 @@ const relationsMp3 = (() => {
         etat.textContent = 'Identifiant du compte Cap absent : écris-le d’abord dans « Réglages du Drive » (Autre, puis Réglages).';
         return;
       }
+      if (!enLigne()) { etat.textContent = PAS_DE_RESEAU; return; } // c139
       if (typeof compte.connecte === 'function' && !compte.connecte()) {
         // 08/11/2026 : au retour de Google (refus, mauvais compte…), la raison donnée par le compte d'abord.
         // (seulement à la première ouverture de la page : ensuite, ce message serait périmé).
@@ -471,6 +505,7 @@ const relationsMp3 = (() => {
         if (!await chargerDossiers()) return;
         if (dossiers.length === 1) montrerMorceaux(dossiers[0]); else montrerDossiers();
       } catch (erreur) {
+        if (!enLigne()) { etat.textContent = PAS_DE_RESEAU; return; } // c139 : réseau perdu pendant la lecture
         const expire = estExpiration(erreur);
         etat.textContent = expire
           ? 'La connexion du compte Cap a expiré : touche « Autoriser la lecture du compte Cap », tu reviendras ici.'
@@ -833,6 +868,7 @@ const relationsMp3 = (() => {
     }
     async function bibliotheque() {
       if (typeof compte.adresse === 'function' && !compte.adresse()) return { message: 'Identifiant du compte Cap absent : écris-le d’abord dans « Réglages du Drive ».' };
+      if (!enLigne()) { if (boutonLecteur) boutonLecteur.click(); return { message: 'Pas de réseau : je ne peux pas lire la musique du compte Cap. Reconnecte le téléphone, puis redemande.' }; } // c139
       if (typeof compte.connecte === 'function' && !compte.connecte()) {
         if (boutonLecteur) boutonLecteur.click(); // la fenêtre « Musique » dit pourquoi et montre « Autoriser… »
         return { message: 'Le compte Cap n’est pas connecté (ou la connexion a expiré) : touche « Autoriser la lecture du compte Cap ».' };
@@ -840,9 +876,12 @@ const relationsMp3 = (() => {
       try {
         const r = dossiersAvecMp3(await arbre(), sorte);
         if (r.racines !== 1) return { message: r.racines ? 'Plusieurs dossiers « Relations » dans le compte Cap : garde-en un seul.' : 'Aucun dossier « Relations » dans le compte Cap.' };
-        if (!r.dossiers.length) return { message: 'Aucune musique dans les dossiers « Relations » du compte Cap.' };
+        // 10/11/2026 (décision de Max) : les commandes vocales de MUSIQUE ne prennent que les dossiers qui ont de la musique
+        // (un dossier avec seulement des vidéos n'y entre pas). Avant : tous les dossiers de la liste (qui avaient tous de la musique).
+        const avecMusique = r.dossiers.filter(d => d.musique.total > 0);
+        if (!avecMusique.length) return { message: 'Aucune musique dans les dossiers « Relations » du compte Cap.' };
         dossiers = r.dossiers;
-        return { dossiers: r.dossiers };
+        return { dossiers: avecMusique };
       } catch (erreur) {
         if (estExpiration(erreur)) { if (boutonLecteur) boutonLecteur.click(); return { message: 'La connexion du compte Cap a expiré : touche « Autoriser la lecture du compte Cap ».' }; }
         return { message: `Je n’ai pas pu lire la musique du compte Cap : ${raison(erreur)}` };
@@ -929,7 +968,7 @@ const relationsMp3 = (() => {
         montrerIndicateur();
         Promise.resolve(lecteur()).then(z => { if (fenetreLecteur.open) { zencoderPret = z; surveillerFin(z); } }).catch(erreur => message(`Le lecteur n’a pas pu démarrer : ${raison(erreur)}`));
       }
-      return 'Touche « Choisir » dans le lecteur pour prendre un MP3 du téléphone.';
+      return 'Touche « Choisir » dans le lecteur pour prendre un morceau du téléphone.'; // 10/11/2026 ; avant : « un MP3 »
     };
     return telecommande;
   }

@@ -7,10 +7,12 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.provider.Telephony;
 import android.widget.Toast;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
@@ -82,6 +84,7 @@ public class MainActivity extends Activity {
     private static final int CODE_PERMISSION_MICRO = 100;
     private static final int CODE_PERMISSION_CAMERA_PAGE = 101;
     private static final int CODE_PERMISSION_CAMERA_PHOTO = 102;
+    private static final int CODE_PERMISSION_SMS = 103; // 12/11/2026 (M3a) : lecture des MMS reçus
     private static final int CODE_PHOTO = 200;
     private static final int CODE_SCANNER = 300;
     // Numérisation, étape 3 (05/11/2026) : pages du scanner de Google, servies à Cap depuis ce
@@ -158,10 +161,12 @@ public class MainActivity extends Activity {
         vue.addJavascriptInterface(new PontMicroAndroid(), "PontMicroAndroid");
         vue.addJavascriptInterface(new ScannerAndroid(), "ScannerAndroid");
         vue.addJavascriptInterface(new CouleursAndroid(), "CouleursAndroid");
+        vue.addJavascriptInterface(new MmsAndroid(), "MmsAndroid"); // 12/11/2026 (M3a)
         vue.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                 super.onPageStarted(view, url, favicon);
+                adressePage = url; // 12/11/2026 (M3a) : le pont des MMS ne répond qu'aux pages de Cap
                 view.evaluateJavascript(SCRIPT_PONT_MICRO, null);
             }
 
@@ -192,8 +197,15 @@ public class MainActivity extends Activity {
                 }
                 // 09/11/2026 (petit tableur) : « Ouvrir le tableur » (Réglages) ouvre le tableur HORS de Cap
                 // (appli Google Sheets si elle est là, sinon Chrome) : Cap reste ouvert derrière.
-                if ("docs.google.com".equals(adresse.getHost()) && "https".equals(adresse.getScheme())) {
+                // 10/11/2026 (c89) : + drive.google.com (« Ouvrir le dossier dans Drive » d'un chantier), HORS de Cap aussi.
+                if (("docs.google.com".equals(adresse.getHost()) || "drive.google.com".equals(adresse.getHost())) && "https".equals(adresse.getScheme())) {
                     ouvrirHorsDeCap(adresse);
+                    return true;
+                }
+                // 12/11/2026 (c155, A3b) : « Appeler » (tel:) ouvre le CLAVIER du téléphone avec le numéro, SANS appeler tout seul
+                // (aucune permission) ; « Écrire un mail » (mailto:) ouvre la messagerie. Cap reste ouvert derrière.
+                if ("tel".equals(adresse.getScheme()) || "mailto".equals(adresse.getScheme())) {
+                    ouvrirTelephoneOuMail(adresse);
                     return true;
                 }
                 return false;
@@ -332,6 +344,89 @@ public class MainActivity extends Activity {
         vue.setBackgroundColor(couleur);
     }
 
+    // ----- 12/11/2026 (accord écrit de Max, marche M3a) : LECTURE des MMS reçus, pour la page de Cap seulement -----
+    // - Lecture seule : aucune écriture, aucun envoi, aucun effacement de message ; aucun journal (Log), aucun fichier.
+    // - Rend les 20 derniers MMS REÇUS : identifiant, date, présence d'image / vidéo / texte (le TYPE des pièces seulement :
+    //   ni le texte, ni l'image ne sont lus ici), le numéro de l'expéditeur et le NOMBRE de destinataires (groupe ou non).
+    // - Le numéro n'est donné qu'à la page de Cap, en mémoire : mms_lecture.js le change aussitôt en empreinte (M1) et l'oublie.
+    // - Répond seulement aux pages de Cap (adresse vérifiée) et seulement si Max a accepté l'autorisation SMS du téléphone.
+    private volatile String adressePage = "";
+
+    private boolean pageDeCap() {
+        String a = adressePage;
+        return a != null && a.startsWith(URL_CAP);
+    }
+
+    private boolean permissionSmsAccordee() {
+        return checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED;
+    }
+
+    private static Uri uriPiecesMms() {
+        return Build.VERSION.SDK_INT >= 29 ? Telephony.Mms.Part.CONTENT_URI : Uri.parse("content://mms/part");
+    }
+
+    private class MmsAndroid {
+        @JavascriptInterface
+        public boolean autorise() {
+            return pageDeCap() && permissionSmsAccordee();
+        }
+
+        // Ouvre la question d'Android (« Autoriser Cap à accéder à vos SMS ? »). La réponse revient par window.__mmsAutorisation.
+        @JavascriptInterface
+        public void demander() {
+            if (!pageDeCap()) return;
+            runOnUiThread(() -> {
+                if (permissionSmsAccordee()) appelerJs("window.__mmsAutorisation && window.__mmsAutorisation(true);");
+                else requestPermissions(new String[]{Manifest.permission.READ_SMS}, CODE_PERMISSION_SMS);
+            });
+        }
+
+        @JavascriptInterface
+        public String recents() {
+            JSONArray liste = new JSONArray();
+            if (!pageDeCap() || !permissionSmsAccordee()) return liste.toString();
+            ContentResolver lecteur = getContentResolver();
+            ArrayList<String> ids = new ArrayList<>();
+            ArrayList<Long> dates = new ArrayList<>();
+            try (Cursor c = lecteur.query(Telephony.Mms.CONTENT_URI, new String[]{"_id", "date"}, "msg_box=?", new String[]{"1"}, "date DESC")) {
+                if (c != null) while (ids.size() < 20 && c.moveToNext()) { ids.add(c.getString(0)); dates.add(c.getLong(1)); }
+            } catch (RuntimeException e) {
+                return liste.toString();
+            }
+            for (int i = 0; i < ids.size(); i++) {
+                String mid = ids.get(i);
+                boolean image = false, video = false, texte = false;
+                try (Cursor p = lecteur.query(uriPiecesMms(), new String[]{"ct"}, "mid=?", new String[]{mid}, null)) {
+                    if (p != null) while (p.moveToNext()) {
+                        String ct = p.getString(0);
+                        if (ct == null) continue;
+                        if (ct.startsWith("image/")) image = true;
+                        else if (ct.startsWith("video/")) video = true;
+                        else if (ct.equals("text/plain")) texte = true;
+                    }
+                } catch (RuntimeException e) { /* pièces illisibles : aucune case cochée */ }
+                String expediteur = null;
+                ArrayList<Integer> types = new ArrayList<>();
+                ArrayList<String> adresses = new ArrayList<>();
+                try (Cursor a = lecteur.query(Uri.withAppendedPath(Telephony.Mms.CONTENT_URI, mid + "/addr"), new String[]{"address", "type"}, null, null, null)) {
+                    if (a != null) while (a.moveToNext()) {
+                        int type = a.getInt(1);
+                        if (type == AdressesMms.FROM && expediteur == null) expediteur = a.getString(0);
+                        types.add(type);
+                        adresses.add(a.getString(0));
+                    }
+                } catch (RuntimeException e) { /* adresses illisibles : « À trier » */ }
+                // c176 : destinataires DIFFÉRENTS, sans l'expéditeur (sur le Pixel, il est répété en copie : c175 voyait tout en groupe).
+                int destinataires = AdressesMms.destinataires(types, adresses);
+                try {
+                    liste.put(new JSONObject().put("id", mid).put("date", dates.get(i) * 1000L).put("image", image).put("video", video)
+                        .put("texte", texte).put("expediteur", expediteur == null ? JSONObject.NULL : expediteur).put("destinataires", destinataires));
+                } catch (Exception e) { /* ligne ignorée */ }
+            }
+            return liste.toString();
+        }
+    }
+
     // Lot c21 : Cap envoie la couleur des deux bandes (« #rrggbb »). Seulement des couleurs, vérifiées.
     private class CouleursAndroid {
         @JavascriptInterface
@@ -424,6 +519,16 @@ public class MainActivity extends Activity {
     // pas la WebView de la coque) : Google refuse de s'afficher dans une fenêtre embarquée.
     private void ouvrirDansChromeSecurise(Uri adresse) {
         new CustomTabsIntent.Builder().build().launchUrl(this, adresse);
+    }
+
+    // 12/11/2026 (c155) : clavier du téléphone (ACTION_DIAL : le numéro est seulement affiché, jamais composé) ou messagerie (ACTION_SENDTO).
+    private void ouvrirTelephoneOuMail(Uri adresse) {
+        Intent vue = new Intent("tel".equals(adresse.getScheme()) ? Intent.ACTION_DIAL : Intent.ACTION_SENDTO, adresse);
+        try {
+            startActivity(vue);
+        } catch (android.content.ActivityNotFoundException erreur) {
+            Toast.makeText(this, "Aucune application pour ouvrir ce lien.", Toast.LENGTH_LONG).show();
+        }
     }
 
     // 09/11/2026 : lien vers un tableur Google (docs.google.com seulement, voir plus haut).
@@ -763,6 +868,24 @@ public class MainActivity extends Activity {
     }
 
     // Rend toujours une réponse à la page, même vide : sinon le bouton de Cap ne répond plus.
+    // 12/11/2026 (c159, défaut vu par Max) : un choix de PLUSIEURS fichiers (Google Drive, Fichiers…) arrive dans la LISTE
+    // de la réponse (getClipData) ; l'ancien code (FileChooserParams.parseResult) ne lisait que getData() : un seul fichier
+    // au mieux, souvent aucun. Maintenant : tous les fichiers de la liste, sinon le fichier seul, sinon rien (annulé).
+    private Uri[] fichiersChoisis(int resultat, Intent donnees) {
+        if (resultat != RESULT_OK || donnees == null) return null;
+        android.content.ClipData liste = donnees.getClipData();
+        if (liste != null && liste.getItemCount() > 0) {
+            java.util.ArrayList<Uri> uris = new java.util.ArrayList<>();
+            for (int i = 0; i < liste.getItemCount(); i++) {
+                Uri u = liste.getItemAt(i).getUri();
+                if (u != null) uris.add(u);
+            }
+            if (!uris.isEmpty()) return uris.toArray(new Uri[0]);
+        }
+        Uri seul = donnees.getData();
+        return seul != null ? new Uri[]{seul} : null;
+    }
+
     private void rendrePhoto(Uri[] resultat) {
         if (retourPhotoEnAttente != null) retourPhotoEnAttente.onReceiveValue(resultat);
         retourPhotoEnAttente = null;
@@ -786,7 +909,7 @@ public class MainActivity extends Activity {
             rendrePhoto(new Uri[]{photo});
             if (fichierPhoto != null && fichierPhoto.length() > 0) copierDansGalerie(fichierPhoto);
         } else {
-            rendrePhoto(WebChromeClient.FileChooserParams.parseResult(resultat, donnees));
+            rendrePhoto(fichiersChoisis(resultat, donnees)); // c159 : TOUS les fichiers d'un choix multiple
         }
     }
 
@@ -801,6 +924,8 @@ public class MainActivity extends Activity {
         } else if (code == CODE_PERMISSION_CAMERA_PHOTO) {
             if (accordee) lancerAppareilPhoto();
             else rendrePhoto(null);
+        } else if (code == CODE_PERMISSION_SMS) { // 12/11/2026 (M3a) : la réponse de Max (oui / non), rien d'autre
+            appelerJs("window.__mmsAutorisation && window.__mmsAutorisation(" + accordee + ");");
         }
     }
 

@@ -363,11 +363,12 @@ const relationsCreation = (() => {
   // comptés (on regarde quand même dans « Reçus » et « Envoyés »). Aucun nom de fichier n'est affiché
   // ni gardé ; rien n'est modifié ni créé.
   const PROFONDEUR_VISIBILITE = 3;
+  // 10/11/2026 (séance 3) : le type vient de types_fichiers.js (le seul endroit) ; « musique » = MP3, FLAC, M4A, WAV, OGG,
+  // OPUS ; le reste (vidéos comprises) compte dans « autres », comme avant. Avant : 'mp3' (MP3 seulement), décidé ici.
   function sorteDe(f) {
     if (f.mimeType === DOSSIER) return 'sousDossiers';
-    if (/^audio\/(mpeg|mp3)$/.test(f.mimeType || '') || /\.mp3$/i.test(f.name || '')) return 'mp3';
-    if (/^image\//.test(f.mimeType || '')) return 'images';
-    return 'autres';
+    const s = typesFichiers.sorte(f);
+    return s === 'musique' || s === 'images' ? s : 'autres';
   }
   async function compterDans(dossier, compte, profondeur) {
     for (const f of await lister(`'${echapper(dossier)}' in parents and trashed=false`)) {
@@ -384,7 +385,7 @@ const relationsCreation = (() => {
       .filter(f => f.appProperties?.[ETIQUETTES.personne]);
     const lignes = [];
     for (const personne of personnes) {
-      const compte = { mp3: 0, images: 0, sousDossiers: 0, autres: 0 };
+      const compte = { musique: 0, images: 0, sousDossiers: 0, autres: 0 };
       await compterDans(personne.id, compte, 1);
       lignes.push({ nomDossier: personne.name, ...compte });
     }
@@ -392,13 +393,13 @@ const relationsCreation = (() => {
     return { dossiers: personnes.length, lignes };
   }
   function resumerVisibilite(r) {
-    const avec = r.lignes.filter(l => l.mp3 + l.images + l.sousDossiers + l.autres > 0);
+    const avec = r.lignes.filter(l => l.musique + l.images + l.sousDossiers + l.autres > 0);
     const total = cle => r.lignes.reduce((n, l) => n + l[cle], 0);
     return [
       `Essai de visibilité (lecture seule, rien n’est modifié) : ${r.dossiers} dossier(s) « r_ » lus.`,
-      ...avec.map(l => `${l.nomDossier} : ${l.mp3} MP3 · ${l.images} image(s) · ${l.sousDossiers} sous-dossier(s)` + (l.autres ? ` · ${l.autres} autre(s)` : '')),
+      ...avec.map(l => `${l.nomDossier} : ${l.musique} morceau(x) · ${l.images} image(s) · ${l.sousDossiers} sous-dossier(s)` + (l.autres ? ` · ${l.autres} autre(s)` : '')),
       `${r.dossiers - avec.length} autre(s) dossier(s) : rien de visible à part ce que Cap a créé.`,
-      `Total visible : ${total('mp3')} MP3, ${total('images')} image(s), ${total('sousDossiers')} sous-dossier(s), ${total('autres')} autre(s).`
+      `Total visible : ${total('musique')} morceau(x), ${total('images')} image(s), ${total('sousDossiers')} sous-dossier(s), ${total('autres')} autre(s).`
     ].join('\n');
   }
   // 07/11/2026 (accord de Max) : après « Montrer « Relations » à Google », dire QUEL dossier a été

@@ -161,11 +161,46 @@ const googleCompteRelations = (() => {
   //    sans autre paramètre que « fields » (donc ni déplacement, ni renommage, ni corbeille) ;
   //  - écrire des cases : PUT …/v4/spreadsheets/{id}/values/{plage} ; ajouter des lignes : POST …/values/{plage}:append.
   // Jamais de suppression, d'effacement, de partage. La lecture (appeler) reste en lecture seule.
+  // 10/11/2026 (accord de Max, CHANTIERS, séance 3) : + CRÉER un dossier ou un document Google VIDE :
+  //  - POST https://www.googleapis.com/drive/v3/files (seul paramètre permis : « fields ») ; corps limité à name, mimeType,
+  //    parents (un seul parent) et appProperties ; mimeType = dossier ou document Google seulement. Aucun contenu envoyé,
+  //    aucun déplacement, renommage, corbeille, suppression ni partage (tout autre champ ou paramètre est refusé).
   const ID_FICHIER = '[A-Za-z0-9_-]{10,200}';
+  const TYPES_CREES = ['application/vnd.google-apps.folder', 'application/vnd.google-apps.document'];
+  // 10/11/2026 (accord de Max, c88) : + AJOUTER du texte à la FIN d'un document Google (le journal d'un chantier) :
+  //  POST https://docs.googleapis.com/v1/documents/{id}:batchUpdate, sans paramètre, corps = UNE seule demande
+  //  « insertText » à la fin du document (endOfSegmentLocation, sans autre champ), texte non vide. 11/11/2026 (c106, décision de
+  //  Max : plus de limite de longueur des notes) : avant, 2000 caractères au plus ; la forme (un seul ajout, à la fin) reste exigée.
+  //  Rien d'autre : ni effacement, ni remplacement, ni mise en forme, ni écriture au milieu. Google ne laisse de toute façon
+  //  écrire que dans les documents créés par Cap (droit drive.file).
+  function ajoutAutorise(params, corps) {
+    if (params.length) return false;
+    let c;
+    try { c = JSON.parse(corps); } catch (erreur) { return false; }
+    if (!c || typeof c !== 'object' || Object.keys(c).join() !== 'requests' || !Array.isArray(c.requests) || c.requests.length !== 1) return false;
+    const r = c.requests[0];
+    if (!r || typeof r !== 'object' || Object.keys(r).join() !== 'insertText') return false;
+    const i = r.insertText;
+    if (!i || typeof i !== 'object' || Object.keys(i).sort().join() !== 'endOfSegmentLocation,text') return false;
+    if (!i.endOfSegmentLocation || typeof i.endOfSegmentLocation !== 'object' || Object.keys(i.endOfSegmentLocation).length) return false;
+    return typeof i.text === 'string' && i.text.length >= 1;
+  }
+  function creationAutorisee(params, corps) {
+    if (params.some(p => p !== 'fields')) return false;
+    let c;
+    try { c = JSON.parse(corps); } catch (erreur) { return false; }
+    if (!c || typeof c !== 'object' || Array.isArray(c)) return false;
+    if (Object.keys(c).some(k => !['name', 'mimeType', 'parents', 'appProperties'].includes(k))) return false;
+    if (typeof c.name !== 'string' || !c.name.trim() || !TYPES_CREES.includes(c.mimeType)) return false;
+    if (!Array.isArray(c.parents) || c.parents.length !== 1 || !new RegExp(`^(${ID_FICHIER}|root)$`).test(String(c.parents[0]))) return false;
+    return c.appProperties === undefined || (typeof c.appProperties === 'object' && !Array.isArray(c.appProperties));
+  }
   function ecritureAutorisee(url, methode, corps) {
     if (url.protocol !== 'https:' || url.username || url.password || url.port) return false;
     const params = [...url.searchParams.keys()];
     if (methode === 'POST' && url.hostname === 'sheets.googleapis.com' && url.pathname === '/v4/spreadsheets') return params.length === 0;
+    if (methode === 'POST' && url.hostname === 'www.googleapis.com' && url.pathname === '/drive/v3/files') return creationAutorisee(params, corps); // 10/11/2026
+    if (methode === 'POST' && url.hostname === 'docs.googleapis.com' && new RegExp(`^/v1/documents/${ID_FICHIER}:batchUpdate$`).test(url.pathname)) return ajoutAutorise(params, corps); // 10/11/2026 (c88)
     if (methode === 'PATCH' && url.hostname === 'www.googleapis.com' && new RegExp(`^/drive/v3/files/${ID_FICHIER}$`).test(url.pathname)) {
       if (params.some(p => p !== 'fields')) return false;
       try { const c = JSON.parse(corps); return c && typeof c === 'object' && Object.keys(c).length === 1 && c.appProperties && typeof c.appProperties === 'object'; } catch (erreur) { return false; }
@@ -191,6 +226,15 @@ const googleCompteRelations = (() => {
       throw new Error('Connexion du compte Cap expirée. Touche « Autoriser la lecture du compte Cap ».');
     }
     if (reponse.status === 403) {
+      // 10/11/2026 (c88) : service Google Docs pas activé dans le projet de Cap : le dire (ce n'est pas un droit à redonner).
+      let detail = '';
+      try { detail = JSON.stringify(await reponse.clone().json()); } catch (e) { detail = ''; }
+      if (/SERVICE_DISABLED|accessNotConfigured|has not been used|is disabled/i.test(detail)) {
+        const erreur = new Error('Le service Google Docs n’est pas activé dans le projet Google de Cap : rien n’a été écrit. L’activer est un réglage chez Google, à décider par Max.');
+        erreur.statut = 403;
+        erreur.service = true;
+        throw erreur;
+      }
       const erreur = new Error('Le compte Cap n’a pas encore le droit d’écrire : touche « Autoriser la lecture du compte Cap » (Google demandera le nouveau droit).');
       erreur.statut = 403;
       throw erreur;

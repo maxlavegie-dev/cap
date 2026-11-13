@@ -474,8 +474,26 @@
 
   var audio = new Audio();
   var adresseActuelle = null;
+  // 10/11/2026 (Claude Code, accord de Max, séance 4 du lecteur) : un second élément pour les VIDÉOS (MP4, WEBM), posé
+  // au-dessus du titre et caché pour la musique. La musique garde l'élément audio d'origine (même lecture qu'avant, écran
+  // éteint compris). « audio » désigne désormais l'élément qui joue : les boutons, la barre et le volume agissent sur lui.
+  var son = audio;
+  var image = document.createElement("video");
+  image.id = "image-video";
+  image.setAttribute("playsinline", "");
+  image.hidden = true;
+  document.getElementById("lecteur").insertBefore(image, titreFichier);
+  function surLesDeux(evenement, action) {
+    [son, image].forEach(function (element) {
+      element.addEventListener(evenement, function () { if (element === audio) action(); });
+    });
+  }
 
-  function jouerFichier(adresse, titre) {
+  // 10/11/2026 : troisième paramètre « video » (vrai pour une vidéo). Avant : function jouerFichier(adresse, titre) {
+  function jouerFichier(adresse, titre, video) {
+    var voulu = video ? image : son;
+    if (voulu !== audio) { audio.pause(); audio.removeAttribute("src"); audio.load(); audio = voulu; }
+    image.hidden = !video;
     adresseActuelle = adresse;
     audio.src = adresse;
     audio.play();
@@ -501,7 +519,8 @@
     }
   }
 
-  audio.addEventListener("ended", function () {
+  // 10/11/2026 : écouté sur les deux éléments (seul celui qui joue compte). Avant : audio.addEventListener("ended", …
+  surLesDeux("ended", function () {
     boutonLecture.textContent = "▶";
   });
 
@@ -537,12 +556,13 @@
     metAJourAffichageTemps();
   });
 
+  // 10/11/2026 : le volume vaut pour les deux éléments. Avant : audio.volume = … (deux fois).
   curseurVolume.addEventListener("input", function () {
-    audio.volume = Number(curseurVolume.value) / 100;
+    son.volume = image.volume = Number(curseurVolume.value) / 100;
   });
-  audio.volume = Number(curseurVolume.value) / 100;
+  son.volume = image.volume = Number(curseurVolume.value) / 100;
 
-  audio.addEventListener("timeupdate", function () {
+  surLesDeux("timeupdate", function () { // 10/11/2026 ; avant : audio.addEventListener("timeupdate", …
     if (deplacementBarreEnCours) return;
     if (isFinite(audio.duration) && audio.duration > 0) {
       barreProgression.value = Math.round((audio.currentTime / audio.duration) * 1000);
@@ -550,7 +570,7 @@
     metAJourAffichageTemps();
   });
 
-  audio.addEventListener("loadedmetadata", function () {
+  surLesDeux("loadedmetadata", function () { // 10/11/2026 ; avant : audio.addEventListener("loadedmetadata", …
     metAJourAffichageTemps();
   });
 
@@ -646,7 +666,9 @@
     declencherEmergenceLecteur(performance.now());
   }, 600);
   // 07/11/2026 (Claude Code, accord de Max) : SEULE ligne ajoutée au lecteur de Zencoder, pour que Cap puisse lancer un morceau, l'arrêter et savoir quand il finit. Rien d'autre n'a changé.
-  window.lecteurMp3Zencoder = { jouerFichier: jouerFichier, arreter: arreter, audio: audio };
+  // 10/11/2026 (séance 4 du lecteur) : « audio » rend toujours l'élément qui joue (audio ou vidéo). Avant :
+  // window.lecteurMp3Zencoder = { jouerFichier: jouerFichier, arreter: arreter, audio: audio };
+  window.lecteurMp3Zencoder = { jouerFichier: jouerFichier, arreter: arreter, get audio() { return audio; } };
 })();
 </script>
 </body>

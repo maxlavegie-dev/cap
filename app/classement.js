@@ -284,6 +284,20 @@ const classement = (() => {
     return Array.from({ length: hauteur }, (_, r) => parColonne.map(c => c[r] ?? ''));
   }
 
+  // 12/11/2026 (accord de Max, c154, A3a) : l'onglet « Dictionnaire » EN ENTIER (toutes ses colonnes, notes et naissance
+  // comprises, DÉCISION DE MAX : affichage seulement sur son téléphone, derrière le « + » de la carte), compte PERSONNEL,
+  // lecture seule (GET). Seul « Tout synchroniser » l'appelle ; coordonnees_relations.js n'en garde que les personnes qui ont
+  // un dossier « r_… ». Jamais envoyé à l'IA (tests verrous). L'émetteur d'un scan garde SA lecture limitée (emetteur.js).
+  // Retour : lignes [en-têtes, …], ou null si le Dictionnaire n'est pas encore choisi.
+  async function lireDictionnaireComplet() {
+    const fichier = await fichierChoisi('dictionnaire');
+    if (!fichier) return null;
+    const base = `https://sheets.googleapis.com/v4/spreadsheets/${encodeURIComponent(fichier.id)}/values:batchGet`;
+    const reponse = await lireJson(`${base}?ranges=${encodeURIComponent(`'${relations.ONGLET}'`)}`);
+    const lignes = reponse.valueRanges?.[0]?.values;
+    return Array.isArray(lignes) && lignes.length ? lignes : [[]];
+  }
+
   function refus(erreur) {
     if (erreur && erreur.statut) {
       return `refusé (erreur ${erreur.statut}${erreur.raison ? `, raison : ${erreur.raison}` : ''}).`;
@@ -291,5 +305,5 @@ const classement = (() => {
     return `pas lu (${erreur && erreur.message ? erreur.message : 'erreur inconnue'}).`;
   }
 
-  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire, lireTableurChoisi, lireMotsCourts, lireDictionnaire, lireDictionnairePersonnes };
+  return { cle, nomDossier, paragraphesDepuisHtml, analyserArchitecture, analyserTableur, verifierChemin, resumer, texteResume, lire, lireTableurChoisi, lireMotsCourts, lireDictionnaire, lireDictionnairePersonnes, lireDictionnaireComplet };
 })();

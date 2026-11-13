@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Essai SABLE (FICTIF)</title>
+<!-- FICTIF — essai de matière. Aucune donnée réelle, aucun appel réseau, aucun droit. -->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #101010; font-family: sans-serif; }
+  /* === CADRE TÉLÉPHONE (réutilisable : copier ce bloc CSS et le bloc HTML « CADRE TÉLÉPHONE ») === */
+  #cadre { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #2b2b2b; }
+  #cadre-telephone { box-sizing: border-box; padding: 12px; background: #000; border-radius: 42px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    height: min(calc(100vh - 96px), calc((100vw - 96px) * 2.154)); aspect-ratio: 436 / 939; }   /* v5 : marge de 48 px tout autour */
+  #ecran { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 30px; background: #101010; }
+  /* === FIN CADRE TÉLÉPHONE === */
+
+  /* Fond du sable PEINT explicitement (jamais noir par défaut). */
+  #sable { position: absolute; inset: 0; background: #e2c996; }
+  body[data-mode="nuit"] #sable { background: #5c4a30; }
+  #sable canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; cursor: crosshair; }
+
+  /* Interrupteur Jour | Nuit (même aspect que feuille.html) */
+  #interrupteur { position: absolute; top: 12px; left: 12px; z-index: 2; display: flex; border: 2px solid #111;
+    border-radius: 14px; overflow: hidden; background: #fff; }
+  #interrupteur button { font: 700 15px sans-serif; padding: 10px 14px; border: 0; background: #fff; color: #111;
+    touch-action: manipulation; cursor: pointer; }
+  #interrupteur button[aria-pressed="true"] { background: #111; color: #fff; }
+
+  /* Trois choix de grains */
+  #choix { position: absolute; top: 62px; left: 12px; right: 12px; z-index: 2; display: flex; border: 2px solid #111;
+    border-radius: 14px; overflow: hidden; background: #fff; }
+  #choix button { flex: 1; font: 700 13px sans-serif; padding: 9px 4px; border: 0; background: #fff; color: #111;
+    touch-action: manipulation; cursor: pointer; }
+  #choix button + button { border-left: 1px solid #111; }
+  #choix button[aria-pressed="true"] { background: #111; color: #fff; }
+
+  #zone-zero { position: absolute; top: 12px; right: 12px; z-index: 2; }
+  #bouton-zero { font: 700 15px sans-serif; padding: 10px 14px; border: 2px solid #111; border-radius: 14px;
+    background: #fff; color: #111; touch-action: manipulation; cursor: pointer; }
+  body[data-mode="nuit"] #interrupteur, body[data-mode="nuit"] #choix, body[data-mode="nuit"] #bouton-zero { border-color: #fff; }
+
+  #confirmation { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.45); }
+  #confirmation[hidden] { display: none; }
+  #confirmation .boite { background: #fff; color: #111; padding: 18px; border-radius: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 240px; }
+  #confirmation p { margin: 0; font: 700 18px sans-serif; text-align: center; }
+  #confirmation button { font: 700 16px sans-serif; padding: 12px; border: 2px solid #111; border-radius: 12px; background: #fff; color: #111; }
+  /* === LIVRAISON 11/11/2026 : SANS CADRE (la page choix_matieres.html fournit l'ecran). Ajout seulement. === */
+  #cadre { background: transparent; }
+  #cadre-telephone { width: 100%; height: 100%; aspect-ratio: auto; padding: 0; border-radius: 0; box-shadow: none; }
+  #ecran { border-radius: 0; }
+  /* === FIN LIVRAISON SANS CADRE === */  #interrupteur { display: none; }   /* LIVRAISON : un seul interrupteur Jour | Nuit, dans choix_matieres.html */</style>
+</head>
+<body>
+
+<!-- === CADRE TÉLÉPHONE (réutilisable) : tout ce qui est dans #ecran reste dans le cadre === -->
+<div id="cadre"><div id="cadre-telephone"><div id="ecran">
+
+<div id="sable"></div>
+
+<div id="interrupteur">
+  <button id="bouton-jour" type="button" aria-pressed="true">Jour</button>
+  <button id="bouton-nuit" type="button" aria-pressed="false">Nuit</button>
+</div>
+
+<div id="zone-zero">
+  <button id="bouton-zero" type="button">Remettre à zéro</button>
+</div>
+
+<div id="choix">
+  <button type="button" data-choix="fin" aria-pressed="true">Sable fin</button>
+  <button type="button" data-choix="galets" aria-pressed="false">Petits galets</button>
+  <button type="button" data-choix="billes" aria-pressed="false">Billes minuscules</button>
+</div>
+
+<div id="confirmation" hidden>
+  <div class="boite">
+    <p>Tout remettre à zéro ?</p>
+    <button id="oui-zero" type="button">Oui</button>
+    <button id="non-zero" type="button">Non</button>
+  </div>
+</div>
+
+</div></div></div>
+<!-- === FIN CADRE TÉLÉPHONE === -->
+
+<script>
+// ============================================================
+// RÉGLAGES FACILES — tout est ici, en haut du fichier.
+// ============================================================
+const REGLAGES = {
+  taille: 2,          // taille d'une case de la surface, en pixels (petit = plus fin, plus lourd)
+  couche: 1.0,        // épaisseur de départ du sable (surface lisse)
+  pousse: 0.45,       // part du sable écartée par le doigt à chaque passage (0 à 1)
+  talus: 0.22,        // pente maximale tenue par le sable ; au-delà, il s'éboule un peu (près du doigt seulement)
+  relief: 2.6,        // force de l'éclairage sur les bosses et creux
+  maxGrains: 40000,   // LIMITE du nombre de grains dessinés (galets, billes) pour rester fluide
+  couleurs: {
+    jour: [226, 201, 150],   // sable clair
+    nuit: [92, 74, 48]       // sable sombre
+  }
+};
+// Trois aspects. Même mécanique ; seuls la taille, la forme et la brillance des grains changent.
+const CHOIX = {
+  fin:    { rayon: 5, forme: 'fin' },                                   // un grain = un point (1 px), texture continue
+  galets: { rayon: 7, forme: 'galets', grain: 3.2, ecart: 6.5, brillance: 0.25 },
+  billes: { rayon: 5, forme: 'billes', grain: 1.5, ecart: 3.3, brillance: 0.9 }
+};
+
+// ============================================================
+// MODULE SABLE — autonome : demarrer(element), choisir(nom), mode(nom), remettreAZero().
+// ============================================================
+const Sable = (() => {
+  let conteneur = null, canvas = null, ctx = null, cache = null, ctxCache = null, image = null, texture = null;
+  let largeur = 0, hauteur = 0, dpr = 1, W = 0, H = 0, h = null;
+  let choix = CHOIX.fin, nomMode = 'jour', sale = true, frame = 0;
+  let precedent = null;
+  let nbGrains = 0;
+
+  function dimensionner() {
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    largeur = conteneur.clientWidth; hauteur = conteneur.clientHeight;
+    canvas.width = Math.round(largeur * dpr); canvas.height = Math.round(hauteur * dpr);
+    const nW = Math.max(8, Math.ceil(largeur / REGLAGES.taille)), nH = Math.max(8, Math.ceil(hauteur / REGLAGES.taille));
+    const nh = new Float32Array(nW * nH).fill(REGLAGES.couche);
+    if (h) {  // la fenêtre change : on garde les traces (recopie au plus proche), on ne remet pas à zéro
+      for (let y = 0; y < nH; y++) for (let x = 0; x < nW; x++) {
+        const ox = Math.min(W - 1, Math.floor(x * W / nW)), oy = Math.min(H - 1, Math.floor(y * H / nH));
+        nh[y * nW + x] = h[oy * W + ox];
+      }
+    }
+    W = nW; H = nH; h = nh;
+    cache.width = W; cache.height = H;
+    image = ctxCache.createImageData(W, H);
+    for (let i = 0; i < W * H; i++) image.data[i * 4 + 3] = 255;
+    fabriquerTexture();
+    sale = true;
+  }
+
+  // Texture des grains, en gris (128 = neutre), posée par-dessus l'éclairage (mode « overlay »).
+  function fabriquerTexture() {
+    texture = document.createElement('canvas');
+    texture.width = canvas.width; texture.height = canvas.height;
+    const t = texture.getContext('2d');
+    const TW = texture.width, TH = texture.height;
+    if (choix.forme === 'fin') {
+      const img = t.createImageData(TW, TH), d = img.data;
+      for (let i = 0; i < TW * TH; i++) {
+        const g = 128 + (Math.random() - 0.5) * 80 + (Math.random() < 0.03 ? 50 : 0);
+        d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = g; d[i * 4 + 3] = 255;
+      }
+      t.putImageData(img, 0, 0);
+      nbGrains = Math.round(largeur * hauteur);   // un grain par pixel affiché
+      return;
+    }
+    t.fillStyle = 'rgb(118,118,118)'; t.fillRect(0, 0, TW, TH);   // un peu plus sombre entre les grains
+    const ecart = choix.ecart;
+    nbGrains = Math.min(REGLAGES.maxGrains, Math.round((largeur * hauteur) / (ecart * ecart)));
+    const br = choix.brillance;
+    for (let k = 0; k < nbGrains; k++) {
+      const x = Math.random() * TW, y = Math.random() * TH;
+      const r = choix.grain * dpr * (0.7 + Math.random() * 0.6);
+      if (choix.forme === 'galets') {
+        const rx = r * (1 + Math.random() * 0.5), ry = r * (0.7 + Math.random() * 0.3), a = Math.random() * Math.PI;
+        t.fillStyle = 'rgb(80,80,80)';
+        t.beginPath(); t.ellipse(x + r * 0.35, y + r * 0.35, rx, ry, a, 0, Math.PI * 2); t.fill();   // ombre
+        const g = 115 + Math.random() * 55;
+        t.fillStyle = `rgb(${g},${g},${g})`;
+        t.beginPath(); t.ellipse(x, y, rx, ry, a, 0, Math.PI * 2); t.fill();
+        const c = Math.min(255, g + 70 * br + 20);
+        t.fillStyle = `rgb(${c},${c},${c})`;
+        t.beginPath(); t.ellipse(x - rx * 0.3, y - ry * 0.3, rx * 0.4, ry * 0.35, a, 0, Math.PI * 2); t.fill();   // reflet doux
+      } else {   // billes : rondes, très brillantes
+        t.fillStyle = 'rgb(70,70,70)';
+        t.beginPath(); t.arc(x + r * 0.4, y + r * 0.4, r, 0, Math.PI * 2); t.fill();
+        t.fillStyle = 'rgb(135,135,135)';
+        t.beginPath(); t.arc(x, y, r, 0, Math.PI * 2); t.fill();
+        const c = Math.round(150 + 105 * br);
+        t.fillStyle = `rgb(${c},${c},${c})`;
+        t.beginPath(); t.arc(x - r * 0.35, y - r * 0.35, Math.max(0.6, r * 0.35), 0, Math.PI * 2); t.fill();
+      }
+    }
+  }
+
+  // Le doigt écarte les grains : le sable sous le doigt est poussé vers le bord, il forme un petit bourrelet.
+  function tampon(cx, cy, dx, dy) {
+    const R = choix.rayon;
+    const x0 = Math.max(1, Math.floor(cx - R)), x1 = Math.min(W - 2, Math.ceil(cx + R));
+    const y0 = Math.max(1, Math.floor(cy - R)), y1 = Math.min(H - 2, Math.ceil(cy + R));
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const ex = x - cx, ey = y - cy, d = Math.hypot(ex, ey);
+      if (d >= R) continue;
+      const i = y * W + x;
+      const prise = h[i] * REGLAGES.pousse * (1 - (d / R) * (d / R));
+      if (prise <= 0) continue;
+      let ux = d > 0.5 ? ex / d : -dy, uy = d > 0.5 ? ey / d : dx;
+      const tx = Math.round(cx + ux * (R + 1)), ty = Math.round(cy + uy * (R + 1));
+      if (tx < 1 || ty < 1 || tx > W - 2 || ty > H - 2) continue;
+      h[i] -= prise;
+      h[ty * W + tx] += prise;
+    }
+    eboulement(x0 - 4, y0 - 4, x1 + 4, y1 + 4);
+    sale = true;
+  }
+
+  // Éboulement LOCAL (autour du doigt seulement) : les pentes trop raides se tassent. Ailleurs, rien ne bouge.
+  function eboulement(x0, y0, x1, y1) {
+    x0 = Math.max(1, x0); y0 = Math.max(1, y0); x1 = Math.min(W - 2, x1); y1 = Math.min(H - 2, y1);
+    const T = REGLAGES.talus;
+    for (let passe = 0; passe < 2; passe++) {
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        const i = y * W + x;
+        for (const n of [i + 1, i - 1, i + W, i - W]) {
+          const diff = h[i] - h[n];
+          if (diff > T) { const m = (diff - T) * 0.25; h[i] -= m; h[n] += m; }
+        }
+      }
+    }
+  }
+
+  function rendre() {
+    const d = image.data, K = REGLAGES.relief, base = REGLAGES.couleurs[nomMode];
+    const Lx = -0.45, Ly = -0.6, Lz = 0.66, ln = Math.hypot(Lx, Ly, Lz);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      const gx = (x > 0 && x < W - 1) ? (h[i + 1] - h[i - 1]) : 0;
+      const gy = (y > 0 && y < H - 1) ? (h[i + W] - h[i - W]) : 0;
+      let nx = -gx * K, ny = -gy * K, nz = 1;
+      const nl = Math.hypot(nx, ny, nz);
+      const diffus = Math.max(0, (nx * Lx + ny * Ly + nz * Lz) / (nl * ln));
+      const plat = Lz / ln;
+      let f = 0.25 + 0.75 * diffus / plat;                // 1 = surface plate
+      f *= 0.8 + 0.2 * Math.min(1.4, h[i]) / 1.4 / 0.71;  // le fond des creux est un peu plus sombre
+      const p = i * 4;
+      d[p] = Math.min(255, base[0] * f); d[p + 1] = Math.min(255, base[1] * f); d[p + 2] = Math.min(255, base[2] * f);
+    }
+    ctxCache.putImageData(image, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(cache, 0, 0, W, H, 0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = 'overlay';
+    ctx.drawImage(texture, 0, 0);
+    ctx.globalCompositeOperation = 'source-over';
+    sale = false;
+  }
+
+  function boucle() {
+    if (sale) rendre();          // on ne redessine que si quelque chose a changé
+    frame = requestAnimationFrame(boucle);
+  }
+
+  function coords(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (largeur / r.width) / REGLAGES.taille, y: (e.clientY - r.top) * (hauteur / r.height) / REGLAGES.taille };
+  }
+
+  function trace(p) {
+    const a = precedent;
+    const dist = Math.hypot(p.x - a.x, p.y - a.y);
+    const pas = Math.max(1, choix.rayon * 0.4);
+    const n = Math.max(1, Math.ceil(dist / pas));
+    const dx = dist > 0 ? (p.x - a.x) / dist : 1, dy = dist > 0 ? (p.y - a.y) / dist : 0;
+    for (let k = 1; k <= n; k++) tampon(a.x + (p.x - a.x) * k / n, a.y + (p.y - a.y) * k / n, dx, dy);
+    precedent = p;
+  }
+
+  function demarrer(element) {
+    conteneur = element;
+    canvas = document.createElement('canvas');
+    cache = document.createElement('canvas');
+    conteneur.appendChild(canvas);
+    ctx = canvas.getContext('2d');
+    ctxCache = cache.getContext('2d');
+    dimensionner();
+    canvas.addEventListener('pointerdown', e => {
+      canvas.setPointerCapture(e.pointerId);
+      precedent = coords(e);
+      tampon(precedent.x, precedent.y, 1, 0);
+    });
+    canvas.addEventListener('pointermove', e => { if (precedent) trace(coords(e)); });
+    const fin = () => { precedent = null; };
+    canvas.addEventListener('pointerup', fin);
+    canvas.addEventListener('pointercancel', fin);
+    window.addEventListener('resize', dimensionner);
+    frame = requestAnimationFrame(boucle);
+  }
+
+  function remettreAZero() { if (h) { h.fill(REGLAGES.couche); sale = true; } }
+  function choisir(nom) { choix = CHOIX[nom] || choix; remettreAZero(); fabriquerTexture(); sale = true; }
+  function mode(nom) { nomMode = REGLAGES.couleurs[nom] ? nom : nomMode; sale = true; }
+
+  return { demarrer, choisir, mode, remettreAZero, rendre, nombreGrains: () => nbGrains,
+           creux: () => { let m = Infinity; for (let i = 0; i < W * H; i++) if (h[i] < m) m = h[i]; return m; } };
+})();
+
+// ============================================================
+// PAGE — interrupteur Jour | Nuit, trois choix, remise à zéro.
+// ============================================================
+(function () {
+  Sable.demarrer(document.getElementById('sable'));
+
+  const boutonJour = document.getElementById('bouton-jour');
+  const boutonNuit = document.getElementById('bouton-nuit');
+  function mode(nom) {
+    document.body.dataset.mode = nom;
+    boutonJour.setAttribute('aria-pressed', String(nom === 'jour'));
+    boutonNuit.setAttribute('aria-pressed', String(nom === 'nuit'));
+    Sable.mode(nom);
+  }
+  boutonJour.addEventListener('click', () => mode('jour'));
+  boutonNuit.addEventListener('click', () => mode('nuit'));
+  mode('jour');   // mode par défaut
+
+  const boutonsChoix = document.querySelectorAll('#choix button');
+  boutonsChoix.forEach(b => b.addEventListener('click', () => {
+    boutonsChoix.forEach(o => o.setAttribute('aria-pressed', String(o === b)));
+    Sable.choisir(b.dataset.choix);   // changer de choix remet la matière à zéro
+  }));
+
+  const confirmation = document.getElementById('confirmation');
+  document.getElementById('bouton-zero').addEventListener('click', () => { confirmation.hidden = false; });
+  document.getElementById('non-zero').addEventListener('click', () => { confirmation.hidden = true; });
+  document.getElementById('oui-zero').addEventListener('click', () => { Sable.remettreAZero(); confirmation.hidden = true; });
+  document.body.dataset.sablePret = 'oui';
+})();
+</script>
+<script>
+// === LIVRAISON 11/11/2026 : mode Jour | Nuit recu de choix_matieres.html (adresse ?mode= ou message). Ajout seulement. ===
+(function () {
+  function appliquer(m) { var b = document.getElementById(m === "nuit" ? "bouton-nuit" : "bouton-jour"); if (b) b.click(); }
+  var m = new URLSearchParams(location.search).get("mode"); if (m) appliquer(m);
+  window.addEventListener("message", function (e) { if (e.data && e.data.matieresMode) appliquer(e.data.matieresMode); });
+})();
+</script></body>
+</html>

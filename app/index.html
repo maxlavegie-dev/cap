@@ -48,36 +48,84 @@
     <!-- 07/11/2026 (étape A, plan accepté par Max) : accueil sur l'eau, 3 boutons en colonne (Micro,
          Chercher, Autre), icônes du travail de Zencoder sans fond gris. Le micro est le micro de Cap
          (même bouton, mêmes gestes), déplacé ici depuis la barre du bas. -->
-    <nav id="accueil-boutons" aria-label="Accueil">
-      <!-- 08/11/2026 (accord de Max, étape 2) : le micro de l'accueil OUVRE seulement l'écran Micro (aucune dictée).
-           Le vrai micro (#microphone, mêmes gestes, même code de dictée) est déplacé au milieu de l'écran Micro. -->
-      <!-- 09/11/2026 (étape 2) : l'écran Micro disparaît ; ce bouton est caché (gardé). Avant : visible, en haut. -->
+    <!-- 12/11/2026 (accord de Max, c163, marche 1 du nouvel accueil) : GRILLE 3 × 4 sur l'eau (maquette de Haiku, lue sans y
+         toucher). Chaque icône qui a un lien TOUCHE l'ancien bouton (même destination : règle d'or de Max, test c163) ; sans
+         lien : grisée, « Il n'y a pas encore de lien ». « Autre » : caché ici (gardé, rien effacé). Les écrans Chercher et Autre
+         gardent toutes leurs icônes. Avant (09/11) : loupe, gros micro (« + » et « écrire » à ses côtés), Autre, en colonne. -->
+    <nav id="accueil-boutons" class="accueil-grille" aria-label="Accueil">
+      <div id="grille-accueil" class="grille-accueil">
       <button id="ouvrir-micro" class="bouton-accueil-principal" type="button" aria-label="Micro" aria-controls="ecran-micro" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
       </button>
-      <!-- 09/11/2026 : aria-controls « ecran-complet » devient « ecran-chercher » (le nouvel écran Chercher). -->
+      <button id="accueil-todo" class="bouton-accueil-principal" type="button" aria-label="To-do" aria-controls="ecran-complet">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M7 12l3 3 7-7"/></svg>
+      </button>
+      <button id="accueil-media" class="bouton-accueil-principal" type="button" aria-label="Média" aria-haspopup="dialog" aria-controls="musique-relations">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="4" width="18" height="16" rx="2"/><path class="triangle-lecture" d="M10 9l6 3-6 3z"/></svg>
+      </button>
+      <button id="accueil-chantiers" class="bouton-accueil-principal" type="button" aria-label="Chantiers" aria-haspopup="dialog" aria-controls="chantiers-cap">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13.5 3.5l7 7-3 3-7-7z"/><path d="M12 8.5L3.8 16.7a1.6 1.6 0 0 0 2.3 2.3L14.5 10.6"/></svg>
+      </button>
+      <!-- 12/11/2026 (accord de Max, c167) : LIGNE DE RECHERCHE, sur les trois colonnes, juste AU-DESSUS de loupe / micro / œil ;
+           la loupe l'ouvre et la referme (comme la bande du micro). Dedans : la barre et les propositions de l'ancien écran
+           Chercher, DÉPLACÉES (mêmes éléments, même code : menu « Chercher dans », champ, propositions, Entrée). -->
+      <div id="bande-recherche-accueil" class="bande-recherche" hidden>
+        <!-- 09/11/2026 (accord de Max, partie 2 A) : la barre de Chercher a le même menu (« Tout » par défaut, rempli au
+             démarrage depuis celui de l'écran des tâches) et des propositions dès la première lettre : les toucher mène
+             directement au résultat. Entrée : la recherche complète, comme avant. Avant : aria-label « Chercher dans les tâches ». -->
+        <div id="chercher-barre">
+          <select id="chercher-source" aria-label="Chercher dans"></select>
+          <input id="chercher-champ" type="search" enterkeyhint="search" autocomplete="off" aria-label="Chercher" placeholder="Chercher">
+        </div>
+        <ul id="propositions-chercher" aria-label="Propositions" hidden></ul>
+      </div>
       <button id="ouvrir-chercher" class="bouton-accueil-principal" type="button" aria-label="Chercher" aria-controls="ecran-chercher">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10" cy="10" r="6"/><line x1="15" y1="15" x2="21" y2="21"/></svg>
       </button>
-      <!-- 09/11/2026 (accord de Max, étape 2) : rangée « + » / GROS MICRO / nouvelle icône, au milieu de l'accueil.
-           Premier toucher du micro : il N'ÉCOUTE PAS, il fait apparaître « + » et la nouvelle icône. Deuxième toucher (ou deux
-           touchers rapides) : une phrase. Appui long 2 s : surbrillance, écoute continue, « + » et l'icône apparaissent.
-           L'icône ouvre la même fenêtre que l'ancienne icône clavier (rôle et dessin à préciser avec Max : PROVISOIRE).
-           Ils restent affichés jusqu'à ce que Max touche l'un d'eux ou quitte l'accueil (aucune minuterie). -->
-      <div id="rangee-micro-accueil" class="rangee-micro">
+      <button id="microphone" class="bouton-accueil-principal" type="button" aria-label="Dicter une tâche" aria-pressed="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+        </button>
+      <button id="accueil-oeil" class="bouton-accueil-principal" type="button" aria-label="Visionneuse" aria-haspopup="dialog" aria-controls="visionneuse-cap">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+      <!-- c163 : bande du micro, pleine largeur, ENTRE la ligne 2 et la ligne 3 : « + » sous la loupe, « écrire » sous l'œil,
+           rien au milieu (symétrique) ; elle n'apparaît que quand le micro les montre (rien n'est recouvert). -->
+      <div id="rangee-micro-accueil" class="bande-micro">
         <button id="micro-ajouter" class="bouton-accueil-principal outil-micro" type="button" hidden aria-label="Ajouter une tâche">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
-        <button id="microphone" class="bouton-accueil-principal" type="button" aria-label="Dicter une tâche" aria-pressed="false">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
-        </button>
+        <span class="vide" aria-hidden="true"></span>
         <button id="micro-ecrire" class="bouton-accueil-principal outil-micro" type="button" aria-label="Écrire une demande" aria-haspopup="dialog" aria-controls="clavier" hidden>
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><line x1="14" y1="6" x2="18" y2="10"/></svg>
         </button>
       </div>
-      <button id="ouvrir-autre" class="bouton-accueil-principal" type="button" aria-label="Autre" aria-controls="ecran-autre">
+      <button id="accueil-bureau" class="bouton-accueil-principal" type="button" aria-label="Documents" aria-haspopup="dialog" aria-controls="visionneuse-cap">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M15 2v5h5"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+      </button>
+      <button id="accueil-agenda" class="bouton-accueil-principal bouton-pas-pret" type="button" aria-label="Agenda (pas encore de lien)" aria-disabled="true">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>
+      </button>
+      <button id="accueil-a-trier" class="bouton-accueil-principal" type="button" aria-label="À trier" aria-controls="ecran-complet">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 13l2.5-8h13L21 13v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></svg>
+      </button>
+      <button id="accueil-scanner" class="bouton-accueil-principal" type="button" aria-label="Scanner" aria-haspopup="dialog" aria-controls="scanner">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 8V4h4M17 4h4v4M21 16v4h-4M7 20H3v-4M3 12h18"/></svg>
+      </button>
+      <!-- c163 : l'interrupteur Jour / Nuit est une CASE entière (lune, piste, soleil) : toute la case se touche. -->
+      <button id="accueil-theme" class="tuile-theme" type="button" role="switch" aria-checked="true" aria-label="Mode sombre (sinon mode clair)">
+        <svg class="icone-theme" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+        <span class="piste-theme"><span class="curseur-theme"></span></span>
+        <svg class="icone-theme" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.9" y1="4.9" x2="6.6" y2="6.6"/><line x1="17.4" y1="17.4" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.6" y2="17.4"/><line x1="17.4" y1="6.6" x2="19.1" y2="4.9"/></svg>
+      </button>
+      <button id="accueil-reglages" class="bouton-accueil-principal" type="button" aria-label="Réglages" aria-controls="ecran-reglages">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+      <button id="ouvrir-autre" class="bouton-accueil-principal" type="button" hidden aria-label="Autre" aria-controls="ecran-autre">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>
       </button>
+      <p id="message-accueil" class="message-autre" role="status" aria-live="polite" hidden></p>
+      <p id="scans-accueil" class="scans-en-attente" role="status" aria-live="polite" hidden></p>
+      </div>
     </nav>
     <!-- Écran « Autre » (étape A) : Scanner (le scanner de Cap, déplacé ici avec le nombre de scans en
          attente), Réglages, interrupteur clair / sombre (écrans sur l'eau seulement), Fermer. -->
@@ -128,8 +176,26 @@
          « Fermer » VISIBLE (décision de Max). Sans la lumière de bord (étape 3, pas maintenant). Photo GRISÉ (3d en
          pause). To-do = l'écran des tâches ; Documents = la visionneuse (œil) ; Média = la musique (Lecteur) ; la barre
          = la recherche de Cap (écran des tâches). Avant : « Chercher » ouvrait directement l'écran des tâches. -->
+    <!-- 12/11/2026 (accord de Max, c165, marche 3 du nouvel accueil) : écran « Bureau », ouvert par l'icône page cornée de
+         l'accueil : « Documents » (la visionneuse, comme avant : touche l'ancien bouton « Documents » de Chercher) et « Notes »
+         (grisée : « Il n'y a pas encore de lien »). « Fermer » caché : le geste de retour s'en sert, comme pour « Autre ». -->
+    <section id="ecran-bureau" class="ecran-cap" aria-label="Bureau" hidden>
+      <div class="grille-autre grille-bureau">
+        <button id="bureau-documents" class="bouton-autre" type="button" aria-haspopup="dialog" aria-controls="visionneuse-cap">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 2h9l5 5v15a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><path d="M15 2v5h5"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+          <span class="legende-bureau">Documents</span>
+        </button>
+        <button id="bureau-notes" class="bouton-autre bouton-pas-pret" type="button" aria-disabled="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M6 3h9l3 3v15H6z"/><path d="M9 10h6M9 14h6M9 18h4"/></svg>
+          <span class="legende-bureau">Notes</span>
+        </button>
+      </div>
+      <p id="message-bureau" class="message-autre" role="status" aria-live="polite" hidden></p>
+      <button id="fermer-bureau" class="bouton-sur-eau" type="button" hidden>Fermer</button>
+    </section>
     <section id="ecran-chercher" class="ecran-cap" aria-label="Chercher" hidden>
-      <div class="grille-autre grille-chercher">
+      <!-- 12/11/2026 (décision de Max, c167) : icônes cachées (elles sont sur l'accueil ou dans Bureau ; Photo n'a pas de lien). -->
+      <div class="grille-autre grille-chercher" hidden>
         <button id="chercher-todo" class="bouton-autre" type="button" aria-controls="ecran-complet">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M7 12l3 3 7-7"/></svg>
           <span class="visuellement-cache">To-do</span>
@@ -152,16 +218,18 @@
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3 13l2.5-8h13L21 13v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></svg>
           <span class="visuellement-cache">À trier</span>
         </button>
+        <!-- 10/11/2026 (choix de Max, emplacement n° 1) : 6e icône « Chantiers », à côté de « À trier » ; dessin : un petit
+             marteau (10/11/2026, Max voyait une cloche de plat dans l'ancien casque :
+             <path d="M4.5 16a7.5 7.5 0 0 1 15 0"/><path d="M10 8.7V5.5h4v3.2"/><path d="M2.5 16h19v2.5h-19z"/>) :
+             ouvre l'écran « Chantiers » (lecture seule, chantiers_ecran.js), comme « ouvre les chantiers ». -->
+        <button id="chercher-chantiers" class="bouton-autre" type="button" aria-haspopup="dialog" aria-controls="chantiers-cap">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M13.5 3.5l7 7-3 3-7-7z"/><path d="M12 8.5L3.8 16.7a1.6 1.6 0 0 0 2.3 2.3L14.5 10.6"/></svg>
+          <span class="visuellement-cache">Chantiers</span>
+        </button>
       </div>
       <p id="message-chercher" class="message-autre" role="status" aria-live="polite" hidden></p>
-      <!-- 09/11/2026 (accord de Max, partie 2 A) : la barre de Chercher a le même menu (« Tout » par défaut, rempli au
-           démarrage depuis celui de l'écran des tâches) et des propositions dès la première lettre : les toucher mène
-           directement au résultat. Entrée : la recherche complète, comme avant. Avant : aria-label « Chercher dans les tâches ». -->
-      <div id="chercher-barre">
-        <select id="chercher-source" aria-label="Chercher dans"></select>
-        <input id="chercher-champ" type="search" enterkeyhint="search" autocomplete="off" aria-label="Chercher" placeholder="Chercher">
-      </div>
-      <ul id="propositions-chercher" aria-label="Propositions" hidden></ul>
+      <!-- 12/11/2026 (accord de Max, c167) : la barre et les propositions sont DÉPLACÉES dans la ligne de recherche de l'accueil
+           (#bande-recherche-accueil, mêmes éléments, même code) ; cet écran reste caché, ses icônes aussi (rien effacé). -->
       <!-- 09/11/2026 (décision de Max après l'essai c58) : « Fermer » retiré de l'écran : le geste de haut en bas suffit.
            Bouton gardé, caché (« hidden ») : le geste et la voix (« ferme ») s'en servent. Avant : visible. -->
       <button id="fermer-chercher-cap" class="bouton-fermer-chercher" type="button" hidden>Fermer</button>
@@ -171,6 +239,19 @@
          puis le curseur d'intensité de l'eau (MAQUETTE : il ne commande rien pour l'instant). -->
     <section id="ecran-reglages" class="ecran-cap" aria-label="Réglages" hidden>
       <h2 class="titre-ecran-cap">Réglages</h2>
+      <!-- 11/11/2026 (accord de Max, c138) : « Matières » TOUT EN HAUT, avant « Synchroniser maintenant » (livraison de Haiku ;
+           icône en ligne : elle prend la couleur du texte du bouton). Style : celui de tous les boutons des Réglages. -->
+      <button id="ouvrir-matieres" type="button" aria-haspopup="dialog" aria-controls="matieres-cap">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+          <path d="M3 7c1.5-1.6 3-1.6 4.5 0s3 1.6 4.5 0 3-1.6 4.5 0 3 1.6 4.5 0"/>
+          <circle cx="5" cy="12.5" r="0.6" fill="currentColor"/>
+          <circle cx="9.7" cy="12.5" r="0.6" fill="currentColor"/>
+          <circle cx="14.3" cy="12.5" r="0.6" fill="currentColor"/>
+          <circle cx="19" cy="12.5" r="0.6" fill="currentColor"/>
+          <path d="M3 18h18"/>
+        </svg>
+        <span>Matières</span>
+      </button>
       <!-- Déplacés le 07/11/2026 depuis l'écran complet (attribut data-vues retiré : hors des vues des tâches). -->
       <div id="etat-synchro">
         <span id="texte-etat-google" role="status">non connecté</span>
@@ -263,6 +344,7 @@
             <option value="taches">Tâches</option>
             <option value="rendez-vous">Rendez-vous</option>
             <option value="personnes">Personnes</option>
+            <option value="chantiers">Chantier</option><!-- 11/11/2026 (accord de Max, c135) : ouvre l'écran des chantiers (app.js) -->
             <option disabled>Notes (plus tard)</option>
             <option disabled>Listes (plus tard)</option>
             <option disabled>Documents (plus tard)</option>
@@ -682,6 +764,8 @@
     <!-- 08/11/2026, 13h (option 4, accord de Max) : lecture avec le compte Cap ; bouton de la fenêtre de choix caché (gardé). -->
     <button id="choisir-commandes-vocales" type="button" hidden>Choisir le tableur « Commandes vocales »</button>
     <button id="lire-commandes-vocales" type="button">Lire les commandes vocales</button>
+    <!-- 09/11/2026 (chantiers, séance 1) : choisir une fois la « Liste des chantiers » (dans Chrome ; l'appli la retrouve ensuite). -->
+    <button id="choisir-chantiers" type="button">Choisir le tableur « Liste des chantiers »</button>
     <button id="autoriser-commandes-vocales" type="button" hidden>Autoriser la lecture du compte Cap</button>
     <p id="resume-commandes-vocales" role="status" hidden></p>
     <!-- 08/11/2026 (étape 2, accord de Max) : essai de la reconnaissance, sans rien faire (aucune action lancée). -->
@@ -717,10 +801,21 @@
     <input id="adresse-compte-relations" type="text" inputmode="email" data-reglage autocomplete="off" spellcheck="false" autocapitalize="off">
     <button id="connecter-compte-relations" type="button">Autoriser la lecture du compte Cap</button>
     <button id="compter-compte-relations" type="button">Compter ce que Cap voit dans le compte Cap</button>
+    <!-- 10/11/2026 (c90) : un journal par personne, dans « Journaux des relations » (compte Cap). -->
+    <button id="ouvrir-journaux-relations" type="button" aria-haspopup="dialog" aria-controls="journaux-relations">Journaux des relations</button>
+    <!-- 12/11/2026 (accord écrit de Max, M3a-c) : MMS. Lire = nombres seulement, rien copié ; Répétition = dossiers FICTIFS vides. -->
+    <button id="lire-mms" type="button">Lire mes derniers MMS (rien n’est copié)</button>
+    <button id="repetition-mms" type="button">Répétition MMS : dossiers FICTIFS dans le compte Cap</button>
+    <p id="resultat-mms" class="relations-gros bloc-resultat" role="status" data-titre="" hidden></p>
+    <div id="barre-mms" hidden>
+      <button id="oui-mms" class="choix-grand-affichage" type="button">Oui, créer</button>
+      <button id="non-mms" class="choix-grand-affichage" type="button">Non</button>
+    </div>
     <p id="resume-compte-relations" class="relations-gros bloc-resultat" role="status" hidden></p>
     <p id="resume-documents-compte" class="relations-gros bloc-resultat" role="status" hidden></p>
-    <button id="pdf-compte-relations" class="relations-gros-bouton" type="button" hidden>Afficher les PDF dans Cap</button>
-    <button id="musique-compte-relations" class="relations-gros-bouton" type="button">Écouter les MP3 de « Relations »</button>
+    <!-- 12/11/2026 (c148, décision de Max, ligne 15) : bouton de secours « Afficher les PDF dans Cap » RETIRÉ (l'œil, la
+         visionneuse, est validé). -->
+    <button id="musique-compte-relations" class="relations-gros-bouton" type="button">Écouter la musique de « Relations »</button><!-- 10/11/2026 ; avant : « Écouter les MP3 de « Relations » » -->
     <!-- 07/11/2026 : après une connexion expirée, reprend la musique au bon morceau (place gardée sur le téléphone). -->
     <button id="reprendre-musique-relations" class="relations-gros-bouton" type="button" hidden>Reprendre la musique</button>
     <hr class="separation-reglages">
@@ -746,6 +841,95 @@
   <dialog id="choix-voix" class="fenetre-choix" aria-label="Choix">
     <div id="liste-choix-voix"></div>
     <button id="fermer-choix-voix" class="choix-grand-affichage" type="button">Fermer</button>
+  </dialog>
+  <!-- 09/11/2026 (accord de Max, chantiers, séance 1) : l'écran « Chantiers », en lecture seule (chantiers_ecran.js). -->
+  <dialog id="chantiers-cap" class="fenetre-choix" aria-label="Chantiers">
+    <p id="etat-chantiers" class="relations-gros" role="status" hidden></p>
+    <!-- 10/11/2026 (décision de Max) : la fiche courte EN HAUT, au-dessus de la liste, collée en haut quand la liste défile.
+         Avant : placée après la liste (tout en bas, hors de l'écran avec 47 chantiers). -->
+    <!-- 10/11/2026 (séance 2) : compteurs du voyant calculé (rouges, orange, verts, dates illisibles), sans aucun nom. -->
+    <p id="compteurs-chantiers" class="relations-gros" hidden></p>
+    <p id="compteur-prompts" class="relations-gros" hidden></p><!-- 10/11/2026 (c94) : « N chantiers ont un prompt » (sans nom) -->
+    <!-- 12/11/2026 (c147, décision de Max, ligne 92) : bouton « Mettre à niveau les dossiers déjà créés » RETIRÉ :
+         « Tout synchroniser » fait ce travail (même préparation, même écriture, un seul Oui). -->
+    <!-- 10/11/2026 (séance 3) : la fiche et, dessous, le dossier Drive du chantier, collés en haut ensemble. -->
+    <div id="haut-chantier">
+      <p id="fiche-chantier" class="relations-gros" role="status" hidden></p>
+      <!-- 10/11/2026 (c94) : le prompt du chantier (lu dans la Liste, lecture seule), zone qui défile si le texte est long. -->
+      <div id="prompt-chantier" hidden></div>
+      <div id="dossier-chantier" hidden>
+        <!-- 10/11/2026 (c97, accord de Max) : les 4 actions d'un chantier qui a un dossier, en 2 × 2, mots courts : « Note » (c92 :
+             ouvre le champ), « Journal » (c93), « Documents » (c96), « Drive » (c89, hors de Cap). Avant : boutons empilés « Ouvrir le
+             dossier dans Drive », « Ajouter une note au journal » (champ toujours ouvert), « Lire le journal », « Voir les documents »,
+             dont le bas était coupé sur le Pixel. Les résultats (journal, documents) : UNE seule zone. -->
+        <div id="actions-chantier" class="grille-actions-chantier" hidden>
+          <button id="ouvrir-note-chantier" class="choix-grand-affichage" type="button">Note</button>
+          <button id="lire-journal-chantier" class="choix-grand-affichage" type="button">Journal</button>
+          <button id="voir-documents-chantier" class="choix-grand-affichage" type="button">Documents</button>
+          <a id="ouvrir-dossier-chantier" class="choix-grand-affichage" target="_blank" rel="noopener">Drive</a>
+        </div>
+        <!-- 11/11/2026 (accord de Max, c128, séance 6b) : les tâches du chantier dans l'onglet « Prêt » de « À faire »
+             (lecture seule, compte Cap) ; montrées dans la même zone de résultat que « Journal » et « Documents ». -->
+        <button id="taches-chantier" class="choix-grand-affichage" type="button" hidden>Tâches</button>
+        <p id="question-dossier-chantier" class="relations-gros" role="status" hidden></p>
+        <!-- 11/11/2026 (c107, demande de Max) : témoin du micro : ce que Cap a reçu de la dernière dictée, fiche ouverte. -->
+        <p id="temoin-micro-chantier" role="status" hidden></p>
+        <!-- 10/11/2026 (c92) : une note de Max, ajoutée à la fin du journal du chantier (ligne montrée d'abord, puis Oui). -->
+        <div id="zone-note-chantier" hidden>
+          <textarea id="note-chantier" rows="3" aria-label="Note pour le journal du chantier" placeholder="Ta note pour le journal"></textarea>
+          <button id="ajouter-note-chantier" class="choix-grand-affichage" type="button">Ajouter une note au journal</button>
+        </div>
+        <div id="resultat-chantier" role="status" hidden></div>
+        <button id="creer-dossier-chantier" class="choix-grand-affichage" type="button">Créer le dossier de ce chantier</button>
+      </div>
+      <!-- 10/11/2026 (c86, demande de Max) : « Oui, créer » et « Non » dans une barre collée en bas, toujours visibles.
+           Rangée dans le bloc du haut (qui commence en haut de l'écran), pour rester collée même sous une très longue fiche. -->
+      <div id="barre-dossier-chantier">
+        <button id="oui-dossier-chantier" class="choix-grand-affichage" type="button" hidden>Oui, créer</button>
+        <button id="non-dossier-chantier" class="choix-grand-affichage" type="button" hidden>Non</button>
+      </div>
+    </div>
+    <!-- 11/11/2026 (accord de Max, c131) : recherche dans la liste, sur le téléphone seulement (n'importe où dans le nom,
+         sans majuscules ni accents). Champ vide = liste complète. -->
+    <input id="recherche-chantiers" type="search" placeholder="Chercher un chantier" aria-label="Chercher un chantier" autocomplete="off">
+    <p id="message-recherche-chantiers" role="status" hidden>Aucun chantier trouvé</p>
+    <div id="liste-chantiers"></div>
+    <p id="note-chantiers" class="relations-gros" hidden></p>
+    <button id="fermer-chantiers" class="choix-grand-affichage" type="button">Fermer</button>
+  </dialog>
+  <!-- 10/11/2026 (accord de Max, c98) : « Tout synchroniser » : les étapes, puis la liste et « Oui » avant toute écriture. -->
+  <dialog id="synchro-tout" class="fenetre-choix" aria-label="Tout synchroniser">
+    <!-- 10/11/2026 (c101) : identifiants UNIQUES (avant : « etat-synchro », déjà pris par la zone de l'écran Réglages). -->
+    <p id="texte-synchro-tout" class="relations-gros" role="status" hidden></p>
+    <div id="barre-synchro-tout">
+      <button id="oui-synchro-tout" class="choix-grand-affichage" type="button" hidden>Oui, mettre à niveau</button>
+      <button id="non-synchro-tout" class="choix-grand-affichage" type="button" hidden>Non</button>
+    </div>
+    <button id="fermer-synchro-tout" class="choix-grand-affichage" type="button">Fermer</button>
+  </dialog>
+  <!-- 10/11/2026 (accord de Max, c90) : les journaux des relations (journaux_relations.js). -->
+  <dialog id="journaux-relations" class="fenetre-choix" aria-label="Journaux des relations">
+    <p id="etat-journaux-relations" class="relations-gros" role="status" hidden></p>
+    <p id="question-journal-relation" class="relations-gros" role="status" hidden></p>
+    <!-- 10/11/2026 (c91) : pour une personne qui a un journal : le journal et le dossier, ouverts hors de Cap. -->
+    <div id="liens-journal-relation" hidden>
+      <a id="ouvrir-journal-relation" class="choix-grand-affichage" target="_blank" rel="noopener">Ouvrir le journal</a>
+      <a id="ouvrir-dossier-relation" class="choix-grand-affichage" target="_blank" rel="noopener">Ouvrir le dossier dans Drive</a>
+    </div>
+    <div id="liste-journaux-relations"></div>
+    <!-- 12/11/2026 (c147, décision de Max, ligne 92) : bouton « Mettre à niveau les journaux des relations » RETIRÉ
+         (« Tout synchroniser » le fait). -->
+    <div id="barre-journal-relation">
+      <button id="oui-journal-relation" class="choix-grand-affichage" type="button" hidden>Oui, créer</button>
+      <button id="non-journal-relation" class="choix-grand-affichage" type="button" hidden>Non</button>
+    </div>
+    <button id="fermer-journaux-relations" class="choix-grand-affichage" type="button">Fermer</button>
+  </dialog>
+  <!-- 12/11/2026 (accord de Max, c151, A2) : la CARTE d'un nom trouvé dans Chercher (carte_cap.js) : ce que Cap sait. -->
+  <dialog id="carte-cap" class="fenetre-choix" aria-label="Carte">
+    <p id="titre-carte-cap" class="relations-gros"></p>
+    <div id="blocs-carte-cap"></div>
+    <button id="fermer-carte-cap" class="choix-grand-affichage" type="button">Fermer</button>
   </dialog>
   <dialog id="musique-relations" class="fenetre-choix" aria-label="Musique">
     <p id="etat-musique-relations" class="relations-gros" role="status"></p>
@@ -793,6 +977,10 @@
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 5.5c3-1.3 6-1.3 10 1 4-2.3 7-2.3 10-1v13c-3-1.3-6-1.3-10 1-4-2.3-7-2.3-10-1z"/><line x1="12" y1="6.5" x2="12" y2="19.5"/></svg>
     <span id="compte-apprendre" class="compte-apprendre" aria-hidden="true" hidden>0</span>
   </button>
+  <!-- 10/11/2026 (accord de Max, c98) : « Tout synchroniser », sur tous les écrans (il suit la fenêtre du dessus, comme le micro). -->
+  <button id="bouton-synchro" class="bouton-synchro pas-de-fantome" type="button" aria-label="Tout synchroniser" aria-haspopup="dialog" aria-controls="synchro-tout">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 11a8 8 0 0 0-14.6-4.5L3 9"/><path d="M3 4v5h5"/><path d="M4 13a8 8 0 0 0 14.6 4.5L21 15"/><path d="M21 20v-5h-5"/></svg>
+  </button>
   <!-- 08/11/2026 : petit indicateur de la musique en arrière-plan (le toucher ramène au lecteur). -->
   <button id="indicateur-musique" class="indicateur-musique pas-de-fantome" type="button" aria-label="Musique : arrière-plan ou retour au lecteur" hidden>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg>
@@ -803,6 +991,8 @@
   <!-- 08/11/2026 (accord de Max) : VIGNETTES des documents (au plus 40 par écran), sur l'eau, sans titre ni cadre ;
        toucher une vignette l'ouvre en grand dans la visionneuse ; « Suivants » s'il y en a plus de 40 ; « Fermer ». -->
   <dialog id="vignettes-cap" class="fenetre-choix" aria-label="Documents">
+    <!-- 11/11/2026 (accord de Max, c111, séance 4) : le nom du chantier ouvert, en haut à gauche (caché sinon). -->
+    <p id="titre-vignettes" hidden></p>
     <p id="etat-vignettes" class="relations-gros" role="status" hidden></p>
     <button id="autoriser-vignettes" class="choix-grand-affichage" type="button" hidden>Autoriser la lecture du compte Cap</button>
     <div id="grille-vignettes" class="grille-vignettes"></div>
@@ -814,8 +1004,58 @@
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
     </button>
   </dialog>
+  <!-- 11/11/2026 (accord de Max, c138) : la page de choix des matières, en plein écran ; barre de Cap avec « Fermer »
+       au-dessus (la page n'a pas de retour) ; le cadre est vidé à la fermeture (matieres_ecran.js). -->
+  <dialog id="matieres-cap" class="plein-ecran" aria-label="Matières">
+    <div id="barre-matieres"><button id="fermer-matieres" type="button">Fermer</button></div>
+    <iframe id="cadre-matieres" title="Matières"></iframe>
+  </dialog>
   <dialog id="visionneuse-cap" class="plein-ecran" aria-label="Visionneuse">
     <iframe id="cadre-visionneuse" title="Visionneuse"></iframe>
+    <!-- 11/11/2026 (accord de Max, c118, marche 1) : BARRE VIDE en haut de TOUTE visionneuse : le nom du chantier à gauche
+         (c114, vide hors chantier), un bouton rond blanc sans texte à droite. Les documents commencent toujours dessous. -->
+    <div id="barre-visionneuse">
+      <p id="titre-visionneuse" hidden></p>
+      <button id="bouton-menu-visionneuse" type="button" aria-label="Boutons de la visionneuse" aria-expanded="false" aria-controls="menu-visionneuse"></button>
+    </div>
+    <!-- 11/11/2026 (accord de Max, c124) : le PETIT JOURNAL du chantier ouvert, sous la barre : ses 5 dernières lignes (lecture
+         seule, comme « Journal » dans la fiche) ; la mosaïque commence dessous. Caché hors chantier. -->
+    <div id="journal-visionneuse" role="status" hidden></div>
+    <!-- 11/11/2026 (accord de Max, c125) : une note dictée depuis la visionneuse : la MÊME question que dans la fiche du
+         chantier (ligne datée montrée), par-dessus ; rien n'est écrit sans « Oui, ajouter » ; « Non » (ou double toucher hors
+         des boutons) : rien. Les réponses de la fiche (« Je t'écoute… », « C'est fait… ») s'affichent en bas. -->
+    <div id="question-note-visionneuse" role="alertdialog" aria-labelledby="texte-note-visionneuse" hidden>
+      <p id="texte-note-visionneuse"></p>
+      <div class="boutons-depart-visionneuse">
+        <button id="oui-note-visionneuse" type="button">Oui, ajouter</button>
+        <button id="non-note-visionneuse" type="button">Non</button>
+      </div>
+    </div>
+    <p id="message-chantier-visionneuse" role="status" hidden></p>
+    <!-- c118 : au toucher du bouton blanc, EN LIGNE juste dessous : micro, livre, synchronisation (les boutons communs de Cap,
+         rangés ici SEULEMENT dans la visionneuse, par accueil_cap.js), puis Fermer, « Ajouter un fichier », « ↺ comme au
+         départ ». Sans toucher pendant 4 s, ou après un choix : il se referme. -->
+    <div id="menu-visionneuse" hidden>
+      <div id="menu-visionneuse-communs"></div>
+      <button id="menu-fermer-visionneuse" type="button">Fermer</button>
+      <button id="menu-ajouter-visionneuse" type="button">Ajouter un fichier</button>
+      <button id="menu-depart-visionneuse" type="button" aria-label="Comme au départ">↺</button>
+      <input id="fichier-visionneuse" type="file" accept="image/*,application/pdf" multiple hidden>
+    </div>
+    <!-- 11/11/2026 (accord de Max, c123) : « ↺ » demande d'abord ; seul « Oui » remet tout comme au départ ; « Non » (ou
+         un double toucher hors des boutons) ne change RIEN. -->
+    <div id="confirmer-depart-visionneuse" role="alertdialog" aria-labelledby="question-depart-visionneuse" hidden>
+      <p id="question-depart-visionneuse">Tout remettre comme au départ ?</p>
+      <div class="boutons-depart-visionneuse">
+        <button id="oui-depart-visionneuse" type="button">Oui</button>
+        <button id="non-depart-visionneuse" type="button">Non</button>
+      </div>
+      <!-- 12/11/2026 (accord de Max, c161) : petit micro sous « Oui » et « Non » : dire « oui » ou « non » (c126), mêmes règles
+           que le petit micro de tous les écrans (appui simple : une phrase ; appui long : conversation). -->
+      <button id="micro-depart-visionneuse" class="micro-question" type="button" aria-label="Micro : dis « oui » ou « non »" aria-pressed="false">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0"/><line x1="12" y1="18" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
+      </button>
+    </div>
     <p id="etat-visionneuse" role="status" hidden></p>
     <!-- 08/11/2026 (accord de Max) : même texte et même rôle que dans « Réglages du Drive » (aucun droit nouveau) ;
          après Google, Cap revient directement dans la visionneuse. -->
@@ -1129,6 +1369,7 @@
   <script src="nommage_scan.js"></script>
   <script src="mots_courts.js"></script>
   <script src="emetteur.js"></script>
+  <script src="types_fichiers.js"></script><!-- 10/11/2026 : le seul endroit qui décide musique, vidéo, PDF, image (séance 3) -->
   <script src="relations.js"></script>
   <script src="attente.js"></script>
   <script src="commandes_vocales.js"></script>
@@ -1136,7 +1377,17 @@
   <script src="transition_ecrans.js"></script>
   <script src="relations_creation.js"></script>
   <script src="visionneuse_cap.js"></script>
+  <script src="numeros.js"></script><!-- 12/11/2026 (M2) : normalisation des numéros (fonction pure) -->
+  <script src="index_relations.js"></script><!-- 12/11/2026 (M1) : index local par empreinte (aucun numéro en clair) -->
+  <script src="coordonnees_relations.js"></script><!-- 12/11/2026 (c154, A3a) : coordonnées des relations, sur le téléphone seulement -->
+  <script src="memoire_relations.js"></script><!-- 12/11/2026 (c150, A1) : mémoire des relations, sur le téléphone seulement -->
+  <script src="carte_cap.js"></script><!-- 12/11/2026 (c151, A2) : la carte d'un nom trouvé dans Chercher -->
+  <script src="synchro_tout.js"></script><!-- 10/11/2026 (c98) : avant relations_compte.js (retour de Google pendant une synchro) -->
   <script src="relations_compte.js"></script>
+  <script src="mms_lecture.js"></script><!-- 12/11/2026 (M3a) : lecture des MMS reçus (coque), numéro changé aussitôt en empreinte -->
+  <script src="mms_rangement.js"></script><!-- 12/11/2026 (M3b) : personne ou « À trier », des nombres seulement -->
+  <script src="mms_repetition.js"></script><!-- 12/11/2026 (M3c) : dossiers de répétition FICTIFS (compte Cap) -->
+  <script src="mms_ecran.js"></script><!-- 12/11/2026 (M3a-c) : les deux boutons des MMS (Réglages du Drive) -->
   <script src="relations_mp3.js"></script>
   <script src="scan_ecran.js"></script>
   <script src="tuiles.js"></script>
@@ -1145,6 +1396,10 @@
   <script src="tableur_phrases.js"></script><!-- 09/11/2026 : petit tableur « Phrases apprises » -->
   <script src="tableur_cap.js"></script><!-- 09/11/2026 : tableur « Commandes vocales (Cap) » (compte Cap) -->
   <script src="numero_choix.js"></script><!-- 09/11/2026 (bloc c74) : réponse par le rang dans les choix -->
+  <script src="regles_voyant.js"></script><!-- 10/11/2026 : règles du voyant calculé, réglages seulement (séance 2) -->
+  <script src="chantiers.js"></script>
+  <script src="chantiers_dossiers.js"></script><!-- 10/11/2026 : un dossier Drive par chantier, compte Cap (séance 3) --><!-- 09/11/2026 : lecture de la « Liste des chantiers » (séance 1) -->
+  <script src="tuiles_config.js"></script><!-- 12/11/2026 (c172) : les tuiles fixes de « Tout voir », à un seul endroit -->
   <script src="app.js"></script>
   <script src="ecran_eau.js"></script>
   <script src="accueil_cap.js"></script>
@@ -1152,6 +1407,10 @@
   <script src="commandes_navigation.js"></script>
   <script src="commandes_musique.js"></script>
   <script src="commandes_visionneuse.js"></script>
+  <script src="chantiers_ecran.js"></script><!-- 09/11/2026 : écran « Chantiers » (séance 1) -->
+  <script src="journaux_relations.js"></script><!-- 10/11/2026 (c90) : journaux des relations -->
+  <script src="confirmations_fenetres.js"></script><!-- 10/11/2026 (c87) : oui / non / annuler à la voix, double toucher -->
+  <script src="matieres_ecran.js"></script><!-- 11/11/2026 (c138) : bouton « Matières » des Réglages -->
   <script src="installation.js"></script>
 </body>
 </html>

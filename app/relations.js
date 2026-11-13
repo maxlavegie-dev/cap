@@ -68,6 +68,21 @@ const relations = (() => {
     return resultat;
   }
 
+  // 12/11/2026 (accord de Max, c153, A4) : ÉCARTS entre le Dictionnaire et les dossiers « r_… » du compte Cap, en NOMBRES
+  // seulement. Même règle de nom que la création des dossiers (« r_Prénom Nom », diminutif entre parenthèses, sans accents
+  // ni majuscules). Une ligne = une personne complète du Dictionnaire (deux homonymes = deux lignes pour un même nom) ;
+  // fiches incomplètes, sans type, ou non « Personne » : pas comptées. Rien n'est gardé, rien n'est affiché d'autre.
+  function ecarts(valeurs, nomsDossiers) {
+    const r = calculer(valeurs);
+    const dossiers = new Set((nomsDossiers || []).filter(n => String(n).startsWith(PREFIXE)).map(n => cle(String(n).slice(PREFIXE.length))));
+    const lignes = [...r.aCreer.map(f => ({ cle: f.cle, n: 1 })), ...r.homonymesNoms.map(h => ({ cle: cle(h.nomDossier.slice(PREFIXE.length)), n: h.numeros.length }))];
+    const cles = new Set(r.cles);
+    return {
+      dossiersSansLigne: [...dossiers].filter(c => !cles.has(c)).length,
+      lignesSansDossier: lignes.filter(l => !dossiers.has(l.cle)).reduce((t, l) => t + l.n, 0)
+    };
+  }
+
   // Résumé pour l'écran : des NOMBRES seulement, jamais un nom.
   function resumer(r) {
     const fichesHomonymes = r.homonymes.reduce((total, g) => total + g.length, 0);
@@ -99,7 +114,7 @@ const relations = (() => {
     });
   }
 
-  return { PREFIXE, ONGLET: 'Dictionnaire', colonnesALire, prenomDuDossier, calculer, resumer, brancher };
+  return { PREFIXE, ONGLET: 'Dictionnaire', colonnesALire, prenomDuDossier, calculer, ecarts, resumer, brancher };
 })();
 
 if (typeof document !== 'undefined' && document.getElementById('calculer-relations')

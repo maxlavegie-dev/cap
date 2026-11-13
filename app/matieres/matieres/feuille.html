@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Essai FEUILLE BLANCHE (FICTIF)</title>
+<!-- FICTIF — essai de matière. Aucune donnée réelle, aucun appel réseau, aucun droit. -->
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #101010; font-family: sans-serif; }
+  #cadre-telephone { position: relative; }
+  /* === CADRE TÉLÉPHONE (réutilisable : copier ce bloc CSS et le bloc HTML « CADRE TÉLÉPHONE ») === */
+  #cadre { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #2b2b2b; }
+  #cadre-telephone { box-sizing: border-box; padding: 12px; background: #000; border-radius: 42px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    height: min(calc(100vh - 96px), calc((100vw - 96px) * 2.154)); aspect-ratio: 436 / 939; }   /* v5 : marge de 48 px tout autour */
+  #ecran { position: relative; width: 100%; height: 100%; overflow: hidden; border-radius: 30px; background: #101010; }
+  /* === FIN CADRE TÉLÉPHONE === */
+
+  #feuille { position: absolute; inset: 0; background: #ffffff; }   /* 20h15 : feuille BLANCHE (avant : transparente, donc noire) */
+  body[data-mode="nuit"] #feuille { background: #000000; }          /* 20h28 : MODE NUIT : feuille NOIRE, peinte explicitement */
+  #interrupteur { position: absolute; top: 12px; left: 12px; z-index: 2; display: flex; border: 2px solid #111;
+    border-radius: 14px; overflow: hidden; background: #fff; }
+  #interrupteur button { font: 700 15px sans-serif; padding: 10px 14px; border: 0; background: #fff; color: #111;
+    touch-action: manipulation; cursor: pointer; }
+  #interrupteur button[aria-pressed="true"] { background: #111; color: #fff; }
+  body[data-mode="nuit"] #interrupteur { border-color: #fff; }
+  body[data-mode="nuit"] #bouton-effacer { border-color: #fff; }
+  #feuille canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; display: block; cursor: crosshair; }
+  #zone-effacer { position: absolute; top: 12px; right: 12px; z-index: 2; }
+  #bouton-effacer { font: 700 15px sans-serif; padding: 12px 18px; border: 2px solid #111; border-radius: 14px;
+    background: #fff; color: #111; touch-action: manipulation; cursor: pointer; }
+  #confirmation { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.45); }
+  #confirmation[hidden] { display: none; }
+  #confirmation .boite { background: #fff; color: #111; padding: 18px; border-radius: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 220px; }
+  #confirmation p { margin: 0; font: 700 18px sans-serif; text-align: center; }
+  #confirmation button { font: 700 16px sans-serif; padding: 12px; border: 2px solid #111; border-radius: 12px; background: #fff; color: #111; }
+  /* === LIVRAISON 11/11/2026 : SANS CADRE (la page choix_matieres.html fournit l'ecran). Ajout seulement. === */
+  #cadre { background: transparent; }
+  #cadre-telephone { width: 100%; height: 100%; aspect-ratio: auto; padding: 0; border-radius: 0; box-shadow: none; }
+  #ecran { border-radius: 0; }
+  /* === FIN LIVRAISON SANS CADRE === */  #interrupteur { display: none; }   /* LIVRAISON : un seul interrupteur Jour | Nuit, dans choix_matieres.html */</style>
+</head>
+<body>
+
+<!-- === CADRE TÉLÉPHONE (réutilisable) : tout ce qui est dans #ecran reste dans le cadre === -->
+<div id="cadre"><div id="cadre-telephone"><div id="ecran">
+
+<div id="feuille"></div>
+
+<div id="interrupteur">
+  <button id="bouton-jour" type="button" aria-pressed="true">Jour</button>
+  <button id="bouton-nuit" type="button" aria-pressed="false">Nuit</button>
+</div>
+
+<div id="zone-effacer">
+  <button id="bouton-effacer" type="button">Effacer</button>
+</div>
+
+<div id="confirmation" hidden>
+  <div class="boite">
+    <p>Tout effacer ?</p>
+    <button id="oui-effacer" type="button">Oui, tout effacer</button>
+    <button id="non-effacer" type="button">Non</button>
+  </div>
+</div>
+
+</div></div></div>
+<!-- === FIN CADRE TÉLÉPHONE === -->
+
+<script>
+// ============================================================
+// FEUILLE BLANCHE — une seule version, sans réglages.
+// Le doigt (ou la souris) trace un trait bleu stylo, lissé. Les traits restent figés.
+// ============================================================
+// 20h28 : deux modes. Jour = feuille blanche, stylo noir. Nuit = feuille noire, stylo blanc. Plus de bleu.
+const MODES = { jour: '#111111', nuit: '#ffffff' };      // couleur du stylo selon le mode
+const TRAIT = { couleur: MODES.jour, epaisseur: 2.2 };   // épaisseur en pixels (inchangée)
+
+const Feuille = (() => {
+  let conteneur = null, canvas = null, ctx = null;
+  let largeur = 0, hauteur = 0;
+  let traits = [];          // chaque trait = liste de points (en pixels de l'écran)
+  let courant = null;       // trait en cours de tracé
+  let prevMid = null, dernier = null;
+
+  function preparer() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    largeur = conteneur.clientWidth;
+    hauteur = conteneur.clientHeight;
+    canvas.width = Math.round(largeur * dpr);
+    canvas.height = Math.round(hauteur * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = TRAIT.couleur;
+    ctx.lineWidth = TRAIT.epaisseur;
+  }
+
+  // Rejoue un trait : même lissage qu'au tracé direct.
+  function rejouer(points) {
+    if (points.length === 0) return;
+    if (points.length === 1) { ctx.beginPath(); ctx.arc(points[0].x, points[0].y, TRAIT.epaisseur / 2, 0, Math.PI * 2); ctx.fillStyle = TRAIT.couleur; ctx.fill(); return; }
+    let pm = points[0];
+    for (let i = 1; i < points.length; i++) {
+      const a = points[i - 1], b = points[i];
+      const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      ctx.beginPath();
+      ctx.moveTo(pm.x, pm.y);
+      ctx.quadraticCurveTo(a.x, a.y, mid.x, mid.y);
+      ctx.stroke();
+      pm = mid;
+    }
+    const fin = points[points.length - 1];
+    ctx.beginPath(); ctx.moveTo(pm.x, pm.y); ctx.lineTo(fin.x, fin.y); ctx.stroke();
+  }
+
+  function toutRedessiner() {
+    ctx.clearRect(0, 0, largeur, hauteur);
+    for (const t of traits) rejouer(t);
+  }
+
+  function coords(e) {
+    const r = canvas.getBoundingClientRect();
+    return { x: (e.clientX - r.left) * (largeur / r.width), y: (e.clientY - r.top) * (hauteur / r.height) };
+  }
+
+  function debut(e) {
+    canvas.setPointerCapture(e.pointerId);
+    const p = coords(e);
+    courant = [p];
+    traits.push(courant);
+    dernier = p;
+    prevMid = p;
+    ctx.beginPath(); ctx.arc(p.x, p.y, TRAIT.epaisseur / 2, 0, Math.PI * 2); ctx.fillStyle = TRAIT.couleur; ctx.fill();
+  }
+
+  function bouge(e) {
+    if (!courant) return;
+    const p = coords(e);
+    const mid = { x: (dernier.x + p.x) / 2, y: (dernier.y + p.y) / 2 };
+    ctx.beginPath();
+    ctx.moveTo(prevMid.x, prevMid.y);
+    ctx.quadraticCurveTo(dernier.x, dernier.y, mid.x, mid.y);
+    ctx.stroke();
+    prevMid = mid;
+    dernier = p;
+    courant.push(p);
+  }
+
+  function fin() {
+    if (!courant) return;
+    ctx.beginPath(); ctx.moveTo(prevMid.x, prevMid.y); ctx.lineTo(dernier.x, dernier.y); ctx.stroke();
+    courant = null;
+  }
+
+  function demarrer(element) {
+    arreter();
+    conteneur = element;
+    canvas = document.createElement('canvas');
+    conteneur.appendChild(canvas);
+    ctx = canvas.getContext('2d');
+    preparer();
+    canvas.addEventListener('pointerdown', debut);
+    canvas.addEventListener('pointermove', bouge);
+    canvas.addEventListener('pointerup', fin);
+    canvas.addEventListener('pointercancel', fin);
+    window.addEventListener('resize', () => { preparer(); toutRedessiner(); });
+  }
+
+  function arreter() {
+    if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
+    canvas = null; courant = null;
+  }
+
+  // Effacer : la feuille redevient blanche, aucun trait.
+  function effacer() {
+    traits = [];
+    if (ctx) ctx.clearRect(0, 0, largeur, hauteur);
+  }
+
+  // Changer de mode : le stylo change de couleur et TOUT le dessin déjà tracé est repeint avec lui.
+  function choisirMode(nom) {
+    TRAIT.couleur = MODES[nom] || TRAIT.couleur;
+    if (!ctx) return;
+    ctx.strokeStyle = TRAIT.couleur;
+    ctx.fillStyle = TRAIT.couleur;
+    toutRedessiner();
+  }
+
+  return { demarrer, arreter, effacer, choisirMode, nombreTraits: () => traits.length };
+})();
+
+(function () {
+  const confirmation = document.getElementById('confirmation');
+  Feuille.demarrer(document.getElementById('feuille'));
+  const boutonJour = document.getElementById('bouton-jour');
+  const boutonNuit = document.getElementById('bouton-nuit');
+  function mode(nom) {
+    document.body.dataset.mode = nom;
+    boutonJour.setAttribute('aria-pressed', String(nom === 'jour'));
+    boutonNuit.setAttribute('aria-pressed', String(nom === 'nuit'));
+    Feuille.choisirMode(nom);
+  }
+  boutonJour.addEventListener('click', () => mode('jour'));
+  boutonNuit.addEventListener('click', () => mode('nuit'));
+  mode('jour');   // mode par défaut
+  document.getElementById('bouton-effacer').addEventListener('click', () => { confirmation.hidden = false; });
+  document.getElementById('non-effacer').addEventListener('click', () => { confirmation.hidden = true; });
+  document.getElementById('oui-effacer').addEventListener('click', () => { Feuille.effacer(); confirmation.hidden = true; });
+  document.body.dataset.feuillePrete = 'oui';
+})();
+</script>
+<script>
+// === LIVRAISON 11/11/2026 : mode Jour | Nuit recu de choix_matieres.html (adresse ?mode= ou message). Ajout seulement. ===
+(function () {
+  function appliquer(m) { var b = document.getElementById(m === "nuit" ? "bouton-nuit" : "bouton-jour"); if (b) b.click(); }
+  var m = new URLSearchParams(location.search).get("mode"); if (m) appliquer(m);
+  window.addEventListener("message", function (e) { if (e.data && e.data.matieresMode) appliquer(e.data.matieresMode); });
+})();
+</script></body>
+</html>

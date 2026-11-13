@@ -66,7 +66,7 @@ const gesteRetour = (() => {
 
     // 08/11/2026 (décision de Max) : « Fermer » caché sur « Autre » et l'écran Micro : le geste touche le bouton caché.
     // 09/11/2026 : + l'écran Chercher (« Fermer » visible ; le geste touche le même bouton).
-    const FERMER_ECRANS = { 'ecran-autre': 'fermer-autre', 'ecran-reglages': 'fermer-reglages', 'ecran-micro': 'fermer-micro', 'ecran-chercher': 'fermer-chercher-cap' };
+    const FERMER_ECRANS = { 'ecran-autre': 'fermer-autre', 'ecran-reglages': 'fermer-reglages', 'ecran-micro': 'fermer-micro', 'ecran-chercher': 'fermer-chercher-cap', 'ecran-bureau': 'fermer-bureau' }; // c165 : + Bureau
 
     function fermer(fenetre) {
       if (fenetre.tagName === 'DIALOG' && fermetureFenetres && fermetureFenetres.gerer
