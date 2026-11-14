@@ -12,7 +12,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 APP = pathlib.Path(__file__).resolve().parent
 EDGE = pathlib.Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe")
-SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "types_fichiers.js", "relations.js", "attente.js", "commandes_vocales.js", "choix_sur_eau.js", "transition_ecrans.js", "relations_creation.js", "visionneuse_cap.js", "numeros.js", "index_relations.js", "coordonnees_relations.js", "memoire_relations.js", "carte_cap.js", "synchro_tout.js", "relations_compte.js", "mms_lecture.js", "mms_rangement.js", "mms_repetition.js", "mms_ecran.js", "relations_mp3.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "phrases_apprendre.js", "tableur_phrases.js", "tableur_cap.js", "numero_choix.js", "regles_voyant.js", "chantiers.js", "chantiers_dossiers.js", "tuiles_config.js", "app.js", "ecran_eau.js", "accueil_cap.js", "geste_retour.js", "commandes_navigation.js", "commandes_musique.js", "commandes_visionneuse.js", "chantiers_ecran.js", "journaux_relations.js", "confirmations_fenetres.js", "matieres_ecran.js"]
+SOURCES = ["donnees_fictives.js", "etapes_par_defaut.js", "stockage.js", "vibration.js", "annulation.js", "taches.js", "listes_choix.js", "annuaire.js", "indices_rangement.js", "sous_categories.js", "reglages_google.js", "google_compte_relations.js", "google_connexion.js", "cle_picker.js", "google_picker.js", "google_sheets.js", "google_agenda.js", "fichiers_vocaux_drive.js", "synchronisation.js", "dictee.js", "phrases_clavier.js", "preferences_clavier.js", "voix.js", "comprendre_dates.js", "comprendre_demande.js", "phrases_modifiables.js", "phrases_modifiables_etat.js", "commandes_annuaire.js", "fichiers_vocaux.js", "fichiers_vocaux_notes.js", "fichiers_vocaux_tableau.js", "fichiers_vocaux_echeancier.js", "fichiers_vocaux_a_faire.js", "reglages_ia.js", "limite_ia.js", "cle_ia.js", "actions_cap.js", "cerveau.js", "cerveau_prepare.js", "journal_ia.js", "cerveau_claude.js", "demandes.js", "recherche.js", "journal_actions.js", "fichiers_vocaux_controleur.js", "fiche_rendezvous.js", "choix_dates.js", "fermeture_fenetres.js", "fenetres_listes.js", "synchro_listes.js", "synchro_annuaire.js", "fiche_contact.js", "commande_annuaire_ui.js", "sauvegarde_drive.js", "scan_image.js", "scan_pdf.js", "scan_documents.js", "scan_file.js", "scan_depot.js", "classement.js", "journaux.js", "scan_lecture.js", "scan_nommage.js", "nommage_scan.js", "mots_courts.js", "emetteur.js", "types_fichiers.js", "relations.js", "attente.js", "commandes_vocales.js", "choix_sur_eau.js", "transition_ecrans.js", "relations_creation.js", "visionneuse_cap.js", "visionneuse_web.js", "numeros.js", "codes_usage_unique.js", "cles_expediteurs.js", "inventaire_echanges.js", "index_relations.js", "coordonnees_relations.js", "memoire_relations.js", "carte_cap.js", "synchro_tout.js", "relations_compte.js", "mms_lecture.js", "mms_rangement.js", "mms_repetition.js", "mms_dossiers.js", "mms_creation_dossiers.js", "mms_copie.js", "mms_dialogue.js", "mms_ecran.js", "relations_mp3.js", "scan_ecran.js", "tuiles.js", "mode_trier.js", "phrases_apprendre.js", "tableur_phrases.js", "tableur_cap.js", "numero_choix.js", "regles_voyant.js", "chantiers.js", "chantiers_dossiers.js", "tuiles_config.js", "app.js", "ecran_eau.js", "accueil_cap.js", "geste_retour.js", "retour_telephone.js", "commandes_navigation.js", "commandes_musique.js", "commandes_visionneuse.js", "chantiers_ecran.js", "journaux_relations.js", "confirmations_fenetres.js", "matieres_ecran.js"]
 
 TESTS_JS = r"""
 (async () => {
@@ -17269,6 +17269,16 @@ TESTS_JS = r"""
     { cle: 'sans fictif', nomDossier: 'r_Sans FICTIF', etat: 'trouve', champs: [{ titre: 'Mail', valeur: 'sans@exemple.invalid' }, { titre: 'Âge', valeur: '0639980024' }] },
     { cle: 'absente fictif', nomDossier: 'r_Absente FICTIF', etat: 'absente' }] }; // c177 : + une fiche introuvable
   const morceauxNumeros = ['+33', '06 39', '0639', '639980', '06.39', '98 00'];
+  // 13/11/2026 (accord de Max) : une empreinte (32 signes hexadécimaux ou plus, tirée d'une clé AU HASARD) peut contenir « 0639 »
+  // ou « 639980 » par pur hasard : elle est remplacée par « EMPREINTE » AVANT de chercher les morceaux de numéro (faux échec vu
+  // une fois le 13/11). Un numéro en clair, lui, n'est jamais une suite de 32 signes hexadécimaux : il reste trouvé.
+  const sansEmpreintes = texte => String(texte).replace(/[0-9a-f]{32,}/g, 'EMPREINTE');
+
+  test('Tests des MMS (13/11/2026) : le masque des empreintes cache une empreinte qui contient « 0639 » par hasard, mais jamais un numéro en clair', () => {
+    const e = `${'a'.repeat(20)}0639980021${'b'.repeat(34)}`;
+    attendre(!sansEmpreintes(JSON.stringify({ empreinte: e })).includes('0639'), 'empreinte pas masquée');
+    for (const n of ['06 39 98 00 21', '+33639980021', '0639980021', '06.39.98.00.21']) attendre(sansEmpreintes(JSON.stringify({ x: n, empreinte: e })).includes(n), `numéro masqué à tort : ${n.slice(0, 2)}…`);
+  });
 
   await testAsync('MMS, M3a (12/11/2026, FAUX pont FICTIF) : hors coque « pas disponible » ; l’autorisation SMS demandée seulement sur demande, une fois ; refus = rien lu ; les MMS lus n’ont AUCUN numéro (empreinte seulement, la même que l’index) ; groupe = plusieurs destinataires ; numéro masqué : empreinte nulle ; 20 au plus ; rien d’envoyé', async c => {
     const appels = [];
@@ -17293,7 +17303,7 @@ TESTS_JS = r"""
       attendreEgal(lus[0].empreinte, await indexRelations.empreinteNumero('06 39 98 00 21', cle), 'empreinte différente de l’index');
       attendreEgal(lus[0].empreinte, lus[2].empreinte, 'même numéro, autre empreinte');
       attendreEgal(lus[4].empreinte, null, 'numéro masqué');
-      const texte = JSON.stringify(lus);
+      const texte = sansEmpreintes(JSON.stringify(lus)); // 13/11/2026 : empreintes masquées (hasard)
       for (const m of morceauxNumeros.concat(['expediteur', 'destinataires'])) attendre(!texte.includes(m), `un numéro (ou le champ brut) dans les MMS lus : « ${m} »`);
       const beaucoup = fauxPontMms(Array.from({ length: 30 }, (_, i) => ({ id: String(i), date: i, image: true, expediteur: null, destinataires: 1 })));
       attendreEgal((await mmsLecture.lireRecents(cle, beaucoup)).length, 20, '20 au plus');
@@ -17331,7 +17341,7 @@ TESTS_JS = r"""
       attendreEgal(t, ['6 MMS lus : 2 d’une personne qui a un dossier « r_ » (2 personnes), 4 à trier (2 numéros inconnus ou masqués, 1 message de groupe, 1 numéro partagé par deux personnes).', 'Détail : 1 sans numéro d’expéditeur lisible, 5 avec un seul destinataire, 1 avec plusieurs destinataires.', 'Dossiers r_ : 7 au total ; fiche avec numéro : 4 ; fiche sans numéro : 1 ; deux fiches au même nom : 1 ; fiche introuvable : 1.', 'Expéditeurs différents : 4, dont reconnus : 2, inconnus : 1, numéro de deux fiches : 1.', 'Rien n’a été copié ni envoyé.'].join('\n'), 'texte du résumé');
       attendre(!mmsRangement.texte(mmsRangement.resumer(classes.slice(0, 2))).includes('numéro de deux fiches') && !mmsRangement.texte(mmsRangement.resumer(classes.slice(0, 2))).includes('Dossiers r_'), 'lignes en trop sans partage ni dossiers');
       attendreEgal(mmsRangement.texte(mmsRangement.resumer([])), 'Aucun MMS reçu trouvé sur le téléphone.', 'aucun MMS');
-      for (const m of morceauxNumeros.concat(['Annabelle', 'Bruno', 'FICTIF', 'r_C', 'Absente', 'Homo', 'Sans'])) attendre(!JSON.stringify(r).includes(m) && !t.includes(m), `résumé avec « ${m} »`);
+      for (const m of morceauxNumeros.concat(['Annabelle', 'Bruno', 'FICTIF', 'r_C', 'Absente', 'Homo', 'Sans'])) attendre(!sansEmpreintes(JSON.stringify(r)).includes(m) && !t.includes(m), `résumé avec « ${m} »`); // 13/11/2026 : empreintes masquées
       attendreEgal(mmsRangement.classer([{ id: 'x', empreinte: 'constructor' }, { id: 'y', empreinte: '__proto__' }], index).map(m => m.destination.raison), ['inconnu', 'inconnu'], 'empreinte piège');
       const vide = stockageMms();
       attendreEgal((await mmsRangement.preparerIndex(vide)).personnes, 0, 'sans copie des coordonnées');
@@ -17960,6 +17970,1535 @@ TESTS_JS = r"""
     } finally { debrancherVision(); }
   });
 
+  test('Codes à usage unique, P1 (13/11/2026, messages FICTIFS uniquement) : exclus (jamais copiés), doute (« À trier, en attente »), normal ; le code n’est jamais rendu ; fonction pure', () => {
+    const a = x => codesUsageUnique.analyser(x).sorte;
+    // Codes : exclus.
+    for (const m of ['Votre code de confirmation FICTIF est 482913.', 'G-482913 is your FICTIF verification code.', '<#> 482913 est votre code FICTIF AbCdEfGhIjK',
+      'BANQUE FICTIVE : code de sécurité 4829, ne le communiquez à personne.', 'Code OTP FICTIF : 482 913', 'Mot de passe à usage unique FICTIF : 90817263',
+      'FICTIF : 482913 pour la connexion. Ne le partagez pas, valable 10 minutes.', 'Your FICTIF login code: 7731. Do not share it.'])
+      attendreEgal(a(m), 'code', `code pas exclu : « ${m} »`);
+    // Doutes : « À trier, en attente ».
+    for (const m of ['Votre code FICTIF arrive par courrier.', '482913', 'FICTIF 482913', 'Confirmation FICTIVE : 482913', 'Votre code FICTIF : quatre huit deux neuf'])
+      attendreEgal(a(m), 'doute', `pas en doute : « ${m} »`);
+    // Normaux : copiés (dates, heures, montants, téléphones, commandes, code postal).
+    for (const m of ['RDV FICTIF confirmé le 12/03/2026 à 14:30.', 'Facture FICTIVE 2026-11 de 45,90 € réglée.', 'Rappelle-moi au 06 39 98 00 01 (FICTIF).',
+      'Commande FICTIVE n° 48291 expédiée, livraison jeudi.', 'Code postal FICTIF 99000, on se voit là-bas.', 'Bonne nuit, à demain ! (FICTIF)',
+      'Il fait 12 degrés et il pleut (FICTIF).', 'Rendez-vous à 9h30 devant la gare FICTIVE.', '', '   '])
+      attendreEgal(a(m), 'normal', `pas normal : « ${m} »`);
+    attendreEgal(codesUsageUnique.analyser(null).sorte, 'normal', 'null');
+    // Le code n'est jamais rendu, ni dans l'objet, ni ailleurs.
+    const r = codesUsageUnique.analyser('Votre code de confirmation FICTIF est 482913.');
+    attendre(!JSON.stringify(r).includes('482913'), 'le code est rendu');
+    attendreEgal(Object.keys(r).sort(), ['raison', 'sorte'], 'champs rendus');
+    // Comptage : des nombres seulement.
+    attendreEgal(codesUsageUnique.compter(['Code FICTIF 482913', '482913', 'Bonjour FICTIF']), { code: 1, doute: 1, normal: 1 }, 'comptage');
+    // Fonction pure : ni page, ni réseau, ni stockage, ni console, ni IA.
+    for (const mot of ['document', 'fetch', 'XMLHttpRequest', 'localStorage', 'sessionStorage', 'indexedDB', 'console', 'innerHTML', 'cerveau', 'MmsAndroid'])
+      attendre(!SOURCE_CODES_USAGE_UNIQUE.includes(mot), `codes_usage_unique.js contient « ${mot} »`);
+  });
+
+  await testAsync('Clé de chaque expéditeur, P2 (13/11/2026, numéros et noms FICTIFS uniquement) : un même numéro écrit de 5 façons = UNE clé ; étranger ; court ; masqué ; nom sans numéro ; groupe (ordre sans importance) ; deux expéditeurs proches ne fusionnent pas ; numéro sur deux fiches = « À trier » ; jamais le numéro en clair (clé, message d’erreur) ; fonction pure', async () => {
+    // Empreinte FICTIVE (HMAC-SHA-256 avec une clé de test inventée, comme l'index des relations).
+    const CLE_FICTIVE = '0f'.repeat(32);
+    const octets = h => new Uint8Array(h.match(/../g).map(x => parseInt(x, 16)));
+    const k = await crypto.subtle.importKey('raw', octets(CLE_FICTIVE), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const empreinte = async texte => [...new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(texte)))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const o = { empreinte };
+    const cle = async x => clesExpediteurs.cle(x, o);
+    // 1. Le même faux numéro (plage de fiction) écrit de plusieurs façons : UNE seule clé, sorte « numero ».
+    const formes = ['06 39 98 00 01', '+33 6 39 98 00 01', '0033639980001', '06-39-98-00-01', '06.39.98.00.01', '+33639980001', ' (06) 39 98 00 01 '];
+    const r = await Promise.all(formes.map(f => cle({ adresse: f })));
+    attendre(r.every(x => x.sorte === 'numero'), `sorte : ${JSON.stringify(r.map(x => x.sorte))}`);
+    attendreEgal(new Set(r.map(x => x.cle)).size, 1, 'plusieurs clés pour un même numéro');
+    // 2. Jamais le numéro en clair dans la clé.
+    for (const x of r) for (const morceau of ['639980001', '0639980001', '+33639980001']) attendre(!x.cle.includes(morceau), 'numéro en clair dans la clé');
+    // 3. Étranger (plage de fiction du Royaume-Uni) : une clé « numero », différente du numéro français.
+    const etranger = await cle({ adresse: '+44 20 7946 0958' });
+    attendre(etranger.sorte === 'numero' && etranger.cle !== r[0].cle && !etranger.cle.includes('79460958'), `étranger : ${etranger.sorte}`);
+    // 4. Numéro court : sorte « court », même clé avec ou sans espace, différente d'un autre court.
+    const c1 = await cle({ adresse: '36 999' }), c2 = await cle({ adresse: '36999' }), c3 = await cle({ adresse: '36998' });
+    attendre(c1.sorte === 'court' && c1.cle === c2.cle && c1.cle !== c3.cle && !c1.cle.includes('36999'), 'numéros courts');
+    // 5. Masqué ou absent : UNE seule clé « masque ».
+    const masques = await Promise.all([{ adresse: '' }, { adresse: null }, { adresse: 'insert-address-token' }, { adresse: 'Masqué' }, { adresse: '-2' }, {}].map(cle));
+    attendre(masques.every(x => x.sorte === 'masque' && x.cle === 'masque'), `masqués : ${JSON.stringify(masques)}`);
+    // 6. Expéditeur en lettres : forme uniforme (accents, majuscules, espaces) ; deux noms proches ne fusionnent pas.
+    const l1 = await cle({ adresse: 'Banque Fictive' }), l2 = await cle({ adresse: 'BANQUE  FICTIVE' }), l3 = await cle({ adresse: 'Bânque fictive' });
+    const l4 = await cle({ adresse: 'BANQUE FICTIF' }), l5 = await cle({ adresse: 'BANQUE-FICTIVE' });
+    attendre(l1.sorte === 'lettres' && l1.cle === l2.cle && l1.cle === l3.cle, 'même nom en lettres : clés différentes');
+    attendre(l1.cle !== l4.cle && l1.cle !== l5.cle, 'deux noms en lettres différents ont fusionné');
+    // 7. Deux numéros proches ne fusionnent pas.
+    const voisin = await cle({ adresse: '06 39 98 00 10' });
+    attendre(voisin.sorte === 'numero' && voisin.cle !== r[0].cle, 'deux numéros proches ont fusionné');
+    // 8. Nom sans numéro : clé « nom », à part (jamais la même qu'un expéditeur en lettres du même texte), uniforme, pas en clair.
+    const n1 = await cle({ nom: 'Personne Fictive' }), n2 = await cle({ nom: 'personne  fictive' }), n3 = await cle({ adresse: 'PERSONNE FICTIVE' });
+    attendre(n1.sorte === 'nom' && n1.cle === n2.cle && n1.cle !== n3.cle && !n1.cle.toLowerCase().includes('fictive'), 'nom sans numéro');
+    // 9. Groupe : une clé par ENSEMBLE ; l'ordre ne compte pas ; un autre ensemble = une autre clé ; une seule personne = sa clé.
+    const A = { adresse: '06 39 98 00 01' }, B = { adresse: '06 39 98 00 02' }, C = { adresse: '06 39 98 00 03' };
+    const g1 = await clesExpediteurs.cleGroupe([A, B, C], o), g2 = await clesExpediteurs.cleGroupe([C, A, B], o), g3 = await clesExpediteurs.cleGroupe([A, B], o);
+    attendre(g1.sorte === 'groupe' && g1.cle === g2.cle && g1.cle !== g3.cle, 'groupes');
+    attendreEgal((await clesExpediteurs.cleGroupe([A, { adresse: '+33639980001' }], o)).cle, r[0].cle, 'même personne deux fois : pas un groupe');
+    attendreEgal((await clesExpediteurs.cleGroupe([A, { adresse: '' }], o)).cle, 'a-trier', 'groupe avec un masqué : À trier');
+    // 10. Numéro présent sur deux fiches : « À trier » ; sur une seule : sa clé normale.
+    const deuxFiches = await clesExpediteurs.cle(A, { empreinte, personnesPour: n => (n === '+33639980001' ? ['FICTIF-1', 'FICTIF-2'] : []) });
+    const uneFiche = await clesExpediteurs.cle(A, { empreinte, personnesPour: () => ['FICTIF-1', 'FICTIF-1'] });
+    attendreEgal([deuxFiches.sorte, deuxFiches.cle, uneFiche.cle], ['a-trier', 'a-trier', r[0].cle], 'deux fiches');
+    // 11. Adresse illisible (chiffres sans forme de numéro) : « À trier ».
+    attendreEgal((await cle({ adresse: '12345678901234567890' })).sorte, 'a-trier', 'adresse illisible');
+    // 12. Messages d'erreur : jamais l'expéditeur, même si l'empreinte échoue en le citant.
+    for (const [x, opts] of [[A, {}], [A, { empreinte: async t => { throw new Error(`échec sur ${t} 06 39 98 00 01`); } }], [A, { empreinte: async () => 'pas une empreinte' }], [{ nom: 'Personne Fictive' }, {}]]) {
+      let message = '';
+      try { await clesExpediteurs.cle(x, opts); } catch (e) { message = String(e && e.message); }
+      attendre(message && !/39 ?98|639980001|Fictive/i.test(message), `message d’erreur : ${message}`);
+    }
+    // 13. Fonction pure : ni page, ni réseau, ni stockage, ni sortie, ni IA, ni index des relations nommé.
+    for (const mot of ['document', 'fetch', 'XMLHttpRequest', 'localStorage', 'sessionStorage', 'indexedDB', 'console', 'innerHTML', 'cerveau', 'MmsAndroid', 'indexRelations'])
+      attendre(!SOURCE_CLES_EXPEDITEURS.includes(mot), `cles_expediteurs.js contient « ${mot} »`);
+  });
+
+  await testAsync('Inventaire des SMS et MMS, P3 (13/11/2026, FAUX pont FICTIF) : nombres seulement (reçus, envoyés, autres ; correspondants par sorte ; codes exclus ; doutes ; « À trier » ; période) ; codes (P1) et clés (P2) utilisés ; aucun texte ni numéro rendu ou affiché ; hors coque, refus, panne : dit clairement ; rien copié ni envoyé', async c => {
+    const J = (a, m, j) => new Date(a, m - 1, j, 12, 0).getTime();
+    const S = (sens, adresse, texte, date) => ({ s: 'sms', sens, date, adresses: adresse === null ? [] : [adresse], groupe: false, texte });
+    const M = (sens, adresses, groupe, date) => ({ s: 'mms', sens, date, adresses, groupe, texte: '' });
+    const FAUX = [
+      S('recu', '06 39 98 00 21', 'Bonjour FICTIF', J(2026, 1, 5)),
+      S('envoye', '+33639980021', 'Salut FICTIF', J(2026, 2, 1)),
+      S('recu', 'BANQUE FICTIVE', 'Votre code de confirmation FICTIF est 482913.', J(2026, 3, 1)),
+      S('recu', 'Banque Fictive', 'Votre relevé FICTIF est disponible.', J(2026, 3, 2)),
+      S('recu', '36999', 'Info FICTIVE', J(2026, 4, 1)),
+      S('recu', '', 'Appel FICTIF', J(2026, 4, 2)),
+      S('recu', '+33639980023', 'Coucou FICTIF', J(2026, 5, 1)),
+      S('autre', '0639980022', 'Brouillon FICTIF', J(2026, 6, 1)),
+      S('recu', '06 39 98 00 99', '482913', J(2026, 7, 1)),
+      M('recu', ['+33639980031', '+33639980001', '+33639980032'], true, J(2026, 8, 1)),
+      M('recu', ['06 39 98 00 32', '+33639980031', '+33639980001'], true, J(2026, 8, 2)),
+      M('envoye', ['+33639980032', '+33639980031'], true, J(2026, 9, 1)),
+      M('recu', ['+33639980021'], false, J(2026, 10, 1)),
+      M('envoye', ['06 39 98 00 22'], false, J(2026, 11, 10))];
+    const fauxPont = (messages, { accorde = true, etats = ['en-cours', 'pret'] } = {}) => {
+      const f = { demandes: 0, accorde, lancements: 0 };
+      let i = 0;
+      f.MmsAndroid = {
+        autorise: () => f.accorde,
+        demander: () => { f.demandes++; setTimeout(() => { f.accorde = true; f.__mmsAutorisation && f.__mmsAutorisation(true); }, 0); },
+        inventaireLancer: () => { f.lancements++; i = 0; return f.accorde; },
+        inventaireEtat: () => etats[Math.min(i++, etats.length - 1)],
+        inventaireLire: () => JSON.stringify(messages)
+      };
+      return f;
+    };
+    const st = stockageMms();
+    st.setItem(coordonneesRelations.CLE, JSON.stringify(COPIE_COORD_FICTIVE));
+    const sansAttente = { pause: async () => {} };
+    // 1. Lecture réduite : aucun texte, aucun numéro, seulement sorte, sens, date, sorte de clé, clé, code.
+    const { cle, index } = await mmsRangement.preparerIndex(st);
+    const pont = fauxPont(FAUX);
+    const lignes = await mmsLecture.lireInventaire(cle, index, pont, sansAttente);
+    attendreEgal(lignes.length, 14, 'nombre de lignes');
+    attendre(lignes.every(l => JSON.stringify(Object.keys(l).sort()) === JSON.stringify(['cle', 'code', 'date', 's', 'sens', 'sorteCle'])), 'une ligne rend autre chose');
+    const brut = sansEmpreintes(JSON.stringify(lignes)); // 13/11/2026 : empreintes masquées (hasard)
+    for (const m of morceauxNumeros.concat(['Bonjour', 'BANQUE', 'Banque', '482913', '36999', 'Coucou', 'Brouillon', 'FICTIF'])) attendre(!brut.includes(m), `ligne avec « ${m} »`);
+    // 2. Les nombres exacts.
+    const r = inventaireEchanges.compter(lignes);
+    attendreEgal([r.total, r.sms, r.mms], [14, { recu: 7, envoye: 1, autre: 1 }, { recu: 3, envoye: 2, autre: 0 }], 'sens');
+    attendreEgal(r.correspondants, { numero: 3, court: 1, lettres: 1, masque: 1, groupe: 2, nom: 0, 'a-trier': 1 }, 'correspondants par sorte');
+    attendreEgal([r.codesExclus, r.doutes, r.aTrier], [1, 1, 7], 'codes, doutes, À trier');
+    attendreEgal([r.plusAncien, r.plusRecent], [J(2026, 1, 5), J(2026, 11, 10)], 'période');
+    // 3. L'écran : des nombres et deux dates, rien d'autre ; le bouton est dans Réglages du Drive, à côté de « Lire ».
+    const ui = preparerInterface(c);
+    const el = id => ui.parId(id);
+    attendre(el('inventaire-mms') && el('inventaire-mms').closest('#reglages-drive'), 'bouton absent ou hors de Réglages du Drive');
+    attendre(el('lire-mms').nextElementSibling === el('inventaire-mms'), 'bouton pas à côté de « Lire mes derniers MMS »');
+    const f = fauxCompteCapDossiers();
+    const pont2 = fauxPont(FAUX, { accorde: false });
+    const e = mmsEcran.brancher(ui.doc, { compte: f, stockage: st, fenetre: pont2 });
+    const t = await e.faireInventaire();
+    attendreEgal(pont2.demandes, 1, 'question d’Android pas posée');
+    const ecran = el('resultat-mms').textContent;
+    attendre(/^Inventaire : 14 messages/.test(ecran) && ecran.includes('SMS : 7 reçus, 1 envoyés, 1 autres') && ecran.includes('MMS : 3 reçus, 2 envoyés, 0 autres'), `écran : ${ecran.slice(0, 160)}`);
+    attendre(ecran.includes('Codes à usage unique exclus (jamais copiés) : 1. Doutes sur un code : 1.') && ecran.includes('« À trier » : 7') && ecran.includes('du 05/01/2026 au 10/11/2026'), 'nombres de l’écran');
+    for (const m of morceauxNumeros.concat(['Bonjour', 'BANQUE', 'Banque', '482913', '36999', 'Coucou', 'FICTIF', 'Annabelle', 'Bruno'])) attendre(!ecran.includes(m), `écran avec « ${m} »`);
+    attendreEgal(t, ecran, 'texte rendu');
+    attendreEgal(f.ecritures.length, 0, 'écrit dans le Drive');
+    // 4. Hors coque, refus, panne de la coque : dit clairement, rien lu.
+    const e2 = mmsEcran.brancher(preparerInterface(c).doc, { compte: f, stockage: st, fenetre: {} });
+    attendreEgal(await e2.faireInventaire(), '', 'hors coque');
+    let erreur = '';
+    try { await mmsLecture.lireInventaire(cle, index, fauxPont(FAUX, { etats: ['en-cours', 'erreur'] }), sansAttente); } catch (x) { erreur = String(x.message); }
+    attendre(/n’a pas pu lire/.test(erreur) && !/\d{4}/.test(erreur), `panne : ${erreur}`);
+    erreur = '';
+    try { await mmsLecture.lireInventaire(cle, index, fauxPont(FAUX, { etats: ['en-cours'] }), { pause: async () => {}, delaiMax: -1 }); } catch (x) { erreur = String(x.message); }
+    attendre(/trop long/.test(erreur), `délai : ${erreur}`);
+    // 5. Les modules : purs ou limités ; aucun envoi ; l'inventaire ne nomme ni l'IA ni le Drive.
+    for (const mot of ['document', 'fetch', 'XMLHttpRequest', 'localStorage', 'console', 'innerHTML', 'cerveau', 'MmsAndroid', 'indexRelations', 'googleapis'])
+      attendre(!SOURCE_INVENTAIRE_ECHANGES.includes(mot), `inventaire_echanges.js contient « ${mot} »`);
+  });
+
+  await testAsync('Envoi d’un fichier, P4 = M3d (13/11/2026, FAUX Drive FICTIF) : une seule porte, dans le verrou : dossier relu, marqué « répétition » par Cap, pas à la corbeille ; image, vidéo ou texte ; 1 octet à 5 Mo ; marque obligatoire ; toujours une création ; jamais de remplacement ni de suppression ; tout envoi brut refusé', async c => {
+    const fauxDrive = fauxDriveCompteCap(c);
+    const { m } = connecterCompteFictif(c);
+    const DOSSIER_F = 'application/vnd.google-apps.folder';
+    const dossiers = {
+      FICTIF_rep_personne_0123456789: { id: 'FICTIF_rep_personne_0123456789', mimeType: DOSSIER_F, trashed: false, appProperties: { cap_mms_repetition_dossier: 'personne_test' } },
+      FICTIF_chantier_0123456789: { id: 'FICTIF_chantier_0123456789', mimeType: DOSSIER_F, trashed: false, appProperties: { cap_chantier: 'CH-901' } },
+      FICTIF_rep_corbeille_0123456789: { id: 'FICTIF_rep_corbeille_0123456789', mimeType: DOSSIER_F, trashed: true, appProperties: { cap_mms_repetition_dossier: 'a_trier' } },
+      FICTIF_doc_marque_0123456789: { id: 'FICTIF_doc_marque_0123456789', mimeType: 'application/vnd.google-apps.document', trashed: false, appProperties: { cap_mms_repetition_dossier: 'x' } },
+      // 14/11/2026 (P6) : « Reçus » ou « Envoyés » marqué par Cap : permis ; le dossier de la personne lui-même : refusé.
+      FICTIF_sous_recus_0123456789: { id: 'FICTIF_sous_recus_0123456789', mimeType: DOSSIER_F, trashed: false, appProperties: { cap_mms_sous: 'personne:abc:recu' } },
+      FICTIF_personne_mms_0123456789: { id: 'FICTIF_personne_mms_0123456789', mimeType: DOSSIER_F, trashed: false, appProperties: { cap_mms_dossier: 'personne:abc' } } };
+    const envois = [];
+    const avant = c.repondre;
+    c.repondre = async requete => {
+      const p = requete.url.pathname;
+      const id = /^\/drive\/v3\/files\/([^/]+)$/.exec(p);
+      if (requete.methode === 'GET' && id && dossiers[decodeURIComponent(id[1])]) return reponseGoogle(dossiers[decodeURIComponent(id[1])]);
+      if (requete.methode === 'GET' && id) return reponseGoogle({ error: { code: 404 } }, 404);
+      if (p.startsWith('/upload/')) { envois.push({ url: requete.url, methode: requete.methode, corps: requete.options.body, entetes: requete.options.headers }); return reponseGoogle({ id: `FICTIF_envoye_${envois.length}` }); }
+      return avant(requete);
+    };
+    const meta = { nom: 'Essai FICTIF.txt', mimeType: 'text/plain', appProperties: { cap_mms_repetition_fichier: 'essai_test' } };
+    const refuse = async (quoi, appel, fragment) => {
+      const n = envois.length;
+      let e = '';
+      try { await appel(); } catch (x) { e = String(x.message); }
+      attendre(e.startsWith('Envoi refusé par Cap') && (!fragment || e.includes(fragment)) && e.includes('Rien n’a été envoyé'), `${quoi} : ${e || 'pas refusé'}`);
+      attendreEgal(envois.length, n, `${quoi} : quelque chose est parti`);
+    };
+    // 1. Le bon cas : dossier de répétition marqué, texte FICTIF : UNE création, adresse sans identifiant de fichier.
+    await m.envoyerFichier('FICTIF_rep_personne_0123456789', meta, 'Contenu FICTIF.');
+    attendreEgal(envois.length, 1, 'rien envoyé');
+    const e1 = envois[0];
+    attendreEgal([e1.methode, e1.url.pathname, e1.url.searchParams.get('uploadType')], ['POST', '/upload/drive/v3/files', 'multipart'], 'forme de l’envoi');
+    const texte1 = await e1.corps.text();
+    attendre(texte1.includes('"parents":["FICTIF_rep_personne_0123456789"]') && texte1.includes('"cap_mms_repetition_fichier":"essai_test"') && texte1.includes('Contenu FICTIF.'), 'corps de l’envoi');
+    attendre(/^multipart\/related; boundary=cap-[0-9a-f]{24}$/.test(e1.entetes['Content-Type']), 'en-tête');
+    // 2. Pannes refusées AVANT tout envoi.
+    await refuse('dossier non marqué « répétition »', () => m.envoyerFichier('FICTIF_chantier_0123456789', meta, 'x'), 'pas un dossier d’envoi');
+    await refuse('dossier à la corbeille', () => m.envoyerFichier('FICTIF_rep_corbeille_0123456789', meta, 'x'), 'pas un dossier d’envoi');
+    await refuse('document marqué (pas un dossier)', () => m.envoyerFichier('FICTIF_doc_marque_0123456789', meta, 'x'), 'pas un dossier d’envoi');
+    await refuse('dossier inconnu de Cap', () => m.envoyerFichier('FICTIF_inconnu_0123456789', meta, 'x'), 'pas un dossier d’envoi');
+    await refuse('dossier de la personne (P6 : seulement « Reçus » ou « Envoyés »)', () => m.envoyerFichier('FICTIF_personne_mms_0123456789', meta, 'x'), 'pas un dossier d’envoi');
+    const nP6 = envois.length;
+    await m.envoyerFichier('FICTIF_sous_recus_0123456789', { ...meta, mimeType: 'image/jpeg', nom: '2026-10-01 n°1.jpg', appProperties: { cap_mms_copie: 'a'.repeat(64) } }, new Blob([new Uint8Array([0xff, 0xd8, 0xff])]));
+    attendreEgal(envois.length, nP6 + 1, '« Reçus » marqué par Cap refusé (P6)');
+    envois.pop();
+    await refuse('racine', () => m.envoyerFichier('root', meta, 'x'), 'dossier cible invalide');
+    await refuse('type PDF', () => m.envoyerFichier('FICTIF_rep_personne_0123456789', { ...meta, mimeType: 'application/pdf' }, 'x'), 'type');
+    await refuse('type document Google', () => m.envoyerFichier('FICTIF_rep_personne_0123456789', { ...meta, mimeType: 'application/vnd.google-apps.document' }, 'x'), 'type');
+    await refuse('fichier vide', () => m.envoyerFichier('FICTIF_rep_personne_0123456789', meta, ''), 'vide');
+    await refuse('fichier trop gros', () => m.envoyerFichier('FICTIF_rep_personne_0123456789', { ...meta, mimeType: 'video/mp4' }, new Blob([new Uint8Array(m.TAILLE_MAX_ENVOI + 1)])), 'trop gros');
+    await refuse('sans marque', () => m.envoyerFichier('FICTIF_rep_personne_0123456789', { ...meta, appProperties: {} }, 'x'), 'marque');
+    await refuse('sans nom', () => m.envoyerFichier('FICTIF_rep_personne_0123456789', { ...meta, nom: ' ' }, 'x'), 'nom');
+    // Juste à la limite : 5 Mo exactement, une image : accepté.
+    await m.envoyerFichier('FICTIF_rep_personne_0123456789', { ...meta, mimeType: 'image/jpeg', nom: 'Image FICTIVE.jpg' }, new Blob([new Uint8Array(m.TAILLE_MAX_ENVOI)]));
+    attendreEgal(envois.length, 2, '5 Mo exactement refusé');
+    // 3. Tout envoi BRUT, remplacement, suppression, corbeille : refusés par le verrou (jamais permis).
+    const ok = (url, methode, corps = '') => m.ecritureAutorisee(new URL(url), methode, corps);
+    attendre(!ok('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', 'POST', '{}'), 'envoi brut permis');
+    attendre(!ok('https://www.googleapis.com/upload/drive/v3/files/FICTIF_envoye_1?uploadType=multipart', 'PATCH', '{}'), 'remplacement permis');
+    attendre(!ok('https://www.googleapis.com/upload/drive/v3/files/FICTIF_envoye_1?uploadType=media', 'PUT', 'x'), 'remplacement (PUT) permis');
+    attendre(!ok('https://www.googleapis.com/drive/v3/files/FICTIF_envoye_1', 'DELETE'), 'suppression permise');
+    attendre(!ok('https://www.googleapis.com/drive/v3/files/FICTIF_envoye_1', 'PATCH', JSON.stringify({ trashed: true })), 'corbeille permise');
+    // 4. Le code de la porte : une seule adresse d'envoi, POST seulement, aucune suppression.
+    const source = SOURCE_GOOGLE_COMPTE_RELATIONS;
+    attendreEgal((source.match(/'https:\/\/www\.googleapis\.com\/upload\//g) || []).length, 1, 'plusieurs adresses d’envoi');
+    attendre(!/method: '(?:PATCH|PUT|DELETE)'/.test(source.slice(source.indexOf('async function envoyerFichier'))), 'remplacement ou suppression dans la porte');
+    c.repondre = avant;
+    void fauxDrive;
+  });
+
+  await testAsync('Essai d’envoi, P4 (13/11/2026, FAUX Drive FICTIF) : UN seul faux fichier FICTIF dans « Personne Test FICTIF » (répétition), après la question et le Oui ; sans dossiers de répétition : le dit ; déjà envoyé (même à la corbeille) : jamais renvoyé ; « Non » : rien ; jamais dans un dossier réel', async c => {
+    const f = fauxCompteCapDossiers();
+    const appelerAvant = f.appeler;
+    f.appeler = async url => {
+      const q = new URL(url).searchParams.get('q') || '';
+      const x = /^appProperties has \{ key='([^']+)' and value='([^']+)' \}$/.exec(q); // corbeille comprise (comme le vrai Drive)
+      if (x) return { json: async () => ({ files: f.fichiers.filter(g => g.appProperties && g.appProperties[x[1]] === x[2]).map(g => ({ id: g.id, trashed: g.trashed === true })) }) };
+      return appelerAvant(url);
+    };
+    const envoyes = [];
+    f.envoyerFichier = async (id, meta, contenu) => {
+      const dossier = f.fichiers.find(g => g.id === id);
+      if (!dossier || !dossier.appProperties || !dossier.appProperties.cap_mms_repetition_dossier) throw new Error('Envoi refusé par Cap : dossier non marqué. Rien n’a été envoyé.');
+      envoyes.push({ id, meta, contenu });
+      f.fichiers.push({ id: `FICTIF_fichier_${envoyes.length}_0123456789`, name: meta.nom, mimeType: meta.mimeType, parents: [id], appProperties: meta.appProperties });
+    };
+    // Sans dossiers de répétition : le dit, rien envoyé.
+    attendre(/fais d’abord « Répétition MMS »/.test((await mmsRepetition.preparerEnvoi(f)).raison), 'sans dossiers');
+    let e = '';
+    try { await mmsRepetition.envoyerEssai(f); } catch (x) { e = x.message; }
+    attendre(/fais d’abord « Répétition MMS »/.test(e) && envoyes.length === 0, 'envoyé sans dossiers');
+    // Dossiers de répétition, puis l'écran : question, « Non » : rien ; « Oui » : UN fichier.
+    await mmsRepetition.creer(f);
+    const ui = preparerInterface(c);
+    const el = id => ui.parId(id);
+    attendre(el('essai-envoi-mms') && el('repetition-mms').nextElementSibling === el('essai-envoi-mms'), 'bouton absent ou mal placé');
+    const ecran = mmsEcran.brancher(ui.doc, { compte: f, stockage: stockageMms(), fenetre: {} });
+    attendreEgal(await ecran.preparerEssai(), 'question', 'pas de question');
+    attendre(/UN faux fichier texte « Essai FICTIF\.txt » dans le dossier de répétition « Personne Test FICTIF »/.test(el('resultat-mms').textContent) && !el('barre-mms').hidden, 'question');
+    el('non-mms').click();
+    attendre(/Rien n’a été envoyé/.test(el('resultat-mms').textContent) && envoyes.length === 0, '« Non »');
+    await ecran.preparerEssai();
+    await ecran.confirmer();
+    attendreEgal(envoyes.length, 1, 'pas UN fichier');
+    const personne = f.fichiers.find(g => g.appProperties && g.appProperties.cap_mms_repetition_dossier === 'personne_test');
+    attendreEgal([envoyes[0].id, envoyes[0].meta.nom, envoyes[0].meta.mimeType], [personne.id, 'Essai FICTIF.txt', 'text/plain'], 'où et quoi');
+    attendre(/FICTIF/.test(envoyes[0].contenu) && /Aucune vraie donnée/.test(envoyes[0].contenu), 'contenu pas FICTIF');
+    attendre(/C’est fait : « Essai FICTIF\.txt » est dans « Personne Test FICTIF »/.test(el('resultat-mms').textContent), 'message');
+    // Relancé : jamais renvoyé ; à la corbeille : jamais renvoyé non plus.
+    attendre((await mmsRepetition.preparerEnvoi(f)).dejaLa, 'déjà envoyé : pas vu');
+    attendreEgal((await mmsRepetition.envoyerEssai(f)).envoye, false, 'renvoyé');
+    f.fichiers.find(g => g.name === 'Essai FICTIF.txt').trashed = true;
+    const p = await mmsRepetition.preparerEnvoi(f);
+    attendre(p.dejaLa && p.corbeille, 'corbeille : pas vu');
+    attendreEgal((await mmsRepetition.envoyerEssai(f)).envoye, false, 'renvoyé depuis la corbeille');
+    attendreEgal(envoyes.length, 1, 'plus d’un fichier en tout');
+    // Le module d'essai ne nomme rien de réel ni d'interdit.
+    for (const mot of ['MmsAndroid', 'mmsLecture', 'indexRelations', 'coordonneesRelations', 'cerveau', 'DELETE', 'PATCH']) attendre(!SOURCE_MMS_REPETITION.includes(mot), `mms_repetition.js contient « ${mot} »`);
+  });
+
+  test('Dossiers par expéditeur, P5 temps 1 (13/11/2026, lignes FICTIVES) : un dossier par personne (même avec deux numéros), par numéro inconnu, numéro court, expéditeur en lettres, groupe ; masqué, illisible, deux fiches, doute : « À trier » ; QUE des codes : pas de dossier ; noms SANS chiffre ; tout DANS « MMS des relations » ; jamais deux fois la même clé ; relancé : rien de recréé ; la garde refuse doublon, hors racine, plus que la liste, numéro dans un nom', () => {
+    const H = c => c.repeat(64);
+    const L = (sorteCle, cle, s, sens, code = 'normal', personne) => Object.assign({ s, sens, date: 1, sorteCle, cle, code }, personne ? { personne } : {});
+    const P1 = `personne:${H('a')}`;
+    const lignes = [
+      L('numero', `numero:${H('1')}`, 'sms', 'recu', 'normal', P1),
+      L('numero', `numero:${H('2')}`, 'mms', 'envoye', 'normal', P1), // deuxième numéro de la MÊME personne
+      L('numero', `numero:${H('3')}`, 'sms', 'recu'),
+      L('numero', `numero:${H('3')}`, 'mms', 'recu'),
+      L('court', `court:${H('4')}`, 'sms', 'recu'),
+      L('lettres', `lettres:${H('5')}`, 'sms', 'recu', 'code'),
+      L('lettres', `lettres:${H('5')}`, 'sms', 'recu'),
+      L('lettres', `lettres:${H('6')}`, 'sms', 'recu', 'code'), // QUE des codes
+      L('groupe', `groupe:${H('7')}`, 'mms', 'recu'),
+      L('masque', 'masque', 'sms', 'recu'),
+      L('a-trier', 'a-trier', 'sms', 'recu'),
+      L('groupe', 'groupe-inconnu', 'mms', 'recu'),
+      L('numero', `numero:${H('8')}`, 'sms', 'recu', 'doute')];
+    const plan = mmsDossiers.planifier(lignes);
+    attendreEgal(plan.parSorte, { personne: 1, numero: 1, court: 1, lettres: 1, groupe: 1 }, 'dossiers par sorte');
+    attendreEgal([plan.dossiers.length, plan.aTrier, plan.seulementCodes, plan.total, plan.racine.existe, plan.existants], [5, { messages: 4, creer: true }, 1, 7, false, 0], 'plan');
+    attendreEgal(plan.plusTard, { recus: 2, envoyes: 1, dialogue: 4 }, 'plus tard');
+    attendre(plan.dossiers.every(d => d.parent === 'racine'), 'un dossier hors de « MMS des relations »');
+    attendreEgal(new Set(plan.dossiers.map(d => d.cle)).size, 5, 'deux fois la même clé');
+    for (const d of plan.dossiers) attendre(/^(Personne|Numéro inconnu|Numéro court|Expéditeur en lettres|Groupe) [B-Z]{4}-[B-Z]{4}$/.test(d.nom) && !/\d/.test(d.nom), `nom : ${d.nom}`);
+    attendreEgal(mmsDossiers.nomDossier('numero', `numero:${H('3')}`), plan.dossiers.find(d => d.cle === `numero:${H('3')}`).nom, 'nom pas stable');
+    attendre(mmsDossiers.verifierPlan(plan, plan) === true, 'garde : bon plan refusé');
+    // Relancé : ce qui est marqué n'est jamais recréé ; tout marqué : rien.
+    const deux = plan.dossiers.slice(0, 2).map(d => d.cle);
+    const p2 = mmsDossiers.planifier(lignes, { racineExiste: true, aTrierExiste: true, existants: deux });
+    attendreEgal([p2.dossiers.length, p2.existants, p2.marquesDansDrive, p2.total, p2.aTrier.creer], [3, 2, 2, 3, false], 'relancé');
+    attendre(p2.dossiers.every(d => !deux.includes(d.cle)), 'dossier existant recréé');
+    const p3 = mmsDossiers.planifier(lignes, { racineExiste: true, aTrierExiste: true, existants: plan.dossiers.map(d => d.cle) });
+    attendreEgal([p3.dossiers.length, p3.total], [0, 0], 'tout existe : rien à créer');
+    // Codes en lettres : jamais un chiffre, quelle que soit l'empreinte.
+    for (const c of ['0', '9', '5', 'f', '0123456789abcdef']) attendre(!/\d/.test(mmsDossiers.codeLettres(`numero:${c.repeat(64).slice(0, 64)}`)), `code avec chiffre : ${c}`);
+    // contientNumero : trois chiffres ou plus, même séparés.
+    for (const [nom, oui] of [['06 39 98 00 21', true], ['+33 6', true], ['06.39', true], ['1-2-3', true], ['(0)6 3', true], ['r_Annabelle FICTIF', false], ['Lot 12', false], ['Groupe KXBT-QRMD', false]])
+      attendreEgal(mmsDossiers.contientNumero(nom), oui, `contientNumero(${nom})`);
+    // La garde : chaque refus, sans aucun nom ni clé dans le message.
+    const copie = () => JSON.parse(JSON.stringify(plan));
+    const refus = [
+      ['double', p => { p.dossiers.push(Object.assign({}, p.dossiers[0], { nom: 'Groupe BBBB-BBBB' })); p.total++; }, plan => Object.assign(copie(), { total: 99, dossiers: new Array(99) }), /en double/],
+      ['hors racine', p => { p.dossiers[1].parent = 'root'; }, () => plan, /hors de « MMS des relations »/],
+      ['plus que la liste', p => { p.dossiers.push({ cle: `groupe:${H('9')}`, sorte: 'groupe', nom: 'Groupe CCCC-CCCC', parent: 'racine' }); p.total++; }, () => plan, /plus de dossiers que la liste/],
+      ['numéro dans un nom', p => { p.dossiers[2].nom = 'Numéro inconnu 06 39 98 00 21'; }, () => plan, /contiendrait un numéro/],
+      ['même nom', p => { p.dossiers[3].nom = p.dossiers[0].nom; }, () => plan, /même nom/],
+      ['aucune liste montrée', () => {}, () => null, /aucune liste montrée/]];
+    for (const [quoi, abimer, montre, motif] of refus) {
+      const p = copie();
+      abimer(p);
+      let m = '';
+      try { mmsDossiers.verifierPlan(p, montre(p)); } catch (e) { m = String(e.message); }
+      attendre(motif.test(m) && /Rien n’est créé/.test(m), `garde (${quoi}) : ${m}`);
+      attendre(!/[0-9a-f]{16}|[B-Z]{4}-[B-Z]{4}|06 39/.test(m), `garde (${quoi}) : message avec un nom ou une clé`);
+    }
+    // L'écran : des nombres seulement (aucun nom de dossier, aucune clé).
+    const t = mmsDossiers.texte(plan);
+    attendre(t.includes('5 dossiers à créer : 1 personnes connues, 1 numéros inconnus, 1 numéros courts, 1 expéditeurs en lettres, 1 groupes.') && t.includes('« À trier » : 4 messages') && t.includes('QUE des codes à usage unique : 1') && t.includes('Total des créations au temps 2 : 7 au plus.'), `texte : ${t}`);
+    attendre(!/[0-9a-f]{16}|[B-Z]{4}-[B-Z]{4}/.test(t), 'texte avec un nom de dossier ou une clé');
+    // Le module : aucune écriture (temps 1), aucun module verrouillé, aucun stockage.
+    for (const mot of ['appelerEcriture', 'envoyerFichier', 'POST', 'DELETE', 'PATCH', 'MmsAndroid', 'mmsLecture', 'indexRelations', 'coordonneesRelations', 'localStorage', 'innerHTML', 'cerveau', 'fetch(', 'console'])
+      attendre(!SOURCE_MMS_DOSSIERS.includes(mot), `mms_dossiers.js contient « ${mot} »`);
+  });
+
+  await testAsync('Dossiers par expéditeur, P5 temps 1 (13/11/2026, FAUX pont et FAUX Drive FICTIFS) : le bouton est à côté de l’inventaire ; la personne vient de l’index (une fiche = une empreinte, jamais le nom) ; le Drive est LU seulement (rien écrit) ; l’écran montre des nombres seulement ; déjà marqué, fait à la main, non marqué : dit, jamais touché ; deux « MMS des relations » marqués : arrêt', async c => {
+    const J = (a, m, j) => new Date(a, m - 1, j, 12, 0).getTime();
+    const S = (sens, adresse, texte, date) => ({ s: 'sms', sens, date, adresses: adresse === null ? [] : [adresse], groupe: false, texte });
+    const M = (sens, adresses, groupe, date) => ({ s: 'mms', sens, date, adresses, groupe, texte: '' });
+    const FAUX = [
+      S('recu', '06 39 98 00 21', 'Bonjour FICTIF', J(2026, 1, 5)),
+      S('envoye', '+33639980021', 'Salut FICTIF', J(2026, 2, 1)),
+      S('recu', 'BANQUE FICTIVE', 'Votre code de confirmation FICTIF est 482913.', J(2026, 3, 1)),
+      S('recu', 'Banque Fictive', 'Votre relevé FICTIF est disponible.', J(2026, 3, 2)),
+      S('recu', '36999', 'Info FICTIVE', J(2026, 4, 1)),
+      S('recu', '', 'Appel FICTIF', J(2026, 4, 2)),
+      S('recu', '+33639980023', 'Coucou FICTIF', J(2026, 5, 1)),
+      S('recu', '06 39 98 00 77', 'Bonjour inconnu FICTIF', J(2026, 6, 1)),
+      S('recu', '06 39 98 00 99', '482913', J(2026, 7, 1)),
+      M('recu', ['+33639980031', '+33639980001', '+33639980032'], true, J(2026, 8, 1)),
+      M('recu', ['06 39 98 00 32', '+33639980031', '+33639980001'], true, J(2026, 8, 2)),
+      M('envoye', ['+33639980032', '+33639980031'], true, J(2026, 9, 1)),
+      M('recu', ['+33639980021'], false, J(2026, 10, 1)),
+      M('envoye', ['06 39 98 00 22'], false, J(2026, 11, 10))];
+    const fauxPont = messages => {
+      const f = { lancements: 0 };
+      f.MmsAndroid = { autorise: () => true, demander: () => {}, inventaireLancer: () => { f.lancements++; return true; }, inventaireEtat: () => 'pret', inventaireLire: () => JSON.stringify(messages) };
+      return f;
+    };
+    const st = stockageMms();
+    st.setItem(coordonneesRelations.CLE, JSON.stringify(COPIE_COORD_FICTIVE));
+    const { cle, index } = await mmsRangement.preparerIndex(st);
+    // 1. La personne : seulement avec l'option, seulement pour un numéro d'UNE fiche, en empreinte.
+    const lignes = await mmsLecture.lireInventaire(cle, index, fauxPont(FAUX), { pause: async () => {}, avecPersonne: true });
+    const avecP = lignes.filter(l => l.personne);
+    attendreEgal(avecP.length, 4, 'lignes avec une personne (Annabelle × 3, Bruno × 1)');
+    attendre(avecP.every(l => /^personne:[0-9a-f]{64}$/.test(l.personne) && l.sorteCle === 'numero'), 'personne pas en empreinte');
+    attendreEgal(new Set(avecP.map(l => l.personne)).size, 2, 'deux personnes');
+    attendreEgal(new Set(lignes.filter(l => l.personne === avecP[0].personne).map(l => l.cle)).size, 1, 'clé de numéro');
+    const brut = sansEmpreintes(JSON.stringify(lignes)); // 13/11/2026 : empreintes masquées (hasard)
+    for (const m of morceauxNumeros.concat(['Annabelle', 'Bruno', 'BANQUE', 'Banque', 'FICTIF', '482913', '36999'])) attendre(!brut.includes(m), `ligne avec « ${m} »`);
+    const sans = await mmsLecture.lireInventaire(cle, index, fauxPont(FAUX), { pause: async () => {} });
+    attendre(sans.every(l => !('personne' in l)), 'personne sans l’option');
+    // 2. Le plan sur ces faux messages.
+    const plan = mmsDossiers.planifier(lignes);
+    attendreEgal(plan.parSorte, { personne: 2, numero: 1, court: 1, lettres: 1, groupe: 2 }, 'par sorte');
+    attendreEgal([plan.dossiers.length, plan.aTrier.messages, plan.seulementCodes, plan.total], [7, 3, 0, 9], 'plan');
+    // 3. L'écran : bouton à côté de l'inventaire ; Drive LU seulement ; nombres seulement.
+    const ui = preparerInterface(c);
+    const el = id => ui.parId(id);
+    attendre(el('liste-dossiers-mms') && el('inventaire-mms').nextElementSibling === el('liste-dossiers-mms'), 'bouton absent ou pas après l’inventaire');
+    const f = fauxCompteCapDossiers();
+    const lectures = [];
+    const appeler = f.appeler;
+    f.appeler = async url => { lectures.push(url); return appeler(url); };
+    const e = mmsEcran.brancher(ui.doc, { compte: f, stockage: st, fenetre: fauxPont(FAUX) });
+    const t = await e.faireListeDossiers();
+    const ecran = el('resultat-mms').textContent;
+    attendreEgal(t, ecran, 'texte rendu');
+    attendre(ecran.includes('7 dossiers à créer : 2 personnes connues, 1 numéros inconnus, 1 numéros courts, 1 expéditeurs en lettres, 2 groupes.') && ecran.includes('« MMS des relations » (serait créé, marqué et daté)') && ecran.includes('Total des créations au temps 2 : 9 au plus.'), `écran : ${ecran}`);
+    for (const m of morceauxNumeros.concat(['Annabelle', 'Bruno', 'BANQUE', 'Banque', 'FICTIF', '482913', '36999'])) attendre(!ecran.includes(m), `écran avec « ${m} »`);
+    attendre(!/[0-9a-f]{16}|[B-Z]{4}-[B-Z]{4}/.test(ecran), 'écran avec un nom de dossier ou une clé');
+    attendreEgal([f.ecritures.length, el('barre-mms').hidden], [0, true], 'écrit dans le Drive, ou question « Oui, créer » posée');
+    attendre(lectures.length >= 2 && lectures.every(u => u.startsWith('https://www.googleapis.com/drive/v3/files?')), 'lectures du Drive inattendues');
+    // 4. Déjà dans le Drive : racine marquée, « À trier » marqué, un dossier marqué inconnu, un non marqué, un homonyme fait à la main.
+    const D = 'application/vnd.google-apps.folder';
+    const g = fauxCompteCapDossiers();
+    g.fichiers.push({ id: 'FICTIF_racine_0123456789', name: 'MMS des relations', mimeType: D, parents: ['root'], appProperties: { cap_mms_racine: '1' } },
+      { id: 'FICTIF_main_0123456789', name: 'MMS des relations', mimeType: D, parents: ['root'], appProperties: {} },
+      { id: 'FICTIF_trier_0123456789', name: 'À trier', mimeType: D, parents: ['FICTIF_racine_0123456789'], appProperties: { cap_mms_dossier: 'a_trier' } },
+      { id: 'FICTIF_marque_0123456789', name: 'Groupe BBBB-BBBB', mimeType: D, parents: ['FICTIF_racine_0123456789'], appProperties: { cap_mms_dossier: `groupe:${'f'.repeat(64)}` } },
+      { id: 'FICTIF_perso_0123456789', name: 'Mon dossier FICTIF', mimeType: D, parents: ['FICTIF_racine_0123456789'], appProperties: {} });
+    const etat = await mmsDossiers.lireEtat(g);
+    attendreEgal(etat, { racineExiste: true, racineId: 'FICTIF_racine_0123456789', homonymes: 1, existants: [`groupe:${'f'.repeat(64)}`], aTrierExiste: true, nonMarques: 1 }, 'état lu');
+    const e2 = mmsEcran.brancher(preparerInterface(c).doc, { compte: g, stockage: st, fenetre: fauxPont(FAUX) });
+    const t2 = await e2.faireListeDossiers();
+    attendre(t2.includes('(existe déjà)') && t2.includes('dossier existe déjà') && t2.includes('déjà marqués par Cap dans « MMS des relations » : 1') && t2.includes('fait à la main existe déjà (1)') && t2.includes('1 dossier(s) non marqué(s) par Cap : jamais touchés') && t2.includes('Total des créations au temps 2 : 7 au plus.'), `écran 2 : ${t2}`);
+    attendreEgal(g.ecritures.length, 0, 'écrit dans le Drive (2)');
+    // 5. Deux « MMS des relations » marqués : arrêt, rien créé.
+    g.fichiers.push({ id: 'FICTIF_racine2_0123456789', name: 'MMS des relations', mimeType: D, parents: ['root'], appProperties: { cap_mms_racine: '1' } });
+    const t3 = await mmsEcran.brancher(preparerInterface(c).doc, { compte: g, stockage: st, fenetre: fauxPont(FAUX) }).faireListeDossiers();
+    attendreEgal(t3, '', 'deux racines : pas d’arrêt');
+    attendreEgal(g.ecritures.length, 0, 'écrit dans le Drive (3)');
+    // 6. Hors coque : dit clairement, rien lu.
+    attendreEgal(await mmsEcran.brancher(preparerInterface(c).doc, { compte: f, stockage: st, fenetre: {} }).faireListeDossiers(), '', 'hors coque');
+  });
+
+  await testAsync('Retour du téléphone, A (13/11/2026, FAUSSE page FICTIVE) : UNE chose à la fois, la plus haute (fenêtre ouverte en dernier, puis écran de Cap, puis « Tout voir », puis la ligne de recherche) ; la visionneuse par son bouton caché ; le lecteur qui joue passe en arrière-plan ; « Garder / Jeter » jamais forcé ; une fenêtre dont « Fermer » ne fait rien est fermée au retour suivant ; rien à fermer : faux (Cap passe en arrière-plan) ; jamais faux tant qu’une fenêtre est ouverte', async c => {
+    const cadre = document.createElement('iframe');
+    cadre.style.cssText = 'position:fixed;left:0;top:0;width:400px;height:700px;border:0;';
+    document.body.append(cadre);
+    c.cadres.push(cadre);
+    const d = cadre.contentDocument;
+    d.body.innerHTML = '';
+    const clics = {};
+    const bouton = (parent, id, texte, action) => { const b = d.createElement('button'); if (id) b.id = id; b.type = 'button'; b.textContent = texte; b.addEventListener('click', () => { clics[id || texte] = (clics[id || texte] || 0) + 1; action(); }); parent.append(b); return b; };
+    const fenetre = id => { const f = d.createElement('dialog'); f.id = id; d.body.append(f); return f; };
+    const aide = fenetre('aide'); bouton(aide, 'fermer-aide', 'Fermer', () => aide.close());
+    const reglages = fenetre('reglages-drive'); bouton(reglages, 'fermer-reglages-drive', 'Fermer', () => reglages.close());
+    const vision = fenetre('visionneuse-cap'); let couches = 1; // une vidéo par-dessus
+    bouton(vision, 'fermer-visionneuse', 'Fermer la visionneuse', () => { if (couches > 0) couches--; else vision.close(); }).hidden = true;
+    const lecteur = fenetre('lecteur-mp3-relations'); bouton(lecteur, 'fermer-lecteur', 'Fermer', () => lecteur.close());
+    let joue = true; let arriere = 0;
+    const faux = { etat: () => ({ actif: joue }), arrierePlan: () => { arriere++; lecteur.close(); } };
+    const muette = fenetre('sans-bouton-fictif'); // aucun « Fermer » : comme Échap
+    const tenace = fenetre('tenace-fictif'); tenace.addEventListener('cancel', e => e.preventDefault());
+    const cassee = fenetre('cassee-fictif'); bouton(cassee, 'fermer-cassee', 'Fermer', () => {}); // son « Fermer » ne fait rien
+    const ecrite = fenetre('ajout-tache'); bouton(ecrite, 'fermer-ajout', 'Fermer', () => ecrite.close());
+    const ecranR = d.createElement('section'); ecranR.id = 'ecran-reglages'; ecranR.className = 'ecran-cap'; ecranR.hidden = true; d.body.append(ecranR);
+    bouton(d.body, 'fermer-reglages', 'Fermer', () => { ecranR.hidden = true; }).hidden = true;
+    bouton(d.body, 'fermer-chercher', 'Fermer', () => d.body.classList.remove('vue-complete'));
+    const bande = d.createElement('div'); bande.id = 'bande-recherche-accueil'; bande.hidden = true; d.body.append(bande);
+    let horloge = 0;
+    const fermeture = { gerer: (f, sortie) => { if (f.id !== 'ajout-tache') return false; if (!f.querySelector('.question-fermeture')) { const q = d.createElement('p'); q.className = 'question-fermeture'; q.textContent = 'Garder ou jeter ?'; f.append(q); } return true; } };
+    const R = retourTelephone.brancher(d, { fermetureFenetres: fermeture, lecteurMp3: () => faux, maintenant: () => horloge });
+    const tic = () => new Promise(ok => setTimeout(ok, 0));
+    // 1. Rien d'ouvert : faux.
+    attendreEgal(R.retour(), false, 'rien d’ouvert');
+    // 2. Écran, « Tout voir », ligne de recherche : un par un, du dessus vers le dessous.
+    ecranR.hidden = false; d.body.classList.add('vue-complete'); bande.hidden = false;
+    attendre(R.retour() === true && ecranR.hidden && d.body.classList.contains('vue-complete') && !bande.hidden, 'retour 1 : pas l’écran seul');
+    attendre(R.retour() === true && !d.body.classList.contains('vue-complete') && !bande.hidden, 'retour 2 : pas « Tout voir » seul');
+    attendre(R.retour() === true && bande.hidden, 'retour 3 : ligne de recherche');
+    attendreEgal(R.retour(), false, 'retour 4 : rien');
+    // 3. Deux fenêtres ET un écran : la DERNIÈRE ouverte d'abord, l'écran ensuite.
+    ecranR.hidden = false;
+    reglages.showModal(); await tic(); aide.showModal();
+    attendre(R.retour() === true && !aide.open && reglages.open && !ecranR.hidden, 'retour : pas la dernière fenêtre seule');
+    attendre(R.retour() === true && !reglages.open && !ecranR.hidden, 'retour : pas la fenêtre d’en dessous');
+    attendre(R.retour() === true && ecranR.hidden, 'retour : pas l’écran après les fenêtres');
+    attendreEgal(R.retour(), false, 'tout fermé');
+    // Ordre inverse : la plus récente gagne même si elle est plus haut dans la page.
+    aide.showModal(); await tic(); reglages.showModal();
+    attendre(R.retour() === true && !reglages.open && aide.open, 'ordre d’ouverture pas suivi');
+    R.retour();
+    // 4. Visionneuse : son bouton caché, une couche à la fois (la vidéo, puis la visionneuse).
+    vision.showModal();
+    attendre(R.retour() === true && vision.open && couches === 0, 'visionneuse : la vidéo d’abord');
+    attendre(R.retour() === true && !vision.open, 'visionneuse : puis elle');
+    attendreEgal(clics['fermer-visionneuse'], 2, 'bouton caché');
+    // 5. Lecteur qui joue : arrière-plan ; qui ne joue pas : « Fermer ».
+    lecteur.showModal();
+    attendre(R.retour() === true && arriere === 1 && !lecteur.open, 'lecteur qui joue');
+    joue = false; lecteur.showModal();
+    attendre(R.retour() === true && arriere === 1 && !lecteur.open && clics['fermer-lecteur'] === 1, 'lecteur arrêté');
+    // 6. Sans « Fermer » : comme Échap ; « cancel » empêché : reste ouverte, et Cap ne se quitte pas.
+    muette.showModal();
+    attendre(R.retour() === true && !muette.open, 'fenêtre sans bouton');
+    tenace.showModal();
+    attendre(R.retour() === true && tenace.open, 'fenêtre tenace');
+    tenace.close();
+    // 7. « Fermer » qui ne fait rien : fermée au retour suivant (après 600 ms), pas avant.
+    cassee.showModal();
+    attendre(R.retour() === true && cassee.open, 'cassée 1');
+    horloge += 100;
+    attendre(R.retour() === true && cassee.open, 'cassée : forcée trop tôt');
+    horloge += 600;
+    attendre(R.retour() === true && !cassee.open, 'cassée : jamais fermée');
+    // 8. Max a écrit : la question « Garder / Jeter », jamais forcée, même longtemps après.
+    ecrite.showModal();
+    for (let i = 0; i < 3; i++) { horloge += 5000; attendre(R.retour() === true && ecrite.open, `question forcée (${i})`); }
+    attendreEgal(ecrite.querySelectorAll('.question-fermeture').length, 1, 'question en double');
+    ecrite.close();
+    // 8 b. Fenêtre dont le « Fermer » POSE la question (sans fermeture_fenetres) : la sécurité ne la force jamais.
+    const parBouton = fenetre('question-par-bouton-fictif');
+    bouton(parBouton, 'fermer-question', 'Fermer', () => { if (!parBouton.querySelector('.question-fermeture')) { const q = d.createElement('p'); q.className = 'question-fermeture'; q.textContent = 'Garder ou jeter ?'; parBouton.append(q); } });
+    parBouton.showModal();
+    attendre(R.retour() === true && parBouton.open && parBouton.querySelector('.question-fermeture'), 'question par le bouton');
+    for (let i = 0; i < 3; i++) { horloge += 5000; attendre(R.retour() === true && parBouton.open, `question par le bouton forcée (${i})`); }
+    parBouton.close();
+    attendreEgal(R.retour(), false, 'fin : rien');
+    // 9. Le module : aucun réseau, aucun stockage ; le point d'entrée de la coque n'existe que dans Cap (pas dans les tests).
+    for (const mot of ['fetch(', 'XMLHttpRequest', 'localStorage', 'innerHTML', 'cerveau', 'googleapis', 'MmsAndroid'])
+      attendre(!SOURCE_RETOUR_TELEPHONE.includes(mot), `retour_telephone.js contient « ${mot} »`);
+    attendre(/window\.capRetourTelephone = \(\) =>/.test(SOURCE_RETOUR_TELEPHONE) && typeof window.capRetourTelephone === 'undefined', 'point d’entrée');
+  });
+
+  await testAsync('Retour du téléphone, A (13/11/2026, VRAIE page de Cap, FICTIVE) : RIEN n’est oublié : chacune des fenêtres de Cap, ouverte seule, est fermée par le retour (au plus deux retours), ou pose sa question ; chacun des cinq écrans a son bouton « Fermer » ; ensuite, rien à fermer', async c => {
+    const ui = preparerInterface(c);
+    const d = ui.doc;
+    let horloge = 0;
+    const R = retourTelephone.brancher(d, { fermetureFenetres: ui.fermetureFenetres, lecteurMp3: () => null, maintenant: () => horloge });
+    const fenetres = Array.from(d.querySelectorAll('dialog'));
+    attendre(fenetres.length >= 30, `fenêtres trouvées : ${fenetres.length}`);
+    for (const f of d.querySelectorAll('dialog[open]')) f.close();
+    const restees = [];
+    for (const f of fenetres) {
+      if (f.open) f.close();
+      f.showModal();
+      for (let i = 0; i < 3 && f.open; i++) { horloge += 1000; attendre(R.retour() === true, `${f.id} : retour faux alors qu’elle est ouverte`); await new Promise(ok => setTimeout(ok, 0)); }
+      if (f.open && !f.querySelector('.question-fermeture')) restees.push(f.id);
+      if (f.open) f.close();
+    }
+    attendreEgal(restees, [], 'fenêtres jamais fermées par le retour');
+    for (const [ecran, bouton] of Object.entries(retourTelephone.FERMER_ECRANS)) attendre(d.getElementById(ecran) && d.getElementById(bouton), `écran ${ecran} ou son bouton absent`);
+    attendreEgal(d.querySelectorAll('.ecran-cap').length, Object.keys(retourTelephone.FERMER_ECRANS).length, 'un écran de Cap sans bouton connu');
+    attendre(d.getElementById('fermer-visionneuse') && d.getElementById('fermer-chercher') && d.getElementById('bande-recherche-accueil'), 'boutons de la visionneuse ou de « Tout voir » absents');
+    for (const f of d.querySelectorAll('dialog[open]')) f.close();
+    d.querySelectorAll('.ecran-cap').forEach(e => { e.hidden = true; });
+    d.body.classList.remove('vue-complete');
+    d.getElementById('bande-recherche-accueil').hidden = true;
+    attendreEgal(R.retour(), false, 'accueil : rien à fermer');
+  });
+
+  await testAsync('Fantômes sur l’eau, maquette V2 (13/11/2026, VRAIE page, taille MESURÉE du Pixel 7a : 411 × 845) : chaque fantôme est la vraie icône, PILE à sa place (aucun écart) ; très pâle, même couleur, ondulation et léger flou ; rien d’autre de l’accueil ne se voit ; aucun toucher pris ; pas pendant la montée ni la descente ; « sans-fantomes » et « fantomes-sans-flou » ; clair et sombre', async c => {
+    const ui = preparerInterface(c, { largeur: 411, hauteur: 845 });
+    const d = ui.doc;
+    const html = d.documentElement;
+    const eau = d.getElementById('ecran-eau');
+    const vue = d.defaultView;
+    const css = el => vue.getComputedStyle(el);
+    const icones = () => Array.from(d.querySelectorAll('#grille-accueil > .bouton-accueil-principal:not([hidden]), #grille-accueil > #accueil-theme:not([hidden])')).filter(b => b.getClientRects().length);
+    const places = () => icones().map(b => { const r = b.getBoundingClientRect(); return [b.id, r.left, r.top, r.width, r.height]; });
+    const sansMouvement = () => html.style.setProperty('--fantome-force', '0px');
+    sansMouvement();
+    attendre(icones().length >= 12, `icônes de l’accueil : ${icones().length}`);
+    const avant = places();
+    // Écran d'eau ouvert : les fantômes.
+    eau.hidden = false;
+    html.classList.add('eau-ouverte');
+    const pendant = places();
+    attendreEgal(pendant.map(p => p[0]), avant.map(p => p[0]), 'mêmes icônes');
+    for (let i = 0; i < avant.length; i++) for (let k = 1; k < 5; k++) attendre(Math.abs(pendant[i][k] - avant[i][k]) < 0.01, `${avant[i][0]} décalé : ${avant[i]} / ${pendant[i]}`);
+    const ecran = d.querySelector('.ecran');
+    attendre(Number(css(ecran).zIndex) > Number(css(eau).zIndex) && css(ecran).visibility === 'hidden' && css(ecran).pointerEvents === 'none', 'l’accueil n’est pas au-dessus de l’eau, invisible, sans toucher');
+    for (const b of icones()) {
+      const s = css(b);
+      const attendue = b.classList.contains('bouton-pas-pret') ? 0.056 : 0.16;
+      attendre(s.visibility === 'visible' && Math.abs(Number(s.opacity) - attendue) < 0.002 && s.pointerEvents === 'none', `${b.id} : pas un fantôme (${s.visibility} ${s.opacity} ${s.pointerEvents})`);
+      attendre(s.animationName === 'fantome-ondule' && /blur\(0\.6px\)/.test(s.filter), `${b.id} : effet absent (${s.animationName} ${s.filter})`);
+      attendreEgal(s.color, css(d.getElementById('accueil-todo')).color, `${b.id} : couleur`);
+      const r = b.getBoundingClientRect();
+      const dessous = d.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      attendre(dessous && dessous.closest('#ecran-eau'), `${b.id} : le toucher ne va pas à l’eau`);
+    }
+    for (const id of ['date', 'petit-micro']) { const e = d.getElementById(id); if (e && e.closest('.ecran')) attendre(css(e).visibility === 'hidden', `${id} visible sur l’eau`); }
+    // Couleur = celle des vraies icônes, en clair et en sombre (aucune couleur écrite à la main).
+    for (const theme of ['theme-cap-clair', 'theme-cap-sombre']) {
+      html.classList.remove('theme-cap-clair', 'theme-cap-sombre'); html.classList.add(theme);
+      attendreEgal(css(d.getElementById('accueil-media')).color, css(d.body).getPropertyValue('--eau-texte').trim() ? css(d.getElementById('accueil-media')).color : css(d.getElementById('accueil-media')).color, 'couleur du thème');
+      const reelle = (() => { html.classList.add('sans-fantomes'); const c = css(d.getElementById('accueil-media')).color; html.classList.remove('sans-fantomes'); return c; })();
+      attendreEgal(css(d.getElementById('accueil-media')).color, reelle, `${theme} : couleur du fantôme différente de la vraie`);
+    }
+    // Sans flou (repli) ; sans fantômes (repli complet).
+    html.classList.add('fantomes-sans-flou');
+    attendre(icones().every(b => css(b).filter === 'none' && css(b).animationName === 'fantome-ondule'), 'sans flou : flou encore là ou ondulation partie');
+    html.classList.remove('fantomes-sans-flou');
+    html.classList.add('sans-fantomes');
+    attendre(css(ecran).zIndex !== '901' && css(ecran).visibility === 'visible' && icones().every(b => css(b).animationName !== 'fantome-ondule' && css(b).filter === 'none'), `sans fantômes : encore là (${css(ecran).zIndex} ${icones().map(b => b.id + ':' + css(b).animationName + ':' + css(b).filter).filter(x => !/:none:none$/.test(x)).join(' ')})`);
+    html.classList.remove('sans-fantomes');
+    // Montée et descente : l'entrée validée est gardée, pas de fantôme pendant.
+    for (const etat of ['cap-monte', 'cap-descend']) {
+      html.classList.add(etat);
+      attendre(css(ecran).visibility === 'visible' && css(ecran).zIndex !== '901' && css(ecran).visibility === 'visible' && icones().every(b => css(b).animationName !== 'fantome-ondule'), `${etat} : fantômes encore là`);
+      html.classList.remove(etat);
+    }
+    // Eau fermée : l'accueil normal, aux mêmes places.
+    html.classList.remove('eau-ouverte'); eau.hidden = true;
+    attendre(icones().every(b => css(b).visibility === 'visible' && Number(css(b).opacity) >= 0.35 && css(b).animationName !== 'fantome-ondule' && css(b).filter === 'none'), 'accueil : un reste de fantôme');
+    attendreEgal(places(), avant, 'accueil : places changées');
+    // La vraie grille au Pixel : trois colonnes, quatre rangées, cases carrées.
+    const xs = [...new Set(avant.map(p => Math.round(p[1])))], ys = [...new Set(avant.map(p => Math.round(p[2])))];
+    attendre(xs.length === 3 && ys.length === 4 && avant.every(p => Math.abs(p[3] - p[4]) < 0.5), `grille : ${xs} / ${ys}`);
+  });
+
+  // 13/11/2026 (P5 temps 2) : faux Drive « comme le vrai » pour la corbeille : une recherche SANS « trashed=false » voit la
+  // corbeille ; une recherche AVEC l'exclut.
+  const driveAvecCorbeille = f => {
+    const avant = f.appeler;
+    f.lectures = [];
+    f.appeler = async url => {
+      const q = new URL(url).searchParams.get('q') || '';
+      f.lectures.push(q);
+      const x = /^appProperties has \{ key='([^']+)' and value='([^']+)' \} and mimeType='([^']+)'$/.exec(q);
+      if (x) return { json: async () => ({ files: f.fichiers.filter(g => g.appProperties && g.appProperties[x[1]] === x[2] && g.mimeType === x[3]).map(g => ({ id: g.id, trashed: g.trashed === true })) }) };
+      const r = await avant(url);
+      if (!/trashed=false/.test(q)) return r;
+      const corps = await r.json();
+      return { json: async () => ({ files: (corps.files || []).filter(g => !(f.fichiers.find(h => h.id === g.id) || {}).trashed) }) };
+    };
+    return f;
+  };
+  const FAUX_P5 = (() => {
+    const J = (a, m, j) => new Date(a, m - 1, j, 12, 0).getTime();
+    const S = (sens, adresse, texte, date) => ({ s: 'sms', sens, date, adresses: adresse === null ? [] : [adresse], groupe: false, texte });
+    const M = (sens, adresses, groupe, date) => ({ s: 'mms', sens, date, adresses, groupe, texte: '' });
+    return [
+      S('recu', '06 39 98 00 21', 'Bonjour FICTIF', J(2026, 1, 5)),
+      S('envoye', '+33639980021', 'Salut FICTIF', J(2026, 2, 1)),
+      S('recu', 'BANQUE FICTIVE', 'Votre code de confirmation FICTIF est 482913.', J(2026, 3, 1)),
+      S('recu', 'Banque Fictive', 'Votre relevé FICTIF est disponible.', J(2026, 3, 2)),
+      S('recu', 'SERVICE 3615 FICTIF', 'Info FICTIVE', J(2026, 3, 3)),
+      S('recu', '36999', 'Info FICTIVE', J(2026, 4, 1)),
+      S('recu', '', 'Appel FICTIF', J(2026, 4, 2)),
+      S('recu', '+33639980023', 'Coucou FICTIF', J(2026, 5, 1)),
+      S('recu', '06 39 98 00 77', 'Bonjour inconnu FICTIF', J(2026, 6, 1)),
+      S('recu', '06 39 98 00 99', '482913', J(2026, 7, 1)),
+      S('recu', 'CODES FICTIFS', 'Votre code de confirmation FICTIF est 112233.', J(2026, 7, 2)),
+      M('recu', ['+33639980031', '+33639980001', '+33639980032'], true, J(2026, 8, 1)),
+      M('envoye', ['+33639980032', '+33639980031'], true, J(2026, 9, 1)),
+      M('recu', ['+33639980021'], false, J(2026, 10, 1)),
+      M('envoye', ['06 39 98 00 22'], false, J(2026, 11, 10))];
+  })();
+  const pontP5 = () => ({ MmsAndroid: { autorise: () => true, demander: () => {}, inventaireLancer: () => true, inventaireEtat: () => 'pret', inventaireLire: () => JSON.stringify(FAUX_P5) } });
+
+  await testAsync('Dossiers par expéditeur, P5 TEMPS 2 (13/11/2026, FAUX pont FICTIF) : clé STABLE (dérivée de la clé du téléphone, la même d’un jour à l’autre, différente de l’index) ; nom lisible SEULEMENT pour une personne connue (son dossier r_ sans « r_ ») et un expéditeur en lettres, jamais avec un numéro ; ligne « seulement des doutes » ; aucun numéro rendu', async () => {
+    const st = stockageMms();
+    st.setItem(coordonneesRelations.CLE, JSON.stringify(COPIE_COORD_FICTIVE));
+    const { cle, index } = await mmsRangement.preparerIndex(st);
+    const opts = { pause: async () => {}, avecPersonne: true, stable: true, etiquettes: true };
+    const l1 = await mmsLecture.lireInventaire(cle, index, pontP5(), opts);
+    const l2 = await mmsLecture.lireInventaire(cle, index, pontP5(), opts);
+    attendreEgal(l1.map(l => [l.cle, l.personne || '']), l2.map(l => [l.cle, l.personne || '']), 'clé pas stable');
+    const l3 = await mmsLecture.lireInventaire(cle, index, pontP5(), { pause: async () => {}, avecPersonne: true });
+    attendre(l3[0].cle !== l1[0].cle, 'sans « stable » : clé pas éphémère');
+    attendre(!l1.some(l => l.cle.endsWith(String(index && Object.keys(index.empreintes || {})[0] || 'x'))), 'clé = empreinte de l’index');
+    let refus = '';
+    try { await mmsLecture.lireInventaire('', index, pontP5(), opts); } catch (e) { refus = String(e.message); }
+    attendre(/Clé du téléphone absente/.test(refus), `sans clé : ${refus}`);
+    // Étiquettes : personne (sans « r_ ») et lettres seulement.
+    const avecE = l1.filter(l => l.etiquette);
+    attendre(avecE.every(l => (l.personne && !/^r_/.test(l.etiquette)) || l.sorteCle === 'lettres'), 'étiquette ailleurs que personne / lettres');
+    attendre(avecE.some(l => l.etiquette === 'Annabelle FICTIF') && avecE.some(l => l.etiquette === 'BANQUE FICTIVE'), `étiquettes : ${avecE.map(l => l.etiquette)}`);
+    attendre(!sansEmpreintes(JSON.stringify(l1.map(l => Object.assign({}, l, { etiquette: '' })))).match(/0639|\+33|639980/), 'un numéro dans les lignes');
+    // Le plan : noms lisibles, numéro jamais ; ligne « seulement des doutes ».
+    const plan = mmsDossiers.planifier(l1);
+    const noms = plan.dossiers.map(d => d.nom);
+    attendre(noms.includes('Annabelle FICTIF') && noms.includes('Bruno FICTIF') && noms.includes('BANQUE FICTIVE'), `noms : ${noms}`);
+    attendre(!noms.some(n => /3615/.test(n)) && noms.some(n => /^Expéditeur en lettres [B-Z]{4}-[B-Z]{4}$/.test(n)), 'expéditeur avec un numéro : pas remplacé par un code');
+    attendre(noms.every(n => !mmsDossiers.contientNumero(n)), 'un numéro dans un nom');
+    attendreEgal([plan.seulementCodes, plan.seulementDoutes], [1, 1], 'que des codes, que des doutes');
+    attendre(mmsDossiers.texte(plan).includes('Expéditeurs avec seulement des doutes : 1'), 'ligne absente');
+    attendre(!/Annabelle|Bruno|BANQUE|[B-Z]{4}-[B-Z]{4}/.test(mmsDossiers.texte(plan)), 'un nom à l’écran');
+  });
+
+  await testAsync('Dossiers par expéditeur, P5 TEMPS 2 (13/11/2026, FAUX Drive FICTIF) : création des dossiers VIDES : « MMS des relations » marqué et daté à la racine, « À trier », un dossier par expéditeur DEDANS, marqué et daté ; relancé : rien en double ; « Arrêter » ; première erreur = arrêt net ; corbeille jamais recréée ; plus que la liste, hors racine, numéro dans un nom, clé changée : rien ; une création à la fois ; rien d’autre qu’une création ; ancien rangement non touché', async () => {
+    const st = stockageMms();
+    st.setItem(coordonneesRelations.CLE, JSON.stringify(COPIE_COORD_FICTIVE));
+    const { cle, index } = await mmsRangement.preparerIndex(st);
+    const lignes = await mmsLecture.lireInventaire(cle, index, pontP5(), { pause: async () => {}, avecPersonne: true, stable: true, etiquettes: true });
+    const D = 'application/vnd.google-apps.folder';
+    const copie = p => JSON.parse(JSON.stringify(p));
+    const quand = () => new Date(2026, 10, 13, 23, 30);
+    const planDe = async f => mmsDossiers.planifier(lignes, await mmsDossiers.lireEtat(f));
+    // 1. Drive vide : tout est créé, au bon endroit, marqué et daté.
+    const f = driveAvecCorbeille(fauxCompteCapDossiers());
+    const plan = await planDe(f);
+    attendre(plan.total >= 8, `plan : ${plan.total}`);
+    const r = await mmsCreationDossiers.creer(f, plan, copie(plan), { maintenant: quand });
+    attendreEgal([r.erreur, r.crees, r.faits, r.dejaLa, r.arrete], [null, plan.total, plan.total, 0, false], 'rapport');
+    const racine = f.fichiers.find(g => g.appProperties.cap_mms_racine === '1');
+    attendre(racine && racine.parents[0] === 'root' && racine.name === 'MMS des relations' && racine.appProperties.cap_mms_cree_le === '2026-11-13', 'racine');
+    const enfants = f.fichiers.filter(g => g !== racine);
+    attendre(enfants.every(g => g.parents[0] === racine.id && g.mimeType === D && g.appProperties.cap_mms_cree_le === '2026-11-13' && g.appProperties.cap_mms_dossier), 'un dossier hors de « MMS des relations », sans marque ou sans date');
+    attendre(enfants.some(g => g.name === 'À trier' && g.appProperties.cap_mms_dossier === 'a_trier'), '« À trier »');
+    attendreEgal(enfants.filter(g => g.appProperties.cap_mms_dossier !== 'a_trier').map(g => g.name), plan.dossiers.map(d => d.nom), 'noms');
+    attendre(f.ecritures.every(([m, u, b]) => m === 'POST' && /\/drive\/v3\/files\?fields=id$/.test(u) && JSON.parse(b).mimeType === D), 'autre chose qu’une création de dossier');
+    attendre(f.lectures.every(q => !/r_|name contains|name =/.test(q)), 'l’ancien rangement « r_ » a été cherché');
+    // 2. Relancé : rien à créer, rien en double.
+    const p2 = await planDe(f);
+    attendreEgal([p2.total, p2.dossiers.length, p2.existants], [0, 0, plan.dossiers.length], 'relancé : plan');
+    const r2 = await mmsCreationDossiers.creer(f, p2, copie(p2), { maintenant: quand });
+    attendreEgal([r2.crees, f.fichiers.length], [0, plan.total], 'relancé : doublon');
+    // 3. « Arrêter » après 3 créations, puis reprise : tout, sans doublon.
+    const g = driveAvecCorbeille(fauxCompteCapDossiers());
+    const pg = await planDe(g);
+    const r3 = await mmsCreationDossiers.creer(g, pg, copie(pg), { arreter: () => g.fichiers.length >= 3 });
+    attendreEgal([r3.arrete, r3.crees, g.fichiers.length], [true, 3, 3], 'arrêter');
+    const r4 = await mmsCreationDossiers.creer(g, await planDe(g), copie(await planDe(g)));
+    attendreEgal([r4.erreur, g.fichiers.length, new Set(g.fichiers.map(x => x.appProperties.cap_mms_dossier || 'racine')).size], [null, pg.total, pg.total], 'reprise : doublon ou manque');
+    // 4. Première erreur : arrêt NET (rien d'autre n'est tenté), puis reprise sans doublon.
+    const h = driveAvecCorbeille(fauxCompteCapDossiers({ panne: n => n === 4 }));
+    const ph = await planDe(h);
+    const r5 = await mmsCreationDossiers.creer(h, ph, copie(ph));
+    attendre(r5.erreur && /réseau/.test(r5.erreur) && h.ecritures.length === 4 && h.fichiers.length === 3, `erreur : ${r5.erreur} ; ${h.ecritures.length} écritures`);
+    const r6 = await mmsCreationDossiers.creer(h, await planDe(h), copie(await planDe(h)));
+    attendreEgal([r6.erreur, h.fichiers.length], [null, ph.total], 'après l’erreur');
+    // 5. Corbeille : un dossier jeté par Max n'est jamais recréé.
+    const jete = h.fichiers.find(x => x.appProperties.cap_mms_dossier && x.appProperties.cap_mms_dossier !== 'a_trier');
+    jete.trashed = true;
+    const pj = await planDe(h);
+    attendreEgal(pj.dossiers.length, 1, 'jeté : replanifié (comme le vrai Drive)');
+    const r7 = await mmsCreationDossiers.creer(h, pj, copie(pj));
+    attendreEgal([r7.crees, r7.corbeille, h.fichiers.length], [0, 1, ph.total], 'jeté : recréé');
+    // 6. Gardes : plus que la liste, hors racine, numéro dans un nom : RIEN.
+    for (const [quoi, abimer] of [
+      ['plus que la liste', (p, m) => { m.total = p.total - 1; m.dossiers.pop(); }],
+      ['hors racine', p => { p.dossiers[0].parent = 'root'; }],
+      ['numéro dans un nom', p => { p.dossiers[1].nom = 'Numéro 06 39 98 00 21'; }],
+      ['deux fois la même clé', (p, m) => { p.dossiers.push(Object.assign({}, p.dossiers[0], { nom: 'Groupe BBBB-BBBB' })); p.total++; m.total++; m.dossiers.push({}); }]]) {
+      const v = driveAvecCorbeille(fauxCompteCapDossiers());
+      const p = copie(await planDe(v)); const m = copie(p);
+      abimer(p, m);
+      const rv = await mmsCreationDossiers.creer(v, p, m);
+      attendre(rv.erreur && v.ecritures.length === 0, `${quoi} : ${rv.erreur} ; ${v.ecritures.length} écritures`);
+    }
+    // 6 b. Total faussé (plan et liste d'accord, mais total plus petit que les dossiers) : le COMPTEUR de la création arrête.
+    {
+      const v = driveAvecCorbeille(fauxCompteCapDossiers());
+      const p = copie(await planDe(v)); p.total = 3;
+      const rv = await mmsCreationDossiers.creer(v, p, copie(p));
+      attendre(rv.erreur && /Plus de dossiers que la liste/.test(rv.erreur) && v.fichiers.length === 3, `compteur : ${rv.erreur} ; ${v.fichiers.length} créés`);
+    }
+    // 7. Clé du téléphone changée : des dossiers marqués existent, aucun ne correspond : arrêt.
+    const k = driveAvecCorbeille(fauxCompteCapDossiers());
+    k.fichiers.push({ id: 'FICTIF_racine_0123456789', name: 'MMS des relations', mimeType: D, parents: ['root'], appProperties: { cap_mms_racine: '1' } },
+      { id: 'FICTIF_autre_0123456789', name: 'Groupe CCCC-CCCC', mimeType: D, parents: ['FICTIF_racine_0123456789'], appProperties: { cap_mms_dossier: `groupe:${'e'.repeat(64)}` } });
+    const pk = await planDe(k);
+    const rk = await mmsCreationDossiers.creer(k, pk, copie(pk));
+    attendre(rk.erreur && /clé du téléphone/.test(rk.erreur) && k.ecritures.length === 0, `clé changée : ${rk.erreur}`);
+    // 8. Une création à la fois.
+    const u = driveAvecCorbeille(fauxCompteCapDossiers());
+    const pu = await planDe(u);
+    const premiere = mmsCreationDossiers.creer(u, pu, copie(pu));
+    let deux = '';
+    try { await mmsCreationDossiers.creer(u, pu, copie(pu)); } catch (e) { deux = String(e.message); }
+    await premiere;
+    attendre(/déjà en cours/.test(deux) && u.fichiers.length === pu.total, `verrou : ${deux}`);
+    // 9. Le module : création de dossiers seulement.
+    for (const mot of ['DELETE', 'PATCH', 'PUT', 'envoyerFichier', 'uploadType', 'trashed: true', 'MmsAndroid', 'mmsLecture', 'indexRelations', 'coordonneesRelations', 'localStorage', 'innerHTML', 'cerveau'])
+      attendre(!SOURCE_MMS_CREATION_DOSSIERS.includes(mot), `mms_creation_dossiers.js contient « ${mot} »`);
+    attendreEgal(SOURCE_MMS_CREATION_DOSSIERS.split('appelerEcriture(').length - 1, 1, 'plus d’un endroit qui écrit');
+  });
+
+  await testAsync('Dossiers par expéditeur, P5 TEMPS 2 (13/11/2026, écran, FAUX pont et FAUX Drive FICTIFS) : le bouton ; la liste en NOMBRES puis « Oui, créer » ; « Non » : rien ; « Oui » : les dossiers ; pendant la création, « Non » devient « Arrêter » et arrête ; rien à l’écran que des nombres', async c => {
+    const st = stockageMms();
+    st.setItem(coordonneesRelations.CLE, JSON.stringify(COPIE_COORD_FICTIVE));
+    const ui = preparerInterface(c);
+    const el = id => ui.parId(id);
+    attendre(el('creer-dossiers-mms') && el('liste-dossiers-mms').nextElementSibling === el('creer-dossiers-mms'), 'bouton absent ou mal placé');
+    const f = driveAvecCorbeille(fauxCompteCapDossiers());
+    const e = mmsEcran.brancher(ui.doc, { compte: f, stockage: st, fenetre: pontP5() });
+    const t = await e.preparerDossiers();
+    attendre(!el('barre-mms').hidden && el('oui-mms').textContent === 'Oui, créer' && /Touche « Oui, créer »/.test(t), 'question absente');
+    for (const m of morceauxNumeros.concat(['Annabelle', 'Bruno', 'BANQUE', 'FICTIF'])) attendre(!el('resultat-mms').textContent.includes(m), `écran avec « ${m} »`);
+    attendre(!/[B-Z]{4}-[B-Z]{4}|[0-9a-f]{16}/.test(el('resultat-mms').textContent), 'un nom ou une clé à l’écran');
+    attendreEgal(f.ecritures.length, 0, 'écrit avant le Oui');
+    el('non-mms').click();
+    attendre(/Rien n’a été créé/.test(el('resultat-mms').textContent) && f.ecritures.length === 0, '« Non »');
+    attendreEgal(await e.confirmer(), '', 'Oui après Non');
+    attendreEgal(f.ecritures.length, 0, 'créé après Non');
+    // « Oui » puis « Arrêter » après la deuxième création.
+    await e.preparerDossiers();
+    const ecrire = f.appelerEcriture;
+    f.appelerEcriture = async (...a) => { const r = await ecrire(...a); if (f.ecritures.length === 2) { attendreEgal(el('non-mms').textContent, 'Arrêter', 'bouton Arrêter'); el('non-mms').click(); } return r; };
+    const fin = await e.confirmer();
+    attendre(/Arrêté à ta demande/.test(fin) && /Créés : 2\./.test(fin) && f.fichiers.length === 2 && el('non-mms').textContent === 'Non', `arrêt : ${fin}`);
+    // Relancé : le reste, sans doublon.
+    f.appelerEcriture = ecrire;
+    await e.preparerDossiers();
+    const fin2 = await e.confirmer();
+    attendre(/C’est fait/.test(fin2) && /Déjà là : 0/.test(fin2), `reprise : ${fin2}`);
+    attendreEgal(new Set(f.fichiers.map(x => x.appProperties.cap_mms_dossier || 'racine')).size, f.fichiers.length, 'doublon');
+    attendreEgal((await e.preparerDossiers()).includes('Rien à créer'), true, 'tout existe : encore une question');
+  });
+
+  // ----- 14/11/2026 (accord de Max, P6) : COPIE d'UN message avec pièce jointe (FAUX pont, FAUX Drive, tout FICTIF). -----
+  const OCTETS_P6 = {
+    '7001': [0xff, 0xd8, 0xff, 0x46, 0x49, 0x43, 0x54, 0x49, 0x46, 0x31], '7002': [0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x46, 0x32, 0x32],
+    '7003': [0x89, 0x50, 0x4e, 0x47, 0x46, 0x33], '7005': [0xff, 0xd8, 0xff, 0x46, 0x35], '7010': [0xff, 0xd8, 0xff, 0x46, 0x10] };
+  const FAUX_P6 = (() => {
+    const J = (a, m, j, h = 12) => new Date(a, m - 1, j, h, 0).getTime();
+    const M = (id, sens, adresses, groupe, date, pieces, texte = '', autres = 0) => ({ s: 'mms', sens, date, adresses, groupe, texte, id, pieces, autres });
+    const img = id => ({ id, ct: 'image/jpeg' });
+    return FAUX_P5.concat([
+      M('9001', 'recu', ['+33639980021'], false, J(2026, 10, 1), [img('7001')]),
+      M('9002', 'envoye', ['06 39 98 00 21'], false, J(2026, 10, 2), [{ id: '7002', ct: 'video/mp4' }, { id: '7003', ct: 'image/png' }], '', 1),
+      M('9003', 'recu', ['+33639980021'], false, J(2026, 10, 3), [img('7091')], 'Votre code de confirmation FICTIF est 482913.'),
+      M('9004', 'recu', ['+33639980021'], false, J(2026, 10, 4), [img('7092')], '482913'),
+      M('9005', 'recu', ['+33639980021'], false, J(2026, 10, 1, 18), [img('7005')]),
+      M('9006', 'recu', ['+33639980021'], false, J(2026, 10, 6), [img('7099')]),
+      M('9007', 'recu', ['+33639980021'], false, J(2026, 10, 7), [], '', 1),
+      M('9008', 'recu', ['+33639980031', '+33639980001', '+33639980032'], true, J(2026, 10, 8), [img('7093')]),
+      M('9009', 'recu', ['06 39 98 00 77'], false, J(2026, 10, 9), [img('7094')]),
+      M('9010', 'envoye', ['06.39.98.00.22'], false, J(2026, 10, 10), [img('7010'), { id: '7095', ct: 'audio/amr' }, { id: 'x1', ct: 'image/jpeg' }])]);
+  })();
+  const pontP6 = () => {
+    const appels = [];
+    const enBase64 = octets => btoa(String.fromCharCode(...octets));
+    const pont = { MmsAndroid: {
+      autorise: () => { appels.push('autorise'); return true; }, demander: () => { appels.push('demander'); },
+      inventaireLancer: () => { appels.push('inventaireLancer'); return true; }, inventaireEtat: () => 'pret', inventaireLire: () => { appels.push('inventaireLire'); return JSON.stringify(FAUX_P6); },
+      pieceLire: (mid, id) => {
+        appels.push(`pieceLire:${mid}:${id}`);
+        if (id === '7099') return JSON.stringify({ ct: 'image/jpeg', trop: true });
+        const o = OCTETS_P6[id];
+        const ct = { '7001': 'image/jpeg', '7002': 'video/mp4', '7003': 'image/png', '7005': 'image/jpeg', '7010': 'image/jpeg' }[id];
+        return o ? JSON.stringify({ ct, taille: o.length, donnees: enBase64(o) }) : JSON.stringify({ erreur: 'piece' });
+      } } };
+    pont.appels = appels;
+    return pont;
+  };
+  const fauxDriveP6 = ({ panneEnvoi = () => false } = {}) => {
+    const D = 'application/vnd.google-apps.folder';
+    const fichiers = [];
+    const ecritures = [];
+    const envois = [];
+    const lectures = [];
+    let tentatives = 0;
+    let n = 0;
+    const rep = corps => ({ json: async () => corps });
+    const filtrer = q => {
+      let reste = q;
+      let liste = fichiers.slice();
+      const ap = /appProperties has \{ key='([^']+)' and value='([^']+)' \}/.exec(reste);
+      if (ap) { liste = liste.filter(f => f.appProperties && f.appProperties[ap[1]] === ap[2]); reste = reste.replace(ap[0], ''); }
+      const pa = /'([^']+)' in parents/.exec(reste);
+      if (pa) { liste = liste.filter(f => f.parents[0] === pa[1]); reste = reste.replace(pa[0], ''); }
+      const mt = /mimeType='([^']+)'/.exec(reste);
+      if (mt) { liste = liste.filter(f => f.mimeType === mt[1]); reste = reste.replace(mt[0], ''); }
+      if (reste.includes('trashed=false')) { liste = liste.filter(f => !f.trashed); reste = reste.replace('trashed=false', ''); }
+      if (reste.replace(/ and /g, '').trim()) throw new Error(`recherche inattendue : ${q}`);
+      return liste;
+    };
+    return {
+      fichiers, ecritures, envois, lectures, tentatives: () => tentatives, connecte: () => true,
+      appeler: async url => {
+        const q = new URL(url).searchParams.get('q') || '';
+        lectures.push(q);
+        return rep({ files: filtrer(q).map(x => ({ id: x.id, name: x.name, mimeType: x.mimeType, parents: x.parents, appProperties: x.appProperties, trashed: x.trashed === true })) });
+      },
+      appelerEcriture: async (url, options = {}) => {
+        const m = String(options.method || 'GET').toUpperCase();
+        ecritures.push([m, url, options.body]);
+        if (!googleCompteRelations.ecritureAutorisee(new URL(url), m, options.body || '')) throw new Error('Écriture non autorisée pour le compte Cap.');
+        const c = JSON.parse(options.body);
+        const x = { id: `FICTIF_p6_${String(++n).padStart(4, '0')}_0123456789`, name: c.name, mimeType: c.mimeType, parents: c.parents, appProperties: c.appProperties || {}, trashed: false };
+        fichiers.push(x);
+        return rep({ id: x.id });
+      },
+      // Les mêmes règles que la vraie porte (vérifiée par le test de P4) : dossier marqué « répétition » ou « Reçus / Envoyés ».
+      envoyerFichier: async (idDossier, { nom, mimeType, appProperties }, contenu) => {
+        tentatives++;
+        const d = fichiers.find(x => x.id === idDossier);
+        if (!d || d.mimeType !== D || d.trashed || !Object.keys(d.appProperties || {}).some(k => ['cap_mms_repetition_dossier', 'cap_mms_sous'].includes(k))) throw new Error('Envoi refusé par Cap : le dossier cible n’est pas un dossier d’envoi marqué par Cap. Rien n’a été envoyé.');
+        if (panneEnvoi(tentatives)) throw new Error('Pas de réseau (FICTIF).');
+        const x = { id: `FICTIF_p6_${String(++n).padStart(4, '0')}_0123456789`, name: nom, mimeType, parents: [idDossier], appProperties, trashed: false, octets: [...new Uint8Array(await contenu.arrayBuffer())] };
+        fichiers.push(x);
+        envois.push(x);
+        return rep({ id: x.id });
+      }
+    };
+  };
+  // Le Drive du compte Cap après P5 : « MMS des relations » et les dossiers par expéditeur (créés par le vrai module du P5).
+  const driveApresP5 = async (lignes, options) => {
+    const f = fauxDriveP6(options);
+    const plan = mmsDossiers.planifier(lignes, await mmsDossiers.lireEtat(f));
+    const r = await mmsCreationDossiers.creer(f, plan, JSON.parse(JSON.stringify(plan)));
+    attendre(!r.erreur && r.crees === plan.total, `P5 fictif : ${r.erreur}`);
+    f.ecritures.length = 0;
+    return f;
+  };
+  const lignesP6 = async (pont = pontP6(), st = stockageMms()) => {
+    st.setItem(coordonneesRelations.CLE, JSON.stringify(COPIE_COORD_FICTIVE));
+    const { cle, index } = await mmsRangement.preparerIndex(st);
+    return { st, lignes: await mmsLecture.lireInventaire(cle, index, pont, { pause: async () => {}, avecPersonne: true, stable: true, etiquettes: true, pieces: true }), cle, index };
+  };
+
+  await testAsync('Copie d’UN message, P6 (14/11/2026, FAUX pont et FAUX Drive FICTIFS) : pièces et marques STABLES dans l’inventaire (aucun numéro) ; seulement les personnes connues, MMS reçus ou envoyés, ni code ni doute, images et vidéos ; la question ne fait que LIRE ; « Oui » : « Reçus » ou « Envoyés » créé DANS le dossier de la personne, puis la pièce copiée (date + numéro d’ordre, marque) ; relancé : « déjà copié » (corbeille comprise) ; plus de 5 Mo ; gardes ; première erreur = arrêt net puis reprise sans doublon ; une copie à la fois ; rien d’effacé ; le téléphone seulement LU', async () => {
+    const pont = pontP6();
+    const { lignes, cle, index, st } = await lignesP6(pont);
+    // 1. L'inventaire : mid, pièces copiables, marques stables ; jamais de numéro.
+    let refus = '';
+    try { await mmsLecture.lireInventaire(cle, index, pontP6(), { pause: async () => {}, avecPersonne: true, pieces: true }); } catch (e) { refus = String(e.message); }
+    attendre(/Pièces sans clé stable/.test(refus), `pièces sans clé stable : ${refus}`);
+    const l9001 = lignes.find(l => l.mid === '9001');
+    attendre(l9001 && l9001.personne && l9001.pieces.length === 1 && /^[0-9a-f]{64}$/.test(l9001.pieces[0].marque), 'ligne 9001');
+    const l9010 = lignes.find(l => l.mid === '9010');
+    attendreEgal([l9010.pieces.map(p => p.id), l9010.autres], [['7010'], 0], 'pièce de type interdit ou identifiant faux gardé');
+    const encore = (await lignesP6(pontP6(), st)).lignes; // le même téléphone (même clé), un autre jour
+    const autreTelephone = (await lignesP6()).lignes;
+    attendre(autreTelephone.find(l => l.mid === '9001').pieces[0].marque !== l9001.pieces[0].marque, 'marque identique avec une autre clé du téléphone');
+    attendreEgal(encore.filter(l => l.mid).map(l => l.pieces.map(p => p.marque).join()), lignes.filter(l => l.mid).map(l => l.pieces.map(p => p.marque).join()), 'marque pas stable');
+    const toutes = lignes.flatMap(l => l.pieces || []).map(p => p.marque);
+    attendreEgal(new Set(toutes).size, toutes.length, 'deux pièces, même marque');
+    for (const m of morceauxNumeros) attendre(!sansEmpreintes(JSON.stringify(lignes.map(l => Object.assign({}, l, { etiquette: '' })))).includes(m), `un numéro dans les lignes (${m})`);
+    // 2. Les personnes et leurs messages copiables.
+    const ps = mmsCopie.personnes(lignes);
+    attendreEgal(ps.map(p => p.nom), ['Annabelle FICTIF', 'Bruno FICTIF'], 'personnes');
+    const anna = ps[0];
+    attendreEgal(anna.messages.map(m => m.mid), ['9006', '9002', '9005', '9001'], 'messages (code, doute, sans pièce, groupe, inconnu : exclus ; du plus récent au plus ancien)');
+    attendreEgal(mmsCopie.texteMessage(anna.messages[1]), '02/10/2026 12:00 · envoyé · 1 image, 1 vidéo (+ 1 pièce non copiable)', 'texte du message');
+    // 3. La question : LECTURE seulement (rien créé, rien envoyé) ; seules les pièces de CE message sont lues.
+    const f = await driveApresP5(lignes);
+    const nAvant = f.fichiers.length;
+    const m9001 = anna.messages.find(m => m.mid === '9001');
+    pont.appels.length = 0;
+    const lire = (a, b) => mmsLecture.lirePiece(a, b, pont);
+    const propA = await mmsCopie.preparer(f, anna, m9001, lire);
+    const propB = await mmsCopie.preparer(f, anna, m9001, lire);
+    attendreEgal([f.ecritures.length, f.envois.length, f.fichiers.length], [0, 0, nAvant], 'la question a écrit');
+    attendre(pont.appels.every(a => a === 'autorise' || a === 'pieceLire:9001:7001'), `téléphone : ${pont.appels}`);
+    const dossierAnna = f.fichiers.find(x => x.name === 'Annabelle FICTIF');
+    attendreEgal([propA.dossier.id, propA.dossier.nom, propA.sous.nom, propA.sous.id, propA.pieces.length, propA.pieces[0].taille], [dossierAnna.id, 'Annabelle FICTIF', 'Reçus', null, 1, 10], 'proposition');
+    const tq = mmsCopie.texte(propA);
+    attendre(/Reçus/.test(tq) && /Annabelle FICTIF/.test(tq) && /jpeg/.test(tq) && /1 Ko/.test(tq) && /reçu le 01\/10\/2026/.test(tq) && /reste sur ton téléphone/.test(tq) && /2026-10-01 n°1\.jpg/.test(tq), `fenêtre : ${tq}`);
+    for (const m of morceauxNumeros) attendre(!tq.includes(m), `numéro dans la fenêtre (${m})`);
+    // 4. « Oui » : « Reçus » DANS le dossier de la personne (marqué, daté), puis la pièce (nom, marque, octets identiques).
+    const quand = () => new Date(2026, 10, 14, 10, 0);
+    const r1 = await mmsCopie.copier(f, propA, { pieces: 1 }, { maintenant: quand });
+    attendreEgal([r1.erreur, r1.copiees, r1.deja, r1.sousCree, r1.noms], [null, 1, 0, true, ['2026-10-01 n°1.jpg']], 'copie');
+    const recus = f.fichiers.find(x => x.name === 'Reçus');
+    attendre(recus && recus.parents[0] === dossierAnna.id && recus.appProperties.cap_mms_sous === `${anna.cle}:recu` && recus.appProperties.cap_mms_cree_le === '2026-11-14', '« Reçus »');
+    const copie1 = f.envois[0];
+    attendre(copie1.parents[0] === recus.id && copie1.name === '2026-10-01 n°1.jpg' && copie1.mimeType === 'image/jpeg' && copie1.appProperties.cap_mms_copie === m9001.pieces[0].marque && copie1.appProperties.cap_mms_cree_le === '2026-11-14', 'fichier copié');
+    attendreEgal(copie1.octets, OCTETS_P6['7001'], 'octets différents');
+    attendre(propA.pieces[0].octets.every(o => o === 0), 'la pièce reste en mémoire après la copie');
+    attendre(f.ecritures.every(([m, u, b]) => m === 'POST' && /\/drive\/v3\/files\?fields=id$/.test(u) && JSON.parse(b).mimeType === 'application/vnd.google-apps.folder'), 'autre écriture qu’une création de dossier');
+    // 5. Relancé : la question préparée AVANT la copie (propB) ne recopie pas (marque relue juste avant) ; une nouvelle question : « déjà copié ».
+    const r2 = await mmsCopie.copier(f, propB, { pieces: 1 });
+    attendreEgal([r2.erreur, r2.copiees, r2.deja, f.envois.length], [null, 0, 1, 1], 'recopié');
+    const p3 = await mmsCopie.preparer(f, anna, m9001, lire);
+    attendreEgal([p3.pieces.length, p3.deja], [0, 1], 'déjà copié : pas vu');
+    copie1.trashed = true;
+    attendreEgal((await mmsCopie.preparer(f, anna, m9001, lire)).deja, 1, 'jeté à la corbeille : recopié');
+    // 6. Le même jour : numéro d'ordre suivant ; envoyé : « Envoyés » ; deux pièces numérotées.
+    const r5 = await mmsCopie.copier(f, await mmsCopie.preparer(f, anna, anna.messages.find(m => m.mid === '9005'), lire), { pieces: 1 });
+    attendreEgal([r5.copiees, r5.sousCree, r5.noms], [1, false, ['2026-10-01 n°2.jpg']], 'numéro d’ordre');
+    const r6 = await mmsCopie.copier(f, await mmsCopie.preparer(f, anna, anna.messages.find(m => m.mid === '9002'), lire), { pieces: 2 });
+    attendreEgal([r6.erreur, r6.copiees, r6.nom, r6.noms], [null, 2, 'Envoyés', ['2026-10-02 n°1.mp4', '2026-10-02 n°2.png']], 'envoyé');
+    attendre(f.fichiers.find(x => x.name === 'Envoyés').parents[0] === dossierAnna.id, '« Envoyés » mal placé');
+    // 7. Plus de 5 Mo : rien à copier (pas de contenu lu).
+    const p7 = await mmsCopie.preparer(f, anna, anna.messages.find(m => m.mid === '9006'), lire);
+    attendreEgal([p7.pieces.length, p7.tropGrosses], [0, 1], 'trop gros');
+    // 8. Gardes : rien écrit.
+    const bruno = ps[1];
+    const m9010 = bruno.messages[0];
+    for (const [quoi, faire] of [
+      ['doute', () => mmsCopie.preparer(f, bruno, { ...m9010, code: 'doute' }, lire)],
+      ['code', () => mmsCopie.preparer(f, bruno, { ...m9010, code: 'code' }, lire)],
+      ['pas une personne connue', () => mmsCopie.preparer(f, { cle: `groupe:${'a'.repeat(64)}` }, m9010, lire)],
+      ['ni reçu ni envoyé', () => mmsCopie.preparer(f, bruno, { ...m9010, sens: 'autre' }, lire)],
+      ['trop de pièces', () => mmsCopie.preparer(f, bruno, { ...m9010, pieces: Array.from({ length: 11 }, (x, i) => ({ ...m9010.pieces[0], id: String(8000 + i) })) }, lire)]]) {
+      const avant = [f.ecritures.length, f.envois.length];
+      let e = '';
+      try { await faire(); } catch (x) { e = String(x.message); }
+      attendre(/Copie refusée/.test(e), `${quoi} : ${e || 'pas refusé'}`);
+      attendreEgal([f.ecritures.length, f.envois.length], avant, `${quoi} : écrit`);
+    }
+    const pb = await mmsCopie.preparer(f, bruno, m9010, lire);
+    for (const [quoi, abimer, montre] of [
+      ['plus que montré', p => p, { pieces: 0 }],
+      ['rien montré', p => p, null],
+      ['dossier changé', p => { p.dossier.id = 'FICTIF_autre_0123456789'; return p; }, { pieces: 1 }],
+      ['pièce abîmée', p => { p.pieces[0].taille = 99; return p; }, { pieces: 1 }]]) {
+      const p = { ...pb, dossier: { ...pb.dossier }, pieces: pb.pieces.map(x => ({ ...x, octets: new Uint8Array(x.octets) })) };
+      const r = await mmsCopie.copier(f, abimer(p), montre);
+      attendre(r.erreur && r.copiees === 0, `${quoi} : ${r.erreur}`);
+    }
+    attendre(!f.fichiers.some(x => x.parents[0] === f.fichiers.find(y => y.name === 'Bruno FICTIF').id), 'garde : quelque chose a été créé chez Bruno');
+    // 9. Dossier de la personne ou « Reçus » à la corbeille : rien.
+    dossierAnna.trashed = true;
+    let e9 = '';
+    try { await mmsCopie.preparer(f, anna, m9001, lire); } catch (x) { e9 = String(x.message); }
+    attendre(/introuvable/.test(e9), `dossier jeté : ${e9}`);
+    dossierAnna.trashed = false;
+    recus.trashed = true;
+    e9 = '';
+    try { await mmsCopie.preparer(f, anna, anna.messages.find(m => m.mid === '9005'), lire); } catch (x) { e9 = String(x.message); }
+    attendre(/corbeille/.test(e9), `« Reçus » jeté : ${e9}`);
+    recus.trashed = false;
+    // 10. Première erreur : arrêt NET (la 2e pièce n'est pas tentée), puis reprise sans doublon.
+    const lg = (await lignesP6()).lignes;
+    const g = await driveApresP5(lg, { panneEnvoi: n => n === 1 });
+    const annaG = mmsCopie.personnes(lg)[0];
+    const pg = await mmsCopie.preparer(g, annaG, annaG.messages.find(m => m.mid === '9002'), lire);
+    const rg = await mmsCopie.copier(g, pg, { pieces: 2 });
+    attendre(rg.erreur && /réseau/.test(rg.erreur) && rg.copiees === 0 && g.tentatives() === 1, `panne : ${rg.erreur}, ${g.tentatives()} tentatives`);
+    const rg2 = await mmsCopie.copier(g, await mmsCopie.preparer(g, annaG, annaG.messages.find(m => m.mid === '9002'), lire), { pieces: 2 });
+    attendreEgal([rg2.erreur, rg2.copiees, rg2.sousCree, g.fichiers.filter(x => x.name === 'Envoyés').length, rg2.noms], [null, 2, false, 1, ['2026-10-02 n°1.mp4', '2026-10-02 n°2.png']], 'reprise');
+    // 11. Une copie à la fois.
+    const h = await driveApresP5(lg);
+    const ph = await mmsCopie.preparer(h, annaG, annaG.messages.find(m => m.mid === '9001'), lire);
+    const premiere = mmsCopie.copier(h, ph, { pieces: 1 });
+    let deux = '';
+    try { await mmsCopie.copier(h, ph, { pieces: 1 }); } catch (x) { deux = String(x.message); }
+    await premiere;
+    attendre(/déjà en cours/.test(deux) && h.envois.length === 1, `verrou : ${deux}`);
+    // 12. Le module : création de dossier et envoi par la porte seulement ; ne parle pas au téléphone.
+    for (const mot of ['DELETE', 'PATCH', 'PUT', 'uploadType', 'trashed: true', 'MmsAndroid', 'mmsLecture', 'indexRelations', 'coordonneesRelations', 'localStorage', 'innerHTML', 'cerveau', 'fetch('])
+      attendre(!SOURCE_MMS_COPIE.includes(mot), `mms_copie.js contient « ${mot} »`);
+    attendreEgal([SOURCE_MMS_COPIE.split('appelerEcriture(').length - 1, SOURCE_MMS_COPIE.split('envoyerFichier(').length - 1], [1, 1], 'plus d’un endroit qui écrit');
+  });
+
+  await testAsync('Copie d’UN message, P6 (14/11/2026, écran, FAUX pont et FAUX Drive FICTIFS) : le bouton ; les personnes, puis les messages, puis « Oui, copier » ; « Non » : rien ; « Oui » : la pièce dans « Reçus » ; relancé : « déjà copié » ; aucun numéro à l’écran', async c => {
+    const pont = pontP6();
+    const { st, lignes } = await lignesP6(pont);
+    const ui = preparerInterface(c);
+    const el = id => ui.parId(id);
+    attendre(el('copier-message-mms') && el('creer-dossiers-mms').nextElementSibling === el('copier-message-mms') && el('copier-message-mms').nextElementSibling === el('choix-copie-mms'), 'bouton absent ou mal placé');
+    const f = await driveApresP5(lignes);
+    const e = mmsEcran.brancher(ui.doc, { compte: f, stockage: st, fenetre: pont });
+    const t = await e.preparerCopie();
+    const boutons = () => [...el('choix-copie-mms').querySelectorAll('button')];
+    attendreEgal(boutons().map(b => b.textContent), ['Annabelle FICTIF : 4 messages', 'Bruno FICTIF : 1 message'], `personnes (${t})`);
+    attendre(el('barre-mms').hidden, 'question avant le choix');
+    boutons()[0].click();
+    await new Promise(r => setTimeout(r, 0));
+    attendreEgal(boutons().map(b => b.textContent)[3], '01/10/2026 12:00 · reçu · 1 image', 'messages');
+    const q = await e.choisirMessage('9001');
+    attendre(!el('barre-mms').hidden && el('oui-mms').textContent === 'Oui, copier' && /Touche « Oui, copier »/.test(q) && /Reçus/.test(q), `question : ${q}`);
+    for (const m of morceauxNumeros) attendre(!el('resultat-mms').textContent.includes(m), `écran avec « ${m} »`);
+    attendre(!/[0-9a-f]{16}/.test(el('resultat-mms').textContent), 'une clé à l’écran');
+    attendreEgal([f.ecritures.length, f.envois.length], [0, 0], 'copié avant le Oui');
+    el('non-mms').click();
+    attendre(/Rien n’a été copié/.test(el('resultat-mms').textContent) && f.envois.length === 0, '« Non »');
+    attendreEgal(await e.confirmer(), '', 'Oui après Non');
+    await e.preparerCopie();
+    await e.choisirPersonne(mmsCopie.personnes(lignes)[0].cle);
+    await e.choisirMessage('9001');
+    const fin = await e.confirmer();
+    attendre(/C’est fait : 1 pièce copiée dans « Reçus » \(2026-10-01 n°1\.jpg\)/.test(fin) && /toujours sur ton téléphone/.test(fin) && f.envois.length === 1, `copie : ${fin}`);
+    attendre(el('oui-mms').textContent === 'Oui, créer' || el('barre-mms').hidden, 'bouton Oui pas remis');
+    await e.preparerCopie();
+    await e.choisirPersonne(mmsCopie.personnes(lignes)[0].cle);
+    attendre(/déjà copié/.test(await e.choisirMessage('9001')) && el('barre-mms').hidden && f.envois.length === 1, 'relancé : pas « déjà copié »');
+    attendre(pont.appels.every(a => /^(autorise|inventaireLancer|inventaireLire|pieceLire:9001:7001)$/.test(a)), `téléphone : ${[...new Set(pont.appels)]}`);
+  });
+
+  // ----- 14/11/2026 (accord de Max, P7a et P7b) : textes pour le document « Dialogue » : FICTIF seulement. -----
+  const FAUX_P7 = (() => {
+    const J = (a, m, j, h = 12, mi = 0) => new Date(a, m - 1, j, h, mi).getTime();
+    const S = (sens, adresse, texte, date) => ({ s: 'sms', sens, date, adresses: [adresse], groupe: false, texte });
+    return FAUX_P6.concat([
+      S('recu', '+33639980021', 'Même seconde FICTIVE', J(2026, 10, 1)),
+      S('recu', '06 39 98 00 21', 'Ligne une FICTIVE\r\nLigne deux FICTIVE', J(2026, 10, 3, 9)),
+      S('envoye', '06 39 98 00 21', 'Texte FICTIF\u202Einversé\u0007', J(2026, 10, 3, 10)),
+      S('brouillon', '06 39 98 00 21', 'Brouillon FICTIF', J(2026, 10, 5)),
+      S('autre', '06 39 98 00 21', 'Échec FICTIF', J(2026, 10, 5, 13)),
+      S('recu', '06 39 98 00 21', 'Heure d’été FICTIVE', Date.UTC(2026, 9, 25, 0, 30)),
+      S('recu', '06 39 98 00 21', 'Heure d’hiver FICTIVE', Date.UTC(2026, 9, 25, 1, 30)),
+      S('recu', '06 39 98 00 21', 'Dernier FICTIF', J(2026, 11, 12)),
+      S('recu', '06 39 98 00 77', 'Inconnu FICTIF', J(2026, 11, 13))]);
+  })();
+  const TEXTES_P7 = ['Bonjour FICTIF', 'Salut FICTIF', 'Même seconde', 'Ligne une', 'Ligne deux', 'Texte FICTIF', 'Brouillon FICTIF', 'Échec FICTIF', 'Heure d’été', 'Heure d’hiver', 'Dernier FICTIF', 'Inconnu FICTIF', 'Coucou FICTIF'];
+  const pontP7 = () => {
+    const p = pontP6();
+    p.MmsAndroid.inventaireLire = () => { p.appels.push('inventaireLire'); return JSON.stringify(FAUX_P7); };
+    return p;
+  };
+  const lignesP7 = async (pont = pontP7(), st = stockageMms()) => {
+    st.setItem(coordonneesRelations.CLE, JSON.stringify(COPIE_COORD_FICTIVE));
+    const { cle, index } = await mmsRangement.preparerIndex(st);
+    return { st, cle, index, lignes: await mmsLecture.lireInventaire(cle, index, pont, { pause: async () => {}, avecPersonne: true, stable: true, etiquettes: true, pieces: true, textes: true }) };
+  };
+  // Un fichier « Dialogue » déjà copié (comme le fera P7c), posé à la main dans le FAUX Drive.
+  const poserDialogue = (f, sousId, cle, prop, id) => {
+    const x = { id: `FICTIF_dialogue_${id}_0123456789`, name: prop.nom, mimeType: 'text/plain', parents: [sousId], trashed: false,
+      appProperties: { cap_dialogue: cle, cap_dialogue_num: String(prop.numero), cap_dialogue_fin: String(prop.marques.fin), cap_dialogue_n: String(prop.marques.nombre), cap_dialogue_somme: prop.marques.somme, cap_mms_cree_le: '2026-11-14' } };
+    f.fichiers.push(x);
+    return x;
+  };
+
+  await testAsync('Textes pour « Dialogue », P7a et P7b (14/11/2026, FAUX pont et FAUX Drive FICTIFS) : textes et marques SEULEMENT pour les personnes connues ; brouillons à part ; ordre du temps (même date : SMS avant MMS) ; heure de Paris (heure qui revient : été / hiver) ; lignes sans nom ni numéro, suites en retrait, caractères dangereux enlevés ; renvoi vers la pièce copiée au P6 ; 10 plus anciens ; fenêtre en NOMBRES (exclus, dernier message vu) ; relancé : seulement les nouveaux (corbeille comprise) ; messages changés : arrêt ; RIEN écrit', async () => {
+    const pont = pontP7();
+    const { lignes, cle, index, st } = await lignesP7(pont);
+    // 1. L'inventaire : textes seulement pour une personne connue ; options obligatoires ; marques stables.
+    for (const opts of [{ avecPersonne: true, stable: true, textes: true }, { avecPersonne: true, pieces: true, textes: true }, { stable: true, pieces: true, textes: true }]) {
+      let e = '';
+      try { await mmsLecture.lireInventaire(cle, index, pontP7(), { pause: async () => {}, ...opts }); } catch (x) { e = String(x.message); }
+      attendre(/Textes sans clé stable|Pièces sans clé stable/.test(e), `textes sans les bonnes options : ${e || 'pas refusé'}`);
+    }
+    const avecTexte = lignes.filter(l => 'texte' in l || 'marqueTexte' in l);
+    attendre(avecTexte.length && avecTexte.every(l => l.personne && typeof l.texte === 'string' && /^[0-9a-f]{64}$/.test(l.marqueTexte)), 'texte sur une ligne qui n’est pas d’une personne connue');
+    attendre(!lignes.some(l => !l.personne && ('texte' in l)), 'texte d’un inconnu, d’un groupe ou d’un expéditeur en lettres');
+    attendreEgal(lignes.filter(l => l.brouillon).length, 1, 'brouillon');
+    attendre(lignes.find(l => l.brouillon).sens === 'autre', 'le brouillon change le sens des lignes');
+    const marques = lignes.filter(l => l.marqueTexte).map(l => l.marqueTexte);
+    attendreEgal(new Set(marques).size, marques.length, 'deux messages, même marque');
+    attendreEgal((await lignesP7(pontP7(), st)).lignes.filter(l => l.marqueTexte).map(l => l.marqueTexte), marques, 'marque pas stable');
+    attendre((await lignesP7()).lignes.find(l => l.marqueTexte).marqueTexte !== marques[0], 'même marque avec un autre téléphone');
+    for (const m of morceauxNumeros) attendre(!sansEmpreintes(JSON.stringify(lignes.map(l => Object.assign({}, l, { etiquette: '' })))).includes(m), `un numéro dans les lignes (${m})`);
+    // 2. L'heure de Paris.
+    attendreEgal([mmsDialogue.heure(new Date(2026, 9, 1, 12, 0).getTime()), mmsDialogue.heure(Date.UTC(2026, 9, 25, 0, 30)), mmsDialogue.heure(Date.UTC(2026, 9, 25, 1, 30)), mmsDialogue.heure(Date.UTC(2026, 2, 29, 1, 30))],
+      ['01/10/2026 12:00', '25/10/2026 02:30 (heure d’été)', '25/10/2026 02:30 (heure d’hiver)', '29/03/2026 03:30'], 'heure de Paris');
+    // 3. Le lot ne coupe pas un groupe de même date.
+    attendreEgal(mmsDialogue.lot([{ date: 1 }, { date: 2 }, { date: 2 }, { date: 3 }], 2).length, 3, 'lot coupé au milieu d’une même date');
+    attendreEgal(mmsDialogue.lot([{ date: 1 }, { date: 2 }, { date: 3 }], 2).length, 2, 'lot trop long');
+    // 4. Les personnes ; le tri des messages d'Annabelle (exclus en nombres, dernier message vu).
+    const ps = mmsDialogue.personnes(lignes);
+    attendreEgal(ps.map(p => [p.nom, p.total]), [['Annabelle FICTIF', 14], ['Bruno FICTIF', 2]], 'personnes');
+    const anna = ps[0];
+    const tri = mmsDialogue.trier(lignes, anna.cle);
+    attendreEgal(tri.exclus, { codes: 1, doutes: 1, brouillons: 1, nonEnvoyes: 1 }, 'exclus');
+    attendreEgal(tri.dernier, new Date(2026, 10, 12, 12, 0).getTime(), 'dernier message vu');
+    attendreEgal(tri.copiables.slice(2, 5).map(l => [l.s, l.mid || '']), [['sms', ''], ['mms', ''], ['mms', '9001']], 'même date : SMS avant MMS, puis l’ordre du téléphone');
+    let eT = '';
+    try { mmsDialogue.trier((await lignesP6(pontP6(), st)).lignes, anna.cle); } catch (x) { eT = String(x.message); } // le même téléphone, lu sans les textes
+    attendre(/Textes absents/.test(eT), `lecture sans textes : ${eT}`);
+    // 5. Une pièce copiée au P6 (9001), puis la préparation : LECTURE seulement.
+    const f = await driveApresP5(lignes);
+    const annaP6 = mmsCopie.personnes(lignes)[0];
+    const lire = (a, b) => mmsLecture.lirePiece(a, b, pont);
+    await mmsCopie.copier(f, await mmsCopie.preparer(f, annaP6, annaP6.messages.find(m => m.mid === '9001'), lire), { pieces: 1 });
+    f.ecritures.length = 0;
+    const nAvant = [f.fichiers.length, f.envois.length];
+    pont.appels.length = 0;
+    const quand = () => new Date(2026, 10, 14, 15, 30);
+    const p1 = await mmsDialogue.preparer(f, anna, lignes, { maintenant: quand });
+    attendreEgal([f.ecritures.length, f.fichiers.length, f.envois.length], [0, ...nAvant], 'la préparation a écrit');
+    attendreEgal(pont.appels, [], 'la préparation parle au téléphone');
+    const dossierAnna = f.fichiers.find(x => x.name === 'Annabelle FICTIF');
+    attendreEgal([p1.dossier.id, p1.sous.nom, p1.sous.id, p1.fichiers.length, p1.fichiers[0].numero, p1.fichiers[0].nom, p1.nombres.messages, p1.nombres.recus, p1.nombres.deja, p1.nombres.restent, p1.nombres.fichiers, p1.nombres.piecesCopiees, p1.nombres.piecesPasCopiees, p1.avant.numero, p1.avant.nombre],
+      [dossierAnna.id, 'Dialogue', null, 1, 1, 'Dialogue n°1.txt', 14, 11, 0, 0, 1, 1, 4, 0, 0], 'proposition (P7d : tous les messages restants, un fichier)');
+    const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const doc1 = p1.fichiers[0].contenu;
+    const lignesDoc = doc1.split('\n');
+    attendreEgal(lignesDoc.slice(0, 4), ['Dialogue n°1 : copie faite par Cap le 14/11/2026 15:30 (heure de Paris).', '14 messages, du 05/01/2026 12:00 au 12/11/2026 12:00 : 11 reçus, 3 envoyés.',
+      'Le nom de la personne n’est pas écrit ici : c’est le nom du dossier. Codes à usage unique, doutes et brouillons : pas copiés.', ''], 'en-tête');
+    const LIGNES_ANNA = ['05/01/2026 12:00 · reçu · Bonjour FICTIF', '01/02/2026 12:00 · envoyé · Salut FICTIF', '01/10/2026 12:00 · reçu · Même seconde FICTIVE', '01/10/2026 12:00 · reçu · (sans texte)',
+      '01/10/2026 12:00 · reçu · [image, copiée : Reçus / 2026-10-01 n°1.jpg]', '01/10/2026 18:00 · reçu · [image, pas encore copiée]',
+      '02/10/2026 12:00 · envoyé · [vidéo, pas encore copiée]', '    [image, pas encore copiée]', '    [1 autre pièce (son, fiche…), pas copiable]',
+      '03/10/2026 09:00 · reçu · Ligne une FICTIVE', '    Ligne deux FICTIVE', '03/10/2026 10:00 · envoyé · Texte FICTIF inversé', '06/10/2026 12:00 · reçu · [image, pas encore copiée]',
+      '07/10/2026 12:00 · reçu · [1 autre pièce (son, fiche…), pas copiable]', '25/10/2026 02:30 (heure d’été) · reçu · Heure d’été FICTIVE',
+      '25/10/2026 02:30 (heure d’hiver) · reçu · Heure d’hiver FICTIVE', '12/11/2026 12:00 · reçu · Dernier FICTIF'];
+    attendreEgal(lignesDoc.slice(4), [...LIGNES_ANNA, ''], 'lignes du document');
+    attendre(!/Annabelle|Bruno/.test(doc1), 'un nom dans le document');
+    for (const m of morceauxNumeros) attendre(!doc1.includes(m), `un numéro dans le document (${m})`);
+    attendreEgal([p1.fichiers[0].taille, p1.taille], [new TextEncoder().encode(doc1).length, new TextEncoder().encode(doc1).length], 'taille');
+    attendreEgal([p1.fichiers[0].messages, p1.fichiers[0].marques.nombre, p1.fichiers[0].marques.fin, p1.fichiers[0].marques.contenu], [14, 14, new Date(2026, 10, 12, 12, 0).getTime(), await sha(doc1)], 'marques du fichier (dont empreinte du contenu)');
+    // 6. La fenêtre : des nombres, jamais un texte.
+    const tq = mmsDialogue.texte(p1);
+    const lq = tq.split('\n');
+    attendre(/^En 1 fichier : « Dialogue n°1\.txt »\. Taille : \d+ Ko\.$/.test(lq[1]), `fenêtre, taille : ${lq[1]}`);
+    lq[1] = '';
+    attendreEgal(lq, [
+      'Copier les textes de 14 messages (11 reçus, 3 envoyés), du 05/01/2026 12:00 au 12/11/2026 12:00 : tous les messages pas encore copiés.', '',
+      'Vers « Dialogue » (créé, vide, marqué et daté), dans le dossier « Annabelle FICTIF » de « MMS des relations » (Drive du compte Cap).',
+      'Un fichier NOUVEAU : aucun fichier existant n’est modifié.', 'Déjà copiés : 0. Ensuite, seuls les messages nouveaux seront copiés.',
+      'Non copiés : 1 code à usage unique, 1 doute, 1 brouillon, 1 non envoyé.', 'Pièces jointes : 1 déjà copiée (renvoi vers le fichier), 4 pas encore copiées.',
+      'Dernier message vu par Cap avec cette personne : 12/11/2026 12:00. S’il y en a de plus récents dans ta messagerie, Cap ne les voit pas (« chat », WhatsApp…).',
+      'Après la copie, Cap relit le fichier dans le Drive et te dit s’il est identique.', 'Les messages restent sur ton téléphone. Rien n’est effacé, ni déplacé, ni remplacé.'], 'fenêtre');
+    for (const t of TEXTES_P7) attendre(!tq.includes(t), `un texte de message dans la fenêtre (${t})`);
+    // 6b. P7d : petits fichiers (FICTIF : 1,5 Ko) : plusieurs fichiers enchaînés, numéros qui se suivent, marques cumulées, ordre gardé,
+    // une même date jamais coupée ; la fenêtre annonce tout (fichiers, taille, arrêt net).
+    const pm = await mmsDialogue.preparer(f, anna, lignes, { tailleMax: 1500, maintenant: quand });
+    const k = pm.fichiers.length;
+    attendre(k >= 2, `pas plusieurs fichiers : ${k}`);
+    attendreEgal(pm.fichiers.map(x => [x.numero, x.nom]), pm.fichiers.map((x, i) => [i + 1, `Dialogue n°${i + 1}.txt`]), 'numéros');
+    let cumul = 0;
+    const toutes = [];
+    for (let i = 0; i < k; i++) {
+      const x = pm.fichiers[i];
+      cumul += x.messages;
+      attendre(x.taille <= 1500 && x.taille === new TextEncoder().encode(x.contenu).length, `fichier ${i + 1} trop gros`);
+      attendreEgal([x.marques.nombre, x.marques.fin, x.marques.contenu], [cumul, x.au, await sha(x.contenu)], `marques du fichier ${i + 1}`);
+      attendre(x.contenu.startsWith(`Dialogue n°${i + 1} : copie faite par Cap le 14/11/2026 15:30`) && x.contenu.split('\n')[1].startsWith(`${x.messages} message`), `en-tête du fichier ${i + 1}`);
+      if (i) attendre(x.du !== pm.fichiers[i - 1].au, 'une même date coupée entre deux fichiers');
+      toutes.push(...x.contenu.split('\n').slice(4, -1));
+    }
+    attendreEgal([cumul, pm.nombres.messages, pm.nombres.fichiers, pm.taille], [14, 14, k, pm.fichiers.reduce((s, x) => s + x.taille, 0)], 'total');
+    attendreEgal(toutes, LIGNES_ANNA, 'ordre ou lignes changés par le découpage');
+    const lm = mmsDialogue.texte(pm).split('\n');
+    attendre(new RegExp(`^En ${k} fichiers \\(4 Mo au plus chacun\\) : de « Dialogue n°1\\.txt » à « Dialogue n°${k}\\.txt »\\. Taille totale : \\d+ Ko\\.$`).test(lm[1]), `fenêtre, fichiers : ${lm[1]}`);
+    attendre(lm.includes('Des fichiers NOUVEAUX : aucun fichier existant n’est modifié.') && lm.includes('Après chaque fichier, Cap le relit dans le Drive. Au premier fichier différent ou à la première panne, il s’arrête net : ce qui est fait reste, rien n’est effacé.'), 'fenêtre, plusieurs fichiers');
+    attendreEgal([f.ecritures.length, f.envois.length], [0, nAvant[1]], 'la préparation a écrit');
+    // 6c. Le découpage, cas forcé (FICTIF) : deux messages de même date tombent pile sur la coupure : ils restent ensemble.
+    const mx = (date, n) => ({ date, sens: 'recu', texte: `${'x'.repeat(200)} FICTIF ${n}`, pieces: [] });
+    attendreEgal(mmsDialogue.decouper([mx(1, 1), mx(2, 2), mx(2, 3), mx(3, 4)], new Map(), 1500).map(l => l.map(m => m.date)), [[1], [2, 2], [3]], 'découpage : une même date coupée');
+    attendreEgal(mmsDialogue.decouper([mx(1, 1), mx(2, 2), mx(3, 3)], new Map(), mmsDialogue.TAILLE_FICHIER).map(l => l.length), [3], 'découpage : coupé sans raison');
+    // 7. Après « Dialogue n°1 » (le 1er fichier du découpage, posé à la main, SANS empreinte du contenu comme les fichiers faits
+    // avant P7d) : seulement les suivants, en un fichier ; puis « tout est copié ».
+    const sous = { id: 'FICTIF_sous_dialogue_0123456789', name: 'Dialogue', mimeType: 'application/vnd.google-apps.folder', parents: [dossierAnna.id], trashed: false, appProperties: { cap_mms_sous: `${anna.cle}:dialogue` } };
+    f.fichiers.push(sous);
+    const d1 = poserDialogue(f, sous.id, anna.cle, pm.fichiers[0], 1);
+    const n1 = pm.fichiers[0].messages;
+    const p2 = await mmsDialogue.preparer(f, anna, lignes, { maintenant: quand });
+    attendreEgal([p2.sous.id, p2.fichiers.length, p2.fichiers[0].numero, p2.fichiers[0].nom, p2.nombres.messages, p2.nombres.deja, p2.fichiers[0].marques.nombre, p2.avant.numero, p2.avant.nombre],
+      [sous.id, 1, 2, 'Dialogue n°2.txt', 14 - n1, n1, 14, 1, n1], 'deuxième copie');
+    attendreEgal([...pm.fichiers[0].contenu.split('\n').slice(4, -1), ...p2.fichiers[0].contenu.split('\n').slice(4, -1)], LIGNES_ANNA, 'deuxième fichier : doublon ou trou');
+    const d2 = poserDialogue(f, sous.id, anna.cle, p2.fichiers[0], 2);
+    const p3 = await mmsDialogue.preparer(f, anna, lignes);
+    attendre(p3.rien === true && p3.nombres.deja === 14 && /^Tout est déjà copié : 14 messages dans « Dialogue »/.test(mmsDialogue.texte(p3)), `tout copié : ${mmsDialogue.texte(p3)}`);
+    d2.trashed = true;
+    d1.trashed = true;
+    attendre((await mmsDialogue.preparer(f, anna, lignes)).rien === true, 'jeté à la corbeille : recopié');
+    d1.trashed = false;
+    d2.trashed = false;
+    // 8. Messages changés depuis la copie : arrêt (un ancien effacé du téléphone ; un ancien arrivé après coup).
+    for (const [quoi, changer] of [
+      ['message effacé', l => l.filter(x => x.texte !== 'Bonjour FICTIF')],
+      ['message ancien arrivé après coup', l => l.concat([{ ...l.find(x => x.texte === 'Salut FICTIF'), date: new Date(2026, 1, 2).getTime(), marqueTexte: 'f'.repeat(64) }])]]) {
+      let e = '';
+      try { await mmsDialogue.preparer(f, anna, changer(lignes)); } catch (x) { e = String(x.message); }
+      attendre(/ne correspondent plus/.test(e), `${quoi} : ${e || 'pas vu'}`);
+    }
+    // 9. Marques illisibles ; numéro en double ; « Dialogue » à la corbeille ; gardes.
+    const malade = { ...d2, id: 'FICTIF_dialogue_x_0123456789', appProperties: { ...d2.appProperties, cap_dialogue_somme: 'pas une empreinte' } };
+    f.fichiers.push(malade);
+    let e9 = '';
+    try { await mmsDialogue.preparer(f, anna, lignes); } catch (x) { e9 = String(x.message); }
+    attendre(/illisibles/.test(e9), `marques illisibles : ${e9}`);
+    malade.appProperties = { ...d2.appProperties, cap_dialogue_contenu: 'pas une empreinte' }; // P7d
+    e9 = '';
+    try { await mmsDialogue.preparer(f, anna, lignes); } catch (x) { e9 = String(x.message); }
+    attendre(/illisibles/.test(e9), `empreinte du contenu illisible : ${e9}`);
+    malade.appProperties = { ...d2.appProperties };
+    e9 = '';
+    try { await mmsDialogue.preparer(f, anna, lignes); } catch (x) { e9 = String(x.message); }
+    attendre(/en double/.test(e9), `numéro en double : ${e9}`);
+    f.fichiers.splice(f.fichiers.indexOf(malade), 1);
+    sous.trashed = true;
+    e9 = '';
+    try { await mmsDialogue.preparer(f, anna, lignes); } catch (x) { e9 = String(x.message); }
+    attendre(/corbeille/.test(e9), `« Dialogue » jeté : ${e9}`);
+    sous.trashed = false;
+    for (const [quoi, faire] of [['pas une personne connue', () => mmsDialogue.preparer(f, { cle: `groupe:${'a'.repeat(64)}` }, lignes)],
+      ['fichiers de plus de 4 Mo', () => mmsDialogue.preparer(f, anna, lignes, { tailleMax: mmsDialogue.TAILLE_FICHIER + 1 })], ['fichiers trop petits', () => mmsDialogue.preparer(f, anna, lignes, { tailleMax: 100 })]]) {
+      let e = '';
+      try { await faire(); } catch (x) { e = String(x.message); }
+      attendre(/Copie refusée/.test(e), `${quoi} : ${e || 'pas refusé'}`);
+    }
+    attendreEgal([f.ecritures.length, f.envois.length], [0, nAvant[1]], 'quelque chose a été écrit');
+    // 10. Le module : aucune suppression, aucun remplacement, ne parle pas au téléphone (P7c : ses écritures sont vérifiées par le test de P7c).
+    for (const mot of ['DELETE', 'PATCH', 'PUT', 'uploadType', 'fetch(', 'MmsAndroid', 'mmsLecture', 'indexRelations', 'coordonneesRelations', 'localStorage', 'innerHTML', 'cerveau', 'console.'])
+      attendre(!SOURCE_MMS_DIALOGUE.includes(mot), `mms_dialogue.js contient « ${mot} »`);
+  });
+
+  // P7c : le FAUX Drive sait aussi relire UN fichier (ses informations, ou son contenu avec alt=media).
+  const driveP7 = async (lignes, options = {}) => {
+    const f = await driveApresP5(lignes, options);
+    const base = f.appeler;
+    f.appeler = async url => {
+      const u = new URL(url);
+      const m = /\/files\/([^/]+)$/.exec(u.pathname);
+      if (!m) return base(url);
+      const x = f.fichiers.find(y => y.id === decodeURIComponent(m[1]));
+      if (!x) throw new Error('Google n’a pas pu lire (erreur 404). Rien n’a été modifié.');
+      if (u.searchParams.get('alt') === 'media') {
+        if (options.relectureEnPanne) throw new Error('Pas de réseau (FICTIF).');
+        return { text: async () => new TextDecoder().decode(new Uint8Array(x.octets || [])) };
+      }
+      return { json: async () => ({ id: x.id, name: x.name, parents: x.parents, appProperties: x.appProperties, trashed: x.trashed === true }) };
+    };
+    if (options.abimer) {
+      const envoyer = f.envoyerFichier;
+      f.envoyerFichier = async (...a) => { const r = await envoyer(...a); f.envois[f.envois.length - 1].octets.push(0x21); return r; };
+    }
+    return f;
+  };
+  const texteDe = x => new TextDecoder().decode(new Uint8Array(x.octets));
+
+  await testAsync('Textes pour « Dialogue », P7c et P7d (14/11/2026, FAUX pont et FAUX Drive FICTIFS) : « Oui, copier » : « Dialogue » créé DANS le dossier de la personne, puis TOUS les messages restants en fichiers .txt NOUVEAUX enchaînés (marques cumulées, empreinte du contenu) ; chaque fichier relu juste avant et après ; arrêt net au premier fichier pas identique ou à la première panne ; reprise sans doublon ; dernier fichier abîmé : arrêt ; gardes ; rien effacé', async () => {
+    const pont = pontP7();
+    const { lignes } = await lignesP7(pont);
+    const anna = mmsDialogue.personnes(lignes)[0];
+    const quand = () => new Date(2026, 10, 14, 15, 30);
+    const sha = async s => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)))].map(b => b.toString(16).padStart(2, '0')).join('');
+    const corps = x => texteDe(x).split('\n').slice(4, -1); // les lignes des messages d'un fichier
+    const montre = p => ({ messages: p.nombres.messages, fichiers: p.fichiers.length });
+    const clone = p => ({ ...p, fichiers: p.fichiers.map(x => ({ ...x, marques: { ...x.marques } })) });
+    const f = await driveP7(lignes);
+    const dossierAnna = f.fichiers.find(x => x.name === 'Annabelle FICTIF');
+    // 1. La copie après « Oui » : un fichier (tout tient), 14 messages.
+    const p1 = await mmsDialogue.preparer(f, anna, lignes, { maintenant: quand });
+    const pAvant = clone(await mmsDialogue.preparer(f, anna, lignes, { maintenant: quand })); // préparée AVANT la copie
+    const attendu1 = p1.fichiers[0].contenu;
+    const r1 = await mmsDialogue.copier(f, p1, montre(p1), { maintenant: quand });
+    attendreEgal([r1.erreur, r1.copie, r1.nom, r1.sousCree, r1.relu, r1.messages, r1.faits.map(x => x.relu), r1.pasFaits], [null, true, 'Dialogue n°1.txt', true, 'identique', 14, ['identique'], { fichiers: 0, messages: 0 }], 'copie');
+    const sous = f.fichiers.find(x => x.name === 'Dialogue');
+    attendre(sous && sous.mimeType === 'application/vnd.google-apps.folder' && sous.parents[0] === dossierAnna.id && sous.appProperties.cap_mms_sous === `${anna.cle}:dialogue` && sous.appProperties.cap_mms_cree_le === '2026-11-14', '« Dialogue » mal créé');
+    const d1 = f.envois[0];
+    attendre(d1 && d1.parents[0] === sous.id && d1.name === 'Dialogue n°1.txt' && d1.mimeType === 'text/plain', 'fichier mal créé');
+    attendreEgal([d1.appProperties.cap_dialogue, d1.appProperties.cap_dialogue_num, d1.appProperties.cap_dialogue_n, d1.appProperties.cap_dialogue_fin, d1.appProperties.cap_mms_cree_le, d1.appProperties.cap_dialogue_contenu],
+      [anna.cle, '1', '14', String(new Date(2026, 10, 12, 12, 0).getTime()), '2026-11-14', await sha(attendu1)], 'marques du fichier (dont empreinte du contenu)');
+    attendre(/^[0-9a-f]{64}$/.test(d1.appProperties.cap_dialogue_somme), 'empreinte du fichier');
+    attendreEgal(texteDe(d1), attendu1, 'contenu différent de la préparation');
+    attendre(texteDe(d1).startsWith('Dialogue n°1 : copie faite par Cap le 14/11/2026 15:30') && texteDe(d1).includes('03/10/2026 09:00 · reçu · Ligne une FICTIVE\n    Ligne deux FICTIVE'), 'contenu');
+    attendre(!/Annabelle|Bruno/.test(texteDe(d1)), 'un nom dans le fichier');
+    for (const m of morceauxNumeros) attendre(!texteDe(d1).includes(m), `un numéro dans le fichier (${m})`);
+    attendreEgal(p1.fichiers[0].contenu, '', 'le texte reste dans la proposition');
+    attendreEgal(f.ecritures.length, 1, 'autre écriture que la création de « Dialogue »');
+    attendre(f.ecritures.every(([m, u, b]) => m === 'POST' && /\/drive\/v3\/files\?fields=id$/.test(u) && JSON.parse(b).mimeType === 'application/vnd.google-apps.folder'), 'écriture qui n’est pas une création de dossier');
+    const lignesUnFichier = corps(d1);
+    // 2. La question préparée AVANT la copie : refusée (relu juste avant) ; rien de plus.
+    const r2 = await mmsDialogue.copier(f, pAvant, montre(pAvant));
+    attendre(r2.erreur && /depuis la question/.test(r2.erreur) && !r2.copie && f.envois.length === 1, `question d’avant : ${r2.erreur}`);
+    // 3. Relancé : tout est copié (même à la corbeille).
+    attendre((await mmsDialogue.preparer(f, anna, lignes)).rien === true, 'pas « tout est copié »');
+    d1.trashed = true;
+    attendre((await mmsDialogue.preparer(f, anna, lignes)).rien === true, 'jeté à la corbeille : recopié');
+    d1.trashed = false;
+    // 4. Un ancien message changé : arrêt, rien copié.
+    let e4 = '';
+    try { await mmsDialogue.preparer(f, anna, lignes.filter(x => x.texte !== 'Salut FICTIF')); } catch (x) { e4 = String(x.message); }
+    attendre(/ne correspondent plus/.test(e4) && f.envois.length === 1, `ancien message changé : ${e4}`);
+    // 5. P7d : plusieurs fichiers (FICTIF : 1,5 Ko) avec UN SEUL Oui : tous créés, relus identiques, numéros et marques qui se suivent,
+    // mêmes lignes que le fichier unique (ni doublon ni trou), un seul « Dialogue ».
+    const g = await driveP7(lignes);
+    const pm = await mmsDialogue.preparer(g, anna, lignes, { tailleMax: 1500, maintenant: quand });
+    const k = pm.fichiers.length;
+    attendre(k >= 2, `pas assez de fichiers pour le test : ${k}`);
+    const contenus = pm.fichiers.map(x => x.contenu);
+    const rm = await mmsDialogue.copier(g, pm, montre(pm), { maintenant: quand });
+    attendreEgal([rm.erreur, rm.copie, rm.relu, rm.messages, rm.faits.length, rm.faits.every(x => x.relu === 'identique'), g.envois.length, g.fichiers.filter(x => x.name === 'Dialogue').length], [null, true, 'identique', 14, k, true, k, 1], 'plusieurs fichiers');
+    attendreEgal(g.envois.map(x => [x.name, x.appProperties.cap_dialogue_num]), pm.fichiers.map((x, i) => [`Dialogue n°${i + 1}.txt`, String(i + 1)]), 'noms et numéros');
+    attendreEgal(g.envois.map(x => texteDe(x)), contenus, 'contenus différents de la préparation');
+    attendreEgal(g.envois[k - 1].appProperties.cap_dialogue_n, '14', 'nombre cumulé du dernier');
+    for (const x of g.envois) attendreEgal(x.appProperties.cap_dialogue_contenu, await sha(texteDe(x)), 'empreinte du contenu');
+    attendreEgal(g.envois.flatMap(corps), lignesUnFichier, 'découpage : doublon, trou ou ordre changé');
+    attendre(pm.fichiers.every(x => x.contenu === ''), 'textes restés dans la proposition');
+    attendre((await mmsDialogue.preparer(g, anna, lignes)).rien === true, 'plusieurs fichiers : pas « tout est copié »');
+    // 6. Gardes (rien écrit).
+    const h = await driveP7(lignes);
+    const ph = await mmsDialogue.preparer(h, anna, lignes, { tailleMax: 1500, maintenant: quand });
+    const kh = ph.fichiers.length;
+    for (const [quoi, abimer, vu] of [
+      ['moins de messages montrés', p => p, { messages: 13, fichiers: kh }],
+      ['autre nombre de fichiers montré', p => p, { messages: 14, fichiers: kh - 1 }],
+      ['rien montré', p => p, null],
+      ['fichier abîmé', p => { p.fichiers[1].contenu += 'x'; return p; }, { messages: 14, fichiers: kh }],
+      ['empreinte du contenu fausse', p => { p.fichiers[1].marques.contenu = 'a'.repeat(64); return p; }, { messages: 14, fichiers: kh }],
+      ['fichier en moins', p => { p.fichiers.pop(); return p; }, { messages: 14, fichiers: kh - 1 }],
+      ['numéro qui saute', p => { p.fichiers[1].numero = 5; p.fichiers[1].nom = 'Dialogue n°5.txt'; return p; }, { messages: 14, fichiers: kh }],
+      ['dossier changé', p => { p.dossier = { ...p.dossier, id: 'FICTIF_autre_0123456789' }; return p; }, { messages: 14, fichiers: kh }],
+      ['marques fausses', p => { p.fichiers[0].marques.nombre = 99; return p; }, { messages: 14, fichiers: kh }],
+      ['nom changé', p => { p.fichiers[0].nom = 'Autre.txt'; return p; }, { messages: 14, fichiers: kh }],
+      ['pas une personne connue', p => { p.personne = { cle: `groupe:${'a'.repeat(64)}` }; return p; }, { messages: 14, fichiers: kh }]]) {
+      const r = await mmsDialogue.copier(h, abimer(clone(ph)), vu);
+      attendre(r.erreur && !r.copie, `${quoi} : ${r.erreur || 'pas refusé'}`);
+    }
+    attendreEgal([h.ecritures.length, h.envois.length], [0, 0], 'garde : quelque chose a été écrit');
+    // 7. Relecture différente : arrêt net après le 1er fichier (le fichier reste) ; relancé : le dernier fichier n'est pas intact : arrêt.
+    const a = await driveP7(lignes, { abimer: true });
+    const pa = await mmsDialogue.preparer(a, anna, lignes, { tailleMax: 1500 });
+    const ra = await mmsDialogue.copier(a, pa, montre(pa));
+    attendreEgal([ra.erreur, ra.copie, ra.relu, ra.faits.length, a.envois.length, ra.pasFaits.fichiers, ra.pasFaits.messages], [null, true, 'différent', 1, 1, pa.fichiers.length - 1, 14 - pa.fichiers[0].messages], 'relecture différente : pas d’arrêt net');
+    let e7 = '';
+    try { await mmsDialogue.preparer(a, anna, lignes, { tailleMax: 1500 }); } catch (x) { e7 = String(x.message); }
+    attendre(/n’est pas intact/.test(e7) && a.envois.length === 1, `dernier fichier abîmé : ${e7 || 'pas vu'}`);
+    // 7b. Relecture impossible : arrêt net après le 1er fichier ; relancé sans réseau pour relire : arrêt (rien copié).
+    const b = await driveP7(lignes, { relectureEnPanne: true });
+    const pb = await mmsDialogue.preparer(b, anna, lignes, { tailleMax: 1500 });
+    const rb = await mmsDialogue.copier(b, pb, montre(pb));
+    attendreEgal([rb.copie, rb.relu, rb.faits.length, b.envois.length], [true, 'impossible', 1, 1], 'relecture impossible : pas d’arrêt net');
+    let e7b = '';
+    try { await mmsDialogue.preparer(b, anna, lignes, { tailleMax: 1500 }); } catch (x) { e7b = String(x.message); }
+    attendre(/n’a pas pu relire « Dialogue n°1\.txt »/.test(e7b) && b.envois.length === 1, `dernier fichier pas relu : ${e7b || 'pas vu'}`);
+    // 8. Panne à l'envoi du 2e fichier : arrêt net (le 1er reste) ; relancé : la suite, sans doublon ni trou.
+    const q = await driveP7(lignes, { panneEnvoi: n => n === 2 });
+    const pq = await mmsDialogue.preparer(q, anna, lignes, { tailleMax: 1500 });
+    const rq = await mmsDialogue.copier(q, pq, montre(pq));
+    attendre(rq.erreur && /réseau/.test(rq.erreur) && rq.copie && rq.faits.length === 1 && rq.relu === 'identique' && q.envois.length === 1, `panne : ${rq.erreur}`);
+    const pq2 = await mmsDialogue.preparer(q, anna, lignes, { tailleMax: 1500 });
+    attendreEgal([pq2.fichiers[0].numero, pq2.nombres.deja, pq2.nombres.messages], [2, pq.fichiers[0].messages, 14 - pq.fichiers[0].messages], 'reprise : préparation');
+    const rq2 = await mmsDialogue.copier(q, pq2, montre(pq2));
+    attendreEgal([rq2.erreur, rq2.relu, q.envois.length, q.fichiers.filter(x => x.name === 'Dialogue').length], [null, 'identique', pq.fichiers.length, 1], 'reprise');
+    attendreEgal(q.envois.flatMap(corps), lignesUnFichier, 'reprise : doublon ou trou');
+    attendreEgal(q.envois.map(x => x.appProperties.cap_dialogue_num), q.envois.map((x, i) => String(i + 1)), 'reprise : numéros');
+    // 9. Une autre copie faite PENDANT la copie (vue juste avant le 2e fichier) : arrêt.
+    const w = await driveP7(lignes);
+    const pw = await mmsDialogue.preparer(w, anna, lignes, { tailleMax: 1500 });
+    const envoyer = w.envoyerFichier;
+    w.envoyerFichier = async (...x) => {
+      const r = await envoyer(...x);
+      if (w.envois.length === 1) poserDialogue(w, w.envois[0].parents[0], anna.cle, { nom: 'Dialogue n°2.txt', numero: 2, marques: { ...pw.fichiers[1].marques } }, 'pendant');
+      return r;
+    };
+    const rw = await mmsDialogue.copier(w, pw, montre(pw));
+    attendre(rw.erreur && /pendant celle-ci/.test(rw.erreur) && w.envois.length === 1 && rw.faits.length === 1, `copie pendant la copie : ${rw.erreur || 'pas vue'}`);
+    // 10. Une copie à la fois.
+    const v = await driveP7(lignes);
+    const pv = await mmsDialogue.preparer(v, anna, lignes);
+    const premiere = mmsDialogue.copier(v, pv, montre(pv));
+    let deux = '';
+    try { await mmsDialogue.copier(v, pv, montre(pv)); } catch (x) { deux = String(x.message); }
+    await premiere;
+    attendre(/déjà en cours/.test(deux) && v.envois.length === 1, `verrou : ${deux}`);
+    // 11. Le module : UNE création de dossier, UN envoi par la porte ; rien d'autre ; aucune suppression.
+    attendreEgal([SOURCE_MMS_DIALOGUE.split('appelerEcriture(').length - 1, SOURCE_MMS_DIALOGUE.split('envoyerFichier(').length - 1], [1, 1], 'plus d’un endroit qui écrit');
+    for (const mot of ['DELETE', 'PATCH', 'PUT', 'trashed: true', 'uploadType']) attendre(!SOURCE_MMS_DIALOGUE.includes(mot), `mms_dialogue.js contient « ${mot} »`);
+    attendre(pont.appels.every(x => /^(autorise|inventaireLancer|inventaireLire)$/.test(x)), `téléphone : ${[...new Set(pont.appels)]}`);
+  });
+
+  await testAsync('Textes pour « Dialogue », émoticônes (14/11/2026, demande de Max, FAUX pont et FAUX Drive FICTIFS) : neuf sortes d’émoticônes (simple, cœur, teinte, famille jointe, drapeau, drapeau à étiquettes, touche, métier joint, arc-en-ciel) gardées telles quelles dans la ligne, le fichier et la relecture ; texte trop long coupé SANS couper un émoticône en deux', async () => {
+    const E = ['\u{1F600}', '❤️', '\u{1F44D}\u{1F3FD}', '\u{1F468}‍\u{1F469}‍\u{1F467}', '\u{1F1EB}\u{1F1F7}',
+      '\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}', '1️⃣', '\u{1F469}\u{1F3FE}‍\u{1F4BB}', '\u{1F3F3}️‍\u{1F308}'];
+    const J = (j, h = 12) => new Date(2026, 0, j, h, 0).getTime();
+    const S = (texte, date) => ({ s: 'sms', sens: 'recu', date, adresses: ['06 39 98 00 21'], groupe: false, texte });
+    const M1 = `Émoticônes FICTIFS ${E.join(' ')}`;
+    const M2 = E.join('');
+    const M3 = `${E[3]} FICTIF\nsuite FICTIVE ${E[8]}`;
+    const L1 = `${'a'.repeat(19999)}${E[0]} fin FICTIVE`;   // coupure au milieu d'un caractère
+    const L2 = `${'b'.repeat(19995)}${E[3]} fin FICTIVE`;   // coupure au milieu d'une famille jointe
+    const L3 = `${'c'.repeat(19990)}${E[5]} fin FICTIVE`;   // coupure au milieu d'un drapeau à étiquettes
+    const L4 = `${'d'.repeat(19998)}${E[0]}`;               // 20 000 tout juste : rendu tel quel
+    const extra = [S(M1, J(2)), S(M2, J(3)), S(M3, J(4)), S(L1, J(5)), S(L2, J(6)), S(L3, J(7)), S(L4, J(8))];
+    const pont = pontP6();
+    pont.MmsAndroid.inventaireLire = () => { pont.appels.push('inventaireLire'); return JSON.stringify(FAUX_P7.concat(extra)); };
+    const { lignes, st } = await lignesP7(pont);
+    const de = debut => lignes.find(l => typeof l.texte === 'string' && l.texte.startsWith(debut));
+    const moitie = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+    // 1. La lecture garde les émoticônes tels quels.
+    for (const m of [M1, M2, M3]) attendreEgal(de(m.slice(0, 4)) && de(m.slice(0, 4)).texte, m, 'lecture : émoticône changé');
+    attendre(de(M1.slice(0, 4)).personne, 'pas une personne connue');
+    // 2. La ligne du fichier garde les émoticônes tels quels (le « joint », le sélecteur, les teintes, les étiquettes).
+    attendre(mmsDialogue.ligne(de(M1.slice(0, 4))).endsWith(`· reçu · ${M1}`), 'ligne : émoticône changé (1)');
+    attendre(mmsDialogue.ligne(de(M2.slice(0, 4))).endsWith(`· reçu · ${M2}`), 'ligne : émoticône changé (2)');
+    attendre(mmsDialogue.ligne(de(M3.slice(0, 4))).endsWith(`· reçu · ${E[3]} FICTIF\n    suite FICTIVE ${E[8]}`), 'ligne : émoticône changé (3)');
+    for (const e of E) attendre(mmsDialogue.ligne({ date: J(2), sens: 'recu', texte: `x ${e} y`, pieces: [] }).endsWith(`· reçu · x ${e} y`), `ligne : émoticône changé (${[...e].map(c => c.codePointAt(0).toString(16)).join('+')})`);
+    // 3. Texte trop long : coupé à la fin du dernier caractère ENTIER ; jamais une moitié ; 20 000 tout juste : tel quel.
+    attendreEgal(de('aaaa').texte, 'a'.repeat(19999), 'coupure : moitié de caractère gardée');
+    attendreEgal(de('bbbb').texte, 'b'.repeat(19995), 'coupure : famille jointe coupée en deux');
+    attendreEgal(de('cccc').texte, 'c'.repeat(19990), 'coupure : drapeau à étiquettes coupé en deux');
+    attendreEgal(de('dddd').texte, L4, 'coupure : texte de 20 000 changé');
+    attendreEgal([mmsLecture.couper('abc', 5), mmsLecture.couper(`ab${E[0]}`, 3), mmsLecture.couper(`${E[3]}z`, 8), mmsLecture.couper(`${E[3]}z`, 7), mmsLecture.couper('', 3)], ['abc', 'ab', E[3], '', ''], 'couper');
+    for (const l of lignes) if (typeof l.texte === 'string') attendre(!moitie.test(l.texte) && l.texte.length <= 20000, 'une moitié de caractère ou un texte trop long');
+    // 4. Les marques restent les mêmes d'une lecture à l'autre (texte coupé compris).
+    const { lignes: encore } = await lignesP7(pont, st); // même téléphone
+    attendreEgal(encore.filter(l => l.marqueTexte).map(l => l.marqueTexte), lignes.filter(l => l.marqueTexte).map(l => l.marqueTexte), 'marques changées');
+    // 5. La copie (FAUX Drive) : les neuf sortes dans le fichier, relecture « identique ».
+    const anna = mmsDialogue.personnes(lignes)[0];
+    const f = await driveP7(lignes);
+    const p = await mmsDialogue.preparer(f, anna, lignes, { maintenant: () => new Date(2026, 10, 14, 19, 0) });
+    const attendu = p.fichiers[0].contenu;
+    attendreEgal(new TextDecoder().decode(new TextEncoder().encode(attendu)), attendu, 'fichier : un caractère abîmé en UTF-8');
+    const r = await mmsDialogue.copier(f, p, { messages: p.nombres.messages, fichiers: p.fichiers.length }, { maintenant: () => new Date(2026, 10, 14, 19, 0) });
+    attendreEgal([r.erreur, r.copie, r.relu], [null, true, 'identique'], 'copie');
+    const t = texteDe(f.envois[0]);
+    attendreEgal(t, attendu, 'fichier différent de la préparation');
+    for (const m of [M1, M2]) attendre(t.includes(`· reçu · ${m}`), 'fichier : émoticône changé');
+    attendre(t.includes(`${E[3]} FICTIF\n    suite FICTIVE ${E[8]}`), 'fichier : émoticône changé (suite)');
+    attendre(!moitie.test(t) && !t.includes('�'), 'fichier : caractère abîmé');
+  });
+
+  await testAsync('Textes pour « Dialogue », P7b et P7c (14/11/2026, écran, FAUX pont et FAUX Drive FICTIFS) : le bouton ; les personnes ; la fenêtre en NOMBRES puis « Oui, copier » ; « Non » : rien ; « Oui » : « Dialogue n°1.txt », relecture identique ; relancé : « Dialogue n°2 » ; aucun texte de message ni numéro à l’écran ; les textes oubliés après', async c => {
+    const pont = pontP7();
+    const { st, lignes } = await lignesP7(pont);
+    const ui = preparerInterface(c);
+    const el = id => ui.parId(id);
+    attendre(el('dialogue-mms') && el('choix-copie-mms').nextElementSibling === el('dialogue-mms') && el('dialogue-mms').nextElementSibling === el('choix-dialogue-mms'), 'bouton absent ou mal placé');
+    attendre(/« Oui, copier »/.test(el('dialogue-mms').textContent), 'texte du bouton');
+    const f = await driveP7(lignes);
+    const e = mmsEcran.brancher(ui.doc, { compte: f, stockage: st, fenetre: pont });
+    const t = await e.preparerDialogue();
+    const boutons = () => [...el('choix-dialogue-mms').querySelectorAll('button')];
+    attendreEgal(boutons().map(b => b.textContent), ['Annabelle FICTIF : 14 messages', 'Bruno FICTIF : 2 messages'], `personnes (${t})`);
+    attendre(el('barre-mms').hidden, 'question avant le choix');
+    boutons()[0].click();
+    await new Promise(r => setTimeout(r, 50));
+    const ecran = el('resultat-mms').textContent;
+    attendre(/^Copier les textes de 14 messages/.test(ecran) && /Dialogue n°1\.txt/.test(ecran) && /Dernier message vu par Cap/.test(ecran) && /relit le fichier/.test(ecran) && /Touche « Oui, copier » pour copier, ou « Non »\.$/.test(ecran), `fenêtre : ${ecran}`);
+    attendre(!el('barre-mms').hidden && el('oui-mms').textContent === 'Oui, copier', 'pas de « Oui, copier »');
+    attendreEgal(boutons().length, 0, 'boutons restés');
+    for (const x of TEXTES_P7) attendre(!ecran.includes(x), `un texte de message à l’écran (${x})`);
+    for (const m of morceauxNumeros) attendre(!ecran.includes(m), `écran avec « ${m} »`);
+    attendre(!/[0-9a-f]{16}/.test(ecran), 'une clé à l’écran');
+    attendreEgal([f.ecritures.length, f.envois.length], [0, 0], 'copié avant le Oui');
+    attendreEgal(await e.choisirPersonneDialogue(mmsDialogue.personnes(lignes)[0].cle), '', 'textes gardés après la préparation');
+    el('non-mms').click();
+    attendre(/Rien n’a été copié/.test(el('resultat-mms').textContent) && f.envois.length === 0, '« Non »');
+    attendreEgal(await e.confirmer(), '', 'Oui après Non');
+    await e.preparerDialogue();
+    await e.choisirPersonneDialogue(mmsDialogue.personnes(lignes)[0].cle);
+    const fin = await e.confirmer();
+    attendre(/^C’est fait : « Dialogue n°1\.txt » créé dans « Dialogue » \(dossier créé\), avec 14 messages\./.test(fin) && /identique/.test(fin) && /toujours sur ton téléphone/.test(fin) && f.envois.length === 1, `copie : ${fin}`);
+    for (const x of TEXTES_P7) attendre(!el('resultat-mms').textContent.includes(x), `un texte de message à l’écran après la copie (${x})`);
+    attendre(el('oui-mms').textContent === 'Oui, créer' || el('barre-mms').hidden, 'bouton Oui pas remis');
+    await e.preparerDialogue();
+    const q2 = await e.choisirPersonneDialogue(mmsDialogue.personnes(lignes)[0].cle);
+    attendre(/^Tout est déjà copié : 14 messages/.test(q2) && el('barre-mms').hidden && f.envois.length === 1, `relancé : ${q2}`);
+    // P7d : petits fichiers (FICTIF : 1,5 Ko) : un seul « Oui, copier » pour tous les fichiers.
+    const ui2 = preparerInterface(c);
+    const f2 = await driveP7(lignes);
+    const e2 = mmsEcran.brancher(ui2.doc, { compte: f2, stockage: st, fenetre: pont, tailleDialogue: 1500 });
+    await e2.preparerDialogue();
+    const q3 = await e2.choisirPersonneDialogue(mmsDialogue.personnes(lignes)[0].cle);
+    const k = (/En (\d+) fichiers/.exec(q3) || [])[1];
+    attendre(k >= 2 && /Après chaque fichier, Cap le relit/.test(q3) && f2.envois.length === 0, `plusieurs fichiers : ${q3}`);
+    const fin2 = await e2.confirmer();
+    attendre(new RegExp(`^C’est fait : ${k} fichiers créés dans « Dialogue » \\(dossier créé\\), de « Dialogue n°1\\.txt » à « Dialogue n°${k}\\.txt », avec 14 messages\\.`).test(fin2) && new RegExp(`les ${k} fichiers sont identiques`).test(fin2) && f2.envois.length === +k, `plusieurs fichiers, copie : ${fin2}`);
+    // P7d : relecture différente : arrêt net après le 1er fichier ; « Ne relance pas ».
+    const ui3 = preparerInterface(c);
+    const f3 = await driveP7(lignes, { abimer: true });
+    const e3 = mmsEcran.brancher(ui3.doc, { compte: f3, stockage: st, fenetre: pont, tailleDialogue: 1500 });
+    await e3.preparerDialogue();
+    await e3.choisirPersonneDialogue(mmsDialogue.personnes(lignes)[0].cle);
+    const fin3 = await e3.confirmer();
+    attendre(/^Arrêt après « Dialogue n°1\.txt »\./.test(fin3) && /Créés : « Dialogue n°1\.txt »/.test(fin3) && /Pas copiés : \d+ fichiers? \(\d+ messages?\)/.test(fin3) && /DIFFÉRENT/.test(fin3) && /Ne relance pas/.test(fin3) && !/Tu peux relancer/.test(fin3) && f3.envois.length === 1, `arrêt : ${fin3}`);
+    for (const x of TEXTES_P7) attendre(!fin2.includes(x) && !fin3.includes(x), `un texte de message à l’écran (${x})`);
+    attendre(pont.appels.every(a => /^(autorise|inventaireLancer|inventaireLire)$/.test(a)), `téléphone : ${[...new Set(pont.appels)]}`);
+  });
+
   const erreursPage = window.erreursPage || [];
   const reussis = resultats.filter(r => r.ok).length;
   document.getElementById('resultat-tests').textContent = JSON.stringify({
@@ -18237,6 +19776,20 @@ def verifier_coque_mms():
     debut = java.index("private class MmsAndroid {")
     fin = java.index("\n    }\n", java.index("public String recents()", debut)) + 6
     pont = java[debut:fin]
+    # 14/11/2026 (accord de Max, P6) : UNE seule méthode du pont lit le CONTENU d'une pièce (pieceLire), pour la copie d'UN
+    # message choisi par Max ; elle est sortie du pont pour les vérifications ci-dessous, et vérifiée à part : page de Cap,
+    # autorisation SMS, identifiants en chiffres, pièce de CE message (_id ET mid), type permis, 5 Mo au plus, lecture seule.
+    d_piece = pont.index("        @JavascriptInterface\n        public String pieceLire(")
+    f_piece = pont.index("\n        }\n", pont.index("return \"{\\\"erreur\\\":\\\"lecture\\\"}\";", d_piece)) + 11
+    piece = pont[d_piece:f_piece]
+    pont = pont[:d_piece] + pont[f_piece:]
+    for exige in ("pageDeCap()", "permissionSmsAccordee()", "AdressesMms.idSur(mid)", "AdressesMms.idSur(partId)", '"_id=? AND mid=?", new String[]{partId, mid}',
+                  "AdressesMms.typePiece(", "total > TAILLE_MAX_PIECE", "lecteur.openInputStream(", "Base64.NO_WRAP"):
+        attendre(exige in piece, f"pieceLire : il manque « {exige} »")
+    for interdit in ("Log.", "Toast", ".insert(", ".delete(", ".update(", "FileOutputStream", "openOutputStream", "SmsManager", "sendTextMessage", "\"body\"", "\"text\"", "_data", "File(", "write(octets"):
+        attendre(interdit not in piece, f"pieceLire contient « {interdit} »")
+    attendre(piece.count("lecteur.query(") == 1 and piece.count("openInputStream(") == 1, "pieceLire fait d'autres lectures")
+    attendre("private static final long TAILLE_MAX_PIECE = 5L * 1024 * 1024;" in java, "limite de 5 Mo absente")
     for methode in ("autorise", "demander", "recents"):
         corps = pont[pont.index(f" {methode}()"):]
         corps = corps[:corps.index("@JavascriptInterface") if "@JavascriptInterface" in corps else len(corps)]
@@ -18303,8 +19856,8 @@ def verifier_coque_choix_multiple():
 
 
 def verifier_version_cache():
-    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v227['\"]\s*;", lire_texte("service-worker.js")),
-             "VERSION_CACHE doit définir cap-v227")
+    attendre(re.search(r"const\s+VERSION_CACHE\s*=\s*['\"]cap-v242['\"]\s*;", lire_texte("service-worker.js")),
+             "VERSION_CACHE doit définir cap-v242")
 
 
 def verifier_precache_fichiers_existent():
@@ -18375,6 +19928,59 @@ def verifier_rien_de_prive_publie():
     attendre(not fautifs, f"donnée privée dans des fichiers publiables : {', '.join(fautifs)}")
 
 
+def verifier_visionneuse_web():
+    # 13/11/2026 (accord de Max) : module « Site ou vidéo » de l'Agent 3 (app/visionneuse_web.js, copié sans réécriture).
+    # Ses tests FICTIFS (tests_web/visionneuse_web, hors de app/ : jamais dans l'APK) tournent dans Edge sans fenêtre, sans réseau.
+    module = lire_texte("visionneuse_web.js")
+    sandbox = re.findall(r"const SANDBOX = '([^']*)';", module)
+    attendre(sandbox == ["allow-scripts allow-same-origin allow-forms allow-presentation"], f"cadre web pas limité comme prévu : {sandbox}")
+    attendre(module.count("setAttribute('sandbox', SANDBOX)") == 1 and module.count("createElement('iframe')") == 1, "un autre cadre web, ou un cadre sans limite")
+    attendre("http://" not in module.replace("https://", ""), "le module web parle d'une adresse http")
+    for interdit in ("innerHTML", "localStorage", "fetch(", "XMLHttpRequest", "googleapis", "MmsAndroid", "cerveau"):
+        attendre(interdit not in module, f"visionneuse_web.js contient « {interdit} »")
+    script = APP.parent / "tests_web" / "visionneuse_web" / "test_visionneuse_web.py"
+    r = subprocess.run([sys.executable, "-I", str(script)], capture_output=True, timeout=300)
+    sortie = r.stdout.decode("utf-8", errors="replace").strip()
+    attendre(r.returncode == 0 and sortie.endswith("tests réussis.") and "ÉCHEC" not in sortie, f"tests du module web : {sortie[-400:]}")
+
+
+def verifier_coque_retour():
+    # 13/11/2026 (décision A de Max) : la touche retour passe d'abord par la page de Cap ; Cap ne passe en arrière-plan que
+    # si la page répond qu'il ne reste rien à fermer. Aucune autorisation ajoutée.
+    coque = APP.parent / "android-coque" / "app" / "src" / "main"
+    java = (coque / "java" / "fr" / "maxlavegie" / "cap" / "MainActivity.java").read_text(encoding="utf-8")
+    manifeste = (coque / "AndroidManifest.xml").read_text(encoding="utf-8")
+    attendre(java.count("public void onBackPressed()") == 1, "onBackPressed absent ou en double")
+    corps = java[java.index("public void onBackPressed()"):]
+    corps = corps[:corps.index("private static final String SCRIPT_RETOUR")]
+    attendre("if (vue == null || !pageDeCap())" in corps and "super.onBackPressed();" in corps, "hors de la page de Cap : pas le retour habituel")
+    attendre('vue.evaluateJavascript(SCRIPT_RETOUR, resultat -> {' in corps and 'if (!"true".equals(resultat)) moveTaskToBack(true);' in corps, "Cap quitté sans demander à la page")
+    attendre(corps.count("moveTaskToBack") == 1 and "finish()" not in corps, "le retour ferme Cap autrement")
+    attendre(java.count("moveTaskToBack") == 1, "moveTaskToBack ailleurs")
+    attendre("window.capRetourTelephone()===true" in java, "le script du retour n'appelle pas la page")
+    attendre("enableOnBackInvokedCallback" not in manifeste, "retour prédictif activé : onBackPressed ne serait plus appelé")
+    attendre("OnBackInvokedCallback" not in java and "onKeyDown" not in java, "autre gestion du retour")
+    # 13/11/2026 (chemin 1 de Max) : adresses YouTube (pas une vidéo précise) ouvertes HORS de Cap ; cadre principal seulement ; YouTube seulement.
+    attendre('request.isForMainFrame() && "https".equals(adresse.getScheme()) && HOTES_YOUTUBE.contains(adresse.getHost())) { ouvrirHorsDeCap(adresse); return true; }' in java, "YouTube pas ouvert hors de Cap")
+    hotes = re.search(r'HOTES_YOUTUBE = new java\.util\.HashSet<>\(java\.util\.Arrays\.asList\(\s*([^)]*)\)\)', java)
+    attendre(hotes and sorted(h.strip().strip('"') for h in hotes.group(1).split(",")) == ["m.youtube.com", "music.youtube.com", "www.youtube.com", "youtube.com"], "autres adresses que YouTube ouvertes hors de Cap")
+
+
+def verifier_profils_temporaires_exclus():
+    # 13/11/2026 (accord de Max) : les profils TEMPORAIRES du navigateur (créés par les tests dans app/, avec cookies et sessions)
+    # ne partent JAMAIS dans le dépôt (règle .gitignore, vérifiée par git lui-même) ni dans l'APK (exclusion des ressources).
+    regles = (APP.parent / ".gitignore").read_text(encoding="utf-8").splitlines()
+    attendre("app/tmp*/" in regles, ".gitignore : règle des profils temporaires absente")
+    r = subprocess.run(["git", "check-ignore", "-q", "app/tmpFICTIF0000/Default/Cookies"], cwd=APP.parent)
+    attendre(r.returncode == 0, "git n'ignore pas un profil temporaire dans app/")
+    r = subprocess.run(["git", "check-ignore", "-q", "app/test_cap.py"], cwd=APP.parent)
+    attendre(r.returncode != 0, "la règle ignore aussi les vrais fichiers de Cap")
+    gradle = next((APP.parent / "android-coque" / "app").glob("build.gradle*")).read_text(encoding="utf-8")
+    m = re.search(r'ignoreAssetsPattern = "([^"]*)"', gradle)
+    attendre(m and "<dir>tmp*" in m.group(1).split(":"), "APK : les profils temporaires ne sont pas exclus")
+    attendre(not any(p.is_dir() and p.name.startswith("tmp") and (p / "index.html").exists() for p in APP.iterdir()), "un vrai dossier de Cap commence par « tmp » (il serait exclu de l'APK)")
+
+
 TESTS_PWA = [
     ("Publication : aucun prénom de proche, aucune phrase de la fiche, aucune clé", verifier_rien_de_prive_publie),
     ("PWA : fichiers requis présents", verifier_fichiers_requis),
@@ -18392,6 +19998,9 @@ TESTS_PWA = [
     ("Coque (c158) : transfert direct vers un nouveau téléphone coupé (règles d'extraction : tout exclu)", verifier_coque_sans_transfert),
     ("Coque (M3a) : lecture des MMS reçus seulement (READ_SMS, pont limité aux pages de Cap, aucune écriture ni journal)", verifier_coque_mms),
     ("Coque (c159) : un choix de plusieurs fichiers rend tous les fichiers (liste du choix), pas seulement le premier", verifier_coque_choix_multiple),
+    ("Site ou vidéo (13/11/2026, Agent 3) : module et ses tests FICTIFS (https seulement, cadre limité, retour)", verifier_visionneuse_web),
+    ("Coque (13/11/2026, décision A) : touche retour : la page de Cap d’abord ; arrière-plan seulement s’il ne reste rien ; aucune autorisation", verifier_coque_retour),
+    ("Dépôt et APK (13/11/2026) : profils temporaires du navigateur (« app/tmp… ») jamais enregistrés ni mis dans l’APK", verifier_profils_temporaires_exclus),
     ("PWA : service-worker, version de cache", verifier_version_cache),
     ("PWA : service-worker, fichiers précachés existants", verifier_precache_fichiers_existent),
     ("PWA : service-worker, couverture de la précache", verifier_precache_couverture),
@@ -18439,6 +20048,7 @@ def construire_page():
         "SOURCE_FENETRES_LISTES": "fenetres_listes.js",
         "SOURCE_FERMETURE_FENETRES": "fermeture_fenetres.js",
         "SOURCE_GESTE_RETOUR_TEST": "geste_retour.js",
+        "SOURCE_RETOUR_TELEPHONE": "retour_telephone.js",
         "SOURCE_COMMANDES_VISIONNEUSE_TEST": "commandes_visionneuse.js",
         "SOURCE_RELATIONS_MP3_TEST": "relations_mp3.js",
         "SOURCE_CERVEAU_CLAUDE_TEST": "cerveau_claude.js",
@@ -18455,10 +20065,17 @@ def construire_page():
         "SOURCE_FICHIERS_VOCAUX_CONTROLEUR": "fichiers_vocaux_controleur.js",
         "SOURCE_TUILES": "tuiles.js",
         "SOURCE_NUMEROS": "numeros.js",
+        "SOURCE_CODES_USAGE_UNIQUE": "codes_usage_unique.js",
+        "SOURCE_CLES_EXPEDITEURS": "cles_expediteurs.js",
+        "SOURCE_INVENTAIRE_ECHANGES": "inventaire_echanges.js",
         "SOURCE_INDEX_RELATIONS": "index_relations.js",
         "SOURCE_MMS_LECTURE": "mms_lecture.js",
         "SOURCE_MMS_RANGEMENT": "mms_rangement.js",
         "SOURCE_MMS_REPETITION": "mms_repetition.js",
+        "SOURCE_MMS_DOSSIERS": "mms_dossiers.js",
+        "SOURCE_MMS_CREATION_DOSSIERS": "mms_creation_dossiers.js",
+        "SOURCE_MMS_COPIE": "mms_copie.js",
+        "SOURCE_MMS_DIALOGUE": "mms_dialogue.js",
         "SOURCE_MMS_ECRAN": "mms_ecran.js",
         "SOURCE_MODE_TRIER": "mode_trier.js",
         "SOURCE_ECRAN_EAU": "ecran_eau.js",

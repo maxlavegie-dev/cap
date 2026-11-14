@@ -10,3 +10,5 @@ mots_prives.txt
 Instructions de Cap*.md
 *.apk
 mots_sante.txt
+# 13/11/2026 (accord de Max) : profils TEMPORAIRES du navigateur créés par les tests dans app/ (cookies, sessions) : jamais dans le dépôt.
+app/tmp*/

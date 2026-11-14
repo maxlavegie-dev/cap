@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Tests FICTIFS : branchement du retour (marche 4)</title>
+<!-- 13/11/2026 (Agent 3, marche 4) : tests FICTIFS, sans réseau. Le VRAI visionneuse_cap.js est LU (jamais modifié) ;
+     les remplacements écrits dans LIRE_POUR_OPUS.md lui sont appliqués EN MÉMOIRE seulement, puis le tout est essayé
+     sur une fausse fenêtre de visionneuse (mêmes id que dans Cap). Adresses FICTIVES seulement.
+     13/11/2026 (intégration dans Cap, Opus) : les branchements sont maintenant FAITS dans app/visionneuse_cap.js ; la page lit
+     donc le vrai fichier tel quel (plus de remplacement en mémoire, plus de lecture de la fiche de l'Agent 3) et vérifie que
+     chaque ligne de la fiche y est EXACTEMENT une fois. -->
+<script>window.CAP_TESTS = true;</script>
+<script src="../../app/visionneuse_web.js"></script>
+</head>
+<body>
+<dialog id="visionneuse-cap">
+  <iframe id="cadre-visionneuse" title="FICTIF"></iframe>
+  <div id="barre-visionneuse"><p id="titre-visionneuse" hidden></p><button id="bouton-menu-visionneuse" type="button"></button></div>
+  <div id="menu-visionneuse" hidden>
+    <div id="menu-visionneuse-communs"></div>
+    <button id="menu-fermer-visionneuse" type="button">Fermer</button>
+    <button id="menu-ajouter-visionneuse" type="button">Ajouter un fichier</button>
+    <button id="menu-depart-visionneuse" type="button">↺</button>
+  </div>
+  <p id="etat-visionneuse" role="status" hidden></p>
+  <button id="fermer-visionneuse" type="button" hidden>Fermer la visionneuse</button>
+</dialog>
+<pre id="resultats">EN COURS</pre>
+<script>
+(async () => {
+  const resultats = [];
+  const verifier = (nom, condition, detail) => resultats.push({ nom, ok: Boolean(condition), detail: condition ? '' : String(detail || '') });
+  const pause = ms => new Promise(ok => setTimeout(ok, ms));
+  const lire = chemin => { const x = new XMLHttpRequest(); x.open('GET', chemin, false); x.overrideMimeType('text/plain; charset=utf-8'); x.send(); return x.responseText; };
+  try {
+    // ----- Lecture (seule) du vrai visionneuse_cap.js et de index.html de Cap (branchements faits le 13/11/2026) -----
+    const source = lire('../../app/visionneuse_cap.js');
+    verifier('visionneuse_cap.js lu', source.length > 10000, source.length);
+    const LIGNES = [
+      "    const retourWeb = () => (!grilleOuverte() && typeof visionneuseWeb !== 'undefined' && visionneuseWeb.instance ? visionneuseWeb.instance.retour() : false);",
+      "    fenetre.addEventListener('cancel', e => { if (retourWeb() || retourVersChantiers()) { e.preventDefault(); return; } nettoyer(); });",
+      "    fermer.addEventListener('click', () => { if (retourWeb() || retourVersChantiers()) return; nettoyer(); if (fenetre.open) fenetre.close(); }); // 13/11/2026 : + retourWeb",
+      "      if (fenetre.open && grilleOuverte()) { fermer.click(); return 'Je ferme la liste des chantiers.'; }\n      if (fenetre.open && retourWeb()) return 'Je ferme le site ou la vidéo.'; // 13/11/2026 (Agent 3, marche 4)"
+    ];
+    LIGNES.forEach((l, i) => { const fois = source.split(l).length - 1; verifier(`branchement ${i + 1} présent EXACTEMENT une fois dans visionneuse_cap.js`, fois === 1, `trouvé ${fois} fois`); });
+    verifier('anciennes lignes retirées', !source.includes('{ if (retourVersChantiers()) { e.preventDefault(); return; } nettoyer(); }') && !source.includes("{ if (retourVersChantiers()) return; nettoyer();"));
+    const page = lire('../../app/index.html');
+    verifier('index.html : visionneuse_web.js chargé JUSTE après visionneuse_cap.js, une fois',
+      page.split('  <script src="visionneuse_cap.js"><\/script>\n  <script src="visionneuse_web.js"><\/script>').length - 1 === 1 && page.split('visionneuse_web.js').length - 1 === 1);
+    const corrige = source;
+
+    // ----- Le vrai visionneuse_cap.js (lu, jamais modifié ici), branché sur la fausse fenêtre -----
+    const VC = new Function(`${corrige}\nreturn visionneuseCap;`)();
+    const fen = document.getElementById('visionneuse-cap');
+    const fermerCap = document.getElementById('fermer-visionneuse');
+    const fauxVisualiseur = { fermer() {}, montrerFichier() {}, montrerMosaique() {}, remettreCommeAuDepart() {} };
+    const chargeur = () => Promise.resolve(fauxVisualiseur);
+    chargeur.vider = () => {};
+    const cap = VC.brancher(document, { compte: { seConnecter() {}, appeler: async () => { throw new Error('FICTIF : aucun réseau'); } },
+      visionneuse: chargeur, pageZencoder: () => null, enLigne: () => true, stockage: null });
+    verifier('visionneuse de Cap (corrigée) branchée', cap && typeof cap.fermerParVoix === 'function');
+    const posees = [];
+    const W = visionneuseWeb.brancher(document, { fenetre: fen, ouvrirVisionneuse: () => cap.ouvrirVide(), enLigne: () => true,
+      poserAdresse: (cadre, adresse) => { posees.push(adresse); cadre.srcdoc = '<p>FICTIF</p>'; }, minuteur: () => 0, annulerMinuteur: () => {} });
+    visionneuseWeb.instance = W;
+    const boutonWeb = document.getElementById('menu-web-visionneuse');
+    verifier('« Site ou vidéo » après « Ouvrir un chantier » (créé par Cap)', boutonWeb && boutonWeb.previousElementSibling && boutonWeb.previousElementSibling.id === 'menu-chantiers-visionneuse');
+
+    const ouvrirTout = async adresse => { await cap.ouvrirVide(); W.ouvrir(adresse); await pause(20); };
+
+    // « Fermer » (bouton caché commun) : d'abord le site, puis la visionneuse.
+    await ouvrirTout('https://exemple.fr/FICTIF');
+    verifier('départ : visionneuse + site ouverts', fen.open && W.ouvert());
+    fermerCap.click();
+    verifier('Fermer 1 : site fermé, visionneuse ouverte', !W.ouvert() && fen.open && !document.getElementById('cadre-web-visionneuse'));
+    fermerCap.click();
+    verifier('Fermer 2 : visionneuse fermée', !fen.open);
+
+    // « Fermer » du menu du bouton blanc : même chemin.
+    await ouvrirTout('https://youtu.be/FICTIF_0001');
+    document.getElementById('menu-fermer-visionneuse').click();
+    verifier('menu Fermer 1 : vidéo fermée, visionneuse ouverte', !W.ouvert() && fen.open);
+    document.getElementById('menu-fermer-visionneuse').click();
+    verifier('menu Fermer 2 : visionneuse fermée', !fen.open);
+
+    // Retour du téléphone (événement « cancel » de la fenêtre).
+    await ouvrirTout('https://exemple.fr/FICTIF');
+    const r1 = new Event('cancel', { cancelable: true });
+    fen.dispatchEvent(r1);
+    verifier('retour 1 : site fermé, fermeture annulée', r1.defaultPrevented && !W.ouvert() && fen.open);
+    const r2 = new Event('cancel', { cancelable: true });
+    fen.dispatchEvent(r2);
+    verifier('retour 2 : la visionneuse peut se fermer', !r2.defaultPrevented);
+    if (fen.open) fen.close(); // ce que fait le navigateur après un « cancel » non annulé
+    await pause(20);
+
+    // Formulaire « Site ou vidéo » par-dessus un site : formulaire, puis site, puis visionneuse.
+    await ouvrirTout('https://exemple.fr/FICTIF');
+    boutonWeb.click();
+    document.getElementById('champ-web-visionneuse').value = 'https://exemple.fr/FICTIF-pas-gardee';
+    fermerCap.click();
+    verifier('Fermer 1 : formulaire fermé et vidé, site gardé', !W.saisieOuverte() && document.getElementById('champ-web-visionneuse').value === '' && W.ouvert() && fen.open);
+    fermerCap.click();
+    verifier('Fermer 2 : site fermé', !W.ouvert() && fen.open);
+    fermerCap.click();
+    verifier('Fermer 3 : visionneuse fermée', !fen.open);
+
+    // À la voix.
+    await ouvrirTout('https://exemple.fr/FICTIF');
+    const p1 = cap.fermerParVoix();
+    verifier('voix 1 : « Je ferme le site ou la vidéo. »', p1 === 'Je ferme le site ou la vidéo.' && !W.ouvert() && fen.open, p1);
+    const p2 = cap.fermerParVoix();
+    verifier('voix 2 : la visionneuse se ferme', p2 === 'Je ferme la visionneuse.' && !fen.open, p2);
+
+    // Grille des chantiers montrée par-dessus le site : elle passe d'abord (comme aujourd'hui).
+    await ouvrirTout('https://exemple.fr/FICTIF');
+    await cap.montrerChantiers();
+    verifier('grille montrée', cap.chantiersOuverts());
+    fermerCap.click();
+    verifier('Fermer 1 : grille cachée, site gardé', !cap.chantiersOuverts() && W.ouvert() && fen.open);
+    fermerCap.click();
+    verifier('Fermer 2 : site fermé', !W.ouvert() && fen.open);
+    fermerCap.click();
+    verifier('Fermer 3 : visionneuse fermée', !fen.open);
+
+    // Sans le module (pas encore chargé, ou absent) : Cap se comporte exactement comme avant.
+    visionneuseWeb.instance = null;
+    await cap.ouvrirVide();
+    fermerCap.click();
+    verifier('sans module : Fermer ferme la visionneuse', !fen.open);
+    visionneuseWeb.instance = W;
+
+    // Visionneuse fermée d'un coup (par Cap) : le cadre web est vidé et retiré.
+    await ouvrirTout('https://exemple.fr/FICTIF');
+    const cadre = document.getElementById('cadre-web-visionneuse');
+    fen.close();
+    await pause(20);
+    verifier('fermeture directe : cadre vidé et retiré', cadre && !cadre.isConnected && cadre.getAttribute('src') === 'about:blank' && !W.ouvert(),
+      JSON.stringify({ cadre: Boolean(cadre), branche: cadre && cadre.isConnected, src: cadre && cadre.getAttribute('src'), ouvert: W.ouvert(), fen: fen.open }));
+    verifier('aucune vraie adresse posée (sans réseau)', posees.every(a => a.startsWith('https://exemple.fr/FICTIF') || a.includes('FICTIF_0001')), posees.join(' '));
+  } catch (erreur) {
+    verifier('aucune exception', false, erreur && erreur.stack || erreur);
+  }
+  document.getElementById('resultats').textContent = 'RESULTATS_JSON:' + JSON.stringify(resultats) + ':FIN';
+})();
+</script>
+</body>
+</html>

@@ -805,7 +805,15 @@
     <button id="ouvrir-journaux-relations" type="button" aria-haspopup="dialog" aria-controls="journaux-relations">Journaux des relations</button>
     <!-- 12/11/2026 (accord écrit de Max, M3a-c) : MMS. Lire = nombres seulement, rien copié ; Répétition = dossiers FICTIFS vides. -->
     <button id="lire-mms" type="button">Lire mes derniers MMS (rien n’est copié)</button>
+    <button id="inventaire-mms" type="button">Inventaire des SMS et MMS (nombres seulement)</button><!-- 13/11/2026 (P3) -->
+    <button id="liste-dossiers-mms" type="button">Dossiers par expéditeur : la liste en nombres (rien n’est créé)</button><!-- 13/11/2026 (P5, temps 1) -->
+    <button id="creer-dossiers-mms" type="button">Dossiers par expéditeur : créer dans le Drive (liste, puis « Oui, créer »)</button><!-- 13/11/2026 (P5, temps 2) -->
+    <button id="copier-message-mms" type="button">Copier UN message avec pièce jointe (choisir la personne, puis « Oui, copier »)</button><!-- 14/11/2026 (P6) -->
+    <div id="choix-copie-mms"></div><!-- 14/11/2026 (P6) : personnes, puis messages -->
+    <button id="dialogue-mms" type="button">Textes des messages (« Dialogue ») : choisir la personne, puis « Oui, copier »</button><!-- 14/11/2026 (P7b, P7c) : rien n’est copié avant le Oui -->
+    <div id="choix-dialogue-mms"></div><!-- 14/11/2026 (P7b) : personnes -->
     <button id="repetition-mms" type="button">Répétition MMS : dossiers FICTIFS dans le compte Cap</button>
+    <button id="essai-envoi-mms" type="button">Essai d’envoi : UN faux fichier FICTIF dans la répétition</button><!-- 13/11/2026 (P4) -->
     <p id="resultat-mms" class="relations-gros bloc-resultat" role="status" data-titre="" hidden></p>
     <div id="barre-mms" hidden>
       <button id="oui-mms" class="choix-grand-affichage" type="button">Oui, créer</button>
@@ -1377,7 +1385,11 @@
   <script src="transition_ecrans.js"></script>
   <script src="relations_creation.js"></script>
   <script src="visionneuse_cap.js"></script>
+  <script src="visionneuse_web.js"></script>
   <script src="numeros.js"></script><!-- 12/11/2026 (M2) : normalisation des numéros (fonction pure) -->
+  <script src="codes_usage_unique.js"></script><!-- 13/11/2026 (P1) : détecteur des codes à usage unique (fonction pure, pas encore utilisée) -->
+  <script src="cles_expediteurs.js"></script><!-- 13/11/2026 (P2) : clé de chaque expéditeur (fonction pure, pas encore utilisée) -->
+  <script src="inventaire_echanges.js"></script><!-- 13/11/2026 (P3) : inventaire des SMS et MMS en nombres (fonction pure) -->
   <script src="index_relations.js"></script><!-- 12/11/2026 (M1) : index local par empreinte (aucun numéro en clair) -->
   <script src="coordonnees_relations.js"></script><!-- 12/11/2026 (c154, A3a) : coordonnées des relations, sur le téléphone seulement -->
   <script src="memoire_relations.js"></script><!-- 12/11/2026 (c150, A1) : mémoire des relations, sur le téléphone seulement -->
@@ -1387,6 +1399,10 @@
   <script src="mms_lecture.js"></script><!-- 12/11/2026 (M3a) : lecture des MMS reçus (coque), numéro changé aussitôt en empreinte -->
   <script src="mms_rangement.js"></script><!-- 12/11/2026 (M3b) : personne ou « À trier », des nombres seulement -->
   <script src="mms_repetition.js"></script><!-- 12/11/2026 (M3c) : dossiers de répétition FICTIFS (compte Cap) -->
+  <script src="mms_dossiers.js"></script><!-- 13/11/2026 (P5, temps 1) : la liste des dossiers par expéditeur, en nombres -->
+  <script src="mms_creation_dossiers.js"></script>
+  <script src="mms_copie.js"></script><!-- 14/11/2026 (P6) : copie d’UN message, après « Oui, copier » --><!-- 13/11/2026 (P5, temps 2) : création des dossiers vides, après « Oui, créer » -->
+  <script src="mms_dialogue.js"></script><!-- 14/11/2026 (P7a, P7b) : textes pour « Dialogue », LECTURE et préparation seulement -->
   <script src="mms_ecran.js"></script><!-- 12/11/2026 (M3a-c) : les deux boutons des MMS (Réglages du Drive) -->
   <script src="relations_mp3.js"></script>
   <script src="scan_ecran.js"></script>
@@ -1404,6 +1420,7 @@
   <script src="ecran_eau.js"></script>
   <script src="accueil_cap.js"></script>
   <script src="geste_retour.js"></script>
+  <script src="retour_telephone.js"></script><!-- 13/11/2026 (décision A de Max) : la touche retour du téléphone -->
   <script src="commandes_navigation.js"></script>
   <script src="commandes_musique.js"></script>
   <script src="commandes_visionneuse.js"></script>

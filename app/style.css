@@ -4650,3 +4650,29 @@ html:has(#indicateur-musique:not([hidden])) #signe-micro { right: 184px; }
 #resultat-mms {
   white-space: pre-line;
 }
+
+/* 13/11/2026 (maquette V2 de l'Agent 1, VALIDÉE par Max le 12/11, intégrée par Opus) : FANTÔMES SUR L'EAU.
+   Les fantômes sont les VRAIES icônes de l'accueil (mêmes éléments, mêmes règles de taille) : ils tombent donc PILE sur les
+   vraies cases, sur tout écran, sans aucune dimension recopiée de la maquette. Pendant l'écran d'eau seulement (pas pendant
+   la montée ni la descente : l'entrée validée « de sous le sable » est gardée), l'accueil passe AU-DESSUS de l'eau, invisible,
+   sauf ses icônes : très pâles (0,16), même couleur que les vraies (var(--eau-texte)), une ondulation douce décalée et un
+   léger flou. Rien ne capte un toucher (l'eau garde ses gestes). REVENIR EN ARRIÈRE si c'est lent : classe
+   « fantomes-sans-flou » (garde l'ondulation) ou « sans-fantomes » (plus rien) sur <html> ; ou réinstaller l'APK d'avant. */
+:root { --fantome-opacite: 0.16; --fantome-force: 1.5px; --fantome-flou: 0.6px; }
+html.eau-ouverte:not(.cap-monte):not(.cap-descend):not(.sans-fantomes) .ecran { z-index: 901; visibility: hidden; pointer-events: none; }
+html.eau-ouverte:not(.cap-monte):not(.cap-descend):not(.sans-fantomes) .ecran * { pointer-events: none !important; }
+html.eau-ouverte:not(.cap-monte):not(.cap-descend):not(.sans-fantomes) #grille-accueil > .bouton-accueil-principal:not([hidden]),
+html.eau-ouverte:not(.cap-monte):not(.cap-descend):not(.sans-fantomes) #grille-accueil > #accueil-theme:not([hidden]) {
+  visibility: visible; opacity: var(--fantome-opacite); filter: blur(var(--fantome-flou));
+  animation: fantome-ondule 6s ease-in-out infinite; animation-delay: var(--fantome-retard, 0s); transition: none;
+}
+html.eau-ouverte.fantomes-sans-flou #grille-accueil > * { filter: none !important; }
+html.eau-ouverte:not(.cap-monte):not(.cap-descend):not(.sans-fantomes) #grille-accueil > .bouton-accueil-principal.bouton-pas-pret:not([hidden]) { opacity: calc(var(--fantome-opacite) * 0.35); } /* grisée : encore plus pâle */
+#grille-accueil > :nth-child(3n + 1) { --fantome-retard: -0.5s; }
+#grille-accueil > :nth-child(3n + 2) { --fantome-retard: -2.1s; }
+#grille-accueil > :nth-child(3n) { --fantome-retard: -3.4s; }
+#grille-accueil > :nth-child(4n) { --fantome-retard: -1.2s; }
+@keyframes fantome-ondule { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(calc(var(--fantome-force) * -1)); } }
+@media (prefers-reduced-motion: reduce) {
+  html.eau-ouverte #grille-accueil > * { animation: none !important; }
+}

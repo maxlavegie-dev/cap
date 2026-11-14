@@ -43,9 +43,9 @@ android {
         }
     }
 
-    // Jamais dans l'APK : fichiers de test Python, dossiers techniques (« _… »), fichiers cachés.
+    // Jamais dans l'APK : fichiers de test Python, dossiers techniques (« _… »), fichiers cachés, profils temporaires (« tmp… », 13/11/2026).
     androidResources {
-        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.py"
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:<dir>tmp*:!CVS:!thumbs.db:!picasa.ini:!*~:!*.py" // 13/11/2026 : + <dir>tmp* (profils temporaires du navigateur des tests)
     }
 
     compileOptions {

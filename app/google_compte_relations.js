@@ -243,6 +243,53 @@ const googleCompteRelations = (() => {
     return reponse;
   }
 
+  // ----- 13/11/2026 (accord de Max, P4 = M3d) : ENVOI D'UN FICHIER, une seule porte, construite ici même. -----
+  // Conditions, TOUTES vérifiées ici avant d'envoyer quoi que ce soit :
+  //  - dossier cible : un identifiant Drive (jamais « root ») ; Cap le RELIT d'abord (lecture seule) : il doit être un dossier,
+  //    pas à la corbeille, et porter une marque d'envoi PERMISE (pour l'instant : seulement les dossiers de RÉPÉTITION FICTIVE
+  //    créés par Cap, marque « cap_mms_repetition_dossier ») ; sinon RIEN n'est envoyé ;
+  //  - type : image (jpeg, png, gif, webp, heic, heif), vidéo (mp4, 3gpp, webm, quicktime) ou texte simple, rien d'autre ;
+  //  - taille : de 1 octet à TAILLE_MAX_ENVOI (5 Mo, l'envoi simple de Google) ;
+  //  - nom non vide (200 caractères au plus) ; une marque invisible OBLIGATOIRE sur le fichier (contre les doublons) ;
+  //  - toujours une CRÉATION (POST …/upload/drive/v3/files?uploadType=multipart) : jamais de remplacement (aucun identifiant de
+  //    fichier dans l'adresse, aucun PATCH ni PUT), jamais de suppression ni de corbeille.
+  // Tout autre envoi « brut » reste refusé par ecritureAutorisee (l'adresse /upload/ n'y est jamais permise).
+  const TAILLE_MAX_ENVOI = 5 * 1024 * 1024;
+  const TYPES_ENVOI = /^(?:image\/(?:jpeg|png|gif|webp|heic|heif)|video\/(?:mp4|3gpp|webm|quicktime)|text\/plain)$/;
+  // 14/11/2026 (accord de Max, P6) : + « cap_mms_sous » : les sous-dossiers « Reçus » et « Envoyés » créés par Cap DANS le dossier
+  // d'une personne de « MMS des relations ». Le dossier de la personne lui-même (« cap_mms_dossier ») n'en reçoit pas.
+  // Même droit Google qu'avant (drive.file) : aucun nouveau droit.
+  const MARQUES_DOSSIER_ENVOI = Object.freeze(['cap_mms_repetition_dossier', 'cap_mms_sous']);
+  async function envoyerFichier(idDossier, { nom, mimeType, appProperties } = {}, contenu) {
+    const refus = raison => { throw new Error(`Envoi refusé par Cap : ${raison}. Rien n’a été envoyé.`); };
+    if (typeof idDossier !== 'string' || !new RegExp(`^${ID_FICHIER}$`).test(idDossier)) refus('dossier cible invalide');
+    if (typeof mimeType !== 'string' || !TYPES_ENVOI.test(mimeType)) refus('type de fichier non permis');
+    if (typeof nom !== 'string' || !nom.trim() || nom.length > 200) refus('nom de fichier invalide');
+    if (!appProperties || typeof appProperties !== 'object' || Array.isArray(appProperties) || !Object.keys(appProperties).length) refus('marque du fichier absente');
+    const fichier = contenu instanceof Blob ? contenu : (typeof contenu === 'string' ? new Blob([contenu], { type: mimeType }) : null);
+    if (!fichier) refus('contenu illisible');
+    if (fichier.size < 1) refus('fichier vide');
+    if (fichier.size > TAILLE_MAX_ENVOI) refus('fichier trop gros (5 Mo au plus)');
+    // Le dossier cible, relu (lecture seule) : un dossier de Cap, marqué, pas à la corbeille.
+    let d = null;
+    try { d = await (await appeler(`${DRIVE}files/${encodeURIComponent(idDossier)}?fields=id,mimeType,trashed,appProperties`)).json(); } catch (erreur) { d = null; }
+    const marques = d && d.appProperties && typeof d.appProperties === 'object' ? Object.keys(d.appProperties) : [];
+    if (!d || d.id !== idDossier || d.mimeType !== 'application/vnd.google-apps.folder' || d.trashed === true || !marques.some(m => MARQUES_DOSSIER_ENVOI.includes(m))) {
+      refus('le dossier cible n’est pas un dossier d’envoi marqué par Cap');
+    }
+    const s = await jetonVerifie();
+    const separation = `cap-${Array.from(crypto.getRandomValues(new Uint8Array(12)), b => b.toString(16).padStart(2, '0')).join('')}`;
+    const meta = JSON.stringify({ name: nom, mimeType, parents: [idDossier], appProperties });
+    const corps = new Blob([`--${separation}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${separation}\r\nContent-Type: ${mimeType}\r\n\r\n`, fichier, `\r\n--${separation}--\r\n`]);
+    const reponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+      method: 'POST', headers: { Authorization: `Bearer ${s.jeton}`, 'Content-Type': `multipart/related; boundary=${separation}` }, body: corps,
+      cache: 'no-store', redirect: 'error'
+    });
+    if (reponse.status === 401) { oublier(); throw new Error('Connexion du compte Cap expirée. Touche « Autoriser la lecture du compte Cap ».'); }
+    if (!reponse.ok) { const erreur = new Error(`Google n’a pas pu recevoir le fichier (erreur ${reponse.status}). Rien n’a été remplacé ni effacé.`); erreur.statut = reponse.status; throw erreur; }
+    return reponse;
+  }
+
   // Après le retour : demande au Drive quel compte est connecté (lecture seule), pour l'afficher.
   async function verifier() {
     const reponse = await appeler(`${DRIVE}about?fields=user(emailAddress)`);
@@ -252,6 +299,7 @@ const googleCompteRelations = (() => {
   }
 
   // 09/11/2026 : + appelerEcriture, ecritureAutorisee (écriture limitée, voir plus haut).
-  return { adresse, enregistrerAdresse, connecte, minutesRestantes, seConnecter, appeler, appelerEcriture, ecritureAutorisee, oublier, verifier,
+  // 13/11/2026 (P4) : + envoyerFichier, TAILLE_MAX_ENVOI.
+  return { adresse, enregistrerAdresse, connecte, minutesRestantes, seConnecter, appeler, appelerEcriture, ecritureAutorisee, envoyerFichier, TAILLE_MAX_ENVOI, oublier, verifier,
     message: () => message, retourRecent: () => retourRecent };
 })();

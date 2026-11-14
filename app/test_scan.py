@@ -1377,8 +1377,8 @@ TESTS_JS = r"""
       ['Banque', '', '', '', '', '', '', '', '', '', '04 00 00 00 03', '', ''],
       ['Théo', '', 'Exemplaire', '', '', '', '', '', '', '', '04 00 00 00 09', '', ''],
       ['', '', '', '', '', 'Cabinet Fictif des Lilas', '', '', '', '', '04 00 00 00 05', '', ''],
-      ['Marc', '', 'Dupontel', '', '', '', '', '', '', '', '04 00 00 00 06', '', ''],
-      ['Luc', '', 'Dupontel', '', '', '', '', '', '', '', '04 00 00 00 06', '', '']
+      ['Marc', '', 'Partage FICTIF', '', '', '', '', '', '', '', '04 00 00 00 06', '', ''],
+      ['Luc', '', 'Partage FICTIF', '', '', '', '', '', '', '', '04 00 00 00 06', '', '']
     ],
     'Tri contacts': [
       ['Nom dans les contacts', 'Organisation / étiquette', 'Téléphone', 'Mail', 'Note d’origine', 'Catégorie', 'Décision', 'Nom propre pour le dictionnaire', 'Rôle / lien avec Max', 'Remarques'],
@@ -1415,7 +1415,7 @@ TESTS_JS = r"""
     r = emetteur.reconnaitre('Avis FICTIF du Maître Fictif', entrees, personnesExclues);
     egal([r.etat, r.candidats.map(c => c.complet).sort()], ['choix', ['Jean Fictif', 'Jeanne Fictif']], 'titre + nom de famille partagé');
     r = emetteur.reconnaitre('Appeler le 04 00 00 00 06 FICTIF', entrees, personnesExclues);
-    egal([r.etat, r.candidats.map(c => c.complet).sort()], ['choix', ['Luc Dupontel', 'Marc Dupontel']], 'téléphone partagé');
+    egal([r.etat, r.candidats.map(c => c.complet).sort()], ['choix', ['Luc Partage FICTIF', 'Marc Partage FICTIF']], 'téléphone partagé');
     r = emetteur.reconnaitre('Contact FICTIF : 04.00.00.00.05', entrees, personnesExclues);
     egal([r.etat, r.candidats.map(c => c.complet)], ['choix', ['Cabinet Fictif des Lilas']], 'un téléphone seul ne décide jamais');
     r = emetteur.reconnaitre('Écrire à jean.fictif@exemple.test FICTIF', entrees, personnesExclues);

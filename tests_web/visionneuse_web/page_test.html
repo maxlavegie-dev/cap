@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Tests FICTIFS : visionneuse_web.js</title>
+<!-- 13/11/2026 (Agent 3) : page de tests FICTIFS, sans réseau. Lancée par test_visionneuse_web.py (Edge sans fenêtre).
+     Toutes les adresses sont FICTIVES (exemple.fr, identifiants « FICTIF » de 11 signes) : aucune vraie vidéo. -->
+<script>window.CAP_TESTS = true;</script>
+<!-- 13/11/2026 (intégration dans Cap) : le module est lu dans app/ (avant : ../visionneuse_web.js chez l'Agent 3). -->
+<script src="../../app/visionneuse_web.js"></script>
+</head>
+<body>
+<pre id="resultats">EN COURS</pre>
+<!-- 13/11/2026 (marche 2) : une fausse fenêtre de visionneuse (même id que dans Cap), FICTIVE. -->
+<dialog id="visionneuse-cap"><p>FICTIF : visionneuse</p></dialog>
+<script>
+(async () => {
+  const resultats = [];
+  const verifier = (nom, condition, detail) => resultats.push({ nom, ok: Boolean(condition), detail: condition ? '' : String(detail || '') });
+  const A = t => visionneuseWeb.analyserAdresse(t);
+  const ID = 'FICTIF_0001'; // 11 signes, faux
+
+  try {
+    // ----- Marche 1 : vidéos YouTube (adresses fictives) -----
+    const formes = [
+      `https://www.youtube.com/watch?v=${ID}`,
+      `https://youtube.com/watch?v=${ID}&list=FICTIFLISTE`,
+      `https://m.youtube.com/watch?v=${ID}`,
+      `https://youtu.be/${ID}`,
+      `youtu.be/${ID}`,
+      `www.youtube.com/watch?v=${ID}`,
+      `https://www.youtube.com/embed/${ID}`,
+      `https://www.youtube.com/shorts/${ID}`,
+      `https://www.youtube.com/live/${ID}`,
+      `https://www.youtube-nocookie.com/embed/${ID}`,
+      `  https://youtu.be/${ID}  `,
+      `HTTPS://WWW.YOUTUBE.COM/watch?v=${ID}`
+    ];
+    for (const f of formes) {
+      const r = A(f);
+      verifier(`youtube reconnu : ${f.trim()}`, r.ok && r.sorte === 'youtube' && r.id === ID, JSON.stringify(r));
+      verifier(`cadre nocookie : ${f.trim()}`, r.ok && r.adresseCadre.startsWith(`https://www.youtube-nocookie.com/embed/${ID}?`), JSON.stringify(r));
+      verifier(`lecture dans la page : ${f.trim()}`, r.ok && /[?&]playsinline=1(&|$)/.test(r.adresseCadre), JSON.stringify(r));
+    }
+    // Départ (t= ou start=)
+    const departs = [['90', 90], ['90s', 90], ['1m30s', 90], ['1h2m3s', 3723], ['', 0], ['abc', 0], ['2m', 120]];
+    for (const [t, attendu] of departs) {
+      const r = A(`https://youtu.be/${ID}${t ? `?t=${t}` : ''}`);
+      verifier(`départ t=${t || '(rien)'}`, r.ok && r.debut === attendu, JSON.stringify(r));
+      verifier(`start dans le cadre t=${t || '(rien)'}`, r.ok && (attendu ? r.adresseCadre.includes(`start=${attendu}`) : !r.adresseCadre.includes('start=')), r.adresseCadre);
+    }
+    verifier('start= lu aussi', A(`https://www.youtube.com/embed/${ID}?start=45`).debut === 45);
+    verifier('départ plafonné à 24 h', visionneuseWeb.lireDepart('999999') === 86400);
+    // Liens YouTube sans vidéo précise
+    for (const f of ['https://www.youtube.com/', 'https://www.youtube.com/watch?v=court', 'https://youtu.be/', 'https://www.youtube.com/@FICTIF_chaine',
+      `https://www.youtube.com/watch?v=${ID}X`, 'https://www.youtube.com/watch?v=FICTIF<0001']) {
+      const r = A(f);
+      // 13/11/2026 (chemin 1 de Max) : plus de refus : l'application YouTube, avec une adresse YouTube https seulement.
+      verifier(`youtube sans vidéo → application : ${f}`, r.ok && r.sorte === 'youtube-appli' && /^https:\/\/(www\.|m\.)?youtube\.com\//.test(r.adresseAppli) && !('adresseCadre' in r), JSON.stringify(r));
+    }
+    for (const [f, attendue] of [['youtube.com', 'https://youtube.com/'], ['www.youtube.com', 'https://www.youtube.com/'], ['m.youtube.com/@FICTIF', 'https://m.youtube.com/@FICTIF'],
+      ['https://www.youtube.com/results?search_query=FICTIF', 'https://www.youtube.com/results?search_query=FICTIF'], ['youtu.be/', 'https://www.youtube.com/'], ['https://www.youtube.com/feed#FICTIF', 'https://www.youtube.com/feed']]) {
+      const r = A(f);
+      verifier(`application YouTube : ${f}`, r.ok && r.sorte === 'youtube-appli' && r.adresseAppli === attendue, JSON.stringify(r));
+    }
+    verifier('http://youtube.com : toujours refusé', A('http://youtube.com').code === 'pas-https');
+
+    // ----- Marche 1 : sites web (fictifs) -----
+    const sites = [['https://exemple.fr', 'exemple.fr'], ['exemple.fr', 'exemple.fr'], ['https://www.exemple.fr/page?x=1#haut', 'www.exemple.fr'],
+      ['https://sous.exemple.fr:8443/a', 'sous.exemple.fr']];
+    for (const [f, hote] of sites) {
+      const r = A(f);
+      verifier(`site reconnu : ${f}`, r.ok && r.sorte === 'site' && r.hote === hote && r.adresseCadre.startsWith('https://'), JSON.stringify(r));
+    }
+    verifier('faux youtube = simple site', A('https://youtube.com.exemple.fr/watch?v=' + ID).sorte === 'site');
+
+    // ----- Marche 1 : refus -----
+    const refus = [
+      ['', 'vide'], ['   ', 'vide'], [null, 'vide'], [undefined, 'vide'],
+      ['http://exemple.fr', 'pas-https'], ['javascript:alert(1)', 'illisible'], ['data:text/html,FICTIF', 'illisible'],
+      ['file:///C:/FICTIF.txt', 'illisible'], ['ftp://exemple.fr', 'illisible'], ['about:blank', 'illisible'],
+      ['exemple', 'illisible'], ['bonjour Cap', 'illisible'], ['https://exemple.fr/a b', 'illisible'],
+      ['https://FICTIF:motdepasse@exemple.fr', 'identifiants'], ['https://FICTIF@exemple.fr', 'identifiants'],
+      ['https://localhost/', 'hote-local'], ['https://192.168.1.10/', 'hote-local'], ['https://[::1]/', 'hote-local'],
+      ['https://imprimante.local/', 'hote-local'], ['https://' + 'a'.repeat(2000) + '.fr', 'trop-longue']
+    ];
+    for (const [f, code] of refus) {
+      const r = A(f);
+      verifier(`refusé (${code}) : ${String(f).slice(0, 40)}`, !r.ok && r.code === code && typeof r.message === 'string' && r.message.length > 10, JSON.stringify(r));
+    }
+    // Un message de refus ne recopie jamais l'adresse donnée.
+    const secret = A('https://FICTIF:motdepasse@exemple.fr');
+    verifier('message sans l’adresse', !secret.message.includes('motdepasse') && !secret.message.includes('exemple.fr'), secret.message);
+    // Chaque code a sa phrase.
+    for (const [code, texte] of Object.entries(visionneuseWeb.MESSAGES)) verifier(`phrase pour ${code}`, typeof texte === 'string' && texte.length > 10);
+    verifier('MESSAGES gelé', Object.isFrozen(visionneuseWeb.MESSAGES));
+
+    // ----- Marche 2 : le cadre (aucun réseau : l'adresse est notée, le cadre reçoit une page FICTIVE locale) -----
+    const pause = ms => new Promise(ok => setTimeout(ok, ms));
+    const fen = document.getElementById('visionneuse-cap');
+    const posees = [];
+    // Faux « poserAdresse » : note l'adresse, puis charge une petite page FICTIVE dans le cadre (srcdoc, sans réseau).
+    const poserFictif = (cadre, adresse) => { posees.push(adresse); cadre.srcdoc = '<p>FICTIF : page de test</p>'; };
+    const poserMuet = (cadre, adresse) => { posees.push(adresse); }; // ne charge rien : le site « ne répond pas »
+    const minuteurs = [];
+    const fauxMinuteur = (f, ms) => { minuteurs.push({ f, ms, annule: false }); return minuteurs.length - 1; };
+    const fauxAnnuler = id => { if (minuteurs[id]) minuteurs[id].annule = true; };
+    const declencher = ms => { for (const m of minuteurs) if (m.ms === ms && !m.annule) { m.annule = true; m.f(); } };
+    let enLigneFictif = true;
+    const options = extra => Object.assign({ fenetre: fen, ouvrirVisionneuse: () => { if (!fen.open) fen.showModal(); },
+      enLigne: () => enLigneFictif, poserAdresse: poserFictif, minuteur: fauxMinuteur, annulerMinuteur: fauxAnnuler,
+      delaiReponseMs: 15000, dureeConseilMs: 8000 }, extra || {});
+
+    verifier('sans fenêtre : rien de branché', visionneuseWeb.brancher(document, { fenetre: null }) === null);
+    const W = visionneuseWeb.brancher(document, options());
+    verifier('branché', W && typeof W.ouvrir === 'function' && typeof W.fermer === 'function');
+
+    // Adresse refusée : rien n'est créé, la visionneuse reste fermée.
+    let r = W.ouvrir('http://exemple.fr');
+    verifier('adresse refusée : pas ouvert', !r.ok && r.code === 'pas-https' && !fen.open && !document.getElementById('web-visionneuse'));
+
+    // Site FICTIF : la visionneuse s'ouvre, un seul cadre, limité.
+    r = W.ouvrir('https://exemple.fr/FICTIF');
+    let cadre = document.getElementById('cadre-web-visionneuse');
+    const panneau = document.getElementById('web-visionneuse');
+    verifier('site : ouvert', r.ok && r.sorte === 'site' && fen.open && W.ouvert() && W.sorte() === 'site');
+    verifier('cadre dans la visionneuse', cadre && panneau && panneau.parentNode === fen && cadre.parentNode === panneau && !panneau.hidden);
+    const jetons = cadre ? cadre.getAttribute('sandbox').split(/\s+/) : [];
+    verifier('cadre limité (sandbox présent)', cadre && cadre.hasAttribute('sandbox'));
+    verifier('JAMAIS de nouvelle fenêtre (pas de allow-popups)', !jetons.some(j => /popups/.test(j)), jetons.join(' '));
+    verifier('JAMAIS de remplacement de Cap (pas de allow-top-navigation)', !jetons.some(j => /top-navigation/.test(j)), jetons.join(' '));
+    verifier('pas de allow-modals ni allow-downloads', !jetons.some(j => /modals|downloads/.test(j)), jetons.join(' '));
+    verifier('scripts du site permis', jetons.includes('allow-scripts') && jetons.includes('allow-same-origin'));
+    verifier('plein écran demandé', cadre && /fullscreen/.test(cadre.getAttribute('allow')) && cadre.hasAttribute('allowfullscreen'));
+    verifier('origine envoyée (YouTube)', cadre && cadre.getAttribute('referrerpolicy') === 'strict-origin-when-cross-origin');
+    verifier('adresse donnée au cadre', posees[posees.length - 1] === 'https://exemple.fr/FICTIF');
+    verifier('aucune vraie adresse posée (tests sans réseau)', cadre && !cadre.hasAttribute('src'));
+    verifier('message de chargement', document.getElementById('message-web-visionneuse').textContent === 'Chargement du site…');
+    verifier('panneau sous la barre de Cap', getComputedStyle(panneau).top === '64px' && getComputedStyle(panneau).zIndex === '5', getComputedStyle(panneau).top + ' ' + getComputedStyle(panneau).zIndex);
+    verifier('un seul style ajouté', document.querySelectorAll('#style-web-visionneuse').length === 1);
+    // 13/11/2026 (Cap, cadre 16:9) : fenêtre en plein écran comme dans Cap ; un SITE garde tout le panneau.
+    const PLEIN = 'position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;';
+    const proche = (a, b) => Math.abs(a - b) <= 1.5;
+    fen.setAttribute('style', PLEIN);
+    { const P = panneau.getBoundingClientRect(); const C = cadre.getBoundingClientRect();
+      verifier('site : cadre = tout le panneau', proche(C.left, P.left) && proche(C.width, P.width) && proche(C.top, P.top) && proche(C.height, P.height), JSON.stringify([P, C])); }
+    fen.removeAttribute('style');
+    await pause(300);
+    const msg = () => document.getElementById('message-web-visionneuse');
+    verifier('site chargé : « si la page reste blanche »', msg().textContent === visionneuseWeb.MESSAGES['peut-refuser'] && !msg().hidden, msg().textContent);
+    verifier('le délai « ne répond pas » est annulé au chargement', minuteurs.filter(m => m.ms === 15000).every(m => m.annule));
+    declencher(8000);
+    verifier('conseil effacé après 8 s', msg().hidden && msg().textContent === '');
+    verifier('message sans l’adresse', !msg().textContent.includes('exemple'));
+
+    // Le cadre est VRAIMENT limité : une page FICTIVE essaie d'ouvrir une fenêtre et de remplacer Cap.
+    const adresseCap = location.href;
+    const essai = new Promise(ok => { const ecoute = e => { if (e.data && e.data.essaiFictif) { removeEventListener('message', ecoute); ok(e.data); } }; addEventListener('message', ecoute); });
+    cadre.srcdoc = '<script>let fen = "x"; try { fen = window.open("about:blank"); } catch (e) { fen = null; }'
+      + ' let haut = "rien"; try { top.location.href = "about:blank#FICTIF"; haut = "tente"; } catch (e) { haut = "bloque"; }'
+      + ' parent.postMessage({ essaiFictif: true, fenetre: fen === null, haut }, "*");<\/script>';
+    const res = await Promise.race([essai, pause(3000).then(() => null)]);
+    await pause(200);
+    verifier('le site ne peut pas ouvrir de fenêtre', res && res.fenetre === true, JSON.stringify(res));
+    verifier('le site ne peut pas remplacer Cap', location.href === adresseCap && res && res.haut === 'bloque', JSON.stringify(res));
+
+    // Vidéo FICTIVE : remplace le site ; un seul cadre.
+    const avant = cadre;
+    r = W.ouvrir('https://youtu.be/FICTIF_0001?t=30');
+    cadre = document.getElementById('cadre-web-visionneuse');
+    verifier('vidéo : ouverte', r.ok && r.sorte === 'youtube' && W.sorte() === 'youtube');
+    verifier('ancien cadre retiré', !avant.isConnected && document.querySelectorAll('#web-visionneuse iframe').length === 1);
+    verifier('cadre vidéo : adresse nocookie', posees[posees.length - 1] === 'https://www.youtube-nocookie.com/embed/FICTIF_0001?playsinline=1&rel=0&start=30');
+    verifier('panneau en mode vidéo', panneau.classList.contains('video') && cadre.title === 'Vidéo YouTube');
+    await pause(300);
+    verifier('vidéo chargée : aucun message', msg().hidden, msg().textContent);
+    // 13/11/2026 (Cap, essai de Max : vidéo rognée) : cadre 16:9, le plus grand qui tient, centré, jamais plus large ni plus haut que le panneau.
+    const mesurer = () => { const P = panneau.getBoundingClientRect(); const C = cadre.getBoundingClientRect(); return { P, C }; };
+    fen.setAttribute('style', PLEIN + ' width: 360px;'); // portrait (comme le Pixel tenu droit) : toute la largeur
+    { const { P, C } = mesurer();
+      verifier('vidéo : toute la largeur', proche(C.width, P.width) && proche(C.left, P.left), JSON.stringify([P, C]));
+      verifier('vidéo : 16:9', proche(C.height, C.width * 9 / 16), JSON.stringify(C));
+      verifier('vidéo : centrée en hauteur, dans le panneau', proche(C.top - P.top, P.bottom - C.bottom) && C.top >= P.top - 0.5 && C.bottom <= P.bottom + 0.5, JSON.stringify([P, C])); }
+    fen.setAttribute('style', PLEIN + ' height: 300px;'); // panneau plus large que haut (paysage) : toute la hauteur
+    { const { P, C } = mesurer();
+      verifier('paysage : toute la hauteur', proche(C.height, P.height) && proche(C.top, P.top), JSON.stringify([P, C]));
+      verifier('paysage : 16:9, rien de rogné', proche(C.width, C.height * 16 / 9) && C.left >= P.left - 0.5 && C.right <= P.right + 0.5, JSON.stringify([P, C]));
+      verifier('paysage : centrée en largeur', proche(C.left - P.left, P.right - C.right), JSON.stringify([P, C])); }
+    fen.removeAttribute('style');
+
+    // Fermer : cadre vidé et retiré, la visionneuse reste ouverte.
+    verifier('fermer : vrai', W.fermer() === true);
+    verifier('fermer : cadre retiré', !cadre.isConnected && !document.getElementById('cadre-web-visionneuse'));
+    verifier('fermer : cadre vidé', cadre.getAttribute('src') === 'about:blank');
+    verifier('fermer : panneau caché, visionneuse ouverte', panneau.hidden && fen.open && !W.ouvert());
+    verifier('fermer deux fois : faux', W.fermer() === false);
+
+    // Site muet : « ne répond pas » au bout du délai.
+    const W2 = visionneuseWeb.brancher(document, options({ poserAdresse: poserMuet }));
+    const debutW2 = minuteurs.length;
+    W2.ouvrir('https://muet.exemple.fr');
+    verifier('second branchement : panneau non doublé', document.querySelectorAll('#web-visionneuse').length === 1 && document.querySelectorAll('#message-web-visionneuse').length === 1);
+    declencher(15000);
+    verifier('site muet : « ne répond pas »', msg().textContent === visionneuseWeb.MESSAGES['ne-repond-pas'] && !msg().hidden, msg().textContent);
+    // Un vieux délai ne parle pas pour le site suivant.
+    W2.ouvrir('https://autre.exemple.fr');
+    const vieux = minuteurs.slice(debutW2).filter(m => m.ms === 15000);
+    vieux[0].f(); // délai du PREMIER site muet (déjà réglé), rejoué exprès
+    verifier('vieux délai sans effet', msg().textContent === 'Chargement du site…', msg().textContent);
+    W2.fermer();
+
+    // Visionneuse fermée par Cap (bouton, voix, retour) : cadre vidé et retiré.
+    W.ouvrir('https://exemple.fr');
+    const c3 = document.getElementById('cadre-web-visionneuse');
+    fen.close();
+    await pause(50);
+    verifier('fermeture de la visionneuse : cadre retiré', !c3.isConnected && c3.getAttribute('src') === 'about:blank' && !W.ouvert());
+
+    // Sans réseau : rien n'est chargé, Cap le dit.
+    enLigneFictif = false;
+    const nPose = posees.length;
+    r = W.ouvrir('https://exemple.fr');
+    verifier('sans réseau : refusé', !r.ok && r.code === 'pas-de-reseau' && msg().textContent === visionneuseWeb.MESSAGES['pas-de-reseau'] && !document.getElementById('cadre-web-visionneuse') && posees.length === nPose);
+    enLigneFictif = true;
+    W.fermer();
+    fen.close();
+    await pause(50);
+
+    // Visionneuse impossible à ouvrir : rien n'est créé.
+    const W3 = visionneuseWeb.brancher(document, options({ ouvrirVisionneuse: () => {} }));
+    r = W3.ouvrir('https://exemple.fr');
+    verifier('visionneuse absente : refusé', !r.ok && r.code === 'visionneuse-absente' && !document.getElementById('cadre-web-visionneuse'));
+
+    // ----- Marche 3 : « Site ou vidéo » dans le menu du bouton blanc (adresses FICTIVES) -----
+    verifier('sans menu : pas de bouton', !document.getElementById('menu-web-visionneuse'));
+    // Faux menu, comme dans Cap : « Fermer », « Ajouter un fichier », puis « Ouvrir un chantier » (posé par visionneuse_cap.js).
+    const menu = document.createElement('div');
+    menu.id = 'menu-visionneuse';
+    for (const [id, texte] of [['menu-fermer-visionneuse', 'Fermer'], ['menu-ajouter-visionneuse', 'Ajouter un fichier'], ['menu-chantiers-visionneuse', 'Ouvrir un chantier'], ['menu-depart-visionneuse', '↺']]) {
+      const b = document.createElement('button'); b.id = id; b.type = 'button'; b.textContent = texte; menu.append(b);
+    }
+    fen.append(menu);
+    const W4 = visionneuseWeb.brancher(document, options());
+    const bouton = document.getElementById('menu-web-visionneuse');
+    verifier('bouton « Site ou vidéo » posé', bouton && bouton.textContent === 'Site ou vidéo' && bouton.type === 'button' && bouton.parentNode === menu);
+    verifier('bouton après « Ouvrir un chantier »', bouton && bouton.previousElementSibling && bouton.previousElementSibling.id === 'menu-chantiers-visionneuse');
+    verifier('jamais deux boutons', W4.brancherMenu() === null && W.brancherMenu() === null && document.querySelectorAll('#menu-web-visionneuse').length === 1);
+    // Sans « Ouvrir un chantier » : après « Ajouter un fichier » (autre page FICTIVE, à part).
+    {
+      const d2 = document.implementation.createHTMLDocument('FICTIF');
+      const f2 = d2.createElement('dialog'); f2.id = 'visionneuse-cap';
+      const m2 = d2.createElement('div'); m2.id = 'menu-visionneuse';
+      const a2 = d2.createElement('button'); a2.id = 'menu-ajouter-visionneuse';
+      const z2 = d2.createElement('button'); z2.id = 'menu-depart-visionneuse';
+      m2.append(a2, z2); f2.append(m2); d2.body.append(f2);
+      visionneuseWeb.brancher(d2, { fenetre: f2, poserAdresse: poserMuet });
+      const b2 = d2.getElementById('menu-web-visionneuse');
+      verifier('sans chantiers : après « Ajouter un fichier »', b2 && b2.previousElementSibling === a2);
+    }
+
+    // Visionneuse fermée : le bouton ne montre rien.
+    verifier('visionneuse fermée au départ', !fen.open);
+    bouton.click();
+    verifier('visionneuse fermée : pas de formulaire', !W4.saisieOuverte());
+    fen.showModal();
+    bouton.click();
+    const form = document.getElementById('saisie-web-visionneuse');
+    const champ = document.getElementById('champ-web-visionneuse');
+    const err = document.getElementById('erreur-web-visionneuse');
+    verifier('formulaire montré dans la visionneuse', form && form.parentNode === fen && !form.hidden && W4.saisieOuverte());
+    verifier('champ vide et prêt', champ && champ.value === '' && document.activeElement === champ, document.activeElement && document.activeElement.id);
+    verifier('champ texte (pas de bulle du navigateur)', champ.type === 'text' && champ.getAttribute('inputmode') === 'url' && form.noValidate);
+    verifier('champ limité à 2000 signes', champ.maxLength === 2000);
+    verifier('champ sans correction ni majuscule', champ.getAttribute('autocapitalize') === 'off' && champ.getAttribute('spellcheck') === 'false' && champ.getAttribute('autocomplete') === 'off');
+    verifier('« Ouvrir » et « Annuler »', document.getElementById('ouvrir-web-visionneuse').type === 'submit' && document.getElementById('annuler-web-visionneuse').type === 'button');
+    verifier('formulaire au-dessus du cadre, sous le menu', getComputedStyle(form).zIndex === '6');
+
+    // Adresses refusées : une phrase simple, JAMAIS l'adresse ; rien n'est ouvert ; le formulaire reste.
+    const refusees = [
+      ['http://FICTIF-secret.exemple.fr', 'pas-https', ['FICTIF', 'secret', 'exemple', 'http://']],
+      ['javascript:alert("FICTIF")', 'illisible', ['javascript', 'alert', 'FICTIF']],
+      ['https://FICTIF:motdepasse@exemple.fr', 'identifiants', ['motdepasse', 'FICTIF', 'exemple']],
+      // 13/11/2026 : hôte « hote-fictif.fr » (et non exemple.fr) : la phrase « illisible » montre l'exemple fixe https://exemple.fr.
+      ['ftp://hote-fictif.fr/FICTIF', 'illisible', ['ftp', 'FICTIF', 'hote-fictif']],
+      ['https://localhost/FICTIF', 'hote-local', ['localhost', 'FICTIF']],
+      ['bonjour FICTIF', 'illisible', ['bonjour', 'FICTIF']],
+      ['', 'vide', []]
+    ];
+    for (const [adresse, code, morceaux] of refusees) {
+      const nCadres = posees.length;
+      champ.value = adresse;
+      form.requestSubmit();
+      const texte = err.textContent;
+      verifier(`refus (${code}) affiché`, !err.hidden && texte === visionneuseWeb.MESSAGES[code], texte);
+      verifier(`refus (${code}) sans l’adresse`, morceaux.every(m => !texte.includes(m)), texte);
+      verifier(`refus (${code}) : rien ouvert, formulaire gardé`, posees.length === nCadres && !document.getElementById('cadre-web-visionneuse') && !form.hidden);
+    }
+    // 13/11/2026 (chemin 1) : « youtube.com » dans le formulaire : l'application YouTube, rien dans la visionneuse.
+    {
+      const appli = [];
+      const W5 = visionneuseWeb.brancher(document, options({ ouvrirAppli: a => appli.push(a) }));
+      const nAvant = posees.length;
+      W5.montrerSaisie(); // le même formulaire, pris en main par ce branchement
+      champ.value = 'youtube.com';
+      verifier('youtube.com : application', W5.validerSaisie().sorte === 'youtube-appli' && appli.join() === 'https://youtube.com/' && posees.length === nAvant && !document.getElementById('cadre-web-visionneuse'), appli.join());
+      verifier('youtube.com : formulaire caché', form.hidden && champ.value === '');
+      bouton.click();
+      verifier('lien de vidéo : toujours dans Cap', W5.ouvrir('youtu.be/FICTIF_0001').sorte === 'youtube' && appli.length === 1 && posees[posees.length - 1].startsWith('https://www.youtube-nocookie.com/embed/FICTIF_0001?'));
+      W5.fermer();
+      enLigneFictif = false;
+      verifier('sans réseau : pas d’application', W5.ouvrir('youtube.com').code === 'pas-de-reseau' && appli.length === 1);
+      enLigneFictif = true;
+      bouton.click();
+    }
+    // Écrire à nouveau efface le refus.
+    champ.value = 'https://exemple';
+    champ.dispatchEvent(new Event('input'));
+    verifier('écrire efface le refus', err.hidden && err.textContent === '');
+
+    // Adresse https FICTIVE : ouverte, formulaire caché et vidé.
+    champ.value = '  https://exemple.fr/FICTIF  ';
+    form.requestSubmit();
+    verifier('https : ouvert dans le cadre', document.getElementById('cadre-web-visionneuse') && posees[posees.length - 1] === 'https://exemple.fr/FICTIF');
+    verifier('https : formulaire caché et vidé', form.hidden && champ.value === '' && !W4.saisieOuverte());
+    // Vidéo FICTIVE par le bouton « Ouvrir ».
+    bouton.click();
+    champ.value = 'youtu.be/FICTIF_0001';
+    document.getElementById('ouvrir-web-visionneuse').click();
+    verifier('vidéo par « Ouvrir »', posees[posees.length - 1].startsWith('https://www.youtube-nocookie.com/embed/FICTIF_0001?') && form.hidden);
+
+    // « Annuler » : caché, vidé, rien ouvert de plus.
+    bouton.click();
+    const nAvant = posees.length;
+    champ.value = 'https://exemple.fr/FICTIF-annule';
+    document.getElementById('annuler-web-visionneuse').click();
+    verifier('« Annuler » : caché, vidé, rien ouvert', form.hidden && champ.value === '' && posees.length === nAvant);
+    // Le formulaire rouvert est vide (rien n'est gardé).
+    bouton.click();
+    verifier('formulaire rouvert vide', champ.value === '' && err.hidden);
+
+    // Fermeture de la visionneuse avec une adresse écrite : champ vidé.
+    champ.value = 'https://exemple.fr/FICTIF-oublie';
+    fen.close();
+    await pause(50);
+    verifier('visionneuse fermée : formulaire caché et vidé', form.hidden && champ.value === '' && !document.getElementById('cadre-web-visionneuse'));
+
+    // Sans réseau : le formulaire se cache, le panneau le dit.
+    fen.showModal();
+    bouton.click();
+    enLigneFictif = false;
+    champ.value = 'https://exemple.fr/FICTIF';
+    form.requestSubmit();
+    verifier('sans réseau : formulaire caché, message', form.hidden && msg().textContent === visionneuseWeb.MESSAGES['pas-de-reseau']);
+    enLigneFictif = true;
+    W4.fermer();
+    verifier('jamais deux formulaires', document.querySelectorAll('#saisie-web-visionneuse').length === 1);
+    fen.close();
+    await pause(50);
+
+    // ----- Marche 4 : retour() ferme UNE chose à la fois, la plus haute -----
+    verifier('retour : rien d’ouvert -> faux', W4.retour() === false);
+    fen.showModal();
+    W4.ouvrir('https://exemple.fr/FICTIF');
+    bouton.click(); // formulaire par-dessus le site
+    verifier('retour 1 : ferme le formulaire', W4.retour() === true && form.hidden && W4.ouvert() && fen.open);
+    verifier('retour 2 : ferme le site', W4.retour() === true && !W4.ouvert() && !document.getElementById('cadre-web-visionneuse') && fen.open);
+    verifier('retour 3 : plus rien -> faux (Cap ferme la visionneuse)', W4.retour() === false && fen.open);
+    bouton.click();
+    verifier('retour : formulaire seul', W4.retour() === true && form.hidden && W4.retour() === false);
+    fen.close();
+    await pause(50);
+    // Fermeture vue TOUT DE SUITE (sans attendre l'événement « close », qui peut arriver en retard), puis réouverture
+    // immédiate : rien d'ancien ne reste.
+    fen.showModal();
+    W4.ouvrir('https://exemple.fr/FICTIF');
+    bouton.click();
+    champ.value = 'https://exemple.fr/FICTIF-pas-gardee';
+    const cVite = document.getElementById('cadre-web-visionneuse');
+    fen.close();
+    await Promise.resolve();
+    verifier('fermeture vue tout de suite : cadre retiré, champ vidé', !cVite.isConnected && !W4.ouvert() && form.hidden && champ.value === '');
+    fen.showModal();
+    verifier('réouverture immédiate : visionneuse propre', !document.getElementById('cadre-web-visionneuse') && panneau.hidden && form.hidden);
+    fen.close();
+    await pause(50);
+  } catch (erreur) {
+    verifier('aucune exception', false, erreur && erreur.stack || erreur);
+  }
+  document.getElementById('resultats').textContent = 'RESULTATS_JSON:' + JSON.stringify(resultats) + ':FIN';
+})();
+</script>
+</body>
+</html>

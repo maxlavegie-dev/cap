@@ -290,9 +290,12 @@ const visionneuseCap = (() => {
     // 11/11/2026 (c133) : « Fermer » (bouton, voix, retour du téléphone) passe d'abord par la mosaïque des chantiers quand
     // elle est ouverte ou qu'un chantier a été ouvert depuis elle (retourVersChantiers, plus bas). Avant :
     // fenetre.addEventListener('cancel', nettoyer); et fermer : () => { nettoyer(); if (fenetre.open) fenetre.close(); }
-    fenetre.addEventListener('cancel', e => { if (retourVersChantiers()) { e.preventDefault(); return; } nettoyer(); });
+    // 13/11/2026 (Agent 3, marche 4, accord de Max) : un site ou une vidéo ouvert (visionneuse_web.js), ou son formulaire, se
+    // ferme AVANT la visionneuse ; la grille des chantiers (au-dessus) garde la priorité.
+    const retourWeb = () => (!grilleOuverte() && typeof visionneuseWeb !== 'undefined' && visionneuseWeb.instance ? visionneuseWeb.instance.retour() : false);
+    fenetre.addEventListener('cancel', e => { if (retourWeb() || retourVersChantiers()) { e.preventDefault(); return; } nettoyer(); });
     fenetre.addEventListener('close', () => { if (!fenetre.open) { oublierGrilleChantiers(); nettoyer(); } });
-    fermer.addEventListener('click', () => { if (retourVersChantiers()) return; nettoyer(); if (fenetre.open) fenetre.close(); });
+    fermer.addEventListener('click', () => { if (retourWeb() || retourVersChantiers()) return; nettoyer(); if (fenetre.open) fenetre.close(); }); // 13/11/2026 : + retourWeb
 
     // ----- 11/11/2026 (accord de Max, c118, marche 1) : le BOUTON ROND BLANC et son menu en ligne (brancherMenu, plus bas).
     brancherMenu(doc, { dureeMenuMs });
@@ -685,6 +688,7 @@ const visionneuseCap = (() => {
     function fermerParVoix() {
       // c133 : la mosaïque des chantiers d'abord.
       if (fenetre.open && grilleOuverte()) { fermer.click(); return 'Je ferme la liste des chantiers.'; }
+      if (fenetre.open && retourWeb()) return 'Je ferme le site ou la vidéo.'; // 13/11/2026 (Agent 3, marche 4)
       if (fenetre.open && chantierDepuisGrille) { fermer.click(); return 'Je reviens aux chantiers.'; }
       if (fenetre.open) { fermer.click(); return vignettesOuvertes() ? 'Je ferme le document : voici les vignettes.' : 'Je ferme la visionneuse.'; }
       if (vignettesOuvertes()) { fermerVignettes.click(); return 'Je ferme les documents.'; }

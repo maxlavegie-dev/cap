@@ -11,6 +11,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Base64;
 import android.provider.MediaStore;
 import android.provider.Telephony;
 import android.widget.Toast;
@@ -55,6 +56,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -202,6 +204,9 @@ public class MainActivity extends Activity {
                     ouvrirHorsDeCap(adresse);
                     return true;
                 }
+                // 13/11/2026 (chemin 1 de Max) : une adresse YouTube suivie par la page (accueil, chaîne, recherche : pas une vidéo
+                // précise) s'ouvre HORS de Cap, dans l'application YouTube si elle est là ; le retour du téléphone revient à Cap.
+                if (request.isForMainFrame() && "https".equals(adresse.getScheme()) && HOTES_YOUTUBE.contains(adresse.getHost())) { ouvrirHorsDeCap(adresse); return true; }
                 // 12/11/2026 (c155, A3b) : « Appeler » (tel:) ouvre le CLAVIER du téléphone avec le numéro, SANS appeler tout seul
                 // (aucune permission) ; « Écrire un mail » (mailto:) ouvre la messagerie. Cap reste ouvert derrière.
                 if ("tel".equals(adresse.getScheme()) || "mailto".equals(adresse.getScheme())) {
@@ -361,6 +366,8 @@ public class MainActivity extends Activity {
         return checkSelfPermission(Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED;
     }
 
+    private static final long TAILLE_MAX_PIECE = 5L * 1024 * 1024; // 14/11/2026 (P6) : la limite de l'envoi du compte Cap (P4)
+
     private static Uri uriPiecesMms() {
         return Build.VERSION.SDK_INT >= 29 ? Telephony.Mms.Part.CONTENT_URI : Uri.parse("content://mms/part");
     }
@@ -425,6 +432,131 @@ public class MainActivity extends Activity {
             }
             return liste.toString();
         }
+
+        // ----- 13/11/2026 (accord de Max, P3) : INVENTAIRE des SMS et MMS, reçus et envoyés, pour des NOMBRES seulement. -----
+        // Seulement avec l'autorisation SMS déjà accordée ; aucune autre autorisation. Le calcul tourne dans un fil à part
+        // (l'écran ne gèle pas) ; Cap demande l'état, puis lit le résultat UNE fois (il est alors oublié ici). Par message :
+        // sorte (sms / mms), sens (reçu / envoyé / autre), date, correspondants, groupe, texte. Le texte et les numéros ne
+        // servent dans la page qu'à compter (codes à usage unique, clés d'expéditeurs) puis sont oubliés. Aucun Log, aucun
+        // fichier, rien envoyé, rien écrit sur le téléphone.
+        private volatile String inventaireEtat = "rien";
+        private volatile String inventaireJson = null;
+
+        @JavascriptInterface
+        public boolean inventaireLancer() {
+            if (!pageDeCap() || !permissionSmsAccordee()) return false;
+            if ("en-cours".equals(inventaireEtat)) return true;
+            inventaireEtat = "en-cours";
+            inventaireJson = null;
+            new Thread(() -> {
+                try {
+                    inventaireJson = construireInventaire(getContentResolver()).toString();
+                    inventaireEtat = "pret";
+                } catch (Throwable e) {
+                    inventaireJson = null;
+                    inventaireEtat = "erreur";
+                }
+            }).start();
+            return true;
+        }
+
+        @JavascriptInterface
+        public String inventaireEtat() {
+            return pageDeCap() ? inventaireEtat : "rien";
+        }
+
+        @JavascriptInterface
+        public String inventaireLire() {
+            if (!pageDeCap() || !"pret".equals(inventaireEtat)) return "";
+            String j = inventaireJson;
+            inventaireJson = null;
+            inventaireEtat = "rien";
+            return j == null ? "" : j;
+        }
+
+        // ----- 14/11/2026 (accord de Max, P6) : LIRE UNE pièce (image ou vidéo) d'UN MMS, pour la copier dans le Drive du compte
+        // Cap après « Oui, copier ». LECTURE SEULE avec l'autorisation SMS déjà accordée (aucune autre) : rien n'est écrit,
+        // déplacé ni effacé sur le téléphone ; le message reste où il est. Seulement pour une page de Cap ; identifiants en
+        // chiffres ; la pièce doit appartenir à CE message et être d'un type permis (AdressesMms.typePiece) ; 5 Mo au plus
+        // (au-delà : « trop », sans contenu). Rien n'est gardé ici, aucun Log, aucun fichier.
+        @JavascriptInterface
+        public String pieceLire(String mid, String partId) {
+            try {
+                JSONObject r = new JSONObject();
+                if (!pageDeCap() || !permissionSmsAccordee() || !AdressesMms.idSur(mid) || !AdressesMms.idSur(partId)) return r.put("erreur", "refus").toString();
+                ContentResolver lecteur = getContentResolver();
+                String ct = null;
+                try (Cursor p = lecteur.query(uriPiecesMms(), new String[]{"ct"}, "_id=? AND mid=?", new String[]{partId, mid}, null)) {
+                    if (p != null && p.moveToFirst()) ct = AdressesMms.typePiece(p.getString(0));
+                }
+                if (ct == null) return r.put("erreur", "piece").toString();
+                ByteArrayOutputStream sortie = new ByteArrayOutputStream();
+                try (InputStream entree = lecteur.openInputStream(Uri.withAppendedPath(Uri.parse("content://mms/part"), partId))) {
+                    if (entree == null) return r.put("erreur", "lecture").toString();
+                    byte[] tampon = new byte[65536];
+                    long total = 0;
+                    int n;
+                    while ((n = entree.read(tampon)) > 0) {
+                        total += n;
+                        if (total > TAILLE_MAX_PIECE) return r.put("ct", ct).put("trop", true).toString();
+                        sortie.write(tampon, 0, n);
+                    }
+                }
+                byte[] octets = sortie.toByteArray();
+                if (octets.length == 0) return r.put("erreur", "vide").toString();
+                return r.put("ct", ct).put("taille", octets.length).put("donnees", Base64.encodeToString(octets, Base64.NO_WRAP)).toString();
+            } catch (Throwable e) {
+                return "{\"erreur\":\"lecture\"}";
+            }
+        }
+    }
+
+    // 13/11/2026 (P3) : lit les SMS puis les MMS (tous, reçus, envoyés et autres), sans rien garder.
+    private static JSONArray construireInventaire(ContentResolver lecteur) throws Exception {
+        JSONArray liste = new JSONArray();
+        try (Cursor c = lecteur.query(Telephony.Sms.CONTENT_URI, new String[]{"type", "address", "body", "date"}, null, null, "date ASC")) {
+            if (c != null) while (c.moveToNext()) {
+                JSONArray adresses = new JSONArray();
+                String adresse = c.getString(1);
+                if (adresse != null) adresses.put(adresse);
+                liste.put(new JSONObject().put("s", "sms").put("sens", AdressesMms.sens(c.getInt(0))).put("date", c.getLong(3))
+                    .put("adresses", adresses).put("groupe", false).put("texte", c.getString(2) == null ? "" : c.getString(2)));
+            }
+        }
+        try (Cursor c = lecteur.query(Telephony.Mms.CONTENT_URI, new String[]{"_id", "date", "msg_box"}, null, null, "date ASC")) {
+            if (c != null) while (c.moveToNext()) {
+                String mid = c.getString(0);
+                String sens = AdressesMms.sens(c.getInt(2));
+                ArrayList<Integer> types = new ArrayList<>();
+                ArrayList<String> adresses = new ArrayList<>();
+                try (Cursor a = lecteur.query(Uri.withAppendedPath(Telephony.Mms.CONTENT_URI, mid + "/addr"), new String[]{"address", "type"}, null, null, null)) {
+                    if (a != null) while (a.moveToNext()) { adresses.add(a.getString(0)); types.add(a.getInt(1)); }
+                } catch (RuntimeException e) { /* adresses illisibles : « À trier » dans la page */ }
+                boolean envoye = "envoye".equals(sens);
+                java.util.List<String> correspondants = AdressesMms.correspondants(types, adresses, envoye);
+                boolean groupe = envoye ? correspondants.size() > 1 : AdressesMms.destinataires(types, adresses) > 1;
+                if (groupe && !envoye) correspondants = AdressesMms.participants(types, adresses); // tous les membres du groupe reçu
+                StringBuilder texte = new StringBuilder();
+                JSONArray pieces = new JSONArray(); // 14/11/2026 (P6) : identifiant et type des pièces copiables (aucun contenu)
+                int autres = 0;
+                try (Cursor p = lecteur.query(uriPiecesMms(), new String[]{"ct", "text", "_id"}, "mid=?", new String[]{mid}, null)) {
+                    if (p != null) while (p.moveToNext()) {
+                        String ct = p.getString(0);
+                        if ("text/plain".equals(ct)) { if (p.getString(1) != null) texte.append(p.getString(1)).append(' '); continue; }
+                        if (ct == null || "application/smil".equals(ct)) continue;
+                        String type = AdressesMms.typePiece(ct);
+                        if (type != null && AdressesMms.idSur(p.getString(2))) pieces.put(new JSONObject().put("id", p.getString(2)).put("ct", type));
+                        else autres++;
+                    }
+                } catch (RuntimeException e) { /* texte illisible : compté comme vide */ }
+                JSONArray liste2 = new JSONArray();
+                for (String x : correspondants) liste2.put(x);
+                liste.put(new JSONObject().put("s", "mms").put("sens", sens).put("date", c.getLong(1) * 1000L)
+                    .put("adresses", liste2).put("groupe", groupe).put("texte", texte.toString())
+                    .put("id", mid).put("pieces", pieces).put("autres", autres)); // 14/11/2026 (P6) : + identifiant, pièces copiables, autres pièces
+            }
+        }
+        return liste;
     }
 
     // Lot c21 : Cap envoie la couleur des deux bandes (« #rrggbb »). Seulement des couleurs, vérifiées.
@@ -928,6 +1060,28 @@ public class MainActivity extends Activity {
             appelerJs("window.__mmsAutorisation && window.__mmsAutorisation(" + accordee + ");");
         }
     }
+
+    // 13/11/2026 (accord de Max, décision A) : la touche RETOUR du téléphone. La coque demande d'abord à la page de Cap de
+    // fermer la chose la plus haute (retour_telephone.js : une seule à la fois). Si la page répond qu'il ne reste RIEN à
+    // fermer, Cap passe en arrière-plan (comme le bouton Accueil : rien n'est perdu). Hors de la page de Cap : le retour
+    // habituel d'Android. Aucune autorisation, aucun réseau.
+    @Override
+    @SuppressWarnings("deprecation")
+    public void onBackPressed() {
+        if (vue == null || !pageDeCap()) {
+            super.onBackPressed();
+            return;
+        }
+        vue.evaluateJavascript(SCRIPT_RETOUR, resultat -> {
+            if (!"true".equals(resultat)) moveTaskToBack(true);
+        });
+    }
+
+    private static final java.util.Set<String> HOTES_YOUTUBE = new java.util.HashSet<>(java.util.Arrays.asList(
+        "youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com")); // 13/11/2026 (chemin 1)
+
+    private static final String SCRIPT_RETOUR =
+        "(function(){try{return typeof window.capRetourTelephone==='function'&&window.capRetourTelephone()===true;}catch(e){return false;}})()";
 
     @Override
     protected void onDestroy() {

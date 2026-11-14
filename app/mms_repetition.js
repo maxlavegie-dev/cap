@@ -71,6 +71,40 @@ const mmsRepetition = (() => {
     } finally { enCours = false; }
   }
 
+  // ----- 13/11/2026 (accord de Max, P4 = M3d) : ESSAI D'ENVOI d'UN SEUL faux fichier FICTIF, dans « Personne Test FICTIF ». -----
+  // Par la seule porte d'envoi du compte Cap (envoyerFichier : dossier marqué relu, type, taille, jamais de remplacement ni de
+  // suppression). Marque sur le fichier : un fichier déjà envoyé n'est JAMAIS renvoyé, même mis à la corbeille par Max.
+  const FICHIER_ESSAI = Object.freeze({ nom: 'Essai FICTIF.txt', mimeType: 'text/plain', marque: 'cap_mms_repetition_fichier', valeur: 'essai_1',
+    contenu: 'Fichier FICTIF de répétition, envoyé par Cap (marche P4). Aucune vraie donnée.' });
+  async function fichierEssaiExistant(compte) {
+    // Corbeille comprise : ce que Max a jeté n'est pas renvoyé sans sa question.
+    const q = `appProperties has { key='${FICHIER_ESSAI.marque}' and value='${FICHIER_ESSAI.valeur}' }`;
+    const params = new URLSearchParams({ q, fields: 'files(id,trashed)', pageSize: '10', spaces: 'drive' });
+    const corps = await (await compte.appeler(`${DRIVE}?${params}`)).json();
+    const liste = Array.isArray(corps.files) ? corps.files : [];
+    return liste.length ? { trashed: liste.every(f => f && f.trashed === true) } : null;
+  }
+  // LECTURE SEULE : ce que ferait l'essai. Rend { pret, raison, dejaLa, corbeille, nom }.
+  async function preparerEnvoi(compte) {
+    const p = await preparer(compte);
+    if (!p.personne) return { pret: false, raison: 'Les dossiers de répétition n’existent pas encore : fais d’abord « Répétition MMS ».', nom: FICHIER_ESSAI.nom };
+    const deja = await fichierEssaiExistant(compte);
+    if (deja) return { pret: false, dejaLa: true, corbeille: deja.trashed, nom: FICHIER_ESSAI.nom };
+    return { pret: true, nom: FICHIER_ESSAI.nom, dossier: NOM_PERSONNE };
+  }
+  async function envoyerEssai(compte) {
+    if (enCours) throw new Error('Un envoi est déjà en cours : attends qu’il finisse.');
+    enCours = true;
+    try {
+      const p = await preparer(compte);
+      if (!p.personne) throw new Error('Les dossiers de répétition n’existent pas encore : fais d’abord « Répétition MMS ».');
+      const deja = await fichierEssaiExistant(compte);
+      if (deja) return { envoye: false, dejaLa: true, corbeille: deja.trashed };
+      await compte.envoyerFichier(p.personne.id, { nom: FICHIER_ESSAI.nom, mimeType: FICHIER_ESSAI.mimeType, appProperties: { [FICHIER_ESSAI.marque]: FICHIER_ESSAI.valeur } }, FICHIER_ESSAI.contenu);
+      return { envoye: true, dejaLa: false, nom: FICHIER_ESSAI.nom, dossier: NOM_PERSONNE };
+    } finally { enCours = false; }
+  }
+
   // FAUX messages, FAUSSE personne, aucun numéro : où chacun irait. Rend [« … → … »].
   function demonstration(aleatoire = n => crypto.getRandomValues(new Uint8Array(n))) {
     const empreinte = () => [...aleatoire(32)].map(b => b.toString(16).padStart(2, '0')).join('');
@@ -84,5 +118,5 @@ const mmsRepetition = (() => {
     return mmsRangement.classer(faux, index).map(m => `${m.quoi} → « ${m.destination.type === 'personne' ? m.destination.identifiant : NOM_A_TRIER} »`);
   }
 
-  return Object.freeze({ NOM_RACINE, NOM_PERSONNE, NOM_A_TRIER, MARQUES, preparer, creer, demonstration });
+  return Object.freeze({ NOM_RACINE, NOM_PERSONNE, NOM_A_TRIER, MARQUES, FICHIER_ESSAI, preparer, creer, preparerEnvoi, envoyerEssai, demonstration }); // 13/11/2026 (P4) : + envoi d’essai
 })();
